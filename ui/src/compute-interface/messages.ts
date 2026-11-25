@@ -13,6 +13,8 @@ export type Request =
       x: number; // chainage, m, on the river
       /** Release into a network reach instead: a channel and how far along it (0..1). */
       network?: { id: string; element: number; fraction: number };
+      /** Release into a mesh reach instead: a triangle and two barycentric weights (its second and third nodes). */
+      mesh?: { id: string; triangle: number; w1: number; w2: number };
       start: number;
       duration: number; // s; 0 for all at once
       mass: number; // kg
@@ -37,6 +39,22 @@ export interface NetworkFrame {
   massBalance: Float64Array;
 }
 
+/** A mesh reach (such as a bay) at one moment. Positions are a triangle and
+ * two barycentric weights (for its second and third nodes), two per thing. */
+export interface MeshFrame {
+  id: string;
+  particleTriangle: Uint32Array;
+  particleWeights: Float32Array;
+  /** Speed of each flow particle, m/s. */
+  particleSpeed: Float32Array;
+  parcelTriangle: Uint32Array;
+  parcelWeights: Float32Array;
+  /** Depth-averaged concentration where each parcel is, kg/m3. */
+  parcelConcentration: Float64Array;
+  /** [released, in water, out to sea, handed on, broken down], kg. */
+  massBalance: Float64Array;
+}
+
 /** A snapshot of the water at one moment. */
 export interface Frame {
   type: "frame";
@@ -50,7 +68,8 @@ export interface Frame {
   parcelConcentration: Float64Array;
   /** Every reach together, kg: [released so far, in the water, past the end of
    * the last reach, broken down, taken by the pumps, taken by other diversions,
-   * out to sea]. Mass handed from one reach to the next is counted once. */
+   * out of a network at its sea boundary, out of a mesh to the open ocean].
+   * Mass handed from one reach to the next is counted once. */
   massBalance: Float64Array;
   /** Certainty of the flow at this moment, 1 down toward 0 (specification 8.2). */
   certainty: number;
@@ -58,6 +77,8 @@ export interface Frame {
   words: Words;
   /** Network reaches loaded so far. */
   networks: NetworkFrame[];
+  /** Mesh reaches loaded so far. */
+  meshes: MeshFrame[];
 }
 
 export type Words = "measured" | "forecast" | "rough_guide";
@@ -73,6 +94,8 @@ export interface Ready {
   step: number;
   /** Network reaches (such as a tidal delta), by id: they arrive in later frames. */
   networks: string[];
+  /** Mesh reaches (such as a bay), by id: they arrive in later frames. */
+  meshes: string[];
 }
 
 export interface Failed {

@@ -1,6 +1,8 @@
 # Fischer Delta Model Returns
 
-Where water goes from Shasta Dam to the Golden Gate: now, over the last 14 days and over the next 14, shown as moving particles on a map. A free, non-commercial visualization, to live at `tripofisch.com/sturgeon/`.
+Where water goes from Shasta Dam to the Golden Gate: now, over the last 14 days and over the next 14, shown as moving particles on a map. A free, non-commercial visualization, called **Sturgeon** on TripoFisch.
+
+**Live site: [tripofisch.com/sturgeon](https://tripofisch.com/sturgeon/)** (the project's page; the interactive viewer launches from it).
 
 - [Specification](docs/specification.md), version 1.0
 - [Build plan](docs/build-plan.md)

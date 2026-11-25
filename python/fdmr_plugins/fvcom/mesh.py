@@ -184,6 +184,15 @@ def coarsen(fine: Fine, keep: np.ndarray, k: float, min_m: float, max_m: float) 
     node_in = np.zeros(len(fine.x), bool)
     node_in[np.unique(fine.tri[inside_el])] = True
     node_owner = np.where(node_in, near.query(np.c_[fine.x, fine.y])[1], -1)
+    # Every coarse node keeps at least its own fine node, and the fine triangle
+    # nearest it: a shoreline node whose surrounding triangles fall just outside
+    # the coarse mesh would otherwise get no value at all.
+    node_owner[pick] = np.arange(len(pick))
+    empty = np.flatnonzero(np.bincount(el_owner[el_owner >= 0], minlength=len(pick)) == 0)
+    if len(empty):
+        kept = np.flatnonzero(keep)
+        _, j = cKDTree(np.c_[cx[kept], cy[kept]]).query(np.c_[x[empty], y[empty]])
+        el_owner[kept[j]] = empty
     c = Coarse(fine_node=pick, lon=fine.lon[pick], lat=fine.lat[pick], x=x, y=y, tri=tri,
                depth=np.zeros(len(pick)), el_owner=el_owner, node_owner=node_owner,
                el_area=tri_area(fine.x, fine.y, fine.tri), node_area=fine.node_area)

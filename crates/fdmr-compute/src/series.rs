@@ -57,6 +57,13 @@ impl Series {
         &v[i * self.elements..(i + 1) * self.elements]
     }
 
+    /// The time of the last step held, s; `None` with no days.
+    pub(crate) fn end(&self) -> Option<f64> {
+        let d = self.days.last()?;
+        #[allow(clippy::cast_precision_loss)]
+        Some(d.t0 as f64 + f64::from(d.step_s) * f64::from(d.steps.saturating_sub(1)))
+    }
+
     /// A field at `t` for every element, linear between steps; `None` before the
     /// first day. A value missing at either step (NaN) stays missing.
     pub(crate) fn at(&self, t: f64, name: &str) -> Option<Vec<f64>> {

@@ -36,6 +36,8 @@ from fdmr_plugins.fvcom.layout import Layout, read_layout
 
 HOUR = 3600
 DAY = 86_400
+# Raised whenever the coarsening changes, so meshes and hours made the old way are made again.
+MESH_VERSION = 2
 
 
 def stamp(t: int) -> str:
@@ -57,7 +59,7 @@ def prepare(cfg: dict, work: Path, cycle: int) -> tuple[Layout, mesh.Coarse, dic
     if not lay_file.exists():
         lay_file.write_text(read_layout(template).to_json(), encoding="utf-8")
     layout = Layout.from_json(lay_file.read_text(encoding="utf-8"))
-    settings = json.dumps(cfg["mesh"], sort_keys=True)
+    settings = json.dumps({"mesh": cfg["mesh"], "version": MESH_VERSION}, sort_keys=True)
     mesh_file, made_with = work / "mesh.npz", work / "mesh.settings.json"
     if mesh_file.exists() and made_with.exists() and made_with.read_text(encoding="utf-8") == settings:
         coarse = mesh.Coarse.load(mesh_file)
@@ -129,7 +131,7 @@ def publish(cfg: dict, region_dir: Path, coarse: mesh.Coarse, edges: dict, hours
     if pub.exists():
         shutil.rmtree(pub)  # never rewrite a published file in place
     (pub / "geometry").mkdir(parents=True)
-    (pub / "geometry" / f"{reach}.json").write_text(json.dumps(mesh.geometry(coarse, reach, edges), separators=(",", ":")), encoding="utf-8")
+    (pub / "geometry" / f"{reach}.json").write_text(json.dumps(mesh.geometry(coarse, reach, edges), separators=(",", ":"), allow_nan=False), encoding="utf-8")
     data = {t: dict(np.load(p)) for t, p in sorted(hours.items())}
     start, end = min(data), max(data) + HOUR
     days = fields.write_days(data, reach, pub / reach, start, end)

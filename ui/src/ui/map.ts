@@ -21,6 +21,7 @@ setWorkerUrl(mapWorkerUrl);
 // The basemap is one PMTiles file on our own server, read in pieces (specification 5.1).
 addProtocol("pmtiles", new Protocol().tile);
 import type { Frame } from "../compute-interface/messages";
+import type { MeshGeometry, MeshPlace } from "./mesh";
 import type { NetworkPlace } from "./network";
 import type { Reach } from "./reach";
 
@@ -156,6 +157,31 @@ export function addNetwork(map: Map, id: string, g: NetworkGeometry): void {
   else map.once("load", add);
 }
 
+/** Draw a mesh reach's water (docs/format.md, 2D reaches) under the particles. */
+export function addMesh(map: Map, id: string, g: MeshGeometry): void {
+  const add = () => {
+    const src = `mesh-${id}`;
+    if (map.getSource(src)) return;
+    map.addSource(src, {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: g.triangles.map(([a, b, c]) => ({
+          type: "Feature",
+          properties: {},
+          geometry: { type: "Polygon", coordinates: [[[g.lon[a], g.lat[a]], [g.lon[b], g.lat[b]], [g.lon[c], g.lat[c]], [g.lon[a], g.lat[a]]]] },
+        })),
+      },
+    });
+    map.addLayer(
+      { id: src, type: "fill", source: src, paint: { "fill-color": "#1f3b5c", "fill-opacity": 0.45, "fill-antialias": false } },
+      map.getLayer("flow") ? "flow" : undefined,
+    );
+  };
+  if (map.isStyleLoaded()) add();
+  else map.once("load", add);
+}
+
 const drawnNetworkTime = new globalThis.Map<string, number>();
 
 /** Colour each network channel by its speed at the frame's time. */
@@ -171,7 +197,7 @@ export function drawNetworks(map: Map, f: Frame): void {
 }
 
 /** Draw a frame from the compute engine. Drawing only: placing positions on the lines. */
-export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[] = []): void {
+export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[] = [], meshes: MeshPlace[] = []): void {
   const flow = map.getSource("flow") as GeoJSONSource | undefined;
   const pollutant = map.getSource("pollutant") as GeoJSONSource | undefined;
   if (!flow || !pollutant) return;
@@ -193,6 +219,17 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
         type: "Feature",
         properties: { s: Math.abs(nf.velocity[e] ?? 0) },
         geometry: { type: "Point", coordinates: net.place(e, nf.particleFraction[i], lateral, 25, i) },
+      });
+    }
+  }
+  for (const mf of f.meshes) {
+    const mesh = meshes.find((x) => x.id === mf.id);
+    if (!mesh) continue;
+    for (let i = 0; i < mf.particleTriangle.length; i++) {
+      pts.push({
+        type: "Feature",
+        properties: { s: mf.particleSpeed[i] },
+        geometry: { type: "Point", coordinates: mesh.place(mf.particleTriangle[i], mf.particleWeights[2 * i], mf.particleWeights[2 * i + 1]) },
       });
     }
   }
@@ -219,6 +256,19 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
         type: "Feature",
         properties: { c: Math.log10(Math.max(1e-9, nf.parcelConcentration[i] * 1000)) }, // mg/L
         geometry: { type: "Point", coordinates: net.place(nf.parcelElement[i], nf.parcelFraction[i], lateral, 25, i) },
+      });
+    }
+  }
+  for (const mf of f.meshes) {
+    const mesh = meshes.find((x) => x.id === mf.id);
+    if (!mesh) continue;
+    const m = mf.parcelTriangle.length;
+    const each = Math.max(1, Math.ceil(m / MAX_DRAWN_PARCELS));
+    for (let i = 0; i < m; i += each) {
+      ps.push({
+        type: "Feature",
+        properties: { c: Math.log10(Math.max(1e-9, mf.parcelConcentration[i] * 1000)) }, // mg/L
+        geometry: { type: "Point", coordinates: mesh.place(mf.parcelTriangle[i], mf.parcelWeights[2 * i], mf.parcelWeights[2 * i + 1]) },
       });
     }
   }

@@ -324,7 +324,12 @@ impl MeshTracer {
         self.balance = MeshBalance::default();
     }
 
+    /// The fields at `t`, or `None` outside the days held: past the end of the
+    /// published forecast nothing moves, rather than moving on a frozen tide.
     fn conditions(&self, t: f64) -> Option<Now> {
+        if t > self.fields.end()? {
+            return None;
+        }
         let u = self.fields.at(t, "u")?;
         let v = self.fields.at(t, "v")?;
         let level = self.fields.at(t, "level")?;
@@ -667,6 +672,38 @@ impl MeshTracer {
             .collect()
     }
 
+    /// The point in triangle `t` with barycentric weights `w1`, `w2` for its
+    /// second and third nodes (as `parcels()` gives them), m.
+    #[must_use]
+    pub fn point(&self, t: usize, w1: f64, w2: f64) -> (f64, f64) {
+        let n = self.topo.tri[t];
+        let w0 = 1.0 - w1 - w2;
+        let (xs, ys) = (&self.topo.x, &self.topo.y);
+        (
+            w0 * xs[n[0]] + w1 * xs[n[1]] + w2 * xs[n[2]],
+            w0 * ys[n[0]] + w1 * ys[n[1]] + w2 * ys[n[2]],
+        )
+    }
+
+    /// Each flow particle's speed now, m/s, in the order of `particles()`.
+    #[must_use]
+    pub fn particle_speeds(&self) -> Vec<f32> {
+        let Some(now) = self.conditions(self.time) else {
+            return vec![0.0; self.particles.len()];
+        };
+        self.particles
+            .iter()
+            .filter_map(|p| match *p {
+                MeshPlace::In(t, x, y) => {
+                    let s = self.sample(&now, t, x, y);
+                    #[allow(clippy::cast_possible_truncation)]
+                    Some(s.u.hypot(s.v) as f32)
+                }
+                MeshPlace::Gone(_) => None,
+            })
+            .collect()
+    }
+
     /// Speed at every node at the current time, m/s (for colouring the water).
     #[must_use]
     pub fn speeds(&self) -> Vec<f32> {
@@ -829,6 +866,26 @@ mod tests {
         let mut t = MeshTracer::new(topo, 0.0, 1, k);
         t.load_day(&day(n, u, v, 25)).unwrap();
         t
+    }
+
+    #[test]
+    fn nothing_moves_past_the_end_of_the_fields() {
+        // 25 hourly steps: fields to t = 86 400 s.
+        let mut t = tracer(0.1, 0.0, 0.0);
+        t.add_release(MeshRelease {
+            x: 100.0,
+            y: 50.0,
+            start: 86_000.0,
+            duration: 0.0,
+            mass: 1.0,
+            half_life: None,
+            parcels: 1,
+        });
+        t.step_to(90_000.0);
+        let MeshPlace::In(_, x, _) = t.parcels[0].place else {
+            panic!("left the mesh")
+        };
+        assert!((x - 140.0).abs() < 1e-3, "{x}"); // 400 s of flow, then stopped
     }
 
     #[test]

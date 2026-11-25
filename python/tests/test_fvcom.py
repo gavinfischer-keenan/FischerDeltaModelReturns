@@ -70,6 +70,7 @@ def test_a_coarse_mesh_covers_the_water_and_averages_exactly():
     # Means of a constant are that constant; every coarse node gets a value.
     assert np.allclose(mesh.node_mean(c, np.full(len(fine.x), 2.5)), 2.5)
     assert np.allclose(mesh.element_mean(c, np.full(len(fine.tri), -0.4)), -0.4)
+    assert not np.isnan(c.depth).any()
     # Depth follows the fine depth (5 m plus 1 m per 100 m north).
     assert np.allclose(c.depth, 5 + c.y / 100, atol=1.5)
 

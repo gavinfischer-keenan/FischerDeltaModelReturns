@@ -7,7 +7,8 @@
   import type { Frame, Ready, Words } from "../compute-interface/messages";
   import text from "../../../text/en.json";
   import { Reach, type ReachGeometry } from "./reach";
-  import { addNetwork, createMap, drawFrame, drawNetworks } from "./map";
+  import { addMesh, addNetwork, createMap, drawFrame, drawNetworks } from "./map";
+  import { MeshPlace, type MeshGeometry } from "./mesh";
   import { NetworkPlace, type NetworkGeometry } from "./network";
 
   const params = new URLSearchParams(location.search);
@@ -32,8 +33,15 @@
   let t = $state(0);
   let balance = $state<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const nets: NetworkPlace[] = [];
+  const meshes: MeshPlace[] = [];
   let placing = $state(false);
-  let draft = $state<{ x: number; lon: number; lat: number; network?: { id: string; element: number; fraction: number } } | null>(null);
+  let draft = $state<{
+    x: number;
+    lon: number;
+    lat: number;
+    network?: { id: string; element: number; fraction: number };
+    mesh?: { id: string; triangle: number; w1: number; w2: number };
+  } | null>(null);
   let mass = $state(100);
   let continuousHours = $state(0);
   let halfLifeHours = $state<number | null>(null);
@@ -49,7 +57,7 @@
     t = f.t;
     balance = Array.from(f.massBalance);
     words = f.words;
-    if (map && reach) drawFrame(map, reach, f, nets);
+    if (map && reach) drawFrame(map, reach, f, nets, meshes);
     if (map) drawNetworks(map, f);
   }
 
@@ -112,6 +120,8 @@
   // Without a forecast there is no future to play into, so a release made in
   // "Now" starts this far back and plays forward to now.
   const NO_FORECAST_LOOKBACK = 3 * 24 * 3600;
+  // A click this far from any water, m, places no release.
+  const MAX_SNAP_M = 3000;
 
   function release() {
     if (!draft || !ready) return;
@@ -126,6 +136,7 @@
       x: draft.x,
       // A plain copy: a reactive proxy cannot be sent to the worker.
       network: draft.network ? $state.snapshot(draft.network) : undefined,
+      mesh: draft.mesh ? $state.snapshot(draft.mesh) : undefined,
       start,
       duration: Math.max(0, continuousHours) * 3600,
       mass,
@@ -150,6 +161,14 @@
               nets.push(new NetworkPlace(id, g));
             });
         }
+        for (const id of r.meshes) {
+          fetch(`${cycle}/geometry/${id}.json`)
+            .then((x) => x.json())
+            .then((g: MeshGeometry) => {
+              addMesh(map, id, g);
+              meshes.push(new MeshPlace(id, g));
+            });
+        }
         ready = r;
         t = r.now;
       } else if (r.type === "frame") onFrame(r);
@@ -161,19 +180,39 @@
       map = createMap(mapEl, reach, region);
       map.on("click", (e) => {
         if (!placing) return;
-        // The nearest water: the river, or a channel of a network reach.
+        // Open water of a mesh reach takes a release just where it is clicked.
+        for (const m of meshes) {
+          const at = m.locate(e.lngLat.lng, e.lngLat.lat);
+          if (at) {
+            draft = { x: 0, lon: e.lngLat.lng, lat: e.lngLat.lat, mesh: { id: m.id, ...at } };
+            placing = false;
+            return;
+          }
+        }
+        // Otherwise the nearest water: the river, a channel of a network reach,
+        // or the edge of a mesh reach. A click far from any water places nothing.
         const near = reach.nearest(e.lngLat.lng, e.lngLat.lat);
         const [lon, lat] = reach.place(near.x);
-        draft = { x: near.x, lon, lat };
         let best = near.metres;
+        let pick: typeof draft = { x: near.x, lon, lat };
         for (const net of nets) {
           const n = net.nearest(e.lngLat.lng, e.lngLat.lat);
           if (n.metres < best) {
             best = n.metres;
             const [nlon, nlat] = net.place(n.element, n.fraction);
-            draft = { x: 0, lon: nlon, lat: nlat, network: { id: net.id, element: n.element, fraction: n.fraction } };
+            pick = { x: 0, lon: nlon, lat: nlat, network: { id: net.id, element: n.element, fraction: n.fraction } };
           }
         }
+        for (const m of meshes) {
+          const n = m.nearest(e.lngLat.lng, e.lngLat.lat);
+          if (n.metres < best) {
+            best = n.metres;
+            const [mlon, mlat] = m.place(n.triangle, n.w1, n.w2);
+            pick = { x: 0, lon: mlon, lat: mlat, mesh: { id: m.id, triangle: n.triangle, w1: n.w1, w2: n.w2 } };
+          }
+        }
+        if (best > MAX_SNAP_M) return; // still placing: no water near enough
+        draft = pick;
         placing = false;
       });
       engine.send({ type: "open", cycle, reach: "river", particles: FLOW_PARTICLES });
@@ -243,6 +282,7 @@
           {#if balance[4] > 0} · {text.mass_pumped}: {balance[4].toFixed(1)} kg{/if}
           {#if balance[5] > 0} · {text.mass_diverted}: {balance[5].toFixed(1)} kg{/if}
           {#if balance[6] > 0} · {text.mass_to_sea}: {balance[6].toFixed(1)} kg{/if}
+          {#if balance[7] > 0} · {text.mass_to_ocean}: {balance[7].toFixed(1)} kg{/if}
           {#if balance[2] > 0} · {text.mass_past_end}: {balance[2].toFixed(1)} kg{/if}
           · {text.mass_decayed}: {balance[3].toFixed(1)} kg
         </div>

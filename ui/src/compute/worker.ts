@@ -4,17 +4,18 @@
 // No drawing happens here.
 //
 // A region has a river reach (a line) and may have network reaches (a tidal
-// delta). Each has its own engine; they run in step. Parcels that pass the end
+// delta) and mesh reaches (a bay). Each has its own engine; they run in step. Parcels that pass the end
 // of the river are handed to the network at the junction the index names
 // (specification 7.4), at the moment they arrived, with their mass.
 
-import init, { Engine, NetworkEngine } from "./pkg/fdmr_wasm.js";
-import type { Frame, NetworkFrame, Reply, Request, Words } from "../compute-interface/messages";
+import init, { Engine, MeshEngine, NetworkEngine } from "./pkg/fdmr_wasm.js";
+import type { Frame, MeshFrame, NetworkFrame, Reply, Request, Words } from "../compute-interface/messages";
 
 interface ReachEntry {
   id: string;
   certainty: number[];
   network?: boolean;
+  dims?: number;
   time?: { days: string[] };
 }
 interface Index {
@@ -31,6 +32,23 @@ interface NetworkGeometry {
   nodes: { id: number; kind?: string }[];
   pools?: { id: string }[];
   links?: { pool: string; node: number }[];
+}
+interface MeshGeometry {
+  x: number[];
+  y: number[];
+  depth_m: number[];
+  triangles: [number, number, number][];
+  edges: Record<string, [number, number][]>;
+}
+interface MeshRelease {
+  triangle: number;
+  w1: number;
+  w2: number;
+  start: number;
+  duration: number;
+  mass: number;
+  halfLife: number | null;
+  parcels: number;
 }
 interface RiverRelease {
   x: number;
@@ -57,6 +75,14 @@ const NETWORK_PARTICLES = 6_000;
 // QUAL's arrival, spread and peak at five channels across the network; 10 and
 // 200 are clearly worse, 30 and 80 about as good.
 const NETWORK_DISPERSION = 50;
+const MESH_PARTICLES = 5_000;
+// Horizontal diffusivity on a mesh reach, m²/s: a placeholder, to be checked as
+// the network's spreading was. It stands for mixing the depth-averaged mesh
+// does not resolve: eddies smaller than its triangles (about 0.1 to 2 m²/s at
+// 0.1 to 2.5 km by Okubo's 1971 diffusion diagram) and the spreading the
+// averaged-out vertical shear would cause (Elder's 5.93 H u*, about 3 m²/s for
+// 10 m of water and u* = 0.05 m/s, along the flow).
+const MESH_DIFFUSIVITY = 2;
 
 let engine: Engine | null = null;
 let days: Uint8Array[] = [];
@@ -93,6 +119,21 @@ interface Net {
 }
 const nets: Net[] = [];
 
+interface Mesh {
+  id: string;
+  x: Float64Array;
+  y: Float64Array;
+  depth: Float64Array;
+  triangles: Uint32Array;
+  open: Uint32Array;
+  handoff: Uint32Array;
+  handoffId: Uint32Array;
+  days: Uint8Array[];
+  releases: MeshRelease[];
+  engine: MeshEngine | null;
+}
+const meshes: Mesh[] = [];
+
 const post = (reply: Reply, transfer: Transferable[] = []) =>
   (self as unknown as Worker).postMessage(reply, transfer);
 const epoch = (iso: string) => Date.parse(iso.endsWith("Z") ? iso : iso + "Z") / 1000;
@@ -119,13 +160,48 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   build(now);
   const end = start + (certainty.length - 1) * step; // the last published step
   const netReaches = index.reaches.filter((r) => r.network);
-  post({ type: "ready", start, end, now, length: engine!.length(), certainty, step, networks: netReaches.map((r) => r.id) });
+  const meshReaches = index.reaches.filter((r) => r.dims === 2);
+  post({ type: "ready", start, end, now, length: engine!.length(), certainty, step, networks: netReaches.map((r) => r.id), meshes: meshReaches.map((r) => r.id) });
   frame();
-  // Network reaches load in the background: the river is ready to play first.
+  // Network and mesh reaches load in the background: the river is ready to play first.
   for (const r of netReaches) {
     const node = index.handoffs?.find((h) => h.from === reach && h.to === r.id)?.node ?? null;
     void loadNetwork(cycle, r.id, r.time?.days ?? index.time.days, node);
   }
+  for (const r of meshReaches) void loadMesh(cycle, r.id, r.time?.days ?? index.time.days);
+}
+
+async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<void> {
+  const g = (await fetch(`${cycle}/geometry/${id}.json`).then((r) => r.json())) as MeshGeometry;
+  const handoffs = Object.entries(g.edges).filter(([k]) => k !== "open");
+  const m: Mesh = {
+    id,
+    x: Float64Array.from(g.x),
+    y: Float64Array.from(g.y),
+    depth: Float64Array.from(g.depth_m),
+    triangles: Uint32Array.from(g.triangles.flat()),
+    open: Uint32Array.from((g.edges.open ?? []).flat()),
+    handoff: Uint32Array.from(handoffs.flatMap(([, es]) => es.flat())),
+    handoffId: Uint32Array.from(handoffs.flatMap(([, es], k) => es.map(() => k))),
+    days: present(await Promise.all(meshDays.map((d) => bytes(`${cycle}/${id}/${d}.fdf`)))),
+    releases: [],
+    engine: null,
+  };
+  meshes.push(m);
+  buildMesh(m, engine ? engine.time() : now);
+  frame();
+}
+
+/** A fresh mesh engine at time t, with its releases replayed. */
+function buildMesh(m: Mesh, t: number): void {
+  m.engine?.free();
+  const first = Math.min(t, ...m.releases.map((r) => r.start));
+  const e = new MeshEngine(m.x, m.y, m.depth, m.triangles, m.open, m.handoff, m.handoffId, first, 2028, MESH_DIFFUSIVITY);
+  for (const b of m.days) e.load_day(b);
+  for (const r of m.releases) e.add_release(r.triangle, r.w1, r.w2, r.start, r.duration, r.mass, r.halfLife ?? NaN, r.parcels);
+  e.step_to(t);
+  e.seed_flow_particles(MESH_PARTICLES);
+  m.engine = e;
 }
 
 async function loadNetwork(cycle: string, id: string, netDays: string[], entryNode: number | null): Promise<void> {
@@ -218,6 +294,7 @@ function build(t: number): void {
   giveTo(nets, handOn(), false);
   e.seed_flow_particles(particles);
   for (const net of nets) buildNet(net, t);
+  for (const m of meshes) buildMesh(m, t);
 }
 
 function advance(to: number): void {
@@ -229,6 +306,7 @@ function advance(to: number): void {
   engine.step_to(to);
   giveTo(nets, handOn(), true);
   for (const net of nets) net.engine?.step_to(to);
+  for (const m of meshes) m.engine?.step_to(to);
 }
 
 /** Certainty at time t. One reach, and certainty never rises with time, so a
@@ -245,10 +323,10 @@ function words(c: number, t: number): Words {
 }
 
 /** Every reach's mass balance together (see Frame.massBalance). */
-function combinedBalance(networks: NetworkFrame[]): Float64Array {
+function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Float64Array {
   const [rReleased, rIn, rPast, rDecayed] = engine!.mass_balance();
   const taken = nets.some((n) => n.entry !== null && n.engine);
-  const out = new Float64Array(7);
+  const out = new Float64Array(8);
   out[0] = rReleased;
   out[1] = rIn;
   out[2] = taken ? 0 : rPast; // handed on, it is counted in the network instead
@@ -262,6 +340,13 @@ function combinedBalance(networks: NetworkFrame[]): Float64Array {
     out[4] += exported;
     out[5] += diverted;
     out[6] += toSea;
+  }
+  for (const m of meshFrames) {
+    const [released, inWater, toSea, , decayed] = m.massBalance;
+    out[0] += released;
+    out[1] += inWater;
+    out[3] += decayed;
+    out[7] += toSea;
   }
   return out;
 }
@@ -285,6 +370,21 @@ function frame(): void {
         massBalance: e.mass_balance(),
       };
     });
+  const meshFrames: MeshFrame[] = meshes
+    .filter((m) => m.engine)
+    .map((m) => {
+      const e = m.engine!;
+      return {
+        id: m.id,
+        particleTriangle: e.particle_triangle(),
+        particleWeights: e.particle_weights(),
+        particleSpeed: e.particle_speed(),
+        parcelTriangle: e.parcel_triangle(),
+        parcelWeights: e.parcel_weights(),
+        parcelConcentration: e.parcel_concentration(),
+        massBalance: e.mass_balance(),
+      };
+    });
   const f: Frame = {
     type: "frame",
     t,
@@ -293,14 +393,18 @@ function frame(): void {
     particleSpeed: engine.particle_speed(),
     parcelX: engine.parcel_x(),
     parcelConcentration: engine.parcel_concentration(),
-    massBalance: combinedBalance(networks),
+    massBalance: combinedBalance(networks, meshFrames),
     certainty: c,
     words: words(c, t),
     networks,
+    meshes: meshFrames,
   };
   const transfer: Transferable[] = [f.particleX.buffer, f.particleLateral.buffer, f.particleSpeed.buffer, f.parcelX.buffer, f.parcelConcentration.buffer];
   for (const n of networks) {
     transfer.push(n.velocity.buffer, n.particleElement.buffer, n.particleFraction.buffer, n.parcelElement.buffer, n.parcelFraction.buffer, n.parcelConcentration.buffer);
+  }
+  for (const m of meshFrames) {
+    transfer.push(m.particleTriangle.buffer, m.particleWeights.buffer, m.particleSpeed.buffer, m.parcelTriangle.buffer, m.parcelWeights.buffer, m.parcelConcentration.buffer);
   }
   post(f, transfer);
 }
@@ -321,11 +425,15 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
       case "drift":
         engine?.drift_frozen(r.dt);
         for (const net of nets) net.engine?.drift_frozen(r.dt);
+        for (const m of meshes) m.engine?.drift_frozen(r.dt);
         break;
       case "release": {
         const base = { start: r.start, duration: r.duration, mass: r.mass, halfLife: r.halfLife };
         const net = r.network ? nets.find((n) => n.id === r.network!.id) : undefined;
-        if (r.network && net) {
+        const mesh = r.mesh ? meshes.find((m) => m.id === r.mesh!.id) : undefined;
+        if (r.mesh && mesh) {
+          mesh.releases.push({ ...base, triangle: r.mesh.triangle, w1: r.mesh.w1, w2: r.mesh.w2, parcels: PARCELS_PER_RELEASE });
+        } else if (r.network && net) {
           net.releases.push({ ...base, element: r.network.element, fraction: r.network.fraction, parcels: PARCELS_PER_RELEASE });
         } else {
           riverReleases.push({ ...base, x: r.x });
@@ -336,6 +444,7 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
       case "clear":
         riverReleases = [];
         for (const net of nets) net.releases = [];
+        for (const m of meshes) m.releases = [];
         build(engine ? engine.time() : 0);
         break;
     }

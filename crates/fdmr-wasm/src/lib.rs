@@ -5,6 +5,7 @@
 //! Results come back as typed arrays of numbers: chainage, concentration,
 //! speed. Turning chainage into a place on the map is the UI's job.
 
+use fdmr_compute::mesh::{MeshFate, MeshRelease, MeshTopology, MeshTracer};
 use fdmr_compute::network::{NetRelease, NetworkTracer, Place, Topology};
 use fdmr_compute::{Engine as Core, Release};
 use wasm_bindgen::prelude::*;
@@ -300,5 +301,178 @@ impl NetworkEngine {
     #[must_use]
     pub fn velocities(&self) -> Vec<f32> {
         self.core.velocities()
+    }
+}
+
+/// A 2D mesh reach (such as a bay), tracked by `fdmr_compute::mesh`.
+///
+/// Positions come back as a triangle index and two barycentric weights, for
+/// its second and third nodes, for the UI to place on the map.
+#[wasm_bindgen]
+pub struct MeshEngine {
+    core: MeshTracer,
+}
+
+#[wasm_bindgen]
+impl MeshEngine {
+    /// The mesh: node coordinates (m, planar) and still-water depths (m),
+    /// counter-clockwise triangles as node triples (flat), open-sea edges and
+    /// handoff edges as node pairs (flat), each handoff edge's id, and the
+    /// horizontal diffusivity, m²/s.
+    #[wasm_bindgen(constructor)]
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        x: &[f64],
+        y: &[f64],
+        depth: &[f64],
+        triangles: &[u32],
+        open: &[u32],
+        handoff: &[u32],
+        handoff_id: &[u32],
+        start_time: f64,
+        seed: u32,
+        diffusivity: f64,
+    ) -> Self {
+        let topo = MeshTopology {
+            x: x.to_vec(),
+            y: y.to_vec(),
+            depth: depth.to_vec(),
+            tri: triangles
+                .as_chunks::<3>()
+                .0
+                .iter()
+                .map(|t| t.map(|n| n as usize))
+                .collect(),
+            open: open
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|e| (e[0] as usize, e[1] as usize))
+                .collect(),
+            handoff: handoff
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .zip(handoff_id)
+                .map(|(e, &id)| (e[0] as usize, e[1] as usize, id))
+                .collect(),
+        };
+        Self {
+            core: MeshTracer::new(topo, start_time, u64::from(seed), diffusivity),
+        }
+    }
+
+    /// Load one day's file.
+    ///
+    /// # Errors
+    /// If it does not match the mesh.
+    pub fn load_day(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.core
+            .load_day(bytes)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Release at a point given as a triangle and two barycentric weights.
+    /// `half_life` in s, or `NaN` for none. False if the point is off the mesh.
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_release(
+        &mut self,
+        triangle: u32,
+        w1: f64,
+        w2: f64,
+        start: f64,
+        duration: f64,
+        mass: f64,
+        half_life: f64,
+        parcels: u32,
+    ) -> bool {
+        let (x, y) = self.core.point(triangle as usize, w1, w2);
+        self.core.add_release(MeshRelease {
+            x,
+            y,
+            start,
+            duration,
+            mass,
+            half_life: if half_life.is_finite() && half_life > 0.0 {
+                Some(half_life)
+            } else {
+                None
+            },
+            parcels: parcels as usize,
+        })
+    }
+
+    /// Parcels that crossed a handoff edge since the last call: flat
+    /// (handoff id, x, y, time, mass) for each.
+    pub fn take_handed(&mut self) -> Vec<f64> {
+        self.core
+            .take_handed()
+            .into_iter()
+            .flat_map(|(fate, mass)| match fate {
+                MeshFate::Handoff { id, x, y, t } => vec![f64::from(id), x, y, t, mass],
+                MeshFate::ToSea => Vec::new(),
+            })
+            .collect()
+    }
+
+    pub fn clear_releases(&mut self) {
+        self.core.clear_releases();
+    }
+
+    pub fn seed_flow_particles(&mut self, n: usize) {
+        self.core.seed_flow_particles(n);
+    }
+
+    pub fn step_to(&mut self, t: f64) {
+        self.core.step_to(t);
+    }
+
+    pub fn drift_frozen(&mut self, dt: f64) {
+        self.core.drift_frozen(dt);
+    }
+
+    #[must_use]
+    pub fn time(&self) -> f64 {
+        self.core.time()
+    }
+
+    #[must_use]
+    pub fn particle_triangle(&self) -> Vec<u32> {
+        self.core.particles().0
+    }
+
+    /// Two weights per particle (flat), as for positions above.
+    #[must_use]
+    pub fn particle_weights(&self) -> Vec<f32> {
+        self.core.particles().1
+    }
+
+    #[must_use]
+    pub fn particle_speed(&self) -> Vec<f32> {
+        self.core.particle_speeds()
+    }
+
+    #[must_use]
+    pub fn parcel_triangle(&self) -> Vec<u32> {
+        self.core.parcels().0
+    }
+
+    #[must_use]
+    pub fn parcel_weights(&self) -> Vec<f32> {
+        self.core.parcels().1
+    }
+
+    /// Depth-averaged concentration where each parcel is, kg/m³.
+    #[must_use]
+    pub fn parcel_concentration(&self) -> Vec<f64> {
+        self.core.parcel_concentration()
+    }
+
+    /// [released, in water, out to sea, handed on, broken down], kg.
+    #[must_use]
+    pub fn mass_balance(&self) -> Vec<f64> {
+        let b = self.core.balance();
+        vec![b.released, b.in_water, b.to_sea, b.handed_on, b.decayed]
     }
 }
