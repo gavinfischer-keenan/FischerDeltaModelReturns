@@ -19,7 +19,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 | Bay below Chipps Island | NOAA's Bay current forecast, fetched as data; our own tracking on top. The Delta hands off to the Bay at Chipps Island, with Martinez as the fallback if Phase 0 rules Chipps out |
 | Release times | Now, any time in the forecast, or any time in the last 14 days |
 | Data and compute | Fetch public data freely; all modelling and display on our hardware |
-| Server | Intel, Debian guests under Proxmox; model runner separate from the web guest |
+| Server | The `webserver` Proxmox host only (Intel Core Ultra 9 185H, 62 GB, 8 TB NVMe), and no other machine, ever. Every other machine runs Electric Eel and is never touched by this app. The model runner is its own capped container on that host, separate from the web edge |
 | Movie length | 14 days back and 14 days forward. The colour fades as certainty fades into the forecast |
 | Engine and regions | One engine for any geography: a shared math library, and model kinds picked reach by reach in each region's package. Launch ships one region; the Mississippi, the Thames, the Nile and others are later candidates |
 | Display | Moving particles show the water's direction and speed everywhere, always; particles carrying a pollutant take its colour |
@@ -775,11 +775,19 @@ The river model has three sets of parameters, each calibrated from a different k
 
 ### 9.3 Deployment
 
-- **Model runner**: its own Debian guest on Proxmox, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Modelling and serving stay separate: the web guest only serves pages and files, and no model code is installed on it.
-- **Web**: static files under Utilities on tripofisch.com. The model runner pushes each finished set of files to the web guest; the web guest never reaches into the model runner. The push method is to be chosen to fit how the site is deployed today.
+- **One machine only.** Everything this app runs on the server side runs on the `webserver` host. No other machine is used, for anything, ever: they run Electric Eel.
+- **Sharing the host with Electric Eel.** The same host runs Electric Eel's containers and the shared web edge, so this app always gives way:
+  - the model runner has a fixed cap on cores and memory;
+  - it runs at lower CPU and disk priority than every Electric Eel container;
+  - it is pinned to the processor's efficiency cores, leaving the performance cores to Electric Eel.
+- **Model runner**: its own Debian container on that host, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Starting size: 8 efficiency cores, 8 GB of memory (12 at most), and its own 1 TB disk from the host's storage. Modelling and serving stay separate: the web edge only serves pages and files, and no model code is installed on it.
+- **Web**: served at a path on tripofisch.com (name to choose), from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
+  - The model runner pushes each finished set of files over rsync and SSH, with a key that can write only into that folder. Each cycle goes into a new folder, and one link switch makes it live. The web edge never reaches into the model runner.
+  - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
+- **Cloudflare caching**: past days never change, so they are sent with long-lived cache headers, and a Cloudflare cache rule serves them from Cloudflare's edge. This is required, not optional. The site shares one home internet connection and one tunnel with Electric Eel, and a burst of visitors must not be able to fill them.
 - **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. The what-if menu reruns with each DSM2 cycle; if it does not fit in 6 hours, once a day.
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
-- **Interim**: until the Linux build of DSM2 works, DWR's prebuilt Windows release runs in a Windows guest.
+- **DSM2 on Linux first.** Phase 0 asks DWR for the Linux library and tries the Linux build in the model runner. A Windows VM for DWR's prebuilt release costs memory the host has little of to spare. It is used only if the Linux build stalls, kept small, and removed as soon as Linux works.
 
 ### 9.4 Licensing and credit
 
@@ -796,7 +804,7 @@ This section is not legal advice; the license choice deserves a second look befo
 
 The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn. The detailed plan, with workstreams, exit tests and risks, is in [build-plan.md](build-plan.md).
 
-1. **Phase 0, proof.** Run DWR's prebuilt DSM2 in a Windows guest. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to size the what-if menu. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
+1. **Phase 0, proof.** Run DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's prebuilt Windows release in a small, temporary VM. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to size the what-if menu. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
 2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
@@ -828,6 +836,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - The Eureka dye study, the oysters turned red at the Humboldt Bay outfall, is a story in the History section. See section 2.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
+- Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. Cloudflare caching of past days is required. See section 9.3.
 - Languages: Rust for the math library and compute engine; Python for the model runner, data adapters and publisher, calling the Rust math. See section 4.2 and build-plan.md.
 - Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
 - Swept all remaining proposals into decisions:

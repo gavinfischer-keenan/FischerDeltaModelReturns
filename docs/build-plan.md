@@ -11,6 +11,7 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 - **Seams first.** The module structure, its interfaces and the checks that enforce them (specification section 4.3) exist before any model code. Every later piece is written into a slot that is already there.
 - **Two regions from the start.** The plain test region (specification section 4.1) runs in the tests from the first river code, so nothing Delta-specific leaks into the engine.
 - **Small, reviewable changes.** Work lands as small pull requests, one module or one feature at a time, each with its tests. Nothing merges with a failing test or a broken dependency rule.
+- **One machine.** Everything server-side runs on the `webserver` host and nothing else, ever. Every other machine runs Electric Eel and is never touched. On the shared host, this app always gives way to Electric Eel.
 - **Things that take calendar time start on day one.** The Bay archive and the letters to DWR do not wait for their phase.
 
 ## 2. Decisions before building
@@ -22,7 +23,7 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 | 3 | UI stack | Recommended: TypeScript, MapLibre and Svelte | The browser needs TypeScript or JavaScript for the UI. Particles are drawn by our own graphics layer inside MapLibre; Svelte handles controls, forms, legend, timeline and graphs. Because the UI only displays, a framework change later touches only the UI. |
 | 4 | Repository layout | Recommended: one repository, one package per module | `math/`, `format/`, `compute/` and `plugins/` in Rust; `runner/` and `adapters/` in Python; `ui/` in TypeScript; `regions/` and `text/` as data. Seams enforced by tooling in each language: the Rust compiler, a Python import checker and a TypeScript dependency checker. The build fails on a forbidden import. |
 | 5 | Continuous integration | Recommended: GitHub Actions | Free for this public repository. Every change runs the Rust tests and WebAssembly build, the Python tests, the UI tests against recorded compute output, the dependency checks and the plug-in conformance tests. The running app never depends on GitHub. |
-| 6 | How finished files reach the web guest | Waiting on how tripofisch.com is hosted today | Proposed: rsync over SSH from the model runner, with a key that can write only into one folder. Each cycle goes into a new folder and a single link switch makes it live, so a visitor never sees a half-replaced set. |
+| 6 | How finished files reach the web edge | Proposed; waiting on the path name and your OK for the web-edge change | Served at a path on tripofisch.com from `/srv/fdmr` on the existing web edge (container 703), through a Caddy route like Lux's `/play/`: no new hostname, no tunnel change. rsync over SSH from the model runner, with a key that can write only into that folder; each cycle goes into a new folder and one link switch makes it live. A Cloudflare cache rule serves the unchanging past days from Cloudflare's edge. |
 
 ## 3. Things only people can do
 
@@ -34,11 +35,12 @@ These have no code in them, and several take weeks of waiting, so they start now
 | Request the 1982 DELFLO and DELSAL reports and related papers from UC Riverside | History section; the 1982 grid after launch | Phase 4 |
 | Request the Humboldt Bay report from UC Davis's Cadet Hand Library | The Eureka story | Phase 4 |
 | Gather family photographs and papers, including the punch cards | History section | Phase 4 |
-| Create the Proxmox guests: the model runner, and a Windows guest for the interim DSM2 | Phase 0 needs the Windows guest; Phase 1 needs the model runner | Phase 0 |
-| A Windows license for that guest | DWR's prebuilt DSM2 is a Windows release | Phase 0 |
+| Approve the model runner container on the `webserver` host, the only machine this app may use | Phase 0 needs somewhere to run DSM2 | Phase 0 |
+| A Windows license, only if the Linux build of DSM2 stalls and a temporary Windows VM is needed | DWR's prebuilt DSM2 is a Windows release | Phase 0, if at all |
+| A Cloudflare cache rule for the app's data path, or a narrowly scoped API token so I can set it | Keeps visitor bursts off the shared home connection and tunnel | Phase 4 |
 | Explain how tripofisch.com is deployed, and set up access for the push | Publishing to the web guest | Phase 1 |
 
-**Model runner guest, starting size, to check in Phase 0:** 8 cores, 32 GB of memory, 1 TB of disk. The disk holds the data store, a year of Bay archive and the published files. DSM2 timing in Phase 0 may change the core count.
+**Model runner container on `webserver`, starting size:** 8 efficiency cores, 8 GB of memory (12 at most), and a 1 TB disk from the host's storage. It runs at lower CPU and disk priority than every Electric Eel container. The disk holds the data store, a year of reduced Bay archive and the published files. Phase 0 checks the size against real DSM2 timings.
 
 ## 4. Phases
 
@@ -50,7 +52,7 @@ Answers every open question in specification section 10, before any map is drawn
 
 | Workstream | What gets done |
 | --- | --- |
-| DSM2 | Install DWR's prebuilt DSM2 in the Windows guest. Run a sample, then forecast mode with today's inputs, with QUAL salinity. Time one full run, and one with a breach reservoir added. |
+| DSM2 | Install DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's Windows release in a small temporary VM. Run a sample, then forecast mode with today's inputs, with QUAL salinity. Time one full run, and one with a breach reservoir added. |
 | Data feeds | Fetch every one of the twelve feeds in specification section 6 by hand. For each, record the format, how often it updates, how late it arrives, the station or product IDs, and the license terms. |
 | NOAA Bay forecast | Download a cycle. Check the horizon, the file sizes, the temperature and salinity variables and depths, and how finely the mesh covers Suisun Bay up to Chipps Island. Check how far back the public archive goes. |
 | Bay archive | Start saving every NOAA Bay forecast cycle, from day one. The Bay extension needs at least a month of it, and a year to do well. |
@@ -120,7 +122,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 
 | Workstream | What gets done |
 | --- | --- |
-| Native Linux DSM2 | Retires the Windows guest. |
+| Native Linux DSM2 | Retires the temporary Windows VM, if one was needed. |
 | Validation report | Every row of specification 9.2, written up. |
 | Operations | Monitoring and alerts; tested failure behaviour, so stale data is shown honestly. |
 | Performance | Parcel and particle counts tuned by measured frame rate. |
@@ -164,7 +166,10 @@ flowchart LR
 | A DSM2 run is too slow | Smaller what-if menu, or once a day | Phase 0 measures it. The menu shrinks, or the runner gets more cores. |
 | NOAA's mesh is too coarse at Chipps Island | The handoff moves to Martinez | Fallback already in specification 7.4. |
 | A feed is late, sparse or changes format | Gaps in the past window, or a weaker forecast | The local store, data age shown on screen, and an adapter per source so one break stays contained. |
-| The Linux build of DSM2 stalls | Windows guest stays in service | Acceptable; it is an interim already planned for. |
+| The Linux build of DSM2 stalls | A temporary Windows VM is needed, and it costs memory | Keep it small, run it only while needed, and remove it once Linux works. |
+| This app competes with Electric Eel on the shared host | Electric Eel slows | Fixed caps, lower CPU and disk priority, pinned to efficiency cores; Phase 0 measures the real load. |
+| A visitor burst fills the home connection or the shared tunnel | Electric Eel's traffic suffers too | Cloudflare caches the unchanging past days at its edge; data files are small and fetched one day at a time. |
+| A bad Caddy change breaks the shared web edge | Every site on it goes down, Electric Eel included | Check the config before reloading, reload rather than restart, keep the previous file, and change it only with your OK. |
 | Phones cannot keep up | Choppy movie | Parcel counts set by device; measured in Phase 4. |
 | A data source's license forbids our use | That feed cannot be used | Checked for every feed in Phase 0. |
 | Scope: temperature, salinity and what-ifs add a lot | Launch slips | They sit in Phases 2 to 4, after the core works, and can move after launch if needed. |
