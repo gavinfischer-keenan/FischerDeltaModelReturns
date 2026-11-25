@@ -12,7 +12,7 @@
 // parcel belongs to one reach at a time, with its mass, so the total balances.
 
 import init, { Engine, MeshEngine, NetworkEngine } from "./pkg/fdmr_wasm.js";
-import type { Frame, MeshFrame, NetworkFrame, Reply, Request, Words } from "../compute-interface/messages";
+import type { Frame, Layer, MeshFrame, NetworkFrame, Reply, Request, Words } from "../compute-interface/messages";
 
 interface ReachEntry {
   id: string;
@@ -20,6 +20,7 @@ interface ReachEntry {
   network?: boolean;
   dims?: number;
   time?: { days: string[] };
+  quality_fields?: string[];
 }
 interface Junction {
   node: number;
@@ -32,6 +33,8 @@ interface Handoff {
   from: string;
   to: string;
   node?: number;
+  /** The water-source group the giving reach's water belongs to. */
+  source?: string;
   owned?: number[];
   junctions?: Junction[];
 }
@@ -115,6 +118,10 @@ let start = 0;
 let step = 900;
 let now = 0;
 let index: Index | null = null;
+let cycleUrl = "";
+let layer: Layer = "plain";
+/** Water sources the networks carry shares of (from `source:<name>` fields). */
+let sources: string[] = [];
 let riverId = "river";
 /** Mass passed into another reach since the engines were built, kg: counted
  * there as released, so taken off the total once. */
@@ -139,6 +146,9 @@ interface Net {
   entry: number | null;
   releases: NetRelease[];
   engine: NetworkEngine | null;
+  days: string[];
+  /** Water-quality day files, fetched when a layer first needs them. */
+  quality: Uint8Array[] | null;
 }
 const nets: Net[] = [];
 
@@ -156,6 +166,8 @@ interface Mesh {
   days: Uint8Array[];
   releases: MeshRelease[];
   engine: MeshEngine | null;
+  dayNames: string[];
+  quality: Uint8Array[] | null;
 }
 const meshes: Mesh[] = [];
 
@@ -177,6 +189,8 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   ])) as [Index, LineGeometry];
   index = ix;
   riverId = reach;
+  cycleUrl = cycle;
+  sources = [...new Set(ix.reaches.flatMap((r) => (r.quality_fields ?? []).filter((f) => f.startsWith("source:")).map((f) => f.slice(7))))];
   starts = Float64Array.from(geometry.elements.map((e) => e.start_m));
   ends = Float64Array.from(geometry.elements.map((e) => e.end_m));
   days = present(await Promise.all(ix.time.days.map((d) => bytes(`${cycle}/${reach}/${d}.fdf`))));
@@ -226,7 +240,10 @@ async function loadNetwork(cycle: string, id: string, netDays: string[]): Promis
     entry: entry >= 0 ? entry : null,
     releases: [],
     engine: null,
+    days: netDays,
+    quality: null,
   });
+  if (QUALITY_LAYERS.has(layer)) await loadQuality();
   // Play the river's (and any other reach's) handoffs into it from the start.
   build(engine ? engine.time() : now);
   frame();
@@ -248,9 +265,30 @@ async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<
     days: present(await Promise.all(meshDays.map((d) => bytes(`${cycle}/${id}/${d}.fdf`)))),
     releases: [],
     engine: null,
+    dayNames: meshDays,
+    quality: null,
   });
+  if (QUALITY_LAYERS.has(layer)) await loadQuality();
   build(engine ? engine.time() : now);
   frame();
+}
+
+/** Layers that need the water-quality files. */
+const QUALITY_LAYERS = new Set<Layer>(["temperature", "salinity", "source"]);
+
+/** Fetch the water-quality day files of every reach not holding them yet, and load them. */
+async function loadQuality(): Promise<void> {
+  const get = (id: string, ds: string[]) => Promise.all(ds.map((d) => bytes(`${cycleUrl}/${id}/${d}.quality.fdf`))).then(present);
+  await Promise.all([
+    ...nets.filter((n) => !n.quality).map(async (n) => {
+      n.quality = await get(n.id, n.days);
+      for (const b of n.quality) n.engine?.load_quality(b);
+    }),
+    ...meshes.filter((m) => !m.quality).map(async (m) => {
+      m.quality = await get(m.id, m.dayNames);
+      for (const b of m.quality) m.engine?.load_quality(b);
+    }),
+  ]);
 }
 
 /** The join between a network and a mesh, when both are loaded. */
@@ -281,6 +319,7 @@ function build(t: number): void {
     for (const b of net.nodeDays) ne.load_nodes(b);
     for (const b of net.linkDays) ne.load_links(b);
     for (const r of net.releases) ne.add_release(r.element, r.fraction, T.length[r.element], r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
+    for (const b of net.quality ?? []) ne.load_quality(b);
     const owned = index?.handoffs?.filter((h) => h.from === net.id && h.owned && meshes.some((m) => m.id === h.to)).flatMap((h) => h.owned!) ?? [];
     ne.set_handoff(Uint32Array.from(owned));
     net.engine = ne;
@@ -289,6 +328,7 @@ function build(t: number): void {
     const me = new MeshEngine(m.x, m.y, m.depth, m.triangles, m.open, m.handoff, m.handoffId, first, 2028, MESH_DIFFUSIVITY);
     for (const b of m.days) me.load_day(b);
     for (const r of m.releases) me.add_release(r.triangle, r.w1, r.w2, r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
+    for (const b of m.quality ?? []) me.load_quality(b);
     m.engine = me;
   }
   handedIn = 0;
@@ -399,6 +439,65 @@ function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Flo
   return out;
 }
 
+/** A field's values centred on their mean: water level "either side of mean level" (spec 8.4). */
+function centred(v: Float32Array): Float32Array {
+  let s = 0, n = 0;
+  for (const x of v) if (Number.isFinite(x)) { s += x; n++; }
+  const m = n ? s / n : 0;
+  return v.map((x) => x - m);
+}
+
+/** The field a layer shows, by its name in the published files. */
+const FIELD: Partial<Record<Layer, string>> = { temperature: "temperature", salinity: "salinity", level: "level" };
+
+/** Shares of each water source, all particles of a network, interleaved. */
+function networkShares(e: NetworkEngine): Float32Array {
+  const per = sources.map((s) => e.particle_values(`source:${s}`));
+  const n = per[0]?.length ?? 0;
+  const out = new Float32Array(n * sources.length);
+  per.forEach((v, j) => v.forEach((x, i) => (out[i * sources.length + j] = x)));
+  return out;
+}
+
+/** The river's water is all of the source group its handoff names (index.json handoffs). */
+function riverShares(n: number): Float32Array {
+  const out = new Float32Array(n * sources.length).fill(0);
+  const group = index?.handoffs?.find((h) => h.from === riverId && h.source)?.source;
+  const j = group ? sources.indexOf(group) : -1;
+  if (j >= 0) for (let i = 0; i < n; i++) out[i * sources.length + j] = 1;
+  else out.fill(NaN);
+  return out;
+}
+
+function riverLayer(n: number): { particleValue?: Float32Array; particleShares?: Float32Array } {
+  if (layer === "speed") return { particleValue: Float32Array.from(engine!.particle_speed()) };
+  if (layer === "source") return { particleShares: riverShares(n) };
+  if (FIELD[layer]) return { particleValue: new Float32Array(n).fill(NaN) }; // not modelled on the river yet
+  return {};
+}
+
+function networkLayer(e: NetworkEngine): { particleValue?: Float32Array; particleShares?: Float32Array } {
+  if (layer === "speed") {
+    const v = e.velocities();
+    return { particleValue: Float32Array.from(e.particle_element(), (k) => (k < v.length ? Math.abs(v[k]) : NaN)) };
+  }
+  if (layer === "source") return { particleShares: networkShares(e) };
+  const f = FIELD[layer];
+  if (!f) return {};
+  const v = e.particle_values(f);
+  return { particleValue: layer === "level" ? centred(v) : v };
+}
+
+function meshLayer(e: MeshEngine): { particleValue?: Float32Array; particleShares?: Float32Array } {
+  if (layer === "speed") return { particleValue: e.particle_speed() };
+  const n = e.particle_triangle().length;
+  if (layer === "source") return { particleShares: new Float32Array(n * Math.max(1, sources.length)).fill(NaN) }; // the Bay's model tracks no sources
+  const f = FIELD[layer];
+  if (!f) return {};
+  const v = e.particle_values(f);
+  return { particleValue: layer === "level" ? centred(v) : v };
+}
+
 function frame(seq?: number): void {
   if (!engine) return;
   const t = engine.time();
@@ -416,6 +515,7 @@ function frame(seq?: number): void {
         parcelFraction: e.parcel_fraction(),
         parcelConcentration: e.parcel_concentration(),
         massBalance: e.mass_balance(),
+        ...networkLayer(e),
       };
     });
   const meshFrames: MeshFrame[] = meshes
@@ -431,8 +531,10 @@ function frame(seq?: number): void {
         parcelWeights: e.parcel_weights(),
         parcelConcentration: e.parcel_concentration(),
         massBalance: e.mass_balance(),
+        ...meshLayer(e),
       };
     });
+  const riverN = engine.particle_x().length;
   const f: Frame = {
     type: "frame",
     seq,
@@ -447,6 +549,9 @@ function frame(seq?: number): void {
     words: words(c, t),
     networks,
     meshes: meshFrames,
+    layer,
+    sources,
+    ...riverLayer(riverN),
   };
   const transfer: Transferable[] = [f.particleX.buffer, f.particleLateral.buffer, f.particleSpeed.buffer, f.parcelX.buffer, f.parcelConcentration.buffer];
   for (const n of networks) {
@@ -454,6 +559,10 @@ function frame(seq?: number): void {
   }
   for (const m of meshFrames) {
     transfer.push(m.particleTriangle.buffer, m.particleWeights.buffer, m.particleSpeed.buffer, m.parcelTriangle.buffer, m.parcelWeights.buffer, m.parcelConcentration.buffer);
+  }
+  for (const x of [f, ...networks, ...meshFrames]) {
+    if (x.particleValue) transfer.push(x.particleValue.buffer);
+    if (x.particleShares) transfer.push(x.particleShares.buffer);
   }
   post(f, transfer);
 }
@@ -491,6 +600,10 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         build(engine ? engine.time() : r.start);
         break;
       }
+      case "layer":
+        layer = r.layer;
+        if (QUALITY_LAYERS.has(layer)) await loadQuality();
+        break;
       case "clear":
         riverReleases = [];
         for (const net of nets) net.releases = [];

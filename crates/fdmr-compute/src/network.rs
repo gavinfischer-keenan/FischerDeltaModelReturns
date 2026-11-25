@@ -125,6 +125,8 @@ pub struct NetworkTracer {
     links_of_pool: Vec<Vec<usize>>,
     is_sea: Vec<bool>,
     channels: Series,
+    /// Water-quality fields per channel (`<day>.quality.fdf`), loaded to be shown.
+    quality: Series,
     nodes: Series,
     links: Series,
     dispersion: f64,
@@ -165,6 +167,7 @@ impl NetworkTracer {
             is_sea,
             channels: Series::default(),
             nodes: Series::default(),
+            quality: Series::default(),
             links: Series::default(),
             dispersion,
             time: start_time,
@@ -273,6 +276,49 @@ impl NetworkTracer {
             ));
         }
         Ok(())
+    }
+
+    /// Load one day's water-quality file (`ec`, `salinity`, `temperature`,
+    /// `source:<name>` per channel), to show them.
+    ///
+    /// # Errors
+    /// If the file is not a channel file for this network.
+    pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
+        self.quality.load_day(bytes, &[])?;
+        if self.quality.elements != self.topo.up.len() {
+            return Err(FormatError::Invalid(
+                "quality file does not match the network".into(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// A field's value now in the channel where each flow particle is, in the
+    /// order of `particles()`: a water-quality field, or one of the channel
+    /// file's (such as `level`). `NaN` where there is none (in a pool, or a
+    /// field not loaded).
+    #[must_use]
+    pub fn particle_values(&self, name: &str) -> Vec<f32> {
+        let per_channel = if self.quality.has(name) {
+            self.quality.at(self.time, name)
+        } else if self.channels.has(name) {
+            self.channels.at(self.time, name)
+        } else {
+            None
+        };
+        let (el, _) = self.particles();
+        el.iter()
+            .map(|&e| {
+                per_channel
+                    .as_ref()
+                    .and_then(|v| v.get(e as usize))
+                    .map_or(f32::NAN, |&x| {
+                        #[allow(clippy::cast_possible_truncation)]
+                        let y = x as f32;
+                        y
+                    })
+            })
+            .collect()
     }
 
     /// Load one day's link file (`flow`).

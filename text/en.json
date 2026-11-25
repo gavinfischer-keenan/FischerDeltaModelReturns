@@ -33,5 +33,21 @@
   "mass_pumped": "Taken by the pumps",
   "mass_diverted": "Taken by other diversions",
   "mass_to_sea": "Out to the Bay",
-  "mass_to_ocean": "Out to the ocean"
+  "mass_to_ocean": "Out to the ocean",
+  "colour_by": "Colour the water by",
+  "layer_plain": "Plain water",
+  "layer_contaminant": "Contaminant",
+  "layer_speed": "Speed",
+  "layer_temperature": "Temperature",
+  "layer_salinity": "Salinity",
+  "layer_level": "Water level",
+  "layer_source": "Water source",
+  "legend_plain": "Particles show which way the water moves and how fast.",
+  "legend_river_grey": "grey where not modelled yet (the river above the Delta)",
+  "legend_source_note": "Delta: DSM2's source tracking; the river is all Sacramento water; grey in the Bay, whose model tracks no sources",
+  "source_sac": "Sacramento",
+  "source_sjr": "San Joaquin",
+  "source_east": "Eastside rivers",
+  "source_sea": "The sea",
+  "source_ag": "Farm drainage"
 }

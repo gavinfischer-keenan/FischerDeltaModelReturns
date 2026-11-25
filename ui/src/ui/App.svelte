@@ -4,11 +4,12 @@
   import { onMount } from "svelte";
   import type { Map } from "maplibre-gl";
   import { connect } from "../compute-interface/connect";
-  import type { Frame, Ready, Words } from "../compute-interface/messages";
+  import type { Frame, Layer, Ready, Words } from "../compute-interface/messages";
   import text from "../../../text/en.json";
   import { Reach, type ReachGeometry } from "./reach";
   import { addMesh, addNetwork, createMap, drawFrame, drawNetworks, widenView } from "./map";
   import { MeshPlace, type MeshGeometry } from "./mesh";
+  import { SOURCES, legend } from "./layers";
   import { NetworkPlace, type NetworkGeometry } from "./network";
 
   const params = new URLSearchParams(location.search);
@@ -32,6 +33,14 @@
   let hoursPerSecond = $state(2);
   let t = $state(0);
   let balance = $state<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const LAYERS: Layer[] = ["plain", "contaminant", "speed", "temperature", "salinity", "level", "source"];
+  let layer = $state<Layer>("plain");
+  let sources = $state<string[]>([]);
+  const key = (k: string) => (text as Record<string, string>)[k] ?? k;
+  function setLayer(l: Layer) {
+    layer = l;
+    engine.send({ type: "layer", layer: l });
+  }
   const nets: NetworkPlace[] = [];
   const meshes: MeshPlace[] = [];
   let placing = $state(false);
@@ -69,6 +78,7 @@
       t = f.t;
     }
     balance = Array.from(f.massBalance);
+    sources = f.sources;
     words = f.words;
     if (map && reach) drawFrame(map, reach, f, nets, meshes);
     if (map) drawNetworks(map, f);
@@ -153,6 +163,7 @@
       halfLife: halfLifeHours ? halfLifeHours * 3600 : null,
     });
     draft = null;
+    if (layer !== "contaminant") setLayer("contaminant"); // the plume's own colours (spec 3.5)
     if (mode === "now") {
       mode = back ? "past" : "next";
       playing = true;
@@ -302,6 +313,28 @@
           · {text.mass_decayed}: {balance[3].toFixed(1)} kg
         </div>
       {/if}
+      <div class="layer">
+        <label>{text.colour_by}
+          <select value={layer} onchange={(e) => setLayer((e.target as HTMLSelectElement).value as Layer)}>
+            {#each LAYERS as l}<option value={l}>{key(`layer_${l}`)}</option>{/each}
+          </select>
+        </label>
+        {#if legend(layer)}
+          {@const lg = legend(layer)!}
+          <div class="legend">
+            <div class="bar" style={`background: ${lg.gradient}`}></div>
+            <div class="ticks">{#each lg.ticks as [x, label]}<span style={`left: ${(x * 100).toFixed(1)}%`}>{label}</span>{/each}</div>
+            <span class="unit">{lg.unit}{layer === "temperature" || layer === "salinity" || layer === "level" ? ` · ${text.legend_river_grey}` : ""}</span>
+          </div>
+        {:else if layer === "source"}
+          <div class="legend swatches">
+            {#each sources as s}<span><i style={`background: ${SOURCES[s]?.colour ?? "#8a96a6"}`}></i>{key(SOURCES[s]?.key ?? s)}</span>{/each}
+            <span class="unit">{text.legend_source_note}</span>
+          </div>
+        {:else if layer === "plain"}
+          <span class="unit">{text.legend_plain}</span>
+        {/if}
+      </div>
       <div class="updated">{text.updated}: {fmt(ready.now)}</div>
     </div>
   {/if}
@@ -328,4 +361,12 @@
   button:disabled { opacity: 0.45; cursor: default; }
   input[type="number"] { width: 5rem; }
   .balance, .updated, .note { font-size: 0.75rem; opacity: 0.85; }
+  .layer { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .legend { display: grid; gap: 2px; min-width: 14rem; flex: 1; max-width: 26rem; }
+  .legend .bar { height: 8px; border-radius: 4px; }
+  .legend .ticks { position: relative; height: 1em; font-size: 0.7rem; }
+  .legend .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .unit { font-size: 0.7rem; opacity: 0.8; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 0.75rem; }
+  .swatches i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 </style>

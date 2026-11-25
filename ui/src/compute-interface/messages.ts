@@ -2,6 +2,9 @@
 // The UI sends requests and draws what comes back. These types are all the UI
 // knows about the compute side.
 
+/** What colours the water (specification 3.5). */
+export type Layer = "plain" | "contaminant" | "speed" | "temperature" | "salinity" | "level" | "source";
+
 /** Requests from the UI to the compute engine. Times are seconds since 1970 UTC.
  * Each carries a number (`seq`, set by connect()) that the frame answering it repeats. */
 export type Request = { seq?: number } & (
@@ -21,7 +24,8 @@ export type Request = { seq?: number } & (
       mass: number; // kg
       halfLife: number | null; // s
     }
-  | { type: "clear" });
+  | { type: "clear" }
+  | { type: "layer"; layer: Layer });
 
 /** A network reach at one moment. Positions are an element (a channel; pools
  * follow the channels, at `channels + pool`) and a fraction along it, 0 at its
@@ -38,6 +42,10 @@ export interface NetworkFrame {
   parcelConcentration: Float64Array;
   /** [released, in water, taken by the pumps, taken by other diversions, out to sea, broken down], kg. */
   massBalance: Float64Array;
+  /** The layer's value where each flow particle is (NaN where there is none). */
+  particleValue?: Float32Array;
+  /** For the water-source layer: each particle's shares, `sources` of them per particle. */
+  particleShares?: Float32Array;
 }
 
 /** A mesh reach (such as a bay) at one moment. Positions are a triangle and
@@ -54,6 +62,8 @@ export interface MeshFrame {
   parcelConcentration: Float64Array;
   /** [released, in water, out to sea, handed on, broken down], kg. */
   massBalance: Float64Array;
+  particleValue?: Float32Array;
+  particleShares?: Float32Array;
 }
 
 /** A snapshot of the water at one moment. */
@@ -83,6 +93,12 @@ export interface Frame {
   networks: NetworkFrame[];
   /** Mesh reaches loaded so far. */
   meshes: MeshFrame[];
+  /** What colours the water, and for it the river's particle values or shares. */
+  layer: Layer;
+  particleValue?: Float32Array;
+  particleShares?: Float32Array;
+  /** The water sources' names, in the order of every particleShares. */
+  sources: string[];
 }
 
 export type Words = "measured" | "forecast" | "rough_guide";

@@ -269,7 +269,7 @@ def publish(
     for extra in extra_reaches or []:
         add_reach(cdir, extra, index)
     ids = {r["id"] for r in index["reaches"]}
-    joins = [{k: h[k] for k in ("from", "to", "node") if k in h} for h in region.handoffs if h["from"] in ids and h["to"] in ids and "node" in h]
+    joins = [{k: h[k] for k in ("from", "to", "node", "source") if k in h} for h in region.handoffs if h["from"] in ids and h["to"] in ids and "node" in h]
     # A network reach meeting a mesh reach (the Delta and the Bay): the join is
     # worked out from their two geometries (fdmr_runner.handoff).
     kinds = {r["id"]: r for r in index["reaches"]}

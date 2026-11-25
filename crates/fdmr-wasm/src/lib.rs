@@ -204,6 +204,22 @@ impl NetworkEngine {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
+    /// Load one day's water-quality file, to show its fields.
+    ///
+    /// # Errors
+    /// If it does not match the network.
+    pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.core
+            .load_quality(bytes)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// A field's value where each flow particle is (`NaN` where there is none).
+    #[must_use]
+    pub fn particle_values(&self, name: &str) -> Vec<f32> {
+        self.core.particle_values(name)
+    }
+
     /// Load one day's link file.
     ///
     /// # Errors
@@ -509,6 +525,22 @@ impl MeshEngine {
     #[must_use]
     pub fn particle_speed(&self) -> Vec<f32> {
         self.core.particle_speeds()
+    }
+
+    /// Load one day's water-quality file, to show its fields.
+    ///
+    /// # Errors
+    /// If it does not match the mesh.
+    pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.core
+            .load_quality(bytes)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// A field's value where each flow particle is (`NaN` where there is none).
+    #[must_use]
+    pub fn particle_values(&self, name: &str) -> Vec<f32> {
+        self.core.particle_values(name)
     }
 
     #[must_use]

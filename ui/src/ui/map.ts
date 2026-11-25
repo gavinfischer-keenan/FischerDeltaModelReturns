@@ -21,6 +21,7 @@ setWorkerUrl(mapWorkerUrl);
 // The basemap is one PMTiles file on our own server, read in pieces (specification 5.1).
 addProtocol("pmtiles", new Protocol().tile);
 import type { Frame } from "../compute-interface/messages";
+import { blend, colour, fade } from "./layers";
 import type { MeshGeometry, MeshPlace } from "./mesh";
 import type { NetworkPlace } from "./network";
 import type { Reach } from "./reach";
@@ -43,6 +44,8 @@ function pollutantColour(certainty: number): ExpressionSpecification {
   return ["interpolate", ["linear"], ["get", "c"], ...POLLUTANT_STOPS.flatMap(([v, h]) => [v, faded(h, certainty)])] as ExpressionSpecification;
 }
 let drawnCertainty = 1;
+let drawnRings = false;
+const RING = "#ff2fd1";
 
 export function createMap(container: HTMLElement, reach: Reach, region: string): Map {
   // Fonts, icons and tiles all come from our own server: nothing from a third party.
@@ -96,8 +99,9 @@ export function createMap(container: HTMLElement, reach: Reach, region: string):
       source: "flow",
       paint: {
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 0.8, 12, 2.5],
-        "circle-color": "#cfe6ff",
-        "circle-opacity": ["interpolate", ["linear"], ["get", "s"], 0, 0.35, 1.5, 0.9],
+        "circle-color": ["coalesce", ["get", "col"], "#cfe6ff"],
+        // Plain water fades where it is slow; coloured by a field, every particle shows its colour.
+        "circle-opacity": ["case", ["has", "col"], 0.95, ["interpolate", ["linear"], ["get", "s"], 0, 0.35, 1.5, 0.9]],
       },
     });
     map.addSource("pollutant", { type: "geojson", data: empty });
@@ -228,23 +232,32 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
   const pollutant = map.getSource("pollutant") as GeoJSONSource | undefined;
   if (!flow || !pollutant) return;
   const pts: GeoJSON.Feature[] = [];
+  // Each flow particle's colour from the layer (layers.ts), faded with certainty.
+  const coloured = f.layer !== "plain" && f.layer !== "contaminant";
+  const paint = (value?: Float32Array, shares?: Float32Array) => (i: number): string | undefined => {
+    if (!coloured) return undefined;
+    const c = f.layer === "source" ? (shares ? blend(f.sources, shares, i) : undefined) : colour(f.layer, value ? value[i] : NaN);
+    return c && fade(c, f.certainty);
+  };
+  const riverCol = paint(f.particleValue, f.particleShares);
   for (let i = 0; i < f.particleX.length; i++) {
     pts.push({
       type: "Feature",
-      properties: { s: f.particleSpeed[i] },
+      properties: { s: f.particleSpeed[i], col: riverCol(i) },
       geometry: { type: "Point", coordinates: reach.place(f.particleX[i], f.particleLateral[i], 40) },
     });
   }
   for (const nf of f.networks) {
     const net = nets.find((x) => x.id === nf.id);
     if (!net) continue;
+    const netCol = paint(nf.particleValue, nf.particleShares);
     for (let i = 0; i < nf.particleElement.length; i++) {
       const e = nf.particleElement[i];
       if (net.hidden.has(e)) continue; // another reach shows that water
       const lateral = ((i * 2654435761) % 1000) / 500 - 1;
       pts.push({
         type: "Feature",
-        properties: { s: Math.abs(nf.velocity[e] ?? 0) },
+        properties: { s: Math.abs(nf.velocity[e] ?? 0), col: netCol(i) },
         geometry: { type: "Point", coordinates: net.place(e, nf.particleFraction[i], lateral, 25, i) },
       });
     }
@@ -252,10 +265,11 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
   for (const mf of f.meshes) {
     const mesh = meshes.find((x) => x.id === mf.id);
     if (!mesh) continue;
+    const meshCol = paint(mf.particleValue, mf.particleShares);
     for (let i = 0; i < mf.particleTriangle.length; i++) {
       pts.push({
         type: "Feature",
-        properties: { s: mf.particleSpeed[i] },
+        properties: { s: mf.particleSpeed[i], col: meshCol(i) },
         geometry: { type: "Point", coordinates: mesh.place(mf.particleTriangle[i], mf.particleWeights[2 * i], mf.particleWeights[2 * i + 1]) },
       });
     }
@@ -301,8 +315,14 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
   }
   pollutant.setData({ type: "FeatureCollection", features: ps });
   const c = Math.round(f.certainty * 50) / 50; // restyle only when it visibly changes
-  if (c !== drawnCertainty) {
+  const rings = f.layer !== "contaminant";
+  if (c !== drawnCertainty || rings !== drawnRings) {
     drawnCertainty = c;
-    map.setPaintProperty("pollutant", "circle-color", pollutantColour(c));
+    drawnRings = rings;
+    // Coloured by something else, the plume is drawn as rings in one strong
+    // colour, so it is not lost over the field (spec 8.4).
+    map.setPaintProperty("pollutant", "circle-color", rings ? "rgba(0,0,0,0)" : pollutantColour(c));
+    map.setPaintProperty("pollutant", "circle-stroke-color", fade(RING, c));
+    map.setPaintProperty("pollutant", "circle-stroke-width", rings ? 1.4 : 0);
   }
 }

@@ -64,6 +64,11 @@ impl Series {
         Some(d.t0 as f64 + f64::from(d.step_s) * f64::from(d.steps.saturating_sub(1)))
     }
 
+    /// Whether the days hold a field of this name.
+    pub(crate) fn has(&self, name: &str) -> bool {
+        self.days.first().is_some_and(|d| d.field(name).is_some())
+    }
+
     /// A field at `t` for every element, linear between steps; `None` before the
     /// first day. A value missing at either step (NaN) stays missing.
     pub(crate) fn at(&self, t: f64, name: &str) -> Option<Vec<f64>> {

@@ -32,6 +32,7 @@ from = "river"
 to = "delta"
 at = "Sacramento River inflow to DSM2"
 node = 330   # DSM2's junction where the Sacramento enters, at Freeport (its boundary flow "sac")
+source = "sac"   # the water-source group (dsm2.toml [fingerprint]) the river's water belongs to
 
 [[handoffs]]
 from = "delta"

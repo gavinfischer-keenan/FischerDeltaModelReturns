@@ -132,6 +132,8 @@ pub struct MeshTracer {
     area2: Vec<f64>,
     grid: Grid,
     fields: Series,
+    /// Water-quality fields at the nodes (`<day>.quality.fdf`), loaded to be shown.
+    quality: Series,
     diffusivity: f64,
     time: f64,
     rng: Rng,
@@ -199,6 +201,7 @@ impl MeshTracer {
             area2,
             grid,
             fields: Series::default(),
+            quality: Series::default(),
             diffusivity,
             time: start_time,
             rng: Rng::new(seed),
@@ -690,6 +693,51 @@ impl MeshTracer {
         )
     }
 
+    /// Load one day's water-quality file (`temperature`, `salinity` at the nodes), to show them.
+    ///
+    /// # Errors
+    /// If the file is not a node file for this mesh.
+    pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
+        self.quality.load_day(bytes, &[])?;
+        if self.quality.elements != self.topo.x.len() {
+            return Err(FormatError::Invalid(
+                "quality file does not match the mesh".into(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// A field's value now where each flow particle is, in the order of
+    /// `particles()`, linear within its triangle: a water-quality field or one
+    /// of the day file's (such as `level`). `NaN` for a field not held. Past the
+    /// end of the fields, the last published.
+    #[must_use]
+    pub fn particle_values(&self, name: &str) -> Vec<f32> {
+        let series = if self.quality.has(name) {
+            &self.quality
+        } else {
+            &self.fields
+        };
+        let at = series
+            .has(name)
+            .then(|| series.end().map(|end| self.time.min(end)))
+            .flatten()
+            .and_then(|t| series.at(t, name));
+        self.particles
+            .iter()
+            .filter_map(|p| match *p {
+                MeshPlace::In(t, x, y) => Some(at.as_ref().map_or(f32::NAN, |v| {
+                    let l = self.bary(t, x, y);
+                    let n = self.topo.tri[t];
+                    #[allow(clippy::cast_possible_truncation)]
+                    let y = (l[0] * v[n[0]] + l[1] * v[n[1]] + l[2] * v[n[2]]) as f32;
+                    y
+                })),
+                MeshPlace::Gone(_) => None,
+            })
+            .collect()
+    }
+
     /// Each flow particle's speed now, m/s, in the order of `particles()`.
     #[must_use]
     pub fn particle_speeds(&self) -> Vec<f32> {
@@ -895,6 +943,52 @@ mod tests {
         let c = t.parcel_concentration();
         assert_eq!(c.len(), 1);
         assert!(c[0] > 0.0 && c[0].is_finite());
+    }
+
+    #[test]
+    fn layers_give_each_particle_the_field_where_it_is() {
+        let mut t = tracer(0.0, 0.0, 0.0);
+        let n = t.topo.x.len();
+        let q = FieldFile {
+            reach: "test:quality".into(),
+            dims: 2,
+            elements: u32::try_from(n).unwrap(),
+            layers: 1,
+            steps: 25,
+            t0: 0,
+            step_s: 3600,
+            fields: vec![Field {
+                name: "temperature".into(),
+                unit: "degC".into(),
+                encoding: Encoding::F32,
+                // Warmer to the east: 10 C at x = 0 to 20 C at x = 1000 m.
+                values: (0..25)
+                    .flat_map(|_| {
+                        t.topo
+                            .x
+                            .iter()
+                            .map(|x| (10.0 + x / 100.0) as f32)
+                            .collect::<Vec<_>>()
+                    })
+                    .collect(),
+            }],
+        };
+        let mut b = Vec::new();
+        q.write_to(&mut b).unwrap();
+        t.load_quality(&b).unwrap();
+        t.seed_flow_particles(200);
+        let (tri, w) = t.particles();
+        let temp = t.particle_values("temperature");
+        assert_eq!(temp.len(), tri.len());
+        for (i, &k) in tri.iter().enumerate() {
+            let (x, _) = t.point(k as usize, f64::from(w[2 * i]), f64::from(w[2 * i + 1]));
+            assert!((f64::from(temp[i]) - (10.0 + x / 100.0)).abs() < 1e-3);
+        }
+        assert!(t.particle_values("level").iter().all(|v| v.abs() < 1e-6));
+        assert!(t
+            .particle_values("no such field")
+            .iter()
+            .all(|v| v.is_nan()));
     }
 
     #[test]
