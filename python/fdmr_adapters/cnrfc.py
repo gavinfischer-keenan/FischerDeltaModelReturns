@@ -36,6 +36,11 @@ def _get(url: str) -> bytes:
         return r.read()
 
 
+def issue_time(issue: str) -> int:
+    """An issue stamp such as "2026112418" as seconds since 1970 (UTC)."""
+    return timegm(strptime(issue, "%Y%m%d%H"))
+
+
 def latest_file(group: str, index_html: str) -> str | None:
     """The newest file name for a forecast group, from the index page."""
     names = sorted(set(re.findall(rf"(\d{{10}})_{re.escape(group)}_csv_export\.zip", index_html)))
@@ -67,13 +72,25 @@ class CnrfcAdapter:
     def __init__(self, store: Store, get=_get) -> None:
         self.store, self.get = store, get
 
+    def held(self, issue: str, points: Iterable[str]) -> bool:
+        """Whether every point already holds this issue (checked at its issue hour)."""
+        t = issue_time(issue)
+        for p in points:
+            v = self.store.values(SOURCE, p, "discharge", t, t + 1)
+            if not v or v[0].qualifier != issue:
+                return False
+        return True
+
     def fetch(self, group: str, points: Iterable[str]) -> tuple[str, int]:
         """Fetch the latest issue for a group and store its flows for `points`.
-        Returns (issue, number of values stored)."""
+        Returns (issue, number of values stored); 0 if that issue is already held."""
+        points = list(points)
         html = self.get(INDEX).decode("utf-8", "replace")
         name = latest_file(group, html)
         if not name:
             raise ValueError(f"no CNRFC file listed for group {group}")
+        if self.held(name.split("_", 1)[0], points):
+            return name.split("_", 1)[0], 0
         issue, flows = parse(self.get(f"{BASE}/csv/{name}"), points)
         n = sum(self.store.put_values(SOURCE, p, "discharge", "m3/s", vs) for p, vs in flows.items())
         return issue, n

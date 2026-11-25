@@ -1,10 +1,11 @@
 """Publish a region's flow field for the last N days and the next M (docs/format.md).
 
-    python -m fdmr_runner.publish REGION_DIR STORE_FILE OUT_DIR [--days 14] [--ahead 14]
+    python -m fdmr_runner.publish REGION_DIR STORE_FILE OUT_DIR [--days 14] [--ahead 14] [--keep 3]
 
 Writes OUT_DIR/<cycle>/ with index.json, geometry/<reach>.json and
 <reach>/<YYYY-MM-DD>.fdf, then points OUT_DIR/current at the new cycle in one
-step, so a reader never sees half a cycle.
+step, so a reader never sees half a cycle. Older cycles beyond the newest
+`--keep` are removed; a browser still reading one has had an hour to finish.
 
 After now, each main gauge follows its river forecast (fdmr_runner.forecast);
 the dam release, which has no forecast, is held. Every step carries the reach's
@@ -17,6 +18,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
+import shutil
 import sys
 import time
 from datetime import datetime, timezone
@@ -223,6 +226,19 @@ def publish(
     return cdir
 
 
+CYCLE = re.compile(r"\d{8}T\d{4}Z$")
+
+
+def prune(out_dir: Path, keep: int) -> list[str]:
+    """Remove all but the newest `keep` cycles, never the current one. Returns what was removed."""
+    current = os.readlink(out_dir / "current") if (out_dir / "current").is_symlink() else None
+    cycles = sorted(p.name for p in out_dir.iterdir() if p.is_dir() and not p.is_symlink() and CYCLE.match(p.name))
+    gone = [c for c in cycles[: max(0, len(cycles) - keep)] if c != current]
+    for c in gone:
+        shutil.rmtree(out_dir / c)
+    return gone
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("region")
@@ -230,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("out")
     ap.add_argument("--days", type=int, default=14)
     ap.add_argument("--ahead", type=int, default=14)
+    ap.add_argument("--keep", type=int, default=3, help="cycles to keep, the newest first")
     args = ap.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -239,6 +256,9 @@ def main(argv: list[str] | None = None) -> int:
     cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead)
     size = sum(f.stat().st_size for f in cdir.rglob("*") if f.is_file())
     print(f"published {cdir} ({size / 1e6:.1f} MB)")
+    gone = prune(out, max(1, args.keep))
+    if gone:
+        print(f"removed {len(gone)} older cycles")
     return 0
 
 

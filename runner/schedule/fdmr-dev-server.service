@@ -1,0 +1,15 @@
+# The private development address (http://192.168.5.231:8090/). Production is
+# served by Caddy on the web edge instead (specification 9.3).
+[Unit]
+Description=FDMR development web server
+After=network-online.target
+
+[Service]
+User=fdmr
+Group=fdmr
+ExecStart=/usr/bin/python3 /home/fdmr/fdmr/tools/dev_server.py /home/fdmr/fdmr/ui/dist --mount data=/srv/fdmr-data/publish --mount basemap=/srv/fdmr-data/basemap --port 8090
+Restart=on-failure
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

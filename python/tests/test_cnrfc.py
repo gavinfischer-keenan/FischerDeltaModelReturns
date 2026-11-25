@@ -36,3 +36,6 @@ def test_fetch_stores_the_latest_issue():
     issue, n = cnrfc.CnrfcAdapter(store, get=pages.__getitem__).fetch("UpperSacramento", ["BDBC1", "WLKC1"])
     assert issue == "2026112418" and n > 0
     assert store.unit("cnrfc", "WLKC1", "discharge") == "m3/s"
+    # The same issue again: nothing downloaded or written.
+    del pages[f"{cnrfc.BASE}/csv/2026112418_UpperSacramento_csv_export.zip"]
+    assert cnrfc.CnrfcAdapter(store, get=pages.__getitem__).fetch("UpperSacramento", ["BDBC1", "WLKC1"]) == ("2026112418", 0)

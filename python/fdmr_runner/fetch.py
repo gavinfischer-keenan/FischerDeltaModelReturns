@@ -4,11 +4,14 @@
 
 For each gauge it asks which series the gauge records, then fetches those for
 the period, and every channel measurement on record. Series the store already
-covers are skipped, so a rerun only fills gaps. Then it fetches the latest river
-forecast for every gauge that names a forecast point. One gauge's failure does
-not stop the rest.
+holds up to the last `--fresh` minutes are skipped, so a rerun only fills gaps
+and the hourly run fetches only the latest hour or so. Then it fetches the
+latest river forecast for every gauge that names a forecast point, if that
+issue is not already held. One gauge's failure does not stop the rest.
 
-    --forecast-only   skip the gauges and fetch only the forecasts
+    --forecast-only     skip the gauges and fetch only the forecasts
+    --no-measurements   skip channel measurements (they change rarely; the
+                        nightly run fetches them)
 """
 
 from __future__ import annotations
@@ -35,7 +38,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("store")
     ap.add_argument("--days", type=int, default=365, help="how far back to fetch (default 365)")
     ap.add_argument("--pause", type=float, default=2.0, help="seconds between requests, to be polite")
+    ap.add_argument("--fresh", type=float, default=30, help="minutes within which a series counts as up to date")
     ap.add_argument("--forecast-only", action="store_true")
+    ap.add_argument("--no-measurements", action="store_true")
     args = ap.parse_args(argv)
 
     region = load_region(args.region)
@@ -64,13 +69,14 @@ def main(argv: list[str] | None = None) -> int:
         time.sleep(args.pause)
         for p in (p for p in PARAMETERS if p in have):
             cov = store.coverage(SOURCE, g.site, p)
-            # Already held from (about) the start of the period to the last day: skip.
-            if cov and cov[0] <= start + 2 * 86_400 and cov[1] >= now - 86_400:
+            # Already held from (about) the start of the period to a moment ago: skip.
+            if cov and cov[0] <= start + 2 * 86_400 and cov[1] >= now - args.fresh * 60:
                 print(f"{g.site} {p:31s} held    {g.name}", flush=True)
                 continue
             from_t = max(start, cov[1]) if cov and cov[0] <= start + 2 * 86_400 else start
             attempt(f"{g.site} {p}", lambda p=p, f=from_t: usgs.fetch_values(g.site, p, f"{iso(f)}/{iso(now)}"))
-        attempt(f"{g.site} channel_measurements", lambda: usgs.fetch_channel_measurements(g.site))
+        if not args.no_measurements:
+            attempt(f"{g.site} channel_measurements", lambda: usgs.fetch_channel_measurements(g.site))
     # River forecasts: one file per forecast group holds all its points.
     groups: dict[str, list[str]] = {}
     for g in region.gauges:
@@ -80,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
     for group, points in groups.items():
         try:
             issue, n = cnrfc.fetch(group, points)
-            print(f"cnrfc {group:34s} {n:7d} issue {issue}", flush=True)
+            print(f"cnrfc {group:34s} {n:7d} issue {issue}" + ("" if n else " (held)"), flush=True)
         except Exception as e:
             failures += 1
             print(f"cnrfc {group:34s} FAILED {e}", flush=True)

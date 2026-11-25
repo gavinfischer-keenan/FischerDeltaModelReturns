@@ -1,10 +1,14 @@
 """A small static file server for development, with byte-range support.
 
-    python tools/dev_server.py DIRECTORY [--port 8090] [--bind 0.0.0.0]
+    python tools/dev_server.py DIRECTORY [--mount URL_PREFIX=DIR ...] [--port 8090] [--bind 0.0.0.0]
 
 The basemap is one PMTiles file that the browser reads in pieces with HTTP
 Range requests; Python's built-in server cannot answer those. In production
 Caddy serves the same files (specification section 9.3). Standard library only.
+
+--mount serves another folder under a path, such as data=/srv/fdmr-data/publish,
+so rebuilding the UI into DIRECTORY never disturbs the data. Pages and JSON are
+sent with no-cache, so a browser always sees the newest cycle.
 """
 
 from __future__ import annotations
@@ -27,6 +31,20 @@ RANGE = re.compile(r"bytes=(\d*)-(\d*)$")
 
 
 class RangeHandler(SimpleHTTPRequestHandler):
+    mounts: dict[str, str] = {}
+
+    def translate_path(self, path):
+        first = path.lstrip("/").split("/", 1)[0].split("?", 1)[0]
+        if first in self.mounts:
+            rest = path.lstrip("/")[len(first):] or "/"
+            base = self.directory
+            try:
+                self.directory = self.mounts[first]
+                return super().translate_path(rest)
+            finally:
+                self.directory = base
+        return super().translate_path(path)
+
     def send_head(self):
         header = self.headers.get("Range")
         path = self.translate_path(self.path)
@@ -73,6 +91,9 @@ class RangeHandler(SimpleHTTPRequestHandler):
 
     def end_headers(self):
         self.send_header("Accept-Ranges", "bytes")
+        p = self.path.split("?", 1)[0]
+        if p.endswith((".json", ".html", "/")):
+            self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
 
@@ -81,7 +102,9 @@ def main() -> None:
     ap.add_argument("directory")
     ap.add_argument("--port", type=int, default=8090)
     ap.add_argument("--bind", default="0.0.0.0")
+    ap.add_argument("--mount", action="append", default=[], metavar="PREFIX=DIR")
     args = ap.parse_args()
+    RangeHandler.mounts = dict(m.split("=", 1) for m in args.mount)
     server = ThreadingHTTPServer((args.bind, args.port), partial(RangeHandler, directory=args.directory))
     print(f"serving {args.directory} on http://{args.bind}:{args.port}/", flush=True)
     server.serve_forever()

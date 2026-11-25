@@ -1,0 +1,12 @@
+# Gauges, forecasts and the river model, every hour (specification: cadence).
+[Unit]
+Description=FDMR hourly cycle
+
+[Timer]
+OnCalendar=*-*-* *:20:00 UTC
+RandomizedDelaySec=60
+Persistent=true
+Unit=fdmr-cycle@hourly.service
+
+[Install]
+WantedBy=timers.target

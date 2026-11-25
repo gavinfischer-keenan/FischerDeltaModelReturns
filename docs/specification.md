@@ -6,7 +6,7 @@ Version 1.0 · 24 November 2026
 
 Fischer Delta Model Returns is a free web app that shows how water is moving between Shasta Dam and the Golden Gate, now, over the last 14 days and over the next 14. It shows the water's temperature and salinity, where a pollutant or a new outfall released anywhere in it will travel, and what a levee breach or a change in dam release would do. Everything plays as a movie of moving particles on a zoomable map.
 
-It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-delta/), listed under Utilities, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
+On tripofisch.com it is called **Sturgeon**. It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-delta/), listed under Utilities, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
 
 **Key decisions**
 
@@ -904,6 +904,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
 - Address: `tripofisch.com/fischer-delta/`, listed under Utilities. See section 9.3.
+- Public name on tripofisch.com: **Sturgeon**, with the sturgeon logo (a sturgeon in a ring marked salinity, flow rate, temperature and depth). Fischer Delta Model Returns stays the project and repository name.
 - Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. See section 9.3.
 - DSM2 is built natively on Linux, with HEClib v6 compiled from the source in DWR's public DSM2 8.1.2 package. No Windows, no Wine, no request to DWR. NOAA's public Bay archive is continuous since August 2024, so nothing is saved ahead. See sections 7.3 and 9.3.
 - Languages: Rust for the math library and compute engine; Python for the model runner, data adapters and publisher, calling the Rust math. See section 4.2 and build-plan.md.

@@ -64,7 +64,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Math library, first set | Fischer dispersion, flood-wave routing, hydraulic geometry fitting, gauge-to-gauge lag analysis, 1D parcel movement, decay, certainty. Each is tested against textbook cases. |
 | Data adapters | USGS, the River Forecast Center and CDEC for Keswick; the local data store. Done 25 Nov 2026: USGS (with an API key), the River Forecast Center's hourly flow forecasts at five main gauges, and the store. CDEC is still to do; until then the Keswick release is held at its last measured value. |
 | River model kind | Routing with both speeds kept apart; nightly calibration; skill scores. |
-| Model runner | Scheduler and publisher; hourly river runs; the rolling 14-day past window. |
+| Model runner | Scheduler and publisher; hourly river runs; the rolling 14-day past window. Done 25 Nov 2026: systemd timers in the model runner (`runner/schedule`) fetch and publish every hour at 20 past, and fetch channel measurements nightly. Each run fetches only new readings and skips a forecast already held. The newest 3 cycles are kept. The development server runs as a service. |
 | Compute engine, first version | 1D tracer, flow particles and answers, behind the interface in specification 4.2, in a browser background thread. |
 | UI, first version | Self-hosted map stack, flow particles, the timeline with Now, the last 14 days and the next 14, and Add pollutant. All words in text files. Done 25 Nov 2026 for the river: the next 14 days play from the forecast, the timeline is shaded by certainty, and the time reads measured, forecast or rough guide. |
 | Test region | A plain river outside California, running in the tests. |
@@ -107,7 +107,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. A small request service on the model runner, behind a route on the web edge, runs a what-if when asked: menu choices only, one at a time, kept until the next cycle. The UI says it takes a few minutes and shows progress. In spare time, when the whole host has been quiet for 30 minutes, it works through the rest of the menu; visitors always come first. |
 | History | A simple text History page, with the words from you. |
 | Finish | Phone layout, and the Utilities page on tripofisch.com. |
-| Front-page tile | At launch the app gets a tile on the tripofisch.com front page, like the other utilities: a short description, a logo and a fish-pun name. Until the name and logo arrive, the tile is a placeholder with no name. |
+| Front-page tile | At launch the app gets a tile on the tripofisch.com front page, like the other utilities: a short description, a logo and its name. The name is **Sturgeon** (decided 25 Nov 2026); the logo is a sturgeon in a ring marked salinity, flow rate, temperature and depth. |
 
 **Done when:** every user-facing item in specification section 3 works on a phone and a desktop.
 
