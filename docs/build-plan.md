@@ -23,7 +23,7 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 | 3 | UI stack | Recommended: TypeScript, MapLibre and Svelte | The browser needs TypeScript or JavaScript for the UI. Particles are drawn by our own graphics layer inside MapLibre; Svelte handles controls, forms, legend, timeline and graphs. Because the UI only displays, a framework change later touches only the UI. |
 | 4 | Repository layout | Recommended: one repository, one package per module | `math/`, `format/`, `compute/` and `plugins/` in Rust; `runner/` and `adapters/` in Python; `ui/` in TypeScript; `regions/` and `text/` as data. Seams enforced by tooling in each language: the Rust compiler, a Python import checker and a TypeScript dependency checker. The build fails on a forbidden import. |
 | 5 | Continuous integration | Recommended: GitHub Actions | Free for this public repository. Every change runs the Rust tests and WebAssembly build, the Python tests, the UI tests against recorded compute output, the dependency checks and the plug-in conformance tests. The running app never depends on GitHub. |
-| 6 | How finished files reach the web edge | Proposed; waiting on the path name and your OK for the web-edge change | Served at a path on tripofisch.com from `/srv/fdmr` on the existing web edge (container 703), through a Caddy route like Lux's `/play/`: no new hostname, no tunnel change. rsync over SSH from the model runner, with a key that can write only into that folder; each cycle goes into a new folder and one link switch makes it live. A Cloudflare cache rule serves the unchanging past days from Cloudflare's edge. |
+| 6 | How finished files reach the web edge | Proposed; waiting on the path name and your OK for the web-edge change | Served at a path on tripofisch.com from `/srv/fdmr` on the existing web edge (container 703), through a Caddy route like Lux's `/play/`: no new hostname, no tunnel change. rsync over SSH from the model runner, with a key that can write only into that folder; each cycle goes into a new folder and one link switch makes it live. Past days carry long-lived cache headers; a Cloudflare cache rule is optional. |
 
 ## 3. Things only people can do
 
@@ -37,7 +37,6 @@ These have no code in them, and several take weeks of waiting, so they start now
 | Gather family photographs and papers, including the punch cards | History section | Phase 4 |
 | Approve the model runner container on the `webserver` host, the only machine this app may use | Phase 0 needs somewhere to run DSM2 | Phase 0 |
 | A Windows license, only if the Linux build of DSM2 stalls and a temporary Windows VM is needed | DWR's prebuilt DSM2 is a Windows release | Phase 0, if at all |
-| A Cloudflare cache rule for the app's data path, or a narrowly scoped API token so I can set it | Keeps visitor bursts off the shared home connection and tunnel | Phase 4 |
 | Explain how tripofisch.com is deployed, and set up access for the push | Publishing to the web guest | Phase 1 |
 
 **Model runner container on `webserver`, starting size:** 8 efficiency cores, 8 GB of memory (12 at most), and a 1 TB disk from the host's storage. It runs at lower CPU and disk priority than every Electric Eel container. The disk holds the data store, a year of reduced Bay archive and the published files. Phase 0 checks the size against real DSM2 timings.
@@ -128,6 +127,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Performance | Parcel and particle counts tuned by measured frame rate. |
 | Accessibility | Colour-blind checks on every scale. |
 | Review | License and credits review. |
+| Migration runbook | The steps to move the web side, and later the model runner, to a cloud server if the app takes off. |
 
 **Done when:** it has run unattended for two weeks without a gap, then launch.
 
@@ -168,7 +168,7 @@ flowchart LR
 | A feed is late, sparse or changes format | Gaps in the past window, or a weaker forecast | The local store, data age shown on screen, and an adapter per source so one break stays contained. |
 | The Linux build of DSM2 stalls | A temporary Windows VM is needed, and it costs memory | Keep it small, run it only while needed, and remove it once Linux works. |
 | This app competes with Electric Eel on the shared host | Electric Eel slows | Fixed caps, lower CPU and disk priority, pinned to efficiency cores; Phase 0 measures the real load. |
-| A visitor burst fills the home connection or the shared tunnel | Electric Eel's traffic suffers too | Cloudflare caches the unchanging past days at its edge; data files are small and fetched one day at a time. |
+| The app takes off, well past about 100 visitors a day | The home connection and the shared tunnel, which Electric Eel also uses, get busy | Move the web side to a cloud server straight away. It is only static files, so the move is quick. The steps are written down in Phase 5. |
 | A bad Caddy change breaks the shared web edge | Every site on it goes down, Electric Eel included | Check the config before reloading, reload rather than restart, keep the previous file, and change it only with your OK. |
 | Phones cannot keep up | Choppy movie | Parcel counts set by device; measured in Phase 4. |
 | A data source's license forbids our use | That feed cannot be used | Checked for every feed in Phase 0. |
