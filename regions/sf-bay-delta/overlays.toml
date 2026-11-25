@@ -1,0 +1,289 @@
+# What can be drawn over the water (specification 3.5, 5.3). Each overlay is
+# switched on and off by the visitor; this file says what each one is here.
+
+# X2: how far the sea reaches inland. Jassby et al. (1995) define it as the
+# distance from the Golden Gate, along the axis of the estuary, to where the
+# daily averaged salinity 1 m above the bed is 2 (psu). DWR's operational
+# daily X2 (CDEC "CX2") places it where surface specific conductance is
+# 2.64 mS/cm, interpolated between Martinez (56 km), Port Chicago (64),
+# Chipps Island / Mallard (74) and Collinsville (81). We follow DWR: QUAL's
+# conductance matches the stations' east of Martinez to a few per cent
+# (checked 25 Nov 2026), while NOAA's Bay salinity reads far too salty there
+# (issue #6). DSM2 begins at Martinez, so an X2 west of it is not placed.
+#   Jassby, A.D., et al. 1995. Isohaline position as a habitat indicator for
+#   estuarine populations. Ecological Applications 5(1): 272-289.
+#   Mueller-Solger, A. 2012. Notes on estimating X2 (draft, IEP), which
+#   records CDEC's CX2 method and these station distances.
+[[isohalines]]
+id = "x2"
+reach = "delta"
+field = "ec"
+threshold = 2640.0  # uS/cm, DWR's CX2 threshold
+# Checked every day against the same position worked out from the stations'
+# measured surface conductance, by CX2's method (linear between the stations
+# either side), over the anchors and Port Chicago at its place on our axis.
+# CDEC's own CX2 is posted only between 56 and 81 km (its "v" flag), and the
+# autumn's X2 lies beyond Collinsville, so Emmaton (92 km) is included.
+check = { source = "cdec", parameter = "specific_conductance", also = ["PCT"] }
+# Distances from the Golden Gate (km) at stations on the axis. The axis is the
+# network's shortest path from the first to the last; between anchors,
+# distance along it is scaled to these. Coordinates: CDEC station metadata.
+# Port Chicago is not an anchor: it was moved upstream in 2019 (CDEC).
+anchors = [
+  { site = "MRZ", name = "Martinez", lon = -122.140488, lat = 38.027637, km = 56 },
+  { site = "MAL", name = "Mallard Island (Chipps Island)", lon = -121.920090, lat = 38.042805, km = 74 },
+  { site = "CLL", name = "Collinsville", lon = -121.850123, lat = 38.073981, km = 81 },
+  { site = "EMM", name = "Emmaton", lon = -121.738924, lat = 38.084272, km = 92 },
+  { site = "RVB", name = "Rio Vista Bridge", lon = -121.686355, lat = 38.159737, km = 100 },
+]
+
+# Stations shown with their latest readings: water temperature, conductance
+# (surface and near the bed), dissolved oxygen, turbidity and flow, whichever
+# each measures. All are asked of CDEC in one request per duration. `duration`
+# is H where the station posts hourly values, E (every 15 minutes) where it
+# posts only those. Names and coordinates: CDEC's station pages, 25 Nov 2026.
+
+[[stations]]
+site = "KWK"
+name = "Sacramento River at Keswick"
+lat = 40.600983
+lon = -122.444458
+duration = "H"
+
+[[stations]]
+site = "BND"
+name = "Sacramento River at Bend Bridge"
+lat = 40.288486
+lon = -122.186661
+duration = "H"
+
+[[stations]]
+site = "RDB"
+name = "Sacramento River at Red Bluff Diversion Dam"
+lat = 40.154362
+lon = -122.20195
+duration = "H"
+
+[[stations]]
+site = "WLK"
+name = "Sacramento River below Wilkins Slough"
+lat = 39.009895
+lon = -121.824692
+duration = "H"
+
+[[stations]]
+site = "FPT"
+name = "Sacramento River at Freeport"
+lat = 38.456112
+lon = -121.5003
+duration = "E"
+
+[[stations]]
+site = "SRH"
+name = "Sacramento River at Hood"
+lat = 38.367981
+lon = -121.519958
+duration = "H"
+
+[[stations]]
+site = "SDC"
+name = "Sacramento River above Delta Cross Channel"
+lat = 38.257
+lon = -121.518
+duration = "E"
+
+[[stations]]
+site = "DLC"
+name = "Delta Cross Channel"
+lat = 38.245
+lon = -121.505
+duration = "E"
+
+[[stations]]
+site = "GSS"
+name = "Georgiana Slough at Sacramento River"
+lat = 38.237
+lon = -121.518
+duration = "E"
+
+[[stations]]
+site = "LIB"
+name = "Cache Slough at Liberty Island"
+lat = 38.2421
+lon = -121.6849
+duration = "E"
+
+[[stations]]
+site = "RVB"
+name = "Sacramento River at Rio Vista Bridge"
+lat = 38.159737
+lon = -121.686355
+duration = "H"
+
+[[stations]]
+site = "EMM"
+name = "Emmaton"
+lat = 38.084272
+lon = -121.738924
+duration = "H"
+
+[[stations]]
+site = "CLL"
+name = "Collinsville"
+lat = 38.073981
+lon = -121.850123
+duration = "H"
+
+[[stations]]
+site = "MAL"
+name = "Sacramento River at Mallard Island"
+lat = 38.042805
+lon = -121.92009
+duration = "H"
+
+[[stations]]
+site = "PCT"
+name = "Port Chicago"
+lat = 38.056788
+lon = -121.999971
+duration = "H"
+
+[[stations]]
+site = "MRZ"
+name = "Martinez"
+lat = 38.027637
+lon = -122.140488
+duration = "H"
+
+[[stations]]
+site = "GZL"
+name = "Grizzly Bay"
+lat = 38.12425
+lon = -122.038117
+duration = "E"
+
+[[stations]]
+site = "HUN"
+name = "Hunter Cut at Montezuma Slough"
+lat = 38.156
+lon = -122.0527
+duration = "H"
+
+[[stations]]
+site = "BDL"
+name = "Beldon Landing"
+lat = 38.1869
+lon = -121.9708
+duration = "H"
+
+[[stations]]
+site = "MSL"
+name = "Montezuma Slough at Roaring River"
+lat = 38.0934
+lon = -121.8872
+duration = "H"
+
+[[stations]]
+site = "ANH"
+name = "San Joaquin River at Antioch"
+lat = 38.01783
+lon = -121.802963
+duration = "H"
+
+[[stations]]
+site = "SJJ"
+name = "San Joaquin River at Jersey Point"
+lat = 38.052
+lon = -121.689
+duration = "E"
+
+[[stations]]
+site = "FAL"
+name = "False River near Oakley"
+lat = 38.0558
+lon = -121.6669
+duration = "E"
+
+[[stations]]
+site = "DSJ"
+name = "Dutch Slough at Jersey Island"
+lat = 38.013
+lon = -121.671
+duration = "E"
+
+[[stations]]
+site = "HOL"
+name = "Holland Cut near Bethel Island"
+lat = 38.0164
+lon = -121.5819
+duration = "E"
+
+[[stations]]
+site = "PPT"
+name = "San Joaquin River at Prisoners Point"
+lat = 38.066
+lon = -121.562
+duration = "H"
+
+[[stations]]
+site = "OBI"
+name = "Old River at Bacon Island"
+lat = 37.969227
+lon = -121.574174
+duration = "H"
+
+[[stations]]
+site = "MDM"
+name = "Middle River at Middle River"
+lat = 37.943
+lon = -121.534
+duration = "H"
+
+[[stations]]
+site = "TRN"
+name = "Turner Cut near Holt"
+lat = 37.9928
+lon = -121.4542
+duration = "E"
+
+[[stations]]
+site = "OH4"
+name = "Old River at Highway 4"
+lat = 37.891109
+lon = -121.569168
+duration = "H"
+
+[[stations]]
+site = "VCU"
+name = "Victoria Canal near Byron"
+lat = 37.8717
+lon = -121.5283
+duration = "E"
+
+[[stations]]
+site = "GLC"
+name = "Grant Line Canal"
+lat = 37.8196
+lon = -121.5485
+duration = "H"
+
+[[stations]]
+site = "OLD"
+name = "Old River near Tracy"
+lat = 37.80481
+lon = -121.449562
+duration = "H"
+
+[[stations]]
+site = "MSD"
+name = "San Joaquin River at Mossdale Bridge"
+lat = 37.786
+lon = -121.306
+duration = "H"
+
+[[stations]]
+site = "VNS"
+name = "San Joaquin River near Vernalis"
+lat = 37.676041
+lon = -121.266327
+duration = "H"

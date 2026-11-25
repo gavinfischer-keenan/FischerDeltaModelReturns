@@ -11,6 +11,7 @@
   import { MeshPlace, type MeshGeometry } from "./mesh";
   import { SOURCES, legend } from "./layers";
   import { NetworkPlace, type NetworkGeometry } from "./network";
+  import { addOverlays, drawIsohaline, isohalineAt, showOverlay, type Overlays, type Station } from "./overlays";
 
   const params = new URLSearchParams(location.search);
   const region = params.get("region") ?? "sf-bay-delta";
@@ -40,6 +41,31 @@
   function setLayer(l: Layer) {
     layer = l;
     engine.send({ type: "layer", layer: l });
+  }
+  let overlays = $state<Overlays | null>(null);
+  let showX2 = $state(false);
+  let showStations = $state(false);
+  const x2 = $derived(overlays?.isohalines.find((h) => h.id === "x2") ?? null);
+  const x2Now = $derived(x2 ? isohalineAt(x2, t) : null);
+  const x2Label = (km: number) => `X2 · ${km.toFixed(1)} km`;
+  function toggle(kind: "x2" | "stations", on: boolean) {
+    if (kind === "x2") showX2 = on;
+    else showStations = on;
+    if (map) showOverlay(map, kind, on);
+    if (kind === "x2" && on && map && x2) drawIsohaline(map, x2, t, x2Label);
+  }
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  const UNIT: Record<string, string> = { degC: "°C", "uS/cm": "µS/cm", "mg/L": "mg/L", NTU: "NTU", FNU: "FNU", "m3/s": "m³/s" };
+  /** A station's popup: each reading, the model's value beside it where it has one, and how old it is. */
+  function describe(s: Station): string {
+    const rows = Object.entries(s.readings).map(([p, r]) => {
+      const u = UNIT[overlays!.units[p]] ?? overlays!.units[p] ?? "";
+      const v = (x: number) => (Math.abs(x) >= 100 ? x.toFixed(0) : x.toPrecision(3));
+      const model = r.model !== undefined ? ` <span class="model">${text.station_model} ${v(r.model)}</span>` : "";
+      const age = Math.max(0, Math.round((Date.now() / 1000 - r.t) / 3600));
+      return `<tr><td>${esc(key(`reading_${p}`))}</td><td><b>${v(r.v)}</b> ${u}${model}</td><td class="age">${age < 1 ? text.station_just_now : `${age} h`}</td></tr>`;
+    });
+    return `<div class="station"><b>${esc(s.name)}</b> <span class="site">${esc(s.site)}</span><table>${rows.join("") || `<tr><td>${text.station_no_readings}</td></tr>`}</table><p>${text.station_source}</p></div>`;
   }
   let netFlow = $state(false);
   function setFlow(net: boolean) {
@@ -86,6 +112,7 @@
     sources = f.sources;
     words = f.words;
     if (map && reach) drawFrame(map, reach, f, nets, meshes);
+    if (map && showX2 && x2) drawIsohaline(map, x2, f.t, x2Label);
     if (map) drawNetworks(map, f);
   }
 
@@ -180,9 +207,21 @@
     engine.onReply((r) => {
       if (r.type === "ready") {
         // Channels a mesh reach tracks (index.json handoffs) are left to it.
-        const joins = fetch(`${cycle}/index.json`)
-          .then((x) => x.json())
-          .then((ix: { handoffs?: { from: string; owned?: number[] }[] }) => ix.handoffs ?? []);
+        const ix = fetch(`${cycle}/index.json`).then((x) => x.json());
+        const joins = ix.then((x: { handoffs?: { from: string; owned?: number[] }[] }) => x.handoffs ?? []);
+        // What is drawn over the water: X2 and the stations (overlays.json).
+        ix.then((x: { overlays?: string }) => (x.overlays ? fetch(`${cycle}/${x.overlays}`).then((o) => o.json()) : null))
+          .then((o: Overlays | null) => {
+            if (!o) return;
+            overlays = o;
+            // Once drawn, show whichever the visitor has already switched on.
+            addOverlays(map, o, describe, () => {
+              showOverlay(map, "x2", showX2);
+              showOverlay(map, "stations", showStations);
+              if (showX2 && x2) drawIsohaline(map, x2, t, x2Label);
+            });
+          })
+          .catch((e) => console.warn("overlays not shown:", e)); // the water is shown whether or not its overlays load
         for (const id of r.networks) {
           Promise.all([fetch(`${cycle}/geometry/${id}.json`).then((x) => x.json()), joins]).then(([g, hs]: [NetworkGeometry, { from: string; owned?: number[] }[]]) => {
             const hidden = hs.filter((h) => h.from === id && h.owned && r.meshes.length).flatMap((h) => h.owned!);
@@ -329,7 +368,7 @@
           <div class="legend">
             <div class="bar" style={`background: ${lg.gradient}`}></div>
             <div class="ticks">{#each lg.ticks as [x, label]}<span style={`left: ${(x * 100).toFixed(1)}%`}>{label}</span>{/each}</div>
-            <span class="unit">{lg.unit}{layer === "temperature" || layer === "salinity" || layer === "level" ? ` · ${text.legend_river_grey}` : ""}</span>
+            <span class="unit">{lg.unit}{layer === "temperature" || layer === "salinity" || layer === "level" ? ` · ${text.legend_river_grey}` : ""}{layer === "salinity" ? ` · ${text.legend_salinity_bay}` : ""}</span>
           </div>
         {:else if layer === "source"}
           <div class="legend swatches">
@@ -346,6 +385,20 @@
         <label><input type="radio" name="flow" checked={netFlow} onchange={() => setFlow(true)} /> {text.flow_net}</label>
         {#if netFlow}<span class="unit">{text.flow_net_note}</span>{/if}
       </div>
+      {#if overlays}
+        <div class="layer">
+          <span>{text.overlays}</span>
+          {#if x2}<label><input type="checkbox" checked={showX2} onchange={(e) => toggle("x2", (e.target as HTMLInputElement).checked)} /> {text.overlay_x2}</label>{/if}
+          <label><input type="checkbox" checked={showStations} onchange={(e) => toggle("stations", (e.target as HTMLInputElement).checked)} /> {text.overlay_stations}</label>
+          {#if showX2 && x2Now}
+            <span class="unit">
+              {#if x2Now.km !== null}{text.x2_at.replace("{km}", x2Now.km.toFixed(1))}{:else}{key(`x2_${x2Now.outside}`)}{/if}
+              {#if x2?.check?.mean_difference_km != null} · {text.x2_check.replace("{mean}", Math.abs(x2.check.mean_difference_km).toFixed(1)).replace("{largest}", (x2.check.largest_difference_km ?? 0).toFixed(1)).replace("{days}", String(x2.check.days.filter((d) => d.km !== null && d.model_km != null).length))}{/if}
+            </span>
+          {/if}
+          {#if showStations}<span class="unit">{text.stations_note}</span>{/if}
+        </div>
+      {/if}
       <div class="updated">{text.updated}: {fmt(ready.now)}</div>
     </div>
   {/if}
@@ -379,5 +432,11 @@
   .legend .ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
   .unit { font-size: 0.7rem; opacity: 0.8; }
   .swatches { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 0.75rem; }
+  :global(.station table) { border-collapse: collapse; margin-top: 4px; font-size: 0.8rem; }
+  :global(.station td) { padding: 1px 6px 1px 0; }
+  :global(.station .site), :global(.station .age), :global(.station .model), :global(.station p) { opacity: 0.7; font-size: 0.75rem; }
+  :global(.station p) { margin: 4px 0 0; }
+  :global(.maplibregl-popup-content) { background: #0d1726; color: #e8eef6; }
+  :global(.maplibregl-popup-tip) { border-top-color: #0d1726 !important; border-bottom-color: #0d1726 !important; }
   .swatches i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
 </style>

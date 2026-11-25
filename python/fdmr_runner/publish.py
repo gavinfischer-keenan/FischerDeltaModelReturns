@@ -282,6 +282,16 @@ def publish(
             joins.append(network_to_mesh(h["from"], geo(h["from"]), h["to"], geo(h["to"])))
     if joins:
         index["handoffs"] = joins  # format 1.1: where parcels leaving one reach enter the next
+    # What is drawn over the water: X2, the stations' readings (fdmr_runner.overlays).
+    try:
+        from . import overlays
+
+        ov = overlays.build(region_dir, cdir, index, store, int(time.time()))
+        if ov is not None:
+            (cdir / "overlays.json").write_text(json.dumps(ov, separators=(",", ":"), allow_nan=False), encoding="utf-8")
+            index["overlays"] = "overlays.json"
+    except Exception as e:  # the water is published whatever happens to its overlays
+        print(f"overlays FAILED {e}", flush=True)
     (cdir / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
 
     tmp = out_dir / ".current.tmp"

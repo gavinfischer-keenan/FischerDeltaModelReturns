@@ -43,6 +43,17 @@ function faded(colour: string, certainty: number): string {
 function pollutantColour(certainty: number): ExpressionSpecification {
   return ["interpolate", ["linear"], ["get", "c"], ...POLLUTANT_STOPS.flatMap(([v, h]) => [v, faded(h, certainty)])] as ExpressionSpecification;
 }
+/** Maps whose style has loaded. Once it has, layers can be added at any time;
+ * `isStyleLoaded()` is no guide, as it reads false while any source is updating,
+ * which with particles moving is nearly always. */
+const loadedMaps = new WeakSet<Map>();
+
+/** Run `fn` now if the map has loaded, or when it does. */
+export function whenLoaded(map: Map, fn: () => void): void {
+  if (loadedMaps.has(map)) fn();
+  else map.once("load", fn);
+}
+
 let drawnCertainty = 1;
 let drawnRings = false;
 const RING = "#ff2fd1";
@@ -82,6 +93,7 @@ export function createMap(container: HTMLElement, reach: Reach, region: string):
   map.on("movestart", (e) => {
     if ((e as { originalEvent?: Event }).originalEvent) viewTouched = true;
   });
+  map.once("load", () => loadedMaps.add(map));
   map.on("load", () => {
     map.addSource("river", { type: "geojson", data: reach.asGeoJSON() });
     map.addLayer({
@@ -165,8 +177,7 @@ export function addNetwork(map: Map, id: string, g: NetworkGeometry, hidden: Set
       map.getLayer("flow") ? "flow" : undefined,
     );
   };
-  if (map.isStyleLoaded()) add();
-  else map.once("load", add);
+  whenLoaded(map, add);
 }
 
 // The first view: the river, widened to each reach as it loads, unless the
@@ -208,8 +219,7 @@ export function addMesh(map: Map, id: string, g: MeshGeometry): void {
       map.getLayer("flow") ? "flow" : undefined,
     );
   };
-  if (map.isStyleLoaded()) add();
-  else map.once("load", add);
+  whenLoaded(map, add);
 }
 
 const drawnNetworkTime = new globalThis.Map<string, number>();

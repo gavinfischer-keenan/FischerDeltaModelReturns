@@ -96,6 +96,27 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
             attempt(f"cdec {s['id']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["id"], p, int(f), int(now)))
+    # Stations shown on the map (overlays.toml): every sensor of every station
+    # asked in one request per duration. Stations with readings already held
+    # are asked from where their newest ends; new ones (and any that have
+    # never answered) from the start of the period.
+    from . import overlays
+
+    ocfg = (overlays.load(Path(args.region)) or {}) if not args.forecast_only else {}
+    shown = list(overlays.SHOWN)
+    for dur in sorted({s.get("duration", "H") for s in ocfg.get("stations", [])}):
+        group = [s["site"] for s in ocfg["stations"] if s.get("duration", "H") == dur and s.get("source", CDEC) == CDEC]
+        ends = {}
+        for site in group:
+            covs = [c for c in (store.coverage(CDEC, site, p) for p in shown) if c]
+            if covs:
+                ends[site] = max(c[1] for c in covs)
+        held, new = [s for s in group if s in ends], [s for s in group if s not in ends]
+        if held:
+            f0 = max(start, min(ends[s] for s in held) - 3600)
+            attempt(f"cdec {len(held)} stations ({dur}) from {iso(f0)}", lambda h=held, f0=f0, d=dur: sum(cdec.fetch_many(h, shown, int(f0), int(now), d).values()))
+        if new:
+            attempt(f"cdec {len(new)} new stations ({dur})", lambda n=new, d=dur: sum(cdec.fetch_many(n, shown, int(start), int(now), d).values()))
     # Feeds of other model kinds' flow sources, such as the Delta's DSM2 inputs.
     for f in [] if args.forecast_only else delta.feeds(Path(args.region)):
         src, site, p = f["source"], f["site"], f["parameter"]
