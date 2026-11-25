@@ -51,3 +51,24 @@ def test_gives_up_after_the_retries(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen([http_error(503)] * 3, []))
     with pytest.raises(RuntimeError):
         HttpJsonClient(retries=2, sleep=lambda s: None).get_json("https://example.test")
+
+
+def test_extra_headers_are_sent(monkeypatch):
+    seen = []
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen([{"ok": 1}], seen))
+    HttpJsonClient(headers={"X-Api-Key": "k"}).get_json("https://example.test")
+    assert seen[0].get_header("X-api-key") == "k"
+
+
+def test_usgs_key_comes_from_the_environment(monkeypatch, tmp_path):
+    from fdmr_adapters import usgs
+
+    monkeypatch.setattr(usgs, "API_KEY_FILE", tmp_path / "none")
+    monkeypatch.delenv(usgs.API_KEY_ENV, raising=False)
+    assert usgs.api_key() is None
+    monkeypatch.setenv(usgs.API_KEY_ENV, " abc ")
+    assert usgs.api_key() == "abc"
+    monkeypatch.delenv(usgs.API_KEY_ENV)
+    (tmp_path / "key").write_text("fromfile" + chr(10))
+    monkeypatch.setattr(usgs, "API_KEY_FILE", tmp_path / "key")
+    assert usgs.api_key() == "fromfile"

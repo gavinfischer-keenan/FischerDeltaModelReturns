@@ -9,8 +9,10 @@ section 9.1), converts them to SI units and writes them to the local store.
 
 from __future__ import annotations
 
+import os
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from urllib.parse import urlencode
 
 from fdmr_store import ChannelMeasurement, Store, Value
@@ -19,6 +21,18 @@ from .http import HttpJsonClient, JsonClient
 
 BASE = "https://api.waterdata.usgs.gov/ogcapi/v0"
 SOURCE = "usgs"
+
+# An api.data.gov key raises the USGS rate limit. Optional: read from the
+# environment, or from a file only the model runner's user can read.
+API_KEY_ENV = "FDMR_USGS_API_KEY"
+API_KEY_FILE = Path.home() / ".config" / "fdmr" / "usgs-api-key"
+
+
+def api_key() -> str | None:
+    key = os.environ.get(API_KEY_ENV, "").strip()
+    if not key and API_KEY_FILE.is_file():
+        key = API_KEY_FILE.read_text(encoding="utf-8").strip()
+    return key or None
 
 FT = 0.3048
 CFS = FT**3
@@ -58,7 +72,10 @@ def _num(props: dict, key: str, units: dict[str, float]) -> float | None:
 class UsgsAdapter:
     def __init__(self, store: Store, client: JsonClient | None = None, page_size: int = 10000) -> None:
         self.store = store
-        self.client = client or HttpJsonClient()
+        if client is None:
+            key = api_key()
+            client = HttpJsonClient(headers={"X-Api-Key": key} if key else None)
+        self.client = client
         self.page_size = page_size
 
     def _features(self, collection: str, query: dict[str, str]):

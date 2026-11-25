@@ -27,16 +27,18 @@ class HttpJsonClient:
         backoff_s: float = 5.0,
         rate_limit_wait_s: float = 60.0,
         sleep=time.sleep,
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.timeout_s, self.retries, self.backoff_s = timeout_s, retries, backoff_s
         self.rate_limit_wait_s, self.sleep = rate_limit_wait_s, sleep
+        self.headers = headers or {}
 
     def get_json(self, url: str) -> Any:
         last: Exception | None = None
         for attempt in range(self.retries + 1):
             wait = self.backoff_s * 2**attempt
             try:
-                req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
+                req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json", **self.headers})
                 with urllib.request.urlopen(req, timeout=self.timeout_s) as r:
                     return json.load(r)
             except urllib.error.HTTPError as e:
