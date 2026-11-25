@@ -107,6 +107,66 @@ export function createMap(container: HTMLElement, reach: Reach, region: string):
   return map;
 }
 
+interface NetworkGeometry {
+  elements: { id: number }[];
+  lines: [number, number][][];
+}
+
+/** Draw a channel network's channels (docs/format.md, network reaches), each
+ * coloured later by its current speed (drawNetworks). */
+export function addNetwork(map: Map, id: string, g: NetworkGeometry): void {
+  const add = () => {
+    const src = `net-${id}`;
+    if (map.getSource(src)) return;
+    map.addSource(src, {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: g.lines.map((line, k) => ({
+          type: "Feature",
+          id: k,
+          properties: { channel: g.elements[k]?.id },
+          geometry: { type: "LineString", coordinates: line },
+        })),
+      },
+    });
+    map.addLayer(
+      {
+        id: src,
+        type: "line",
+        source: src,
+        paint: {
+          // Speed, either way: dark when slack, bright when the tide runs hard.
+          "line-color": [
+            "interpolate", ["linear"], ["abs", ["coalesce", ["feature-state", "v"], 0]],
+            0, "#1f3b5c", 0.2, "#2b6cb0", 0.6, "#63b3ed", 1.2, "#e6f4ff",
+          ],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.2, 12, 4],
+          "line-opacity": 0.9,
+        },
+        layout: { "line-cap": "round", "line-join": "round" },
+      },
+      map.getLayer("flow") ? "flow" : undefined,
+    );
+  };
+  if (map.isStyleLoaded()) add();
+  else map.once("load", add);
+}
+
+const drawnNetworkTime = new globalThis.Map<string, number>();
+
+/** Colour each network channel by its speed at the frame's time. */
+export function drawNetworks(map: Map, f: Frame): void {
+  for (const n of f.networks) {
+    const src = `net-${n.id}`;
+    if (!map.getSource(src)) continue;
+    // Repaint at most every 5 minutes of model time: speeds change slowly.
+    if (Math.abs((drawnNetworkTime.get(n.id) ?? -1e12) - f.t) < 300) continue;
+    drawnNetworkTime.set(n.id, f.t);
+    for (let k = 0; k < n.velocity.length; k++) map.setFeatureState({ source: src, id: k }, { v: n.velocity[k] });
+  }
+}
+
 /** Draw a frame from the compute engine. Drawing only: placing chainage on the line. */
 export function drawFrame(map: Map, reach: Reach, f: Frame): void {
   const flow = map.getSource("flow") as GeoJSONSource | undefined;

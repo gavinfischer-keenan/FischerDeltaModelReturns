@@ -35,6 +35,8 @@ export interface Frame {
   certainty: number;
   /** The same in words, for the timeline. */
   words: Words;
+  /** Channel networks loaded so far: each channel's mean velocity, m/s, positive downstream. */
+  networks: { id: string; velocity: Float32Array }[];
 }
 
 export type Words = "measured" | "forecast" | "rough_guide";
@@ -48,6 +50,8 @@ export interface Ready {
   /** Certainty at each published step from `start`, `step` s apart. */
   certainty: number[];
   step: number;
+  /** Network reaches (such as a tidal delta), by id: their velocities arrive in later frames. */
+  networks: string[];
 }
 
 export interface Failed {

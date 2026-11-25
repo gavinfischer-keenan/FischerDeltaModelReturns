@@ -5,6 +5,7 @@
 //! Results come back as typed arrays of numbers: chainage, concentration,
 //! speed. Turning chainage into a place on the map is the UI's job.
 
+use fdmr_compute::network::NetworkFlow;
 use fdmr_compute::{Engine as Core, Release};
 use wasm_bindgen::prelude::*;
 
@@ -122,5 +123,44 @@ impl Engine {
     pub fn mass_balance(&self) -> Vec<f64> {
         let b = self.core.mass_balance();
         vec![b.released, b.in_water, b.past_end, b.decayed]
+    }
+}
+
+/// A channel network's flow (a network reach), for colouring its channels.
+#[wasm_bindgen]
+pub struct Network {
+    flow: NetworkFlow,
+}
+
+#[wasm_bindgen]
+impl Network {
+    #[wasm_bindgen(constructor)]
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            flow: NetworkFlow::new(),
+        }
+    }
+
+    /// Load one day's field file, as fetched.
+    ///
+    /// # Errors
+    /// If the bytes are not a network field file.
+    pub fn load_day(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.flow
+            .load_day(bytes)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Each channel's mean velocity at `t`, m/s, positive downstream; empty before the first day.
+    #[must_use]
+    pub fn velocities(&self, t: f64) -> Vec<f32> {
+        self.flow.velocities(t).unwrap_or_default()
+    }
+}
+
+impl Default for Network {
+    fn default() -> Self {
+        Self::new()
     }
 }

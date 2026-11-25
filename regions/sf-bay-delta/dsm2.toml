@@ -20,6 +20,9 @@
 
 inputs = "input-2026-04-16"          # under the DSM2 folder's inputs/
 study = "dsm2_studies/studies/historical"
+# DWR's grid shapefiles (channel centrelines and junctions, UTM zone 10), for the map.
+grid = "grid-2026-04-16/shapefiles/i12_DSM2_Grid_V2020-04-16_Hist_"
+reach = "delta"
 reference_year = 2024
 version = "FDMR-LIVE"                # F part of our live series' paths
 warmup_days = 14                     # before the 14-day past window

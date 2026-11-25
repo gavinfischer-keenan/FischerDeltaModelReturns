@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.13"
       - uses: dtolnay/rust-toolchain@stable
-      - run: pip install pytest ../crates/fdmr-py
+      - run: pip install pytest h5py pyshp ../crates/fdmr-py
       - run: python -c "import fdmr_py"
       - run: python -m pytest -q
 

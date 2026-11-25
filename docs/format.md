@@ -1,4 +1,4 @@
-# Published flow-field format, version 1
+# Published flow-field format, version 1.1
 
 The model runner writes this format and the compute engine reads it (specification sections 4.2 and 8.3). It names no place: every region and every model kind uses it unchanged.
 
@@ -45,6 +45,11 @@ A what-if is a full set of forecast days under `whatif/<name>/`, sharing the mai
 
 `certainty` has one value per published time step, from 1 down toward 0 (specification section 8.2).
 
+**Version 1.1** adds two things, both additive, so a 1.0 reader still reads every 1.0 reach:
+
+- A reach may carry its own `time` block, laid out like the top-level one, and its own `now`. This is for a reach published on its own schedule. For example, the Delta's DSM2 run happens every 6 hours while the river runs hourly. A reach without one uses the top-level `time`.
+- A reach may be a network (`"network": true`); its geometry is described below.
+
 ## Reach geometry (`geometry/<reach>.json`)
 
 Where each element lies, for the compute engine and for drawing. For a 1D reach:
@@ -59,6 +64,27 @@ Where each element lies, for the compute engine and for drawing. For a 1D reach:
 ```
 
 `start_m` and `end_m` are distances along the reach (chainage). `lines` holds a short polyline per element, longitude and latitude, from its upstream end to its downstream end.
+
+### Network geometry (1D, version 1.1)
+
+A channel network, such as a tidal delta, is many short channels meeting at junctions. Each element is one channel:
+
+```json
+{
+  "reach": "delta",
+  "dims": 1,
+  "network": true,
+  "elements": [{ "id": 1, "up": 1, "down": 2, "start_m": 0.0, "end_m": 5762.1 }, "..."],
+  "nodes": [{ "id": 1, "lon": -121.3141, "lat": 37.6712 }, "..."],
+  "lines": [[[-121.3141, 37.6712], ["..."]], "..."]
+}
+```
+
+- `id` is the flow source's own channel number.
+- `up` and `down` are junction ids. Flow is positive from `up` to `down`.
+- `start_m` is 0 and `end_m` is the channel's length.
+- `nodes` gives each junction's position.
+- `lines` runs from the `up` junction to the `down` one.
 
 ## Field files (`.fdf`)
 
@@ -112,5 +138,6 @@ The fields follow in descriptor order. Each field is `steps x layers x elements`
 | `salinity` | psu | Salinity |
 | `source:<name>` | 1 | Share of water from one source, 0 to 1 |
 | `net_velocity` | m/s | Velocity averaged over the tides, for the net-flow display |
+| `flow_up`, `flow_down` | m3/s | Flow at an element's upstream and downstream ends, positive downstream (1D networks, where flow changes along a channel with the tide) |
 
 A reader ignores fields it does not know, so new fields do not need a new major version. Anything that changes how existing bytes are read needs a new major version.

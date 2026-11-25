@@ -137,6 +137,22 @@ def corrections(calibration: dict | None, reach: str, gauges) -> tuple[list[floa
     return [p.get("wave_scale", 1.0) for p in pairs], [p.get("water_factor", 1.0) for p in pairs]
 
 
+def add_reach(cdir: Path, src: Path, index: dict) -> None:
+    """Add a reach published on its own schedule (such as the Delta's DSM2 run,
+    every 6 hours) to this cycle: its files hard-linked in, its entry, with its
+    own time axis, added to the index (format 1.1)."""
+    src = src.resolve()
+    entry = json.loads((src / "reach.json").read_text(encoding="utf-8"))
+    for f in src.rglob("*"):
+        if f.is_file() and f.name != "reach.json":
+            dest = cdir / f.relative_to(src)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if not dest.exists():
+                os.link(f, dest)
+    index["reaches"].append(entry)
+    index["format_version"] = [1, 1]
+
+
 def publish(
     region_dir: Path,
     store: Store,
@@ -146,6 +162,7 @@ def publish(
     datums: dict[str, float | None] | None = None,
     ahead: int = 14,
     calibration: dict | None = None,
+    extra_reaches: list[Path] | None = None,
 ) -> Path:
     region = load_region(region_dir)
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
@@ -244,6 +261,8 @@ def publish(
         }],
         "status": "ok",
     }
+    for extra in extra_reaches or []:
+        add_reach(cdir, extra, index)
     (cdir / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
 
     tmp = out_dir / ".current.tmp"
@@ -276,6 +295,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ahead", type=int, default=14)
     ap.add_argument("--keep", type=int, default=3, help="cycles to keep, the newest first")
     ap.add_argument("--calibration", help="the calibration file written by fdmr_runner.calibrate")
+    ap.add_argument("--with-reach", action="append", default=[], help="a reach published on its own schedule, to include (repeatable)")
     args = ap.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -284,7 +304,9 @@ def main(argv: list[str] | None = None) -> int:
     datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main")}
     cal_path = Path(args.calibration) if args.calibration else None
     calibration = json.loads(cal_path.read_text(encoding="utf-8")) if cal_path and cal_path.exists() else None
-    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead, calibration=calibration)
+    extra = [Path(p) for p in args.with_reach if (Path(p) / "reach.json").exists()]
+    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead,
+                   calibration=calibration, extra_reaches=extra)
     size = sum(f.stat().st_size for f in cdir.rglob("*") if f.is_file())
     print(f"published {cdir} ({size / 1e6:.1f} MB)")
     gone = prune(out, max(1, args.keep))

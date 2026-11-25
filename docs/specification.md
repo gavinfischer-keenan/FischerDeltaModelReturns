@@ -6,7 +6,7 @@ Version 1.0 · 24 November 2026
 
 Fischer Delta Model Returns is a free web app that shows how water is moving between Shasta Dam and the Golden Gate, now, over the last 14 days and over the next 14. It shows the water's temperature and salinity, where a pollutant or a new outfall released anywhere in it will travel, and what a levee breach or a change in dam release would do. Everything plays as a movie of moving particles on a zoomable map.
 
-On tripofisch.com it is called **Sturgeon**. It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-delta/), listed under Utilities, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
+On tripofisch.com it is called **Sturgeon**. It will live at [tripofisch.com/sturgeon/](https://tripofisch.com/sturgeon/), listed under Utilities, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
 
 **Key decisions**
 
@@ -868,7 +868,7 @@ The river model has three sets of parameters, each calibrated from a different k
   - it runs at lower CPU and disk priority than every Electric Eel container;
   - it is pinned to the processor's efficiency cores, leaving the performance cores to Electric Eel.
 - **Model runner**: its own Debian container on that host, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Starting size: 8 efficiency cores, 8 GB of memory (12 at most), and its own 1 TB disk from the host's storage. Modelling and serving stay separate: the web edge serves pages and files and passes what-if requests through to the model runner, and no model code is installed on it.
-- **Web**: served at `tripofisch.com/fischer-delta/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
+- **Web**: served at `tripofisch.com/sturgeon/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
   - The model runner pushes each finished set of files over rsync and SSH, with a key that can write only into that folder. Each cycle goes into a new folder, and one link switch makes it live. The web edge never reaches into the model runner.
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
 - **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. What-ifs run when asked for, one at a time, and in spare time when the whole host has been quiet for a sustained stretch (section 7.6).
@@ -926,7 +926,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - River levels and floods are planned for after launch, not version 1. That means level against flood stage, flood maps, and water on the floodplain, for snowmelt, extreme rain, big dam releases and dam or levee failures, and their effect on flow and Delta salinity. See section 3.11.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
-- Address: `tripofisch.com/fischer-delta/`, listed under Utilities. See section 9.3.
+- Address: `tripofisch.com/sturgeon/`, the model's launch page, listed under Utilities (changed from `/fischer-delta/` on 25 Nov 2026). See section 9.3.
 - Public name on tripofisch.com: **Sturgeon**, with the sturgeon logo (a sturgeon in a ring marked salinity, flow rate, temperature and depth). Fischer Delta Model Returns stays the project and repository name.
 - Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. See section 9.3.
 - DSM2 is built natively on Linux, with HEClib v6 compiled from the source in DWR's public DSM2 8.1.2 package. No Windows, no Wine, no request to DWR. NOAA's public Bay archive is continuous since August 2024, so nothing is saved ahead. See sections 7.3 and 9.3.

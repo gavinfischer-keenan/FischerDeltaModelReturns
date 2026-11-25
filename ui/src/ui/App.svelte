@@ -7,7 +7,7 @@
   import type { Frame, Ready, Words } from "../compute-interface/messages";
   import text from "../../../text/en.json";
   import { Reach, type ReachGeometry } from "./reach";
-  import { createMap, drawFrame } from "./map";
+  import { addNetwork, createMap, drawFrame, drawNetworks } from "./map";
 
   const params = new URLSearchParams(location.search);
   const region = params.get("region") ?? "sf-bay-delta";
@@ -48,6 +48,7 @@
     balance = Array.from(f.massBalance);
     words = f.words;
     if (map && reach) drawFrame(map, reach, f);
+    if (map) drawNetworks(map, f);
   }
 
   function tick(ms: number) {
@@ -137,6 +138,11 @@
     document.title = text.title; // the page title comes from the text files too
     engine.onReply((r) => {
       if (r.type === "ready") {
+        for (const id of r.networks) {
+          fetch(`${cycle}/geometry/${id}.json`)
+            .then((x) => x.json())
+            .then((g) => addNetwork(map, id, g));
+        }
         ready = r;
         t = r.now;
       } else if (r.type === "frame") onFrame(r);

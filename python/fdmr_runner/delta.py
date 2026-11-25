@@ -182,6 +182,62 @@ def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int)
     }
 
 
+def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, out_root: Path, keep: int = 3) -> Path:
+    """Publish a finished run as a network reach (docs/format.md): geometry,
+    daily field files from 14 days before now to the end of the forecast, and
+    the reach's entry for index.json. Points out_root/latest at it."""
+    from fdmr_plugins.dsm2 import fields, grid
+
+    from .region import load_region
+
+    modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
+    tidefile = run_dir / "output" / f"{modifier}.h5"
+    channels, nodes = grid.load(str(DSM2_ROOT / "inputs" / cfg["grid"]), grid.read_channels(tidefile))
+    reach = cfg.get("reach", "delta")
+    stamp = datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ")
+    pub = out_root / stamp
+    (pub / "geometry").mkdir(parents=True, exist_ok=True)
+    (pub / "geometry" / f"{reach}.json").write_text(json.dumps(grid.geometry(reach, channels, nodes), separators=(",", ":")), encoding="utf-8")
+    start = (now - 14 * DAY) // DAY * DAY
+    days = fields.write_days(tidefile, reach, pub / reach, start, end)
+    rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {}).get("certainty", {})
+    solid, floor = rc.get("solid_days", 5) * DAY, rc.get("floor", 0.2)
+    import fdmr_py
+
+    utc = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%dT%H:%MZ")  # noqa: E731
+    steps = (end - start) // STEP
+    entry = {
+        "id": reach, "kind": "1d-tidal-network", "dims": 1, "network": True,
+        "elements": len(channels), "layers": 1, "fields": fields.FIELDS,
+        "time": {"start": utc(start), "step_s": STEP, "days": days},
+        "now": utc(now),
+        "certainty": [round(fdmr_py.certainty_at(start + i * STEP - now, solid, end - now, floor), 4) for i in range(steps)],
+        "flow_source": f"dsm2 run {run_dir.name}",
+    }
+    (pub / "reach.json").write_text(json.dumps(entry, separators=(",", ":")), encoding="utf-8")
+    tmp = out_root / ".latest.tmp"
+    if tmp.is_symlink() or tmp.exists():
+        tmp.unlink()
+    tmp.symlink_to(stamp)
+    tmp.replace(out_root / "latest")
+    # Keep the newest few.
+    import shutil
+
+    olds = sorted(p for p in out_root.iterdir() if p.is_dir() and not p.is_symlink() and p.name != stamp)
+    for p in olds[: max(0, len(olds) - (keep - 1))]:
+        shutil.rmtree(p)
+    return pub
+
+
+def prune_runs(work: Path, keep: int = 2) -> None:
+    """Keep the newest few run folders: each holds HYDRO's full output, hundreds of MB."""
+    import shutil
+
+    runs = sorted((p for p in work.iterdir() if p.is_dir() and p.name[:2].isdigit()), key=lambda p: p.stat().st_mtime)
+    for p in runs[: max(0, len(runs) - keep)]:
+        shutil.rmtree(p)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("region")
@@ -190,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--days", type=int, default=28, help="days before today: warm-up plus the past window")
     ap.add_argument("--ahead", type=int, default=14, help="days of forecast")
     ap.add_argument("--as-of", help="pretend it is this UTC time, to check the forecast against what happened")
+    ap.add_argument("--publish", help="publish the run as a reach into this folder (its `latest` link)")
     args = ap.parse_args(argv)
     region_dir = Path(args.region)
     cfg = load(region_dir)
@@ -215,7 +272,7 @@ def main(argv: list[str] | None = None) -> int:
         replace=cfg["replace"], version=cfg["version"], version_settings=cfg["version_settings"],
         reference_year=cfg["reference_year"], tool=str(root / "bin" / "dsstool"), hydro=str(root / "bin" / "hydro"),
     )
-    run_dir = Path(args.work) / (dss.label(today + DAY)[0].lower() + ("-asof" if hindcast else ""))
+    run_dir = Path(args.work) / (datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ") + ("-asof" if hindcast else ""))
     summary = study.build(settings, run_dir, start, end, live)
     print(f"run folder {run_dir}: {len(summary['live'])} live inputs, {summary['reference_year']} from {cfg['reference_year']}")
     secs = study.run_hydro(settings, run_dir)
@@ -225,6 +282,11 @@ def main(argv: list[str] | None = None) -> int:
         if hindcast:
             print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP)))
     store.close()
+    if args.publish and not hindcast:
+        pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish))
+        size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())
+        print(f"published {pub} ({size / 1e6:.1f} MB)")
+        prune_runs(Path(args.work))
     return 0
 
 

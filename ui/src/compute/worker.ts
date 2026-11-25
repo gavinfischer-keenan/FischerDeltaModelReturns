@@ -3,13 +3,13 @@
 // published field files itself and answers the UI's requests with snapshots.
 // No drawing happens here.
 
-import init, { Engine } from "./pkg/fdmr_wasm.js";
+import init, { Engine, Network } from "./pkg/fdmr_wasm.js";
 import type { Frame, Reply, Request, Words } from "../compute-interface/messages";
 
 interface Index {
   time: { start: string; step_s: number; days: string[] };
   now: string;
-  reaches: { id: string; certainty: number[] }[];
+  reaches: { id: string; certainty: number[]; network?: boolean; time?: { days: string[] } }[];
 }
 interface Geometry {
   elements: { start_m: number; end_m: number }[];
@@ -60,7 +60,22 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   certainty = index.reaches.find((x) => x.id === reach)?.certainty ?? [1];
   build(now);
   const end = start + (certainty.length - 1) * step; // the last published step
-  post({ type: "ready", start, end, now, length: engine!.length(), certainty, step });
+  const netReaches = index.reaches.filter((r) => r.network);
+  post({ type: "ready", start, end, now, length: engine!.length(), certainty, step, networks: netReaches.map((r) => r.id) });
+  frame();
+  // Network reaches load in the background: the river is ready to play first.
+  for (const r of netReaches) void loadNetwork(cycle, r.id, r.time?.days ?? index.time.days);
+}
+
+const networks: { id: string; flow: Network }[] = [];
+
+async function loadNetwork(cycle: string, id: string, days: string[]): Promise<void> {
+  const flow = new Network();
+  const files = await Promise.all(
+    days.map((d) => fetch(`${cycle}/${id}/${d}.fdf`).then((r) => (r.ok ? r.arrayBuffer() : null))),
+  );
+  for (const b of files) if (b) flow.load_day(new Uint8Array(b));
+  networks.push({ id, flow });
   frame();
 }
 
@@ -104,8 +119,9 @@ function frame(): void {
     massBalance: engine.mass_balance(),
     certainty: c,
     words: words(c, t),
+    networks: networks.map((n) => ({ id: n.id, velocity: n.flow.velocities(t) })),
   };
-  post(f, [f.particleX.buffer, f.particleLateral.buffer, f.particleSpeed.buffer, f.parcelX.buffer, f.parcelConcentration.buffer]);
+  post(f, [f.particleX.buffer, f.particleLateral.buffer, f.particleSpeed.buffer, f.parcelX.buffer, f.parcelConcentration.buffer, ...f.networks.map((n) => n.velocity.buffer)]);
 }
 
 self.addEventListener("message", async (e: MessageEvent<Request>) => {
