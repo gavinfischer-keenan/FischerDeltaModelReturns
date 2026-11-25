@@ -1,7 +1,7 @@
 //! Longitudinal dispersion in rivers, after Fischer.
 //!
 //! References: Fischer, List, Koh, Imberger and Brooks, *Mixing in Inland and
-//! Coastal Waters* (1979), chapter 5; Fischer, *Longitudinal Dispersion in
+//! Coastal Waters* (Academic Press, 1979), chapter 5; Fischer, *Longitudinal Dispersion in
 //! Laboratory and Natural Streams* (Caltech, 1966).
 
 use crate::G;

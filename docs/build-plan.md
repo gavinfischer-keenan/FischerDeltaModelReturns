@@ -143,7 +143,7 @@ In no fixed order:
 - bioaccumulation
 - custom what-ifs
 - the Feather from Oroville Dam and the American from Folsom Dam as river reaches, each handed on into the Sacramento (spec section 3.13)
-- sediment transport, including Catherine Vaningen's work (spec section 3.12)
+- sediment transport, including Cathy Van Ingen's work (spec section 3.12)
 - river levels and floods: flood stage, flood maps, floodplain flow, snowmelt, storm and dam-failure what-ifs (spec section 3.11), including flood spill into the bypasses
 - ensemble spread
 - the 1D tidal model decision

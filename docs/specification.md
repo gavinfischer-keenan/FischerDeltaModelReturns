@@ -281,7 +281,7 @@ The flood map and the floodplain model are checked against FEMA flood zones, the
 - A pollutant that sticks to particles, such as some metals and organic chemicals, carried and settled with the sediment rather than with the water.
 - In a flood (section 3.11), the large loads a storm carries, and where they settle as the water spreads and slows.
 
-**People.** Catherine Vaningen (*spelling to confirm*) was a professor at UC Berkeley, a colleague of the owner's father, and worked in this area. Her published work is to be found and, where it fits, built in and credited, as with Fischer's (section 2).
+**People.** Catherine (Cathy) Van Ingen was a professor at UC Berkeley, a colleague of the owner's father, and worked in this area. Her published work is to be found and, where it fits, built in and credited, as with Fischer's (section 2).
 
 **Likely data** (*to confirm*): USGS suspended sediment concentration and turbidity at river and Delta gauges; CDEC turbidity stations; USGS sediment studies of the Delta and the Bay.
 
@@ -937,7 +937,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. When the whole server has been quiet for a sustained stretch, the model runner also works through the menu in spare time; visitors always come first. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
 - The Feather River from Oroville Dam and the American River from Folsom Dam are planned as river reaches of their own after launch. Each starts at its dam's release and is handed on into the Sacramento. See section 3.13.
-- Sediment transport is planned for after launch: carried, settled and scoured sediment, turbidity, and particle-bound pollutants. It is to include Catherine Vaningen's work, as described in section 3.12.
+- Sediment transport is planned for after launch: carried, settled and scoured sediment, turbidity, and particle-bound pollutants. It is to include Cathy Van Ingen's work, as described in section 3.12.
 - River levels and floods are planned for after launch, not version 1. That means level against flood stage, flood maps, and water on the floodplain, for snowmelt, extreme rain, big dam releases and dam or levee failures, and their effect on flow and Delta salinity. See section 3.11.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
@@ -984,7 +984,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - [NOAA Global Historical Climatology Network hourly (GHCNh)](https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly)
 - [National Weather Service API](https://www.weather.gov/documentation/services-web-api)
 - [Protomaps](https://protomaps.com/)
-- [Fischer, Longitudinal Dispersion in Laboratory and Natural Streams, Caltech 1966](https://thesis.library.caltech.edu/9180)
-- Fischer, List, Koh, Imberger and Brooks, *Mixing in Inland and Coastal Waters*, Academic Press 1979: the source of the dispersion estimate in section 7.1. Citation from memory, to check against the book.
+- Fischer, H. B. (1966). [*Longitudinal Dispersion in Laboratory and Natural Streams*](https://thesis.library.caltech.edu/9180). PhD thesis, California Institute of Technology (advisor Norman H. Brooks); also W. M. Keck Laboratory of Hydraulics and Water Resources Report KH-R-12.
+- Fischer, H. B., List, E. J., Koh, R. C. Y., Imberger, J. and Brooks, N. H. (1979). [*Mixing in Inland and Coastal Waters*](https://doi.org/10.1016/C2009-0-22051-4). Academic Press, New York, 483 pp. Chapter 5, mixing in rivers, is the source of the dispersion estimate in section 7.1. Citation checked 25 Nov 2026.
 
 The NOAA, USGS and River Forecast Center entries were checked from search results, not read in full; Phase 0 reads each one properly.
