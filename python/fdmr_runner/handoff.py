@@ -1,7 +1,7 @@
-"""Where a channel network meets a mesh reach (specification 7.4): the Delta's
-DSM2 channels and the Bay's mesh at Chipps Island.
+"""Where a channel network meets a mesh reach (specification 7.4), such as a
+delta's channels running out into a bay that a 2D mesh covers.
 
-Both models cover Suisun Bay; one must track it. Every network channel whose
+Where both models cover the same water, one must track it. Every network channel whose
 middle lies on the mesh belongs to the mesh reach: the network still carries
 its flow but tracks nothing in it. Where a network channel meets one of those
 at a junction, a parcel arriving there to go the mesh's way is passed to the
