@@ -23,7 +23,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 | Movie length | 14 days back and 14 days forward. The colour fades as certainty fades into the forecast |
 | Engine and regions | One engine for any geography: a shared math library, and model kinds picked reach by reach in each region's package. Launch ships one region; the Mississippi, the Thames, the Nile and others are later candidates |
 | Display | Moving particles show the water's direction and speed everywhere, always; particles carrying a pollutant take its colour |
-| Map layers | Toggles choose what colours the water (contaminant, speed, temperature, salinity, water level) and which overlays are drawn |
+| Map layers | Toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level, water source), whether flow is shown moment by moment or net over the tides, and which overlays are drawn, including the X2 line and measured station readings |
 | Temperature and salinity | Computed on the server for every reach and shown as layers in version 1 |
 | Releases | All at once, continuous for a set time, or an ongoing outfall such as a sewage plant discharge; optional steady breakdown by half-life |
 | What-if scenarios | Changed dam releases and levee breaches, from a menu computed in advance on the server |
@@ -132,7 +132,7 @@ The particles always move with the water. The user chooses what colours them and
 | Temperature | Water temperature | The server (section 7.5) |
 | Salinity | Salt content, from fresh river water to the ocean | The server (section 7.5) |
 | Water level | Height of the water surface against a fixed datum: tides, flood rises, a filling island | The flow field |
-| Water source (*proposed*) | Where the water came from: the Sacramento, the San Joaquin, the eastside rivers, the ocean, shown as a blend | The server (section 7.5) |
+| Water source | Where the water came from: the Sacramento, the San Joaquin, the eastside rivers, the ocean, shown as a blend | The server (section 7.5) |
 
 When the water is coloured by something other than contaminant, any active plume is drawn as an outline, so it is not lost.
 
@@ -141,15 +141,15 @@ When the water is coloured by something other than contaminant, any active plume
 | Choice | What it shows |
 | --- | --- |
 | Moment by moment (the default) | The flow at each instant. Tidal water sloshes back and forth |
-| Net flow (*proposed*) | The flow averaged over the tides: where the water is actually going over a day. It shows, for example, Old and Middle rivers running backwards toward the pumps |
+| Net flow | The flow averaged over the tides: where the water is actually going over a day. It shows, for example, Old and Middle rivers running backwards toward the pumps |
 
 **Overlays** (any combination)
 
-- Gauges and stations, with their latest readings. These include measured values the model does not compute, such as dissolved oxygen and turbidity (*proposed*).
+- Gauges and stations, with their latest readings. These include measured values the model does not compute, such as dissolved oxygen and turbidity.
 - Dams, pumping plants, gates and barriers, with their current state and pumping rates.
 - Levees and breach sites, used by the what-if tool (section 3.7).
 - Landmarks used for arrival times, and place names.
-- The X2 line (*proposed*): the estimated point where the water near the bed reaches about 2 parts per thousand of salt. It is a standard Delta measure of how far the sea reaches inland.
+- The X2 line: the estimated point where the water near the bed reaches about 2 parts per thousand of salt. It is a standard Delta measure of how far the sea reaches inland.
 - Map style: light or dark. Aerial imagery comes later.
 - After launch: the historic layers in section 2.
 
@@ -419,7 +419,7 @@ Every input comes from a free public source; three of the twelve have been check
 | Tide at Martinez, observed and predicted | NOAA tide stations | DSM2 seaward boundary | To confirm station and format |
 | Bay currents, nowcast and forecast | [NOAA San Francisco Bay Operational Forecast System](https://tidesandcurrents.noaa.gov/ofs/sfbofs/sfbofs_info.html), NetCDF files | Bay reach | Checked. Four runs a day; grid covers Suisun Bay to the ocean. Horizon believed to be about 48 hours, to confirm |
 | Bay temperature and salinity | The same NOAA files as the currents | Bay layers | To confirm the variables are included |
-| Temperature and conductance at Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay | To confirm station by station |
+| Temperature, conductance, dissolved oxygen and turbidity at river, Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay | To confirm station by station |
 | Keswick release temperature | CDEC or Reclamation | River temperature model | To confirm |
 | Weather forecast: air temperature, sunshine, humidity, wind | National Weather Service | River and Delta temperature models | To confirm product and format |
 | Levee locations and island floor elevations | DWR Delta levee and island data | Breach what-ifs | To confirm a public source |
@@ -546,8 +546,8 @@ Temperature and salinity are the same for every visitor, so the server computes 
 - **Beyond each forecast.** Past the end of NOAA's forecast, Bay temperature and salinity are held at their last forecast values, averaged over a tide, and fade in certainty like the currents. Salinity changes slowly, so this stays a fair guide for days; temperature less so. River and Delta temperature beyond the weather forecast are held the same way.
 - **The past window** uses the same models driven by measured inputs. Where a station measures temperature or conductance, the station overlay shows the measured value beside the model's.
 - **Units.** Temperature in °C or °F, by region setting. Salinity in parts per thousand, with electrical conductivity alongside in the Delta, where it is the usual measure.
-- **Water source** (*proposed*). QUAL can carry a separate marker for each inflow; DWR calls this fingerprinting. That gives the share of Sacramento, San Joaquin, eastside, farm drainage and ocean water in every channel, for the water-source layer. In the Bay, the ocean share follows from salinity.
-- **X2** (*proposed*) is estimated from the salinity field, near the bed where NOAA's three-dimensional output allows.
+- **Water source.** QUAL can carry a separate marker for each inflow; DWR calls this fingerprinting. That gives the share of Sacramento, San Joaquin, eastside, farm drainage and ocean water in every channel, for the water-source layer. In the Bay, the ocean share follows from salinity.
+- **X2** is estimated from the salinity field, near the bed where NOAA's three-dimensional output allows.
 
 ### 7.6 What-if scenarios
 
@@ -611,7 +611,7 @@ This is certainty about the flow, not a statistical confidence. It does not cove
 
 - One small index file: time range, time step, data age per source, model status, and each reach's certainty at each time step.
 - Binary files per reach per day, holding velocity and water volume per channel segment or mesh node per time step, quantised to keep them small. The browser fetches only the days it is about to play, so opening on "Now" loads one day, not 28.
-- Optional fields per reach per day, beside velocity and volume: water level, temperature, salinity and, later, water-source shares.
+- Optional fields per reach per day, beside velocity and volume: water level, temperature, salinity and water-source shares.
 - A tidally averaged velocity per reach for the net-flow display. Averaging over the tides needs data on both sides, so the first and last half-day of the timeline use a shorter average.
 - **What-ifs.** Each what-if on the menu is a full set of forecast days under its own name, sharing the main run's past days.
 - The timeline holds 28 days: 14 past, 14 forecast.
@@ -723,7 +723,7 @@ The build runs in six phases, each ending in something that can be seen working;
 
 1. **Phase 0, proof.** Run DWR's prebuilt DSM2 in a Windows guest. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to size the what-if menu. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
 2. **Phase 1, the river.** River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
-3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity and temperature; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
+3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
 5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; the what-if menu of dam releases and levee breaches; the History section; phone layout; and the Utilities page on tripofisch.com.
 6. **Phase 5, hardening.** Native Linux DSM2, validation report, monitoring, and license and credits review. Launch follows this phase. The 1982 grid, the field-data layer and the historic scenario presets are a post-launch release.
@@ -745,7 +745,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - The Delta hands off to the Bay at Chipps Island rather than Martinez. Martinez is the fallback if Phase 0 finds NOAA's mesh cannot support the handoff at Chipps. See section 7.4.
 - A pollutant can be released at any time in the last 14 days as well as now or in the forecast; it plays forward through now into the forecast. See section 3.3.
 - Confirmed: the Bay extension of tides plus outflow drift (section 7.3), the search for published river dye studies (section 9.1), and the certainty method (section 8.2).
-- Map layers: toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level) and which overlays are drawn. See section 3.5.
+- Map layers: toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level, water source), whether the flow is shown moment by moment or net over the tides, and which overlays are drawn, including the X2 line and measured readings such as dissolved oxygen and turbidity. All four are in version 1. See section 3.5.
 - Temperature and salinity are in version 1, computed on the server for every reach. See section 7.5.
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
 - What-ifs, changed dam releases and levee breaches, come from a menu computed in advance on the server, so user input still never leaves the device. See sections 3.7 and 7.6.
