@@ -20,6 +20,7 @@ import argparse
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fdmr_adapters.cdec import SOURCE as CDEC
 from fdmr_adapters.cdec import CdecAdapter
@@ -27,6 +28,7 @@ from fdmr_adapters.cnrfc import CnrfcAdapter
 from fdmr_adapters.usgs import PARAMETERS, SOURCE, UsgsAdapter
 from fdmr_store import Store
 
+from . import delta
 from .region import load_region
 
 
@@ -91,6 +93,19 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
             attempt(f"cdec {s['id']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["id"], p, int(f), int(now)))
+    # Feeds of other model kinds' flow sources, such as the Delta's DSM2 inputs.
+    for f in [] if args.forecast_only else delta.feeds(Path(args.region)):
+        src, site, p = f["source"], f["site"], f["parameter"]
+        cov = store.coverage(src, site, p)
+        if cov and cov[0] <= start + 2 * 86_400 and cov[1] >= now - max(args.fresh * 60, 2 * 3600):
+            print(f"{site} {p:31s} held    {f.get('name', f.get('path', ''))}", flush=True)
+            continue
+        from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
+        if src == SOURCE:
+            attempt(f"{site} {p}", lambda site=site, p=p, f0=from_t: usgs.fetch_values(site, p, f"{iso(f0)}/{iso(now)}"))
+        elif src == CDEC:
+            dur = f.get("duration", "H")
+            attempt(f"cdec {site} {p}", lambda site=site, p=p, f0=from_t, dur=dur: cdec.fetch_values(site, p, int(f0), int(now), duration=dur))
     # River forecasts: one file per forecast group holds all its points.
     groups: dict[str, list[str]] = {}
     for g in region.gauges:

@@ -1,0 +1,155 @@
+# DSM2 for the Delta reach (specification 7.2): DWR's own historical study, run
+# on live inputs. Data only.
+#
+# DWR's input files name every series by a DSS path whose last part (F) comes
+# from a version setting in config.inp. The model runner writes our live series
+# under the same paths with its own version, so DWR's input files are used
+# unchanged. Every series in a replaced file that has no live feed is filled
+# with DWR's values for the same calendar day in `reference_year` (such as
+# Delta island water use, which DWR itself takes from average values).
+#
+# Each live feed was checked against DWR's boundary data for 1-15 October 2024
+# (25 Nov 2026), in m3/s unless noted:
+#   Martinez stage, CDEC MRZ: same datum, median difference 1 cm
+#   Sacramento at Freeport: DWR uses a tidal average; our 25 h mean is within 3
+#   Vernalis, Cosumnes, toe drain, Jones, North Bay, Rock Slough: identical
+#   Banks: CDEC daily pumping, 146.4 against DWR's 146.7
+#   Mokelumne (Camanche release) and Calaveras (New Hogan release): no gauge at
+#     the Delta; the dam release is 10 and 3.5 higher than DWR's in October, as
+#     water is diverted on the way. A rough stand-in.
+
+inputs = "input-2026-04-16"          # under the DSM2 folder's inputs/
+study = "dsm2_studies/studies/historical"
+reference_year = 2024
+version = "FDMR-LIVE"                # F part of our live series' paths
+warmup_days = 14                     # before the 14-day past window
+# Settings in DWR's config.inp whose files the model runner writes afresh.
+replace = ["BNDRYINPUT", "DICUFILE", "SSCDFILE", "POTWSINPUT", "EVENTSINPUT", "NULLZONEINPUT", "GATEFILE"]
+# Version settings that name the live series' F part.
+version_settings = ["HISTFLOWVERSION", "HISTSTAGEVERSION", "HISTQUALVERSION"]
+output_a = "HYDROV8.5.1"            # A part of HYDRO's output paths (the DSM2 version built)
+
+# Live inputs: a DSS path (A to E parts, F added), and the store series feeding it.
+# CDEC duration: E for event (15-minute) readings, H hourly, D daily.
+[[live]]
+path = "/FILL+CHAN/RSAC155/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11447650"
+parameter = "discharge"
+average_h = 25
+
+[[live]]
+path = "/FILL+CHAN/RSAN112/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11303500"
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/BYOLO040/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11453000"
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/YOLO_TOEDRAIN/FLOW//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "LIS"
+duration = "E"
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/RCSM075/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11335000"
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/RMKL070/FLOW//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "CMN"
+duration = "D"
+parameter = "reservoir_outflow"
+
+[[live]]
+path = "/FILL+CHAN/RCAL009/FLOW//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "NHG"
+duration = "H"
+parameter = "reservoir_outflow"
+
+[[live]]
+path = "/FILL+CHAN/CHSWP003/FLOW-EXPORT//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "HRO"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/CHDMC004/FLOW-EXPORT//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "TRP"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/SLBAR002/FLOW-EXPORT//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "BKS"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/CHCCC006/FLOW-DIVERSION//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "INB"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/RSAC054/STAGE//15MIN/"
+units = "FEET"
+source = "cdec"
+site = "MRZ"
+duration = "E"
+parameter = "gage_height"
+
+# Live gate positions, inferred from measured flow through the gate: open while
+# the hourly flow is at least `open_above` m3/s. The Delta Cross Channel's gates
+# open and close on their own schedule; DWR's 2024 schedule, checked 25 Nov
+# 2026, was open on days the gauge showed them shut, and shut on days it
+# showed them open.
+[[live_gate]]
+path = "/HIST+GATE/RSAC128/POS//IR-YEAR/"
+source = "cdec"
+site = "DLC"
+duration = "H"
+parameter = "discharge"
+open_above = 5.0
+open = 2.0      # DWR's value for both gates open (its rule halves it per direction)
+closed = 0.0
+
+# Measured flows to check DSM2's output against (specification 9.2).
+[[checks]]
+name = "Sacramento R at Rio Vista"
+source = "usgs"
+site = "11455420"
+parameter = "discharge"
+output = "RSAC101"   # its name in DSM2's output
+
+[[checks]]
+name = "San Joaquin R at Jersey Point"
+source = "usgs"
+site = "11337190"
+parameter = "discharge"
+output = "RSAN018"   # its name in DSM2's output

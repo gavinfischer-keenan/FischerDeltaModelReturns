@@ -7,7 +7,7 @@
 # the HEClib source DWR includes in its public DSM2 8.1.2 source package.
 #
 # Usage: build_dsm2.sh [stage...]
-#   stages: sources heclib klu loki hdf5 boost dsm2   (default: all, in order)
+#   stages: sources heclib klu loki hdf5 boost dsm2 dsstool   (default: all, in order)
 # Each stage skips itself when its output already exists. Delete the output to redo it.
 set -euo pipefail
 
@@ -209,6 +209,17 @@ stage_dsm2() {
   ls -la "$ROOT/bin"
 }
 
-stages=("$@"); [ ${#stages[@]} -eq 0 ] && stages=(sources heclib klu loki hdf5 boost dsm2)
+stage_dsstool() {
+  # dsstool: the model runner's way to read and write DSS files (dsstool.f90).
+  oneapi
+  local out="$ROOT/bin/dsstool" lib="$DEPS/heclib-6/lib/libheclib.a"
+  [ -x "$out" ] && [ "$out" -nt "$(dirname "$0")/dsstool.f90" ] && { log "dsstool: already built"; return; }
+  log "dsstool"
+  mkdir -p "$ROOT/bin"
+  ifx -O2 -assume byterecl "$(cd "$(dirname "$0")" && pwd)/dsstool.f90" "$lib" -o "$out"     -Wl,--disable-new-dtags,-rpath,/opt/intel/oneapi/compiler/$INTEL_COMPILER_VERSION/linux/compiler/lib/intel64_lin
+  log "dsstool: $out"
+}
+
+stages=("$@"); [ ${#stages[@]} -eq 0 ] && stages=(sources heclib klu loki hdf5 boost dsm2 dsstool)
 for s in "${stages[@]}"; do "stage_$s"; done
 log "done: ${stages[*]}"

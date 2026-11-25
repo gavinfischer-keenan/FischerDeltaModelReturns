@@ -28,6 +28,8 @@ BASE = "https://cdec.water.ca.gov/dynamicapp/req/JSONDataServlet"
 SOURCE = "cdec"
 PST_TO_UTC = 8 * 3600
 CHUNK_DAYS = 90  # one request per 90 days keeps each answer small
+FT = 0.3048
+CFS = FT**3
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,14 @@ SENSORS = {
         25, "degC", {"DEG F": lambda f: (f - 32) * 5 / 9, "DEG C": lambda c: c}, (0.5, 35.0), 3.0
     ),
     "specific_conductance": Sensor(100, "uS/cm", {"uS/cm": lambda v: v, "US/CM": lambda v: v}, (1.0, 60_000.0), 500.0),
+    # Stage as the station reports it, on its own datum: m.
+    "gage_height": Sensor(1, "m", {"FEET": lambda f: f * FT}, (-15.0, 60.0), 1.0),
+    # Flow in a channel: tidal channels run both ways, so negative is allowed.
+    "discharge": Sensor(20, "m3/s", {"CFS": lambda q: q * CFS}, (-30_000.0, 30_000.0), 2_000.0),
+    # Pumped out of the system (exports, diversions): m3/s.
+    "pumping": Sensor(70, "m3/s", {"CFS": lambda q: q * CFS}, (0.0, 1_000.0), 1_000.0),
+    "reservoir_outflow": Sensor(23, "m3/s", {"CFS": lambda q: q * CFS}, (0.0, 20_000.0), 20_000.0),
+    "reservoir_inflow": Sensor(76, "m3/s", {"CFS": lambda q: q * CFS}, (-1_000.0, 20_000.0), 20_000.0),
 }
 
 
