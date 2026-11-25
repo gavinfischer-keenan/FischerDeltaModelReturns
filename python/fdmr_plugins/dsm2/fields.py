@@ -43,7 +43,7 @@ def write_days(tidefile: Path, reach: str, out_dir: Path, start: int, end: int, 
     with h5py.File(tidefile, "r") as f:
         flow, area, stage = f["hydro/data/channel flow"], f["hydro/data/channel avg area"], f["hydro/data/channel stage"]
         # The tidefile's "channel stage" is depth above the channel bed at each end
-        # (checked 25 Nov 2026: 59.9 ft over a bed at -54.5 ft at the Rio Vista
+        # (checked 25 Nov 2026: 59.9 ft over a bed at -54.5 ft at a main river
         # channel); the water surface is the bed plus that depth.
         bottom = f["hydro/geometry/channel_bottom"][:]  # (2, channels), ft
         t5 = tidefile_start(flow.attrs["start_time"][0])
