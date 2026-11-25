@@ -53,7 +53,7 @@ kind = "python"
 path = "python/fdmr_runner"
 package = "fdmr_runner"
 engine = true
-may_use = ["store", "adapters", "bindings"]
+may_use = ["store", "adapters", "bindings", "plugins"]
 
 [modules.bindings]
 kind = "rust"
