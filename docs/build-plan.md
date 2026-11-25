@@ -107,6 +107,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. A small request service on the model runner, behind a route on the web edge, runs a what-if when asked: menu choices only, one at a time, kept until the next cycle. The UI says it takes a few minutes and shows progress. In spare time, when the whole host has been quiet for 30 minutes, it works through the rest of the menu; visitors always come first. |
 | History | A simple text History page, with the words from you. |
 | Finish | Phone layout, and the Utilities page on tripofisch.com. |
+| Front-page tile | At launch the app gets a tile on the tripofisch.com front page, like the other utilities: a short description, a logo and a fish-pun name. Until the name and logo arrive, the tile is a placeholder with no name. |
 
 **Done when:** every user-facing item in specification section 3 works on a phone and a desktop.
 

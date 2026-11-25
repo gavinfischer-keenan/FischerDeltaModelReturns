@@ -46,5 +46,10 @@ site = "09402500"
 name = "Colorado River near Grand Canyon"
 role = "main"
 
+# The basemap extract: west, south, east, north (degrees), and the deepest zoom.
+[basemap]
+bbox = [-112.75, 35.85, -111.35, 36.98]
+maxzoom = 15
+
 [guard]
 words = ["Colorado", "Glen Canyon", "Lees Ferry", "Grand Canyon", "Paria"]

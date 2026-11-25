@@ -2,28 +2,48 @@
 // Version 0: a plain background, the river, flow particles and pollutant
 // particles. The self-hosted basemap comes next.
 
-import { Map, NavigationControl, setWorkerUrl, type GeoJSONSource } from "maplibre-gl";
+import { AttributionControl, Map, NavigationControl, addProtocol, setWorkerUrl, type GeoJSONSource } from "maplibre-gl";
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { Protocol } from "pmtiles";
+import { layers, namedFlavor } from "@protomaps/basemaps";
 
 // MapLibre runs its own worker; ship it with the page rather than fetch it from elsewhere.
 setWorkerUrl(mapWorkerUrl);
+// The basemap is one PMTiles file on our own server, read in pieces (specification 5.1).
+addProtocol("pmtiles", new Protocol().tile);
 import type { Frame } from "../compute-interface/messages";
 import type { Reach } from "./reach";
 
 const MAX_DRAWN_PARCELS = 4000;
 
-export function createMap(container: HTMLElement, reach: Reach): Map {
+export function createMap(container: HTMLElement, reach: Reach, region: string): Map {
+  // Fonts, icons and tiles all come from our own server: nothing from a third party.
+  const base = location.href.replace(/[?#].*$/, "").replace(/[^/]*$/, "");
   const map = new Map({
     container,
     style: {
       version: 8,
-      sources: {},
-      layers: [{ id: "background", type: "background", paint: { "background-color": "#0d1726" } }],
+      glyphs: `${base}basemap/assets/fonts/{fontstack}/{range}.pbf`,
+      sprite: `${base}basemap/assets/sprites/v4/dark`,
+      sources: {
+        protomaps: {
+          type: "vector",
+          url: `pmtiles://${base}basemap/${region}.pmtiles`,
+          attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>',
+        },
+      },
+      layers: layers("protomaps", namedFlavor("dark"), { lang: "en" }),
     },
     bounds: reach.bounds(),
     fitBoundsOptions: { padding: 40 },
     attributionControl: false,
+  });
+  map.addControl(new AttributionControl({ compact: true }), "bottom-right");
+  // Keep the view inside the region's basemap extract, so its edges never show.
+  map.once("sourcedata", () => {
+    const b = (map.getSource("protomaps") as { bounds?: [number, number, number, number] } | undefined)?.bounds;
+    if (b) map.setMaxBounds([b[0], b[1], b[2], b[3]]);
   });
   map.addControl(new NavigationControl({ showCompass: false }), "top-right");
   map.on("load", () => {
@@ -32,7 +52,7 @@ export function createMap(container: HTMLElement, reach: Reach): Map {
       id: "river",
       type: "line",
       source: "river",
-      paint: { "line-color": "#1f4e79", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2, 12, 10] },
+      paint: { "line-color": "#2b6cb0", "line-opacity": 0.75, "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2, 12, 10] },
       layout: { "line-cap": "round", "line-join": "round" },
     });
     const empty: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };

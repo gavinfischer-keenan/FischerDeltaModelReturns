@@ -9,7 +9,9 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "maplibre-gl": "^6.19.0"
+    "@protomaps/basemaps": "^5.7.2",
+    "maplibre-gl": "^6.19.0",
+    "pmtiles": "^4.5.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.2",

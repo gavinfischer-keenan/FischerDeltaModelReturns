@@ -126,6 +126,11 @@ site = "11447650"
 name = "Sacramento R at Freeport"
 role = "main"
 
+# The basemap extract: west, south, east, north (degrees), and the deepest zoom.
+[basemap]
+bbox = [-123.25, 37.25, -120.95, 40.98]
+maxzoom = 15
+
 # Words that must never appear in engine code (tools/check_seams.py).
 [guard]
 words = [

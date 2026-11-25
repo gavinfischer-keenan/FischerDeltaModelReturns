@@ -116,7 +116,7 @@
     try {
       const geometry = (await fetch(`${cycle}/geometry/river.json`).then((r) => r.json())) as ReachGeometry;
       reach = new Reach(geometry);
-      map = createMap(mapEl, reach);
+      map = createMap(mapEl, reach, region);
       map.on("click", (e) => {
         if (!placing) return;
         const near = reach.nearest(e.lngLat.lng, e.lngLat.lat);
