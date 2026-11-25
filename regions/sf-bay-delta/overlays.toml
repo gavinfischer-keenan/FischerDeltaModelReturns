@@ -287,3 +287,97 @@ name = "San Joaquin River near Vernalis"
 lat = 37.676041
 lon = -121.266327
 duration = "H"
+
+# Dams, pumping plants and gates (specification 3.5), with their latest
+# readings from CDEC: what each one releases, pumps or lets through. `show`
+# names the readings, `duration` the CDEC series (H hourly, D daily; a daily
+# value is the day's mean and is posted the next day). Sensors and units
+# checked on CDEC 25 Nov 2026. A gate's `state` is read from the flow through
+# it by the Delta model's own rule for it (dsm2.toml [[live_gate]]); the
+# reading it rests on must be among those shown.
+# No live data was found for the Montezuma Slough Salinity Control Gates or the
+# South Delta temporary barriers; they are not shown until a source is.
+
+[[structures]]
+id = "shasta"
+kind = "dam"
+name = "Shasta Dam"
+site = "SHA"
+lat = 40.718
+lon = -122.42
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+
+[[structures]]
+id = "keswick"
+kind = "dam"
+name = "Keswick Dam (the release into the river)"
+site = "KES"
+lat = 40.612104
+lon = -122.445699
+duration = "H"
+show = ["reservoir_outflow"]
+
+[[structures]]
+id = "banks"
+kind = "pumps"
+name = "Harvey O. Banks Pumping Plant (State Water Project)"
+site = "HRO"
+lat = 37.798
+lon = -121.623
+duration = "D"
+show = ["pumping"]
+
+[[structures]]
+id = "jones"
+kind = "pumps"
+name = "Jones (Tracy) Pumping Plant (Central Valley Project)"
+site = "TRP"
+lat = 37.800
+lon = -121.585
+duration = "D"
+show = ["pumping"]
+
+[[structures]]
+id = "rock_slough"
+kind = "pumps"
+name = "Contra Costa Water District, Rock Slough Pumping Plant"
+site = "INB"
+lat = 37.996
+lon = -121.702
+duration = "D"
+show = ["pumping"]
+
+[[structures]]
+id = "barker_slough"
+kind = "pumps"
+name = "Barker Slough Pumping Plant (North Bay Aqueduct)"
+site = "BKS"
+lat = 38.2759
+lon = -121.7965
+duration = "D"
+show = ["pumping"]
+
+[[structures]]
+id = "clifton_court"
+kind = "gate"
+name = "Clifton Court Forebay intake gates"
+site = "CLC"
+lat = 37.8298
+lon = -121.5574
+duration = "D"
+show = ["reservoir_inflow", "reservoir_storage"]
+# Not a live gate position: DWR opens and closes these with the tide. The
+# Delta model holds them open (dsm2.toml [[fixed]]).
+model_note = "held_open"
+
+[[structures]]
+id = "delta_cross_channel"
+kind = "gate"
+name = "Delta Cross Channel gates"
+site = "DLC"
+lat = 38.245
+lon = -121.505
+duration = "H"
+show = ["discharge"]
+state = { live_gate = "DLC" }  # the Delta model's own rule for it (dsm2.toml)

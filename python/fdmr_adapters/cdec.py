@@ -64,6 +64,8 @@ SENSORS = {
     # A computed outflow, such as the net Delta outflow index (station DTO): in a
     # dry summer more can be pumped and used than flows in, so it may be negative.
     "net_outflow": Sensor(23, "m3/s", {"CFS": lambda q: q * CFS}, (-2_000.0, 20_000.0), 20_000.0),
+    # Water held behind a dam: m3 (CDEC reports acre-feet; 1 acre-foot is 1,233.48 m3).
+    "reservoir_storage": Sensor(15, "m3", {"AF": lambda v: v * 1_233.48184}, (0.0, 1.0e11), 1.0e11),
     "reservoir_inflow": Sensor(76, "m3/s", {"CFS": lambda q: q * CFS}, (-1_000.0, 20_000.0), 20_000.0),
 }
 

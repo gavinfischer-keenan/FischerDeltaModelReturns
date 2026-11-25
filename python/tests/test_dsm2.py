@@ -91,14 +91,26 @@ def test_only_exact_markers_are_missing():
     assert not dss.is_missing(-950.0) and not dss.is_missing(-900.5) and not dss.is_missing(901.0)
 
 
-def test_gate_states_need_two_readings_to_change():
+def test_gate_states_from_tidal_flow_through_the_gate():
     from fdmr_runner.delta import gate_states
 
     H = 3600
-    q = [0.5, -0.2, 40.0, 0.1, 38.0, 41.0, 39.0, 1.0, 0.3, 0.0]
-    got = gate_states([(i * H, v) for i, v in enumerate(q)], 5.0)
-    # The lone 40 at hour 2 is noise; open from hour 4; shut from hour 7.
-    assert got == [(0, False), (4 * H, True), (7 * H, False)]
+    # Shut, leaking up to 16 m3/s with one 35 spike; then open, the tide
+    # carrying 30 to 250 m3/s either way with two slack hours near zero; then
+    # shut again. (Delta Cross Channel, autumn 2026: shut gates leaked up to
+    # 16 m3/s hourly; open, daily means 60 to 120 m3/s.)
+    q = [3.0, 16.0, 35.0, -4.0, 2.0, 1.0, 3.0, 2.0, 1.0, 4.0, 2.0, 1.0,
+         120.0, 240.0, 90.0, 4.0, -2.0, -60.0, -30.0, 150.0, 200.0, 8.0, 3.0, 5.0, 2.0, 1.0]
+    got = gate_states([(i * H, v) for i, v in enumerate(q)], 30.0)
+    # The spike, 10 hours before the next big reading, is noise. Open from the
+    # first big reading (hour 12) to the last (hour 20); shut from hour 21.
+    assert got == [(0, False), (12 * H, True), (21 * H, False)]
+    # A run interrupted by more than the gap is two openings.
+    got = gate_states([(i * H, v) for i, v in enumerate(q)], 30.0, max_gap_s=1 * H)
+    assert got == [(0, False), (12 * H, True), (15 * H, False), (17 * H, True), (21 * H, False)]
+    # Open from the start and still open at the end; shut throughout.
+    assert gate_states([(0, 100.0), (H, 2.0), (2 * H, -80.0)], 30.0) == [(0, True)]
+    assert gate_states([(0, 2.0), (H, 1.0)], 30.0) == [(0, False)]
 
 
 def test_resample_to_hourly_and_daily():

@@ -11,7 +11,7 @@
   import { MeshPlace, type MeshGeometry } from "./mesh";
   import { SOURCES, legend } from "./layers";
   import { NetworkPlace, type NetworkGeometry } from "./network";
-  import { addOverlays, drawIsohaline, isohalineAt, showOverlay, type Overlays, type Station } from "./overlays";
+  import { addOverlays, drawIsohaline, isohalineAt, showOverlay, STRUCTURE_COLOUR, type Overlays, type Station, type Structure } from "./overlays";
 
   const params = new URLSearchParams(location.search);
   const region = params.get("region") ?? "sf-bay-delta";
@@ -45,17 +45,40 @@
   let overlays = $state<Overlays | null>(null);
   let showX2 = $state(false);
   let showStations = $state(false);
+  let showStructures = $state(false);
   const x2 = $derived(overlays?.isohalines.find((h) => h.id === "x2") ?? null);
   const x2Now = $derived(x2 ? isohalineAt(x2, t) : null);
   const x2Label = (km: number) => `X2 · ${km.toFixed(1)} km`;
-  function toggle(kind: "x2" | "stations", on: boolean) {
+  function toggle(kind: "x2" | "stations" | "structures", on: boolean) {
     if (kind === "x2") showX2 = on;
-    else showStations = on;
+    else if (kind === "stations") showStations = on;
+    else showStructures = on;
     if (map) showOverlay(map, kind, on);
     if (kind === "x2" && on && map && x2) drawIsohaline(map, x2, t, x2Label);
   }
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
   const UNIT: Record<string, string> = { degC: "°C", "uS/cm": "µS/cm", "mg/L": "mg/L", NTU: "NTU", FNU: "FNU", "m3/s": "m³/s" };
+  const n0 = (x: number) => Math.round(x).toLocaleString("en-US");
+  /** A flow in m³/s, with cubic feet per second beside it, as the agencies report it. */
+  const flow = (q: number) => `<b>${n0(q)}</b> m³/s (${n0(q / 0.028316846592)} cfs)`;
+  /** Water held, in million m³, with thousand acre-feet beside it. */
+  const held = (v: number) => `<b>${n0(v / 1e6)}</b> million m³ (${n0(v / 1233.48184 / 1000)} thousand acre-feet)`;
+  const day = (s: number) => new Date(s * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+  /** A dam's, pumping plant's or gate's popup: what it releases, pumps or lets through, and a gate's position. */
+  function describeStructure(s: Structure): string {
+    const rows = Object.entries(s.readings).map(([p, r]) => {
+      const unit = overlays!.units[p];
+      const v = unit === "m3/s" ? flow(r.v) : unit === "m3" ? held(r.v) : `<b>${r.v}</b> ${unit ?? ""}`;
+      const age = s.daily ? text.structure_daily.replace("{day}", day(r.t)) : `${Math.max(0, Math.round((Date.now() / 1000 - r.t) / 3600))} h`;
+      return `<tr><td>${esc(key(`reading_${p}`))}</td><td>${v}</td><td class="age">${age}</td></tr>`;
+    });
+    let state = "";
+    if (s.state) {
+      state = `<p class="state"><b>${s.state.open ? text.gate_open : text.gate_closed}</b> · ${text.gate_from_flow}${s.state.changed_at ? ` · ${text.gate_since} ${fmt(s.state.changed_at)}` : ""}</p>`;
+    }
+    const note = s.model_note ? `<p>${esc(key(`model_note_${s.model_note}`))}</p>` : "";
+    return `<div class="station"><b>${esc(s.name)}</b> <span class="site">${esc(s.site)}</span>${state}<table>${rows.join("") || `<tr><td>${text.station_no_readings}</td></tr>`}</table>${note}<p>${text.structure_source}</p></div>`;
+  }
   /** A station's popup: each reading, the model's value beside it where it has one, and how old it is. */
   function describe(s: Station): string {
     const rows = Object.entries(s.readings).map(([p, r]) => {
@@ -215,9 +238,10 @@
             if (!o) return;
             overlays = o;
             // Once drawn, show whichever the visitor has already switched on.
-            addOverlays(map, o, describe, () => {
+            addOverlays(map, o, describe, describeStructure, () => {
               showOverlay(map, "x2", showX2);
               showOverlay(map, "stations", showStations);
+              showOverlay(map, "structures", showStructures);
               if (showX2 && x2) drawIsohaline(map, x2, t, x2Label);
             });
           })
@@ -390,6 +414,7 @@
           <span>{text.overlays}</span>
           {#if x2}<label><input type="checkbox" checked={showX2} onchange={(e) => toggle("x2", (e.target as HTMLInputElement).checked)} /> {text.overlay_x2}</label>{/if}
           <label><input type="checkbox" checked={showStations} onchange={(e) => toggle("stations", (e.target as HTMLInputElement).checked)} /> {text.overlay_stations}</label>
+          {#if overlays.structures?.length}<label><input type="checkbox" checked={showStructures} onchange={(e) => toggle("structures", (e.target as HTMLInputElement).checked)} /> {text.overlay_structures}</label>{/if}
           {#if showX2 && x2Now}
             <span class="unit">
               {#if x2Now.km !== null}{text.x2_at.replace("{km}", x2Now.km.toFixed(1))}{:else}{key(`x2_${x2Now.outside}`)}{/if}
@@ -397,6 +422,12 @@
             </span>
           {/if}
           {#if showStations}<span class="unit">{text.stations_note}</span>{/if}
+          {#if showStructures}
+            <span class="legend swatches">
+              {#each Object.entries(STRUCTURE_COLOUR) as [k, c]}<span><i style={`background: ${c}`}></i>{key(`structure_${k}`)}</span>{/each}
+              <span class="unit">{text.structures_note}</span>
+            </span>
+          {/if}
         </div>
       {/if}
       <div class="updated">{text.updated}: {fmt(ready.now)}</div>
@@ -436,6 +467,7 @@
   :global(.station td) { padding: 1px 6px 1px 0; }
   :global(.station .site), :global(.station .age), :global(.station .model), :global(.station p) { opacity: 0.7; font-size: 0.75rem; }
   :global(.station p) { margin: 4px 0 0; }
+  :global(.station p.state) { opacity: 1; font-size: 0.8rem; }
   :global(.maplibregl-popup-content) { background: #0d1726; color: #e8eef6; }
   :global(.maplibregl-popup-tip) { border-top-color: #0d1726 !important; border-bottom-color: #0d1726 !important; }
   .swatches i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }

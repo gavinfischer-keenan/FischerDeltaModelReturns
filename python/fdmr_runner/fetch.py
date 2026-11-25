@@ -96,16 +96,14 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
             attempt(f"cdec {s['id']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["id"], p, int(f), int(now)))
-    # Stations shown on the map (overlays.toml): every sensor of every station
-    # asked in one request per duration. Stations with readings already held
+    # Stations, dams, pumps and gates shown on the map (overlays.toml): asked
+    # in one request per duration and set of sensors. Stations with readings already held
     # are asked from where their newest ends; new ones (and any that have
     # never answered) from the start of the period.
     from . import overlays
 
     ocfg = (overlays.load(Path(args.region)) or {}) if not args.forecast_only else {}
-    shown = list(overlays.SHOWN)
-    for dur in sorted({s.get("duration", "H") for s in ocfg.get("stations", [])}):
-        group = [s["site"] for s in ocfg["stations"] if s.get("duration", "H") == dur and s.get("source", CDEC) == CDEC]
+    for dur, group, shown in overlays.fetch_groups(ocfg):
         ends = {}
         for site in group:
             covs = [c for c in (store.coverage(CDEC, site, p) for p in shown) if c]

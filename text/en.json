@@ -74,5 +74,21 @@
   "reading_turbidity_ntu": "Turbidity",
   "reading_turbidity_fnu": "Turbidity",
   "reading_discharge": "Flow",
-  "legend_salinity_bay": "in the Bay, NOAA's salinity reads far too salty from Carquinez to Suisun Bay at present (checked against the stations, 25 Nov 2026)"
+  "legend_salinity_bay": "in the Bay, NOAA's salinity reads far too salty from Carquinez to Suisun Bay at present (checked against the stations, 25 Nov 2026)",
+  "overlay_structures": "Dams, pumps and gates",
+  "structure_dam": "Dam",
+  "structure_pumps": "Pumping plant",
+  "structure_gate": "Gate",
+  "structures_note": "A closed gate is drawn hollow. Click one for its latest readings.",
+  "structure_daily": "daily mean, {day}",
+  "structure_source": "Measured: California Data Exchange Center (DWR, Reclamation).",
+  "gate_open": "Open",
+  "gate_closed": "Closed",
+  "gate_from_flow": "read from the measured flow through the gates, as the Delta model reads it",
+  "gate_since": "since",
+  "model_note_held_open": "DWR opens and closes these gates with the tide; their position is not published as live data. The Delta model holds them open, at their most common open setting.",
+  "reading_reservoir_outflow": "Release",
+  "reading_reservoir_inflow": "Inflow",
+  "reading_reservoir_storage": "Water held",
+  "reading_pumping": "Pumping"
 }

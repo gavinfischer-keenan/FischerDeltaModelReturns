@@ -35,13 +35,32 @@ export interface Station {
   readings: Record<string, Reading>;
 }
 
+export interface Structure {
+  id: string;
+  kind: "dam" | "pumps" | "gate";
+  name: string;
+  site: string;
+  lon: number;
+  lat: number;
+  readings: Record<string, Reading>;
+  /** Readings are daily means (posted the day after). */
+  daily: boolean;
+  /** A gate's position now, read from the flow through it. */
+  state?: { open: boolean; t: number; changed_at?: number };
+  model_note?: string;
+}
+
 export interface Overlays {
   isohalines: Isohaline[];
   stations: Station[];
+  structures?: Structure[];
   units: Record<string, string>;
 }
 
-export type OverlayKind = "x2" | "stations";
+export type OverlayKind = "x2" | "stations" | "structures";
+
+/** Each kind's colour (also the legend's). */
+export const STRUCTURE_COLOUR: Record<Structure["kind"], string> = { dam: "#f4a261", pumps: "#ef476f", gate: "#b388eb" };
 
 const X2_COLOUR = "#ffd23f";
 const STATION_COLOUR = "#7fdbca";
@@ -73,7 +92,7 @@ function across(lon: number, lat: number, bearing: number, half: number): [numbe
 const empty: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /** Add the overlays' layers (hidden) once the map's style is ready, then call `added`. */
-export function addOverlays(map: Map, ov: Overlays, describe: (s: Station) => string, added: () => void = () => {}): void {
+export function addOverlays(map: Map, ov: Overlays, describe: (s: Station) => string, describeStructure: (s: Structure) => string, added: () => void = () => {}): void {
   const add = () => {
     map.addSource("x2", { type: "geojson", data: empty });
     map.addLayer({ id: "x2-line", type: "line", source: "x2", paint: { "line-color": X2_COLOUR, "line-width": 3, "line-dasharray": [2, 1] }, layout: { visibility: "none" } });
@@ -113,8 +132,51 @@ export function addOverlays(map: Map, ov: Overlays, describe: (s: Station) => st
       const s = ov.stations[Number(f.id)];
       popup.setLngLat([s.lon, s.lat]).setHTML(describe(s)).addTo(map);
     });
-    map.on("mouseenter", "stations", () => (map.getCanvas().style.cursor = "pointer"));
-    map.on("mouseleave", "stations", () => (map.getCanvas().style.cursor = ""));
+    const structures = ov.structures ?? [];
+    map.addSource("structures", {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: structures.map((s, i) => ({
+          type: "Feature",
+          id: i,
+          properties: { kind: s.kind, name: s.name, open: s.state ? s.state.open : null },
+          geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+        })),
+      },
+    });
+    const kindColour = ["match", ["get", "kind"], "dam", STRUCTURE_COLOUR.dam, "pumps", STRUCTURE_COLOUR.pumps, STRUCTURE_COLOUR.gate] as unknown as string;
+    map.addLayer({
+      id: "structures",
+      type: "circle",
+      source: "structures",
+      layout: { visibility: "none" },
+      paint: {
+        "circle-radius": 7,
+        // A closed gate is drawn hollow, an open one (or a dam or pumps) filled.
+        "circle-color": ["case", ["==", ["get", "open"], false], "#0d1726", kindColour] as unknown as string,
+        "circle-stroke-color": kindColour,
+        "circle-stroke-width": 2.5,
+      },
+    });
+    map.addLayer({
+      id: "structure-labels",
+      type: "symbol",
+      source: "structures",
+      minzoom: 8,
+      layout: { visibility: "none", "text-field": ["get", "name"], "text-font": FONT, "text-size": 11, "text-offset": [0, 1.2], "text-anchor": "top", "text-max-width": 12 },
+      paint: { "text-color": kindColour, "text-halo-color": "#0d1726", "text-halo-width": 1.5 },
+    });
+    map.on("click", "structures", (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const s = structures[Number(f.id)];
+      popup.setLngLat([s.lon, s.lat]).setHTML(describeStructure(s)).addTo(map);
+    });
+    for (const id of ["stations", "structures"]) {
+      map.on("mouseenter", id, () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", id, () => (map.getCanvas().style.cursor = ""));
+    }
   };
   whenLoaded(map, () => {
     if (map.getSource("x2")) return;
@@ -124,7 +186,7 @@ export function addOverlays(map: Map, ov: Overlays, describe: (s: Station) => st
 }
 
 export function showOverlay(map: Map, kind: OverlayKind, on: boolean): void {
-  const ids = kind === "x2" ? ["x2-line", "x2-label"] : ["stations", "station-labels"];
+  const ids = { x2: ["x2-line", "x2-label"], stations: ["stations", "station-labels"], structures: ["structures", "structure-labels"] }[kind];
   for (const id of ids) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
 }
 

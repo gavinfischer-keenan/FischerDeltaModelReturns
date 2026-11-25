@@ -184,31 +184,42 @@ def resample(series: list[float], step: int) -> list[float]:
     return [days[0], *days] if days else []
 
 
-def gate_states(readings: list[tuple[int, float]], open_above: float, confirm: int = 2) -> list[tuple[int, bool]]:
-    """Open or closed from measured flow through a gate: open while |flow| is at
-    least `open_above`. A change counts once `confirm` readings in a row agree,
-    from the first of them, so gauge noise cannot flip it."""
+def gate_states(readings: list[tuple[int, float]], open_above: float, max_gap_s: int = 8 * 3600) -> list[tuple[int, bool]]:
+    """Open or closed from measured flow through a gate, as change points
+    (time, open) from the first reading.
+
+    An open tidal gate carries flow both ways and passes near zero at every
+    slack tide, so one low reading does not mean shut; a shut gate still leaks a
+    little. So: the gate is open from the first to the last of a run of
+    readings reaching `open_above` either way, each within `max_gap_s` of the
+    one before, and shut from the reading after. A run needs two such readings,
+    so a lone spike is noise."""
+    if not readings:
+        return []
+    big = [t for t, q in readings if abs(q) >= open_above]
+    runs: list[list[int]] = []
+    for t in big:
+        if runs and t - runs[-1][-1] <= max_gap_s:
+            runs[-1].append(t)
+        else:
+            runs.append([t])
+    runs = [r for r in runs if len(r) >= 2]
+    times = [t for t, _ in readings]
     out: list[tuple[int, bool]] = []
-    run: list[tuple[int, bool]] = []
-    for t, q in readings:
-        s = abs(q) >= open_above
-        if not out:
-            out.append((t, s))
-            continue
-        if s == out[-1][1]:
-            run = []
-            continue
-        run.append((t, s))
-        if len(run) >= confirm:
-            out.append(run[0])
-            run = []
-    return out
+    for r in runs:
+        if not out and r[0] > times[0]:
+            out.append((times[0], False))
+        out.append((r[0], True))
+        after = next((t for t in times if t > r[-1]), None)
+        if after is not None:
+            out.append((after, False))
+    return out or [(times[0], False)]
 
 
 def gate_setting(store: Store, g: dict, t0: int, now: int) -> study.LiveSetting:
     """A gate's position from its measured flow up to now, held after."""
     vals = [(v.t, v.value) for v in store.values(g["source"], g["site"], g["parameter"], t0 - 2 * DAY, now + 1) if v.value is not None]
-    states = gate_states(vals, g["open_above"])
+    states = gate_states(vals, g["open_above"], int(g.get("max_gap_h", 8) * 3600))
     if not states:
         raise ValueError(f"no data for gate feed {g['source']} {g['site']}")
     before = [s for t, s in states if t <= t0]

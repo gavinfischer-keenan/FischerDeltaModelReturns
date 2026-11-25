@@ -61,3 +61,33 @@ def test_series_is_tidally_averaged_and_hourly(tmp_path):
     # 2640 lies between 3000 (55 km) and 2000 (57 km), 36% of the way.
     mid = s["km"][36]
     assert mid == pytest.approx(55 + 2 * 0.36, abs=0.05)
+
+
+def test_gate_state_and_structure_readings():
+    from fdmr_runner import overlays
+    from fdmr_store import Store, Value
+
+    store = Store()
+    now = 1_794_400_000
+    # The gates shut in the last day: tidal flow through them, then a leak.
+    flows = [(now - 20 * 3600 + h * 3600, (120.0 if h % 2 else -60.0) if h < 10 else 0.4) for h in range(20)]
+    store.put_values("cdec", "DLC", "discharge", "m3/s", [Value(t, q) for t, q in flows])
+    store.put_values("cdec", "HRO", "pumping", "m3/s", [Value(now - 30 * 3600, 146.3)])
+    cfg = {"structures": [
+        {"id": "dcc", "kind": "gate", "name": "Gates", "site": "DLC", "lon": 0.0, "lat": 0.0, "duration": "H",
+         "show": ["discharge"], "state": {"live_gate": "DLC"}},
+        {"id": "banks", "kind": "pumps", "name": "Pumps", "site": "HRO", "lon": 0.0, "lat": 0.0, "duration": "D", "show": ["pumping"]},
+    ]}
+    units: dict = {}
+    gates = [{"site": "DLC", "parameter": "discharge", "open_above": 30.0, "max_gap_h": 8}]
+    got = {s["id"]: s for s in overlays.structures(cfg, store, now, units, gates)}
+    assert got["dcc"]["state"]["open"] is False
+    assert got["dcc"]["state"]["changed_at"] == flows[10][0]
+    assert got["dcc"]["readings"]["discharge"]["v"] == 0.4
+    # A daily value a day and more old is still the latest.
+    assert got["banks"]["readings"]["pumping"]["v"] == 146.3 and got["banks"]["daily"]
+    assert units == {"discharge": "m3/s", "pumping": "m3/s"}
+    groups = overlays.fetch_groups(cfg)
+    assert groups == [("D", ["HRO"], ["pumping"]), ("H", ["DLC"], ["discharge"])]
+    # Without the model's rule, no state is claimed.
+    assert "state" not in overlays.structures(cfg, store, now, {})[0]

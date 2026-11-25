@@ -25,7 +25,7 @@ import numpy as np
 from fdmr_adapters import cdec
 from fdmr_store import Store
 
-from . import isohaline
+from . import delta, isohaline
 
 LATEST_S = 26 * 3600  # a reading older than this is not "latest"
 # Days are the source's own: its offset from UTC, s (a source not listed keeps UTC days).
@@ -206,9 +206,66 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> tupl
     return out, units
 
 
+def gate_state(store: Store, source: str, site: str, rule: dict, now: int) -> dict | None:
+    """Open or closed now, from the flow through the gate over the last three
+    days, by the rule the Delta model uses (fdmr_runner.delta.gate_states, with
+    the gate's own settings from dsm2.toml)."""
+    vals = [(v.t, v.value) for v in store.values(source, site, rule["parameter"], now - 3 * 86_400, now + 1) if v.value is not None]
+    states = delta.gate_states(vals, rule["open_above"], int(rule.get("max_gap_h", 8) * 3600))
+    if not states:
+        return None
+    # The first entry is where the three days began; any later one is a change.
+    return {"open": states[-1][1], "t": vals[-1][0], **({"changed_at": states[-1][0]} if len(states) > 1 else {})}
+
+
+def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict] | None = None) -> list[dict]:
+    """Each dam, pumping plant and gate with its latest readings, and a gate's
+    state. A gate's `state = { live_gate = <site> }` takes its rule from the
+    Delta model's own (`gates`, dsm2.toml [[live_gate]]), so the map and the
+    model never disagree; without it, no state is claimed."""
+    out = []
+    for s in cfg.get("structures", []):
+        src = s.get("source", cdec.SOURCE)
+        # A daily value is posted the day after; allow it three days.
+        max_age = LATEST_S if s.get("duration", "H") != "D" else 3 * 86_400
+        readings = {}
+        for p in s.get("show", []):
+            vs = [v for v in store.values(src, s["site"], p, now - max_age, now + 1) if v.value is not None]
+            if vs:
+                units[p] = store.unit(src, s["site"], p) or ""
+                readings[p] = {"v": round(vs[-1].value, 3), "t": vs[-1].t}
+        entry = {k: s[k] for k in ("id", "kind", "name", "site", "lon", "lat")}
+        entry["readings"] = readings
+        entry["daily"] = s.get("duration", "H") == "D"
+        if "state" in s:
+            rule = next((g for g in gates or [] if g["site"] == s["state"]["live_gate"]), None)
+            st = gate_state(store, src, s["site"], rule, now) if rule else None
+            if st:
+                entry["state"] = st
+        if "model_note" in s:
+            entry["model_note"] = s["model_note"]
+        out.append(entry)
+    return out
+
+
 def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> dict | None:
     cfg = load(region_dir)
     if cfg is None:
         return None
     st, units = stations(cfg, cdir, index, store, now)
-    return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st, "units": units}
+    return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
+            "structures": structures(cfg, store, now, units, (delta.load(region_dir) or {}).get("live_gate", [])), "units": units}
+
+
+def fetch_groups(cfg: dict) -> list[tuple[str, list[str], list[str]]]:
+    """What to ask CDEC for the overlays: (duration, sites, parameters) groups,
+    one request each, stations and structures alike."""
+    groups: dict[tuple[str, tuple[str, ...]], list[str]] = {}
+    for s in cfg.get("stations", []):
+        if s.get("source", cdec.SOURCE) == cdec.SOURCE:
+            groups.setdefault((s.get("duration", "H"), tuple(SHOWN)), []).append(s["site"])
+    for s in cfg.get("structures", []):
+        if s.get("source", cdec.SOURCE) == cdec.SOURCE:
+            ps = tuple(s.get("show", []))
+            groups.setdefault((s.get("duration", "H"), ps), []).append(s["site"])
+    return [(d, sites, list(ps)) for (d, ps), sites in sorted(groups.items())]
