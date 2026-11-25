@@ -128,6 +128,15 @@ class Store:
         ).fetchone()
         return (row[0], row[1]) if row else None
 
+    def coverage(self, source: str, site: str, parameter: str) -> tuple[int, int, int] | None:
+        """(first time, last time, number of values) held for a series, or None."""
+        row = self._db.execute(
+            "SELECT MIN(o.t), MAX(o.t), COUNT(*) FROM obs o JOIN series s ON s.id = o.series_id "
+            "WHERE s.source=? AND s.site=? AND s.parameter=?",
+            (source, site, parameter),
+        ).fetchone()
+        return (row[0], row[1], row[2]) if row and row[2] else None
+
     def put_channel_measurements(self, source: str, site: str, ms: Iterable[ChannelMeasurement]) -> int:
         now = int(time.time())
         rows = [(source, site, m.t, m.flow, m.area, m.width, m.velocity, now) for m in ms]

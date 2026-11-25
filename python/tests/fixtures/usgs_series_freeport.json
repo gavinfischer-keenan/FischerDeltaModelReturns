@@ -1,0 +1,380 @@
+[
+ {
+  "type": "FeatureCollection",
+  "links": [],
+  "features": [
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00300",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:30:00.000001",
+     "end": "2026-11-24T06:15:00.000001",
+     "begin_utc": "2013-08-30T19:30:00+00:00",
+     "end_utc": "2026-11-24T06:15:00+00:00",
+     "parameter_name": "Dissolved oxygen"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "32295",
+     "statistic_id": "00011",
+     "begin": null,
+     "end": null,
+     "begin_utc": null,
+     "end_utc": null,
+     "parameter_name": "fDOM, water, in situ"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "99133",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:45:00.000001",
+     "end": "2026-11-24T09:15:00.000001",
+     "begin_utc": "2013-08-30T19:45:00+00:00",
+     "end_utc": "2026-11-24T09:15:00+00:00",
+     "parameter_name": "NO3+NO2,water,insitu as N"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00010",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:30:00.000001",
+     "end": "2026-11-24T06:15:00.000001",
+     "begin_utc": "2013-08-30T19:30:00+00:00",
+     "end_utc": "2026-11-24T06:15:00+00:00",
+     "parameter_name": "Temperature, water"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00010",
+     "statistic_id": "00003",
+     "begin": "1972-04-28T00:00:00.000001",
+     "end": "2023-03-22T00:00:00.000001",
+     "begin_utc": "1972-04-28T08:00:00+00:00",
+     "end_utc": "2023-03-22T07:00:00+00:00",
+     "parameter_name": "Temperature, water"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00010",
+     "statistic_id": "00002",
+     "begin": "1961-10-01T00:00:00.000001",
+     "end": "2023-03-22T00:00:00.000001",
+     "begin_utc": "1961-10-01T08:00:00+00:00",
+     "end_utc": "2023-03-22T07:00:00+00:00",
+     "parameter_name": "Temperature, water"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "72137",
+     "statistic_id": "00003",
+     "begin": "2015-09-30T00:00:00.000001",
+     "end": "2026-11-22T00:00:00.000001",
+     "begin_utc": "2015-09-30T07:00:00+00:00",
+     "end_utc": "2026-11-22T08:00:00+00:00",
+     "parameter_name": "Discharge,tide fltrd"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "80154",
+     "statistic_id": "00003",
+     "begin": "1956-10-15T00:00:00.000001",
+     "end": "2023-09-29T00:00:00.000001",
+     "begin_utc": "1956-10-15T08:00:00+00:00",
+     "end_utc": "2023-09-29T07:00:00+00:00",
+     "parameter_name": "Suspnd sedmnt conc"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "99409",
+     "statistic_id": "00011",
+     "begin": null,
+     "end": null,
+     "begin_utc": null,
+     "end_utc": null,
+     "parameter_name": "Susp sediment,wu,est"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00065",
+     "statistic_id": "00011",
+     "begin": "2007-10-01T08:00:00.000001",
+     "end": "2026-11-24T08:15:00.000001",
+     "begin_utc": "2007-10-01T08:00:00+00:00",
+     "end_utc": "2026-11-24T08:15:00+00:00",
+     "parameter_name": "Gage height"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00095",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:30:00.000001",
+     "end": "2026-11-24T07:15:00.000001",
+     "begin_utc": "2013-08-30T19:30:00+00:00",
+     "end_utc": "2026-11-24T07:15:00+00:00",
+     "parameter_name": "Specific cond at 25C"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00095",
+     "statistic_id": "00011",
+     "begin": null,
+     "end": null,
+     "begin_utc": null,
+     "end_utc": null,
+     "parameter_name": "Specific cond at 25C"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00480",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:30:00.000001",
+     "end": "2026-11-24T08:15:00.000001",
+     "begin_utc": "2013-08-30T19:30:00+00:00",
+     "end_utc": "2026-11-24T08:15:00+00:00",
+     "parameter_name": "Salinity"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00010",
+     "statistic_id": "00001",
+     "begin": "1961-10-01T00:00:00.000001",
+     "end": "2023-03-22T00:00:00.000001",
+     "begin_utc": "1961-10-01T08:00:00+00:00",
+     "end_utc": "2023-03-22T07:00:00+00:00",
+     "parameter_name": "Temperature, water"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00060",
+     "statistic_id": "00003",
+     "begin": "1948-10-01T00:00:00.000001",
+     "end": "2015-09-30T00:00:00.000001",
+     "begin_utc": "1948-10-01T07:00:00+00:00",
+     "end_utc": "2015-09-30T07:00:00+00:00",
+     "parameter_name": "Discharge"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00010",
+     "statistic_id": "00011",
+     "begin": null,
+     "end": null,
+     "begin_utc": null,
+     "end_utc": null,
+     "parameter_name": "Temperature, water"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "72443",
+     "statistic_id": "00011",
+     "begin": "2018-10-01T08:00:00.000001",
+     "end": "2026-11-24T08:15:00.000001",
+     "begin_utc": "2018-10-01T08:00:00+00:00",
+     "end_utc": "2026-11-24T08:15:00+00:00",
+     "parameter_name": "Fluoresce ex360-370 em440-520, unc WT, TB, IFE"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00301",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:30:00.000001",
+     "end": "2026-11-24T08:15:00.000001",
+     "begin_utc": "2013-08-30T19:30:00+00:00",
+     "end_utc": "2026-11-24T08:15:00+00:00",
+     "parameter_name": "Diss oxygen saturtn"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "63680",
+     "statistic_id": "00011",
+     "begin": null,
+     "end": null,
+     "begin_utc": null,
+     "end_utc": null,
+     "parameter_name": "Turbidity, FNU"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "80155",
+     "statistic_id": "00003",
+     "begin": "1956-10-01T00:00:00.000001",
+     "end": "2023-09-29T00:00:00.000001",
+     "begin_utc": "1956-10-01T08:00:00+00:00",
+     "end_utc": "2023-09-29T07:00:00+00:00",
+     "parameter_name": "Suspnd sedmnt disch"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "63680",
+     "statistic_id": "00011",
+     "begin": "2009-12-03T23:00:00.000001",
+     "end": "2013-10-01T07:45:00.000001",
+     "begin_utc": "2009-12-03T23:00:00+00:00",
+     "end_utc": "2013-10-01T07:45:00+00:00",
+     "parameter_name": "Turbidity, FNU"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00060",
+     "statistic_id": "00011",
+     "begin": "2007-10-01T08:00:00.000001",
+     "end": "2026-11-24T08:15:00.000001",
+     "begin_utc": "2007-10-01T08:00:00+00:00",
+     "end_utc": "2026-11-24T08:15:00+00:00",
+     "parameter_name": "Discharge"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00065",
+     "statistic_id": null,
+     "begin": "1909-01-17T00:00:00.000001",
+     "end": "2025-02-10T00:00:00.000001",
+     "begin_utc": "1909-01-17T08:00:00+00:00",
+     "end_utc": "2025-02-10T08:00:00+00:00",
+     "parameter_name": "Gage height"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00010",
+     "statistic_id": "00011",
+     "begin": "2007-10-01T08:00:00.000001",
+     "end": "2026-11-24T07:00:00.000001",
+     "begin_utc": "2007-10-01T08:00:00+00:00",
+     "end_utc": "2026-11-24T07:00:00+00:00",
+     "parameter_name": "Temperature, water"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "63680",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:30:00.000001",
+     "end": "2026-11-24T07:15:00.000001",
+     "begin_utc": "2013-08-30T19:30:00+00:00",
+     "end_utc": "2026-11-24T07:15:00+00:00",
+     "parameter_name": "Turbidity, FNU"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00400",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:30:00.000001",
+     "end": "2026-11-24T06:15:00.000001",
+     "begin_utc": "2013-08-30T19:30:00+00:00",
+     "end_utc": "2026-11-24T06:15:00+00:00",
+     "parameter_name": "pH"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00060",
+     "statistic_id": null,
+     "begin": "1909-01-17T00:00:00.000001",
+     "end": "2025-02-10T00:00:00.000001",
+     "begin_utc": "1909-01-17T08:00:00+00:00",
+     "end_utc": "2025-02-10T08:00:00+00:00",
+     "parameter_name": "Discharge"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "72255",
+     "statistic_id": "00011",
+     "begin": "2015-10-01T07:00:00.000001",
+     "end": "2026-11-24T08:15:00.000001",
+     "begin_utc": "2015-10-01T07:00:00+00:00",
+     "end_utc": "2026-11-24T08:15:00+00:00",
+     "parameter_name": "Mean water velocity"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "72137",
+     "statistic_id": "00011",
+     "begin": "2015-10-01T08:00:00.000001",
+     "end": "2026-11-22T21:00:00.000001",
+     "begin_utc": "2015-10-01T08:00:00+00:00",
+     "end_utc": "2026-11-22T21:00:00+00:00",
+     "parameter_name": "Discharge,tide fltrd"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "32316",
+     "statistic_id": "00011",
+     "begin": "2013-08-30T19:45:00.000001",
+     "end": "2026-11-24T09:15:00.000001",
+     "begin_utc": "2013-08-30T19:45:00+00:00",
+     "end_utc": "2026-11-24T09:15:00+00:00",
+     "parameter_name": "fChl, water, in situ"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "parameter_code": "00095",
+     "statistic_id": "00011",
+     "begin": null,
+     "end": null,
+     "begin_utc": null,
+     "end_utc": null,
+     "parameter_name": "Specific cond at 25C"
+    }
+   }
+  ]
+ }
+]

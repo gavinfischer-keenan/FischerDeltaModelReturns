@@ -66,3 +66,9 @@ def test_store_persists_to_a_file(tmp_path):
     s = Store(path)
     assert s.values("usgs", "1", "discharge", 0, 1000) == [Value(100, 1.0)]
     s.close()
+
+
+def test_coverage_reports_first_last_and_count(store):
+    assert store.coverage("usgs", "1", "discharge") is None
+    store.put_values("usgs", "1", "discharge", "m3/s", [Value(t, 1.0) for t in (300, 100, 200)])
+    assert store.coverage("usgs", "1", "discharge") == (100, 300, 3)

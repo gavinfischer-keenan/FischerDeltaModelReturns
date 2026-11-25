@@ -9,7 +9,8 @@ section 9.1), converts them to SI units and writes them to the local store.
 
 from __future__ import annotations
 
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from fdmr_store import ChannelMeasurement, Store, Value
@@ -37,7 +38,11 @@ FLOW = {"ft^3/s": CFS, "m^3/s": 1.0}
 
 
 def to_epoch(iso: str) -> int:
-    return int(datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp())
+    """ISO 8601 time to epoch seconds. Times without a zone are UTC."""
+    dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return int(dt.timestamp())
 
 
 def _num(props: dict, key: str, units: dict[str, float]) -> float | None:
@@ -64,6 +69,21 @@ class UsgsAdapter:
             page = self.client.get_json(url)
             yield from page.get("features", [])
             url = next((link["href"] for link in page.get("links", []) if link.get("rel") == "next"), None)
+
+    def available(self, site: str, active_within_days: int = 30) -> set[str]:
+        """Standard parameter names this gauge records as continuous values and
+        has reported within the last `active_within_days`. One request."""
+        codes = {code: name for name, (code, _, _) in PARAMETERS.items()}
+        cutoff = time.time() - active_within_days * 86_400
+        found: set[str] = set()
+        for f in self._features("time-series-metadata", {"monitoring_location_id": f"USGS-{site}"}):
+            p = f["properties"]
+            end = p.get("end_utc") or p.get("end")
+            # "00011" is the instantaneous statistic: continuous values, not daily means.
+            if p.get("statistic_id") == "00011" and p.get("parameter_code") in codes and end:
+                if to_epoch(end) >= cutoff:
+                    found.add(codes[p["parameter_code"]])
+        return found
 
     def fetch_values(self, site: str, parameter: str, time_range: str) -> int:
         """Fetch continuous values for one gauge and parameter into the store.

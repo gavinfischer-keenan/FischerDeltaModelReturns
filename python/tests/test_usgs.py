@@ -62,3 +62,10 @@ def test_live_keswick_last_day():
     adapter = UsgsAdapter(store)
     assert adapter.fetch_values("11370500", "discharge", "P1D") > 50
     assert adapter.fetch_channel_measurements("11370500") > 100
+
+
+def test_available_lists_only_continuous_standard_parameters():
+    # Freeport records much more (dissolved oxygen, turbidity, nitrate...), and
+    # daily-mean series; only continuous values of the standard parameters count.
+    have = UsgsAdapter(Store(), RecordedClient("usgs_series_freeport.json")).available("11447650", active_within_days=3650)
+    assert have == {"discharge", "gage_height", "water_temperature", "specific_conductance"}
