@@ -35,3 +35,15 @@ def test_point_at_interpolates():
 def test_unknown_start_is_an_error():
     with pytest.raises(ValueError):
         chain([(1, [(0.0, 0.0), (0.0, 0.01)])], start_comid=7)
+
+
+def test_nearest_finds_the_chainage_and_the_offset():
+    from fdmr_plugins.river_routing.centreline import Centreline, distance_m, nearest
+
+    coords = [(-122.0, 40.0), (-122.0, 40.1), (-121.9, 40.1)]
+    ch = [0.0, distance_m(coords[0], coords[1])]
+    ch.append(ch[1] + distance_m(coords[1], coords[2]))
+    line = Centreline(coords=coords, chainage=ch)
+    s, off = nearest(line, -121.999, 40.05)  # just east of the first leg, halfway up
+    assert abs(s - ch[1] / 2) < 50
+    assert 70 < off < 100  # 0.001 degrees of longitude at 40 N is about 85 m

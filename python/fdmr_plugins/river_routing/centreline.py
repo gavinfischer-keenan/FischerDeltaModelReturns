@@ -57,6 +57,24 @@ class Centreline:
         return (x0 + f * (x1 - x0), y0 + f * (y1 - y0))
 
 
+def nearest(line: "Centreline", lon: float, lat: float) -> tuple[float, float]:
+    """The chainage (m) of the point on the line nearest (lon, lat), and how far
+    off the line that point is (m). Uses a local flat projection, fine over the
+    few hundred metres that matter."""
+    kx = math.cos(math.radians(lat)) * EARTH_RADIUS_M * math.pi / 180
+    ky = EARTH_RADIUS_M * math.pi / 180
+    best = (float("inf"), 0.0)
+    for (x0, y0), (x1, y1), s0, s1 in zip(line.coords, line.coords[1:], line.chainage, line.chainage[1:]):
+        ax, ay = (x1 - x0) * kx, (y1 - y0) * ky
+        px, py = (lon - x0) * kx, (lat - y0) * ky
+        seg2 = ax * ax + ay * ay
+        f = 0.0 if seg2 == 0 else min(1.0, max(0.0, (px * ax + py * ay) / seg2))
+        d = math.hypot(px - f * ax, py - f * ay)
+        if d < best[0]:
+            best = (d, s0 + f * (s1 - s0))
+    return best[1], best[0]
+
+
 def chain(flowlines: Sequence[tuple[int, list[tuple[float, float]]]], start_comid: int, tol_deg: float = 1e-6) -> Centreline:
     """Chain flowlines end to start, beginning at `start_comid`."""
     by_start: dict[tuple[float, float], tuple[int, list[tuple[float, float]]]] = {}

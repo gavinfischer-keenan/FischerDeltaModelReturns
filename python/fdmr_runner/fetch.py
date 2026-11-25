@@ -21,6 +21,8 @@ import sys
 import time
 from datetime import datetime, timezone
 
+from fdmr_adapters.cdec import SOURCE as CDEC
+from fdmr_adapters.cdec import CdecAdapter
 from fdmr_adapters.cnrfc import CnrfcAdapter
 from fdmr_adapters.usgs import PARAMETERS, SOURCE, UsgsAdapter
 from fdmr_store import Store
@@ -77,6 +79,18 @@ def main(argv: list[str] | None = None) -> int:
             attempt(f"{g.site} {p}", lambda p=p, f=from_t: usgs.fetch_values(g.site, p, f"{iso(f)}/{iso(now)}"))
         if not args.no_measurements:
             attempt(f"{g.site} channel_measurements", lambda: usgs.fetch_channel_measurements(g.site))
+    # Tracer stations (CDEC): hourly readings, from where the store's copy ends.
+    cdec = CdecAdapter(store)
+    for s in [] if args.forecast_only else region.stations:
+        if s.get("source") != CDEC:
+            continue
+        for p in s.get("measures", []):
+            cov = store.coverage(CDEC, s["id"], p)
+            if cov and cov[0] <= start + 2 * 86_400 and cov[1] >= now - max(args.fresh * 60, 2 * 3600):
+                print(f"{s['id']} {p:31s} held    {s['name']}", flush=True)
+                continue
+            from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
+            attempt(f"cdec {s['id']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["id"], p, int(f), int(now)))
     # River forecasts: one file per forecast group holds all its points.
     groups: dict[str, list[str]] = {}
     for g in region.gauges:

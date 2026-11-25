@@ -25,3 +25,10 @@ def test_extend_holds_after_the_forecast_and_without_one():
     out, end = extend([5.0, 6.0, None], None, i_now=2, n=5, blend_steps=4)
     assert out[2] is None  # a measured gap stays a gap
     assert out[3:] == [6.0, 6.0] and end is None
+
+
+def test_on_grid_leaves_long_gaps_empty():
+    g = on_grid([(0, 1.0), (3600, 2.0), (6 * 3600, 7.0)], 0, 1800, 13, max_gap_s=2 * 3600)
+    assert g[1] == pytest.approx(1.5)
+    assert all(v is None for v in g[3:12])  # the five-hour gap is not filled
+    assert g[12] == pytest.approx(7.0)

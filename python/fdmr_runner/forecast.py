@@ -11,8 +11,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 
-def on_grid(samples: Sequence[tuple[int, float | None]], t0: int, step: int, n: int) -> list[float | None]:
-    """Samples resampled onto a regular grid, linear between them; None outside their span."""
+def on_grid(
+    samples: Sequence[tuple[int, float | None]], t0: int, step: int, n: int, max_gap_s: int | None = None
+) -> list[float | None]:
+    """Samples resampled onto a regular grid, linear between them; None outside
+    their span, and across any gap longer than `max_gap_s`."""
     pts = [(t, v) for t, v in samples if v is not None]
     out: list[float | None] = [None] * n
     j = 0
@@ -27,6 +30,8 @@ def on_grid(samples: Sequence[tuple[int, float | None]], t0: int, step: int, n: 
             out[i] = v1
         else:
             t2, v2 = pts[j + 1]
+            if max_gap_s is not None and t2 - t1 > max_gap_s:
+                continue
             out[i] = v1 + (v2 - v1) * (t - t1) / (t2 - t1)
     return out
 

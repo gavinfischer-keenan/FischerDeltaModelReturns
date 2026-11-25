@@ -8,8 +8,9 @@ For each segment between main gauges of each river-routing reach:
   the next one is a measured wave travel time; their median ratio to the
   model's estimate is the segment's wave scale;
 - water: every tracer signal (water temperature, specific conductance) that
-  passes two gauges is a measured water travel time; their median ratio to the
-  model's estimate is the water factor of every segment between them.
+  passes two gauges or tracer stations is a measured water travel time; their
+  median ratio to the model's estimate, if the signals agree, corrects the
+  water factor of the segments between them.
 
 Tonight's values move the stored ones only part of the way (calibration.blend).
 Writes CALIBRATION_DIR/<region>.json, which the publisher reads, and appends
@@ -28,9 +29,11 @@ from pathlib import Path
 
 from fdmr_adapters.usgs import SOURCE
 from fdmr_plugins.river_routing import calibration as cal
+from fdmr_plugins.river_routing.centreline import Centreline, nearest
 from fdmr_plugins.river_routing.wave import measure_events, regular
 from fdmr_store import Store
 
+from .forecast import on_grid
 from .publish import fit_shapes, river_chain
 from .region import load_region
 
@@ -39,6 +42,30 @@ TRACERS = {  # parameter: smallest swing in the smoothed signal that counts as a
     "specific_conductance": 5.0,  # µS/cm
     "water_temperature": 0.5,  # °C
 }
+
+
+MIN_PAIR_M = 40_000
+MIN_COVER = 0.25  # a pair corrects only segments it covers at least this share of
+MAX_OFF_LINE_M = 1_500  # a station further than this from the river centreline is misplaced
+
+
+def tracer_points(region_dir: Path, reach: str, gauges, chainage, store: Store) -> list[dict]:
+    """Gauges and tracer stations along the reach, upstream to downstream, each
+    with its chainage and the tracer series it holds."""
+    geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
+    line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
+    pts = [{"source": SOURCE, "id": g.site, "x": chainage[g.site]} for g in gauges]
+    for s in load_region(region_dir).stations:
+        if s["reach"] != reach:
+            continue
+        x, off = nearest(line, s["lon"], s["lat"])
+        if off > MAX_OFF_LINE_M:
+            print(f"station {s['id']} is {off:.0f} m off the river: skipped", flush=True)
+            continue
+        pts.append({"source": s["source"], "id": s["id"], "x": x})
+    for p in pts:
+        p["series"] = {param for param in TRACERS if store.coverage(p["source"], p["id"], param)}
+    return sorted(pts, key=lambda p: p["x"])
 
 
 def load(path: Path) -> dict:
@@ -83,32 +110,50 @@ def calibrate_reach(region_dir: Path, store: Store, reach: str, days: int, previ
             "wave_used": new_scale is not None,
         })
 
-    # Tracers: consecutive gauges among those that record each one.
-    estimates: dict[int, list[float]] = {}
+    # Tracers: every gauge and station that records one, along the river. Each
+    # pairs with the next one at least MIN_PAIR_M downstream: over a shorter
+    # distance the travel time is a few hours, which weather changes reaching
+    # every station at once swamp. A pair's correction goes to the segments it
+    # covers at least MIN_COVER of, weighted by the overlap.
+    points = tracer_points(region_dir, reach, gauges, chainage, store)
+    estimates: dict[int, list[tuple[float, float]]] = {}
     tracer_skill = []
     for param, swing in TRACERS.items():
-        have = [g for g in gauges if store.coverage(SOURCE, g.site, param)]
-        for g1, g2 in zip(have, have[1:]):
-            x0, x1 = chainage[g1.site], chainage[g2.site]
-            up = regular([(v.t, v.value) for v in store.values(SOURCE, g1.site, param, t0, now)], t0, STEP, n)
-            down = regular([(v.t, v.value) for v in store.values(SOURCE, g2.site, param, t0, now)], t0, STEP, n)
-            predict = lambda q, f=factors_before: cal.water_travel(stations, x0, x1, q, f)  # noqa: E731
-            events = cal.tracer_events(up, down, flow[g1.site], t0, STEP, predict, min_swing=swing)
+        have = [p for p in points if param in p["series"]]
+        for i, a in enumerate(have):
+            b = next((p for p in have[i + 1 :] if p["x"] - a["x"] >= MIN_PAIR_M), None)
+            if b is None:
+                continue
+            x0, x1 = a["x"], b["x"]
+
+            def series(p, param=param):
+                vals = store.values(p["source"], p["id"], param, t0, now)
+                return on_grid([(v.t, v.value) for v in vals], t0, STEP, n, max_gap_s=2 * 3600)
+
+            gauge = max((g for g in gauges if chainage[g.site] <= x0), key=lambda g: chainage[g.site], default=gauges[0])
+
+            def predict(q, x0=x0, x1=x1):
+                return cal.water_travel(stations, x0, x1, q, factors_before)
+
+            events = cal.tracer_events(series(a), series(b), flow[gauge.site], t0, STEP, predict, min_swing=swing)
             pred = [predict(e.flow) for e in events]
-            ratio = cal.scale([p / e.lag for e, p in zip(events, pred)])  # >1: the water is faster than modelled
-            spanned = [k for k in range(len(segs)) if x0 <= stations[k].chainage < x1]
+            ratios = [p / e.lag for e, p in zip(events, pred)]  # >1: the water is faster than modelled
+            ratio = cal.scale(ratios)
             if ratio is not None:
-                for k in spanned:
-                    estimates.setdefault(k, []).append(factors_before[k] * ratio)
-            sp = cal.spread([p / e.lag for e, p in zip(events, pred)])
+                for k in range(len(segs)):
+                    overlap = min(x1, stations[k + 1].chainage) - max(x0, stations[k].chainage)
+                    if overlap >= MIN_COVER * (stations[k + 1].chainage - stations[k].chainage):
+                        estimates.setdefault(k, []).append((factors_before[k] * ratio, overlap))
+            sp = cal.spread(ratios)
             tracer_skill.append({
-                "tracer": param, "up": g1.site, "down": g2.site,
+                "tracer": param, "up": a["id"], "down": b["id"], "km": round((x1 - x0) / 1000, 1),
                 "spread": None if sp is None else round(sp, 3), "used": ratio is not None,
                 "before": cal.skill([(p, e.lag) for e, p in zip(events, pred)]),
                 "after": cal.skill([(p / ratio if ratio else p, e.lag) for e, p in zip(events, pred)]),
             })
     for k, est in estimates.items():
-        new = min(cal.SCALE_LIMITS[1], max(cal.SCALE_LIMITS[0], sum(est) / len(est)))
+        new = sum(f * w for f, w in est) / sum(w for _, w in est)
+        new = min(cal.SCALE_LIMITS[1], max(cal.SCALE_LIMITS[0], new))
         segs[k]["water_factor"] = round(cal.blend(factors_before[k], new), 4)
     return {"reach": reach, "segments": segs, "skill": {"wave": wave_skill, "tracer": tracer_skill}}
 

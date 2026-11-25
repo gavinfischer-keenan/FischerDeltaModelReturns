@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -23,6 +23,7 @@ class Region:
     timezone: str
     reaches: list[dict]
     gauges: list[Gauge]
+    stations: list[dict] = field(default_factory=list)  # tracer stations: {reach, source, id, name, lat, lon, measures}
 
     def gauges_for(self, reach: str) -> list[Gauge]:
         return [g for g in self.gauges if g.reach == reach]
@@ -39,4 +40,5 @@ def load_region(path: str | Path) -> Region:
         timezone=d["timezone"],
         reaches=d.get("reaches", []),
         gauges=[Gauge(**g) for g in d.get("gauges", [])],
+        stations=d.get("stations", []),
     )

@@ -548,7 +548,7 @@ Every input comes from a free public source; three of the twelve have been check
 | Tide at Martinez, observed and predicted | NOAA tide stations | DSM2 seaward boundary | To confirm station and format |
 | Bay currents, nowcast and forecast | [NOAA San Francisco Bay Operational Forecast System](https://tidesandcurrents.noaa.gov/ofs/sfbofs/sfbofs_info.html), NetCDF files on AWS | Bay reach | Checked 25 Nov 2026: four cycles a day (03, 09, 15 and 21 UTC); forecast 48 hours ahead, every 2 hours; nowcasts hourly; about 57 MB per field file; the public archive is continuous since at least August 2024 |
 | Bay temperature and salinity | The same NOAA files as the currents | Bay layers | To confirm the variables are included |
-| Temperature, conductance, dissolved oxygen and turbidity at river, Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay | To confirm station by station |
+| Temperature, conductance, dissolved oxygen and turbidity at river, Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay; river tracer calibration | River checked 25 Nov 2026: hourly water temperature for the past year at five CDEC stations from Keswick to Red Bluff (KWK, CCR, BSF, BND, RDB), and USGS temperature at Wilkins Slough and Freeport. CDEC times are Pacific Standard Time all year. Delta and Bay still to confirm |
 | Keswick release temperature | CDEC or Reclamation | River temperature model | To confirm |
 | Weather forecast: air temperature, sunshine, humidity, wind | National Weather Service | River and Delta temperature models | To confirm product and format |
 | Levee locations and island floor elevations | DWR Delta levee and island data | Breach what-ifs | To confirm a public source |

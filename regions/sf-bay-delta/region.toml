@@ -134,6 +134,56 @@ name = "Sacramento R at Freeport"
 role = "main"
 forecast = { source = "cnrfc", group = "LowerSacramento", point = "FPOC1" }
 
+# Tracer stations: sensors that record a natural tracer but not flow, used to
+# calibrate how fast the water moves (specification 9.1). CDEC station ids and
+# coordinates from CDEC's station pages, checked 25 Nov 2026: hourly water
+# temperature for the past year at each. Jellys Ferry (JLF) reports none, and
+# Wilkins Slough's sensor is the USGS one already above.
+[[stations]]
+reach = "river"
+source = "cdec"
+id = "KWK"
+name = "Sacramento R at Keswick"
+lat = 40.600983
+lon = -122.444458
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "river"
+source = "cdec"
+id = "CCR"
+name = "Sacramento R above Clear Creek"
+lat = 40.538
+lon = -122.356
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "river"
+source = "cdec"
+id = "BSF"
+name = "Sacramento R at Balls Ferry Bridge"
+lat = 40.417
+lon = -122.193
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "river"
+source = "cdec"
+id = "BND"
+name = "Sacramento R at Bend Bridge"
+lat = 40.288486
+lon = -122.186661
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "river"
+source = "cdec"
+id = "RDB"
+name = "Sacramento R at Red Bluff Diversion Dam"
+lat = 40.154362
+lon = -122.20195
+measures = ["water_temperature"]
+
 # The basemap extract: west, south, east, north (degrees), and the deepest zoom.
 [basemap]
 bbox = [-123.25, 37.25, -120.95, 40.98]
