@@ -3,7 +3,7 @@
 //!
 //! `cargo run --release --example bay_release -- MESH_TXT REACH_DIR X Y START HOURS DIFFUSIVITY`
 //!
-//! MESH_TXT is the mesh as plain text (written from its geometry by
+//! `MESH_TXT` is the mesh as plain text (written from its geometry by
 //! `tools/mesh_text.py`): `nodes n` then n lines `x y depth`; `triangles n` then
 //! n lines `a b c`; `open n` then n lines `a b`; `handoff n` then n lines
 //! `a b id`. Releases 100 kg at (X, Y) (m, the mesh's projection) at START
@@ -14,6 +14,8 @@ use std::{env, fs};
 
 use fdmr_compute::mesh::{MeshRelease, MeshTopology, MeshTracer};
 
+// File names are our own, always lower case.
+#[allow(clippy::case_sensitive_file_extension_comparisons)]
 fn main() {
     let a: Vec<String> = env::args().collect();
     let text = fs::read_to_string(&a[1]).unwrap();
@@ -44,7 +46,10 @@ fn main() {
         x: nodes.iter().map(|n| n[0]).collect(),
         y: nodes.iter().map(|n| n[1]).collect(),
         depth: nodes.iter().map(|n| n[2]).collect(),
-        tri: tris.iter().map(|t| [ix(t[0]), ix(t[1]), ix(t[2])]).collect(),
+        tri: tris
+            .iter()
+            .map(|t| [ix(t[0]), ix(t[1]), ix(t[2])])
+            .collect(),
         open: open.iter().map(|e| (ix(e[0]), ix(e[1]))).collect(),
         handoff: handoff
             .iter()
