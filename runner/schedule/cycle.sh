@@ -50,7 +50,8 @@ for region in $REGIONS; do
   if [ "$MODE" = delta ] && [ -f "$ROOT/regions/$region/bay.toml" ]; then
     echo "== $region: Bay (NOAA)"
     mkdir -p "$bay/published"
-    "$PY" -m fdmr_runner.bay "$ROOT/regions/$region" "$bay" --publish "$bay/published" || status=1
+    "$PY" -m fdmr_runner.bay "$ROOT/regions/$region" "$bay" --publish "$bay/published" --archive \
+      --store "$DATA/store/fdmr.sqlite" --delta "$delta/published/latest" || status=1
   fi
   echo "== $region: publish"
   "$PY" -m fdmr_runner.publish "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$DATA/publish/$region" \

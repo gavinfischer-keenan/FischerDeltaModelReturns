@@ -53,6 +53,9 @@ SENSORS = {
     # Pumped out of the system (exports, diversions): m3/s.
     "pumping": Sensor(70, "m3/s", {"CFS": lambda q: q * CFS}, (0.0, 1_000.0), 1_000.0),
     "reservoir_outflow": Sensor(23, "m3/s", {"CFS": lambda q: q * CFS}, (0.0, 20_000.0), 20_000.0),
+    # A computed outflow, such as the net Delta outflow index (station DTO): in a
+    # dry summer more can be pumped and used than flows in, so it may be negative.
+    "net_outflow": Sensor(23, "m3/s", {"CFS": lambda q: q * CFS}, (-2_000.0, 20_000.0), 20_000.0),
     "reservoir_inflow": Sensor(76, "m3/s", {"CFS": lambda q: q * CFS}, (-1_000.0, 20_000.0), 20_000.0),
 }
 

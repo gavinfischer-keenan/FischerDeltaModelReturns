@@ -350,12 +350,10 @@ function run(to: number): void {
   }
 }
 
+/** Play on to `to`. Never backwards: going back is a seek, a full rebuild, and
+ * a request computed from an older frame must not cause one. */
 function advance(to: number): void {
-  if (!engine) return;
-  if (to < engine.time()) {
-    build(to);
-    return;
-  }
+  if (!engine || to <= engine.time()) return;
   run(to);
 }
 
@@ -401,7 +399,7 @@ function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Flo
   return out;
 }
 
-function frame(): void {
+function frame(seq?: number): void {
   if (!engine) return;
   const t = engine.time();
   const c = certaintyAt(t);
@@ -437,6 +435,7 @@ function frame(): void {
     });
   const f: Frame = {
     type: "frame",
+    seq,
     t,
     particleX: engine.particle_x(),
     particleLateral: engine.particle_lateral(),
@@ -465,6 +464,7 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
     switch (r.type) {
       case "open":
         await open(r.cycle, r.reach, r.particles);
+        frame(r.seq);
         return;
       case "seek":
         build(r.t);
@@ -498,7 +498,7 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         build(engine ? engine.time() : 0);
         break;
     }
-    frame();
+    frame(r.seq);
   } catch (err) {
     post({ type: "error", message: String(err) });
   }

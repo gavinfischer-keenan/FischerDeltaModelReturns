@@ -21,6 +21,8 @@ The code is built from separate modules with explicit seams (specification secti
 | `regions/` | Region packages: data only | TOML |
 | `text/` | On-screen words: data only | |
 | `runner/dsm2` | Builds DWR's DSM2 natively on Linux | Shell |
+| `runner/schedule` | The model runner's cycles (systemd timers): river hourly, Delta and Bay every 6 hours | Shell |
+| `runner/web` | The viewer's web server (Caddy) on the model runner, behind tripofisch.com/sturgeon/bay-delta/; `deploy_app.sh` puts a new UI build live | Caddyfile, shell |
 
 Folders appear as each module is built.
 

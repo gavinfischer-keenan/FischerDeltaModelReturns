@@ -2,8 +2,9 @@
 // The UI sends requests and draws what comes back. These types are all the UI
 // knows about the compute side.
 
-/** Requests from the UI to the compute engine. Times are seconds since 1970 UTC. */
-export type Request =
+/** Requests from the UI to the compute engine. Times are seconds since 1970 UTC.
+ * Each carries a number (`seq`, set by connect()) that the frame answering it repeats. */
+export type Request = { seq?: number } & (
   | { type: "open"; cycle: string; reach: string; particles: number }
   | { type: "seek"; t: number }
   | { type: "advance"; to: number }
@@ -20,7 +21,7 @@ export type Request =
       mass: number; // kg
       halfLife: number | null; // s
     }
-  | { type: "clear" };
+  | { type: "clear" });
 
 /** A network reach at one moment. Positions are an element (a channel; pools
  * follow the channels, at `channels + pool`) and a fraction along it, 0 at its
@@ -58,6 +59,9 @@ export interface MeshFrame {
 /** A snapshot of the water at one moment. */
 export interface Frame {
   type: "frame";
+  /** The request this frame answers; none for a frame the engine sent of its
+   * own accord (such as when a reach finishes loading). */
+  seq?: number;
   t: number;
   /** Flow particles: chainage (m), lateral position (-1..1), speed (m/s). */
   particleX: Float64Array;

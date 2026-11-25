@@ -21,19 +21,25 @@ FIELDS = ("u", "v", "level")
 QUALITY = ("temperature", "salinity")
 
 
-def hour(layout: Layout, block: bytes, block_start: int, c: Coarse) -> tuple[int, dict[str, np.ndarray]]:
-    """(time, fields on the coarse mesh) from a byte block of one hourly file."""
+FLOW_VARS = ("time", "zeta", "u", "v")  # what the flow alone needs, as for the archive
+
+
+def hour(layout: Layout, block: bytes, block_start: int, c: Coarse, quality: bool = True) -> tuple[int, dict[str, np.ndarray]]:
+    """(time, fields on the coarse mesh) from a byte block of one hourly file;
+    without `quality`, only the flow (u, v, level)."""
     t = layout.decode("time", block, block_start)[0]
     when = int((FVCOM_EPOCH + timedelta(seconds=float(t))).timestamp())
     u = layout.decode("u", block, block_start)[0].mean(axis=0)
     v = layout.decode("v", block, block_start)[0].mean(axis=0)
-    return when, {
+    out = {
         "u": element_mean(c, u).astype(np.float32),
         "v": element_mean(c, v).astype(np.float32),
         "level": node_mean(c, layout.decode("zeta", block, block_start)[0]).astype(np.float32),
-        "temperature": node_mean(c, layout.decode("temp", block, block_start)[0].mean(axis=0)).astype(np.float32),
-        "salinity": node_mean(c, layout.decode("salinity", block, block_start)[0].mean(axis=0)).astype(np.float32),
     }
+    if quality:
+        out["temperature"] = node_mean(c, layout.decode("temp", block, block_start)[0].mean(axis=0)).astype(np.float32)
+        out["salinity"] = node_mean(c, layout.decode("salinity", block, block_start)[0].mean(axis=0)).astype(np.float32)
+    return when, out
 
 
 def write_days(hours: dict[int, dict[str, np.ndarray]], reach: str, out_dir: Path, start: int, end: int, step: int = 3600) -> list[str]:

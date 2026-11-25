@@ -127,6 +127,20 @@ def main(argv: list[str] | None = None) -> int:
         if "forecast" in tcfg:
             fc = tcfg["forecast"]
             attempt(f"nws forecast {fc['office']}/{fc['x']},{fc['y']}", lambda: wx.fetch_forecast(fc["office"], fc["x"], fc["y"])[1])
+    # The outflow a mesh reach's extension is fitted to (bay.toml [extension]):
+    # a long record, from where the store's copy ends.
+    from . import bay
+
+    ext = (bay.load(Path(args.region)) or {}).get("extension")
+    if ext and not args.forecast_only and ext["outflow"]["source"] == CDEC:
+        o = ext["outflow"]
+        back = now - (ext["fit_days"] + 10) * 86_400
+        cov = store.coverage(CDEC, o["site"], o["parameter"])
+        f0 = max(back, cov[1] + 1) if cov and cov[0] <= back + 2 * 86_400 else back
+        if cov and cov[1] >= now - 86_400:
+            print(f"cdec {o['site']} {o['parameter']:26s} held", flush=True)
+        else:
+            attempt(f"cdec {o['site']} {o['parameter']}", lambda: cdec.fetch_values(o["site"], o["parameter"], int(f0), int(now), duration=o.get("duration", "D")))
     # River forecasts: one file per forecast group holds all its points.
     groups: dict[str, list[str]] = {}
     for g in region.gauges:

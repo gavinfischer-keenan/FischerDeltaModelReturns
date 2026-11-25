@@ -8,6 +8,26 @@ cycles = [3, 9, 15, 21]   # UTC hours of NOAA's cycles
 forecast_hours = 48       # each cycle's forecast reaches this far
 days_back = 14            # the past published, like the Delta's
 
+# Past NOAA's forecast the Bay is carried on to the Delta's 14 days by a fit
+# (fdmr_plugins.fvcom.extend): at every node, tides plus a drift that grows
+# with Delta outflow, fitted to a year of NOAA's archive every 2 hours (chosen
+# 25 Nov 2026: covers wet and dry seasons; 73 GB fetched once, about 280 MB
+# kept). Delta outflow: CDEC's daily net Delta outflow index (station DTO).
+[extension]
+fit_days = 365
+fit_every_h = 2
+outflow = { source = "cdec", site = "DTO", duration = "D", parameter = "net_outflow" }
+
+# NOAA's net flow at Chipps Island is set by its own open tidal boundary near
+# Rio Vista, not by the river: checked 25 Nov 2026 on NOAA's own fine mesh, it
+# draws about 1,200 m3/s inland past Chipps and Benicia alike over two tidal
+# days (storage east of Chipps took only 27 m3/s of it; the rest leaves at its
+# eastern boundary, which swings +-6,300 m3/s with the tide), against a measured
+# Delta outflow of about 290 m3/s seaward. Every published hour is therefore
+# given a steady potential flow from the Chipps edges to the sea, so that its
+# tidally filtered net flow across the join is DSM2's (fdmr_plugins.fvcom.correct);
+# the tides are NOAA's.
+
 # The mesh: NOAA's triangles kept between these longitudes. East of
 # `east_of` is the Delta's (DSM2's), across the estuary at Chipps Island;
 # west of `west_of` is open ocean too far out to matter.

@@ -47,14 +47,27 @@
   let halfLifeHours = $state<number | null>(null);
 
   let busy = false;
+  let pending = 0; // the request whose frame frees the play loop
   let last = 0;
+
+  /** Send a request the play loop waits on; only its own frame moves the clock. */
+  function request(r: Parameters<typeof engine.send>[0]): void {
+    busy = true;
+    pending = engine.send(r);
+  }
 
   const fmt = (s: number) =>
     new Date(s * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   function onFrame(f: Frame) {
-    busy = false;
-    t = f.t;
+    // A frame the engine sent of its own accord, or one answering an older
+    // request, is drawn but does not move the clock or free the loop.
+    if (f.seq === pending) {
+      busy = false;
+      t = f.t;
+    } else if (f.seq === undefined && !busy) {
+      t = f.t;
+    }
     balance = Array.from(f.massBalance);
     words = f.words;
     if (map && reach) drawFrame(map, reach, f, nets, meshes);
@@ -66,13 +79,11 @@
     last = ms;
     if (ready && !busy) {
       if (mode === "now") {
-        busy = true; // "Now" holds the moment and lets the water drift
-        engine.send({ type: "drift", dt: dt * NOW_SPEEDUP });
+        request({ type: "drift", dt: dt * NOW_SPEEDUP }); // "Now" holds the moment and lets the water drift
       } else if (playing) {
         const to = Math.min(ready.end, t + dt * hoursPerSecond * 3600);
         if (to >= ready.end) playing = false;
-        busy = true;
-        engine.send({ type: "advance", to });
+        request({ type: "advance", to });
       }
     }
     requestAnimationFrame(tick);
@@ -82,10 +93,9 @@
     mode = m;
     playing = m === "next";
     if (!ready) return;
-    busy = true;
     const to = m === "past" ? ready.start : ready.now;
     t = to; // so the play loop starts from here
-    engine.send({ type: "seek", t: to });
+    request({ type: "seek", t: to });
   }
 
   // The slider's track, shaded by certainty: full colour where measured, fading
@@ -114,7 +124,7 @@
     playing = false;
     busy = true;
     t = to;
-    engine.send({ type: "seek", t: to });
+    request({ type: "seek", t: to });
   }
 
   // Without a forecast there is no future to play into, so a release made in
@@ -129,9 +139,9 @@
     const start = back ? Math.max(ready.start, ready.now - NO_FORECAST_LOOKBACK) : mode === "now" ? ready.now : t;
     if (mode === "now") {
       t = start; // so the play loop starts from here, not from the old "now"
-      engine.send({ type: "seek", t: start });
+      request({ type: "seek", t: start });
     }
-    engine.send({
+    request({
       type: "release",
       x: draft.x,
       // A plain copy: a reactive proxy cannot be sent to the worker.
@@ -219,7 +229,7 @@
         draft = pick;
         placing = false;
       });
-      engine.send({ type: "open", cycle, reach: "river", particles: FLOW_PARTICLES });
+      request({ type: "open", cycle, reach: "river", particles: FLOW_PARTICLES });
       requestAnimationFrame(tick);
     } catch (e) {
       error = String(e);
@@ -276,7 +286,7 @@
         {:else}
           <button onclick={() => (placing = true)}>{text.add_pollutant}</button>
           {#if balance[0] > 0}
-            <button onclick={() => engine.send({ type: "clear" })}>{text.clear}</button>
+            <button onclick={() => request({ type: "clear" })}>{text.clear}</button>
           {/if}
         {/if}
       </div>

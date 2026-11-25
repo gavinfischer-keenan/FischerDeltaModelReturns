@@ -1,0 +1,48 @@
+# The viewer's web server on the model runner (CT 705), for the public web edge
+# (CT 703) to forward /sturgeon/bay-delta/ to (specification 9.3). Installed as
+# /etc/caddy/Caddyfile by runner/web/install.sh. Approved 25 Nov 2026.
+#
+#   /            the app (ui/dist, copied to /srv/fdmr-data/app/current by deploy_app.sh)
+#   /data/       the published cycles (/srv/fdmr-data/publish), replaced every hour
+#   /basemap/    the self-hosted basemap (PMTiles, read in pieces by byte range)
+#
+# The web edge strips its /sturgeon/bay-delta prefix, and the app asks for
+# everything by relative path, so the same files work there and here.
+{
+	auto_https off
+	admin localhost:2019
+}
+
+:8091 {
+	encode gzip
+
+	handle_path /data/* {
+		root * /srv/fdmr-data/publish
+		# Same names, new contents every hour: always ask whether a file changed.
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	handle_path /basemap/* {
+		root * /srv/fdmr-data/basemap
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+
+	handle {
+		root * /srv/fdmr-data/app/current
+		# Built files carry a hash in their names; the page itself is always fetched fresh.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@page path / /index.html
+		header @page Cache-Control "no-cache"
+		file_server
+	}
+
+	log {
+		output file /var/log/caddy/fdmr-viewer.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}

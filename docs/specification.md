@@ -958,6 +958,12 @@ The build runs in six phases, each ending in something that can be seen working;
   - the update cadence;
   - custom what-ifs and ensemble spread after launch.
 
+### Decisions log, 25 November 2026
+
+- The Bay's currents are NOAA's tides with DSM2's net outflow. NOAA's San Francisco Bay model draws about 1,200 m3/s inland past Chipps Island on net, set by its open tidal boundary near Rio Vista, where the measured Delta outflow is about 290 m3/s seaward. Each hour of the Bay gets a steady flow from Chipps Island to the sea that makes its tidally filtered net flow across the join DSM2's; the tides are untouched (build plan, Phase 3).
+- The Bay extension past NOAA's 48 hours is fitted to a year of NOAA's archive every 2 hours (73 GB fetched once), with the recent non-tidal offset carried on, so the Bay runs the Delta's 14 days.
+- The viewer is served from the model runner by its own Caddy at `tripofisch.com/sturgeon/bay-delta/`, behind the web edge, which forwards that path to it (approved 25 Nov 2026).
+
 ### Open technical questions, answered in Phase 0
 
 - Does DSM2's forecast mode run cleanly from a script on our live inputs? (A historical run already takes 13 seconds for 14 days.)

@@ -5,15 +5,21 @@
 import type { Reply, Request } from "./messages";
 
 export interface ComputeEngine {
-  send(request: Request): void;
+  /** Send a request; returns its number, which the frame answering it carries. */
+  send(request: Request): number;
   onReply(handler: (reply: Reply) => void): void;
   close(): void;
 }
 
 export function connect(): ComputeEngine {
   const worker = new Worker(new URL("../compute/worker.ts", import.meta.url), { type: "module" });
+  let seq = 0;
   return {
-    send: (request) => worker.postMessage(request),
+    send: (request) => {
+      seq += 1;
+      worker.postMessage({ ...request, seq });
+      return seq;
+    },
     onReply: (handler) => worker.addEventListener("message", (e: MessageEvent<Reply>) => handler(e.data)),
     close: () => worker.terminate(),
   };
