@@ -51,8 +51,11 @@ interface NetRelease {
 
 const PARCELS_PER_RELEASE = 20_000;
 const NETWORK_PARTICLES = 6_000;
-// Spreading in the network's channels, m²/s: a placeholder of the right order
-// for tidal channels, to be checked against DSM2's own transport (QUAL).
+// Spreading in the network's channels, m²/s. Checked 25 Nov 2026 against DSM2's
+// own transport (QUAL) with a pulse released at Freeport (tools/pulse_check.py):
+// at 50 the tracer matches QUAL's arrival, spread and peak from Steamboat Slough
+// to Jersey Point and Mallard Island; 10 and 200 are clearly worse, 30 and 80
+// about as good.
 const NETWORK_DISPERSION = 50;
 
 let engine: Engine | null = null;

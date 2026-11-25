@@ -227,9 +227,24 @@ def pst_midnight(t: int) -> int:
 def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int, kind: str = "flow") -> dict:
     """DSM2 at a check station against the measured value over [start, end):
     means, the moment-to-moment and the tidally averaged (25 h) differences.
-    Flow (m3/s) from HYDRO; "ec" (uS/cm) or "temp" (degC) from QUAL."""
+    Flow (m3/s) from HYDRO; "ec" (uS/cm) or "temp" (degC) from QUAL. A flow
+    check that names a `channel` reads that channel's flow (the mean of its two
+    ends) from HYDRO's tidefile, so any channel can be checked, not only those
+    DWR's study writes out."""
     modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
     n = (end - start) // STEP
+    if kind == "flow" and "channel" in c:
+        import h5py
+
+        from fdmr_plugins.dsm2.fields import tidefile_start
+
+        with h5py.File(run_dir / "output" / f"{modifier}.h5", "r") as f:
+            flow = f["hydro/data/channel flow"]
+            nums = list(f["hydro/geometry/channel_number"][:])
+            i0 = (start + STEP - tidefile_start(flow.attrs["start_time"][0])) // 300
+            q = flow[i0 : i0 + 3 * n : 3, nums.index(c["channel"]), :].mean(axis=1) / TO_DSS["CFS"]
+        model = [float(v) for v in q] + [None] * (n - len(q))
+        return _compare(c, model, grid(store, c, start + STEP, n))
     if kind == "temp":
         out = run_dir / "output" / "qual_temp.dss"
         path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{c['output']}/TEMP//15MIN/{modifier.upper()}+FROM-ALL/"
@@ -244,7 +259,10 @@ def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int,
         scale = 1 / TO_DSS["CFS"]
     vals, _, _ = dss.Dss(str(DSM2_ROOT / "bin" / "dsstool")).read(str(out), path, start + STEP, n)
     model = [None if v is None else v * scale for v in vals]
-    meas = grid(store, c, start + STEP, n)
+    return _compare(c, model, grid(store, c, start + STEP, n))
+
+
+def _compare(c: dict, model: list[float | None], meas: list[float | None]) -> dict:
     w = 100  # 25 hours
     tm, tmeas = running_mean(model, w), running_mean(meas, w)
     both = [(a, b) for a, b in zip(model, meas) if a is not None and b is not None]

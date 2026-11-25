@@ -202,6 +202,20 @@ path = "/HIST+GATE/CHWST000/WEIRELEVATION//IR-MONTH/"
 value = 7.02
 
 # Measured flows to check DSM2's output against (specification 9.2).
+#
+# Rio Vista's measured net flow does not balance with the gauges upstream
+# (checked 25 Nov 2026, means for 4 Aug to 24 Nov): what reaches it, the
+# Sacramento below Georgiana Slough plus Steamboat and Sutter Sloughs plus the
+# Yolo Bypass, is about 280 m3/s, but it reads 336. A net flow is a few per
+# cent of a tidal flow swinging thousands of m3/s each way, so a small bias in
+# the gauge's velocity makes a large one in its net flow. DSM2 reads 247. Of
+# its 33 m3/s under the upstream balance, 16 is how it splits the river (10
+# less down Steamboat Slough, 5 less down Sutter, than they measure) and 17 is
+# taken on the way, between those gauges and Rio Vista (island water use, on
+# DWR's 2024 values, and the North Bay Aqueduct), which the gauges upstream do
+# not see either. If that use is right, the river at Rio Vista carries about
+# 265 m3/s: DSM2 about 7% low, the gauge about 25% high. The side channels are
+# checked below, by channel (HYDRO's tidefile).
 [[checks]]
 name = "Sacramento R at Rio Vista"
 source = "usgs"
@@ -215,6 +229,54 @@ source = "usgs"
 site = "11337190"
 parameter = "discharge"
 output = "RSAN018"   # its name in DSM2's output
+
+[[checks]]
+name = "Sacramento R above the Delta Cross Channel"
+source = "cdec"
+site = "SDC"
+duration = "E"
+parameter = "discharge"
+channel = 421
+
+[[checks]]
+name = "Delta Cross Channel"
+source = "cdec"
+site = "DLC"
+duration = "H"
+parameter = "discharge"
+channel = 365
+
+[[checks]]
+name = "Georgiana Slough"
+source = "cdec"
+site = "GSS"
+duration = "E"
+parameter = "discharge"
+channel = 366
+
+[[checks]]
+name = "Sacramento R below Georgiana Slough"
+source = "cdec"
+site = "GES"
+duration = "E"
+parameter = "discharge"
+channel = 423
+
+[[checks]]
+name = "Sutter Slough"
+source = "cdec"
+site = "SUT"
+duration = "E"
+parameter = "discharge"
+channel = 379
+
+[[checks]]
+name = "Steamboat Slough"
+source = "cdec"
+site = "SSS"
+duration = "E"
+parameter = "discharge"
+channel = 383
 
 # Measured salinity (EC, uS/cm) to check QUAL against, from the Bay end inland.
 [[ec_checks]]
