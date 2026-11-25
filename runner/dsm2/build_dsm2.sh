@@ -28,10 +28,19 @@ LOKI_URL="https://sourceforge.net/projects/loki-lib/files/Loki/Loki%200.1.7/loki
 log() { printf '\n=== %s: %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 fetch() { [ -s "$2" ] || curl -sSfL -A "$UA" -o "$2" "$1"; }
 
+INTEL_COMPILER_VERSION=2023.2.4
+INTEL_MKL_VERSION=2023.2.0
+
 oneapi() {
-  # setvars.sh trips over `set -u`, so relax it while sourcing.
-  set +u; . /opt/intel/oneapi/setvars.sh --force >/dev/null; set -u
+  # Load the exact compiler and MKL versions, not oneAPI's "latest" link:
+  # installing MKL also installs an older compiler runtime and moves "latest" to it.
+  # The vars.sh scripts trip over `set -u`, so relax it while sourcing.
+  set +u
+  . "/opt/intel/oneapi/compiler/$INTEL_COMPILER_VERSION/env/vars.sh" >/dev/null
+  . "/opt/intel/oneapi/mkl/$INTEL_MKL_VERSION/env/vars.sh" >/dev/null
+  set -u
   export CC=icx CXX=icpx FC=ifx F77=ifx
+  export PATH="$DEPS/hdf5-1.14.2/bin:$PATH"   # HDF5's h5cc and h5fc, for CMake's HDF5 finder
 }
 
 stage_sources() {
@@ -57,8 +66,10 @@ stage_heclib() {
   local h=$w/src/third_party/heclib_vs2008
   # This is HEClib's Windows edition. Its C file layer (heclib_c/*.c) and seven
   # Fortran routines use Windows-only calls; our Linux versions of those, in
-  # heclib-linux/ beside this script, are compiled instead. Subversion metadata is skipped.
-  local windows_only='/(stdinc|crenam|waits|cdelet|cparms|tempname|sortfilesfort)\.for$'
+  # heclib-linux/ beside this script, are compiled instead. heclib/intel_extra.for
+  # only bridges Windows calling conventions and is not needed on Linux.
+  # Subversion metadata is skipped.
+  local windows_only='/(stdinc|crenam|waits|cdelet|cparms|tempname|sortfilesfort|intel_extra)\.for$'
   find "$h" -path '*/.svn' -prune -o -type f \( -iname '*.for' -o -iname '*.f' \) -print \
     | grep -viE "$windows_only" > "$w/fortran.txt"
   : > "$w/c.txt"
@@ -136,11 +147,11 @@ stage_hdf5() {
 }
 
 stage_boost() {
-  [ -f "$DEPS/boost_1_83_0/stage/lib/libboost_filesystem.a" ] && { log "Boost already built"; return; }
-  log "building Boost 1.83.0 (filesystem, regex, test; static)"
+  [ -f "$DEPS/boost_1_83_0/stage/lib/libboost_system.a" ] && { log "Boost already built"; return; }
+  log "building Boost 1.83.0 (filesystem, regex, system, test; static)"
   mkdir -p "$DEPS" && tar -xzf "$SRC/boost_1_83_0.tar.gz" -C "$DEPS"
   cd "$DEPS/boost_1_83_0"
-  ./bootstrap.sh --with-libraries=filesystem,regex,test >/dev/null
+  ./bootstrap.sh --with-libraries=filesystem,regex,system,test >/dev/null
   # Built with GCC: icpx shares GCC's C++ library and calling conventions.
   ./b2 -j "$JOBS" -d0 toolset=gcc link=static runtime-link=shared threading=multi variant=release cxxflags=-fPIC stage
 }
@@ -149,14 +160,52 @@ stage_dsm2() {
   log "building DSM2 $DSM2_TAG"
   oneapi
   local d=$SRC/dsm2
-  ln -sfn "$DEPS" "$d/deps"
+  rm -f "$d/deps/deps"   # left by an earlier version of this script
   cd "$d"
   cmake -E remove_directory build && cmake -E make_directory build && cd build
-  cmake -C ../linux_options.cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE:STRING=Release .. > "$ROOT/build/dsm2-cmake.log" 2>&1 \
+  # DSM2's own deps/ folder holds DWR's scripts, so every library's location is
+  # passed explicitly. CMake 3.27+ also ignores the upper-case BOOST_ROOT that
+  # linux_options.cmake sets.
+  cmake -C ../linux_options.cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE:STRING=Release \
+    -DHEClib_ROOT="$DEPS/heclib-6" -DKLU_ROOT="$DEPS/suitesparse-4.0.2" \
+    -DLoki_ROOT="$DEPS/loki-0.1.7" -DHDF5_ROOT="$DEPS/hdf5-1.14.2" \
+    -DCMAKE_POLICY_DEFAULT_CMP0144=NEW -DCMAKE_POLICY_DEFAULT_CMP0167=OLD \
+    -DBoost_ROOT="$DEPS/boost_1_83_0" -DBoost_INCLUDE_DIR="$DEPS/boost_1_83_0" \
+    -DBoost_LIBRARY_DIR="$DEPS/boost_1_83_0/stage/lib" -DBoost_USE_STATIC_LIBS=ON \
+    -DHDF5_C_COMPILER_EXECUTABLE="$DEPS/hdf5-1.14.2/bin/h5cc" \
+    -DHDF5_Fortran_COMPILER_EXECUTABLE="$DEPS/hdf5-1.14.2/bin/h5fc" \
+    -DCMAKE_EXE_LINKER_FLAGS="-Wl,--disable-new-dtags,-rpath,/opt/intel/oneapi/compiler/$INTEL_COMPILER_VERSION/linux/compiler/lib/intel64_lin" \
+    .. > "$ROOT/build/dsm2-cmake.log" 2>&1 \
     || { tail -40 "$ROOT/build/dsm2-cmake.log"; return 1; }
-  cmake --build . --target all -j "$JOBS" > "$ROOT/build/dsm2-make.log" 2>&1 \
-    || { grep -nE 'error|Error' "$ROOT/build/dsm2-make.log" | head -40; return 1; }
-  mkdir -p "$ROOT/bin" && find . -type f -executable \( -name hydro -o -name qual -o -name gtm -o -name hydro_gtm \) -exec cp {} "$ROOT/bin/" \;
+
+  # Only HYDRO and QUAL are used (specification section 7.2). The rpath above
+  # records where Intel's runtime libraries are, so the programs run without
+  # oneAPI's environment. --disable-new-dtags makes it an RPATH rather than a
+  # RUNPATH, so Intel's own libraries find each other too. (-static-intel would
+  # force a fully static link, which the system's shared zlib does not allow.)
+  local targets="hydro qual" mlog=$ROOT/build/dsm2-make.log
+  if ! cmake --build . --target $targets -j "$JOBS" > "$mlog" 2>&1; then
+    # ifx 2023.2.4 crashes (an internal compiler error) on gtm/gtm_subs.f90 at every
+    # optimisation level. The classic ifort compiler, in the same oneAPI release,
+    # compiles it against the modules ifx has already built. Compile that one file
+    # with ifort, put the object where the build expects it, and carry on.
+    grep -q 'gtm_subs.f90.*Internal compiler error' "$mlog" \
+      || { grep -nE 'error|Error' "$mlog" | head -40; return 1; }
+    log "ifx crashed on gtm_subs.f90; compiling that file with ifort"
+    local obj=dsm2/src/gtm/CMakeFiles/gtm_main.dir/gtm_subs.f90.o
+    local cmd
+    cmd=$(make -n -f dsm2/src/gtm/CMakeFiles/gtm_main.dir/build.make "$obj" 2>/dev/null | grep -E 'ifx .*gtm_subs\.f90' | head -1)
+    [ -n "$cmd" ] || { echo "could not find the compile command for gtm_subs.f90"; return 1; }
+    # The command starts with `cd` into the gtm folder; run it in a subshell.
+    ( eval "$(echo "$cmd" | sed -E 's#(/[^ ]*/)?ifx #ifort -diag-disable=10448 #')" )
+    touch "$obj"
+    cmake --build . --target $targets -j "$JOBS" > "$mlog" 2>&1 \
+      || { grep -nE 'error|Error|undefined reference' "$mlog" | head -40; return 1; }
+  fi
+  mkdir -p "$ROOT/bin" && cp dsm2/hydro dsm2/qual "$ROOT/bin/"
+  # Check the programs start with an empty environment. `hydro -v` exits non-zero.
+  env -i "$ROOT/bin/hydro" -v 2>&1 | head -1 || true
+  env -i "$ROOT/bin/qual" -v 2>&1 | grep DSM2 || true
   ls -la "$ROOT/bin"
 }
 

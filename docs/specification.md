@@ -37,10 +37,9 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 
 **Not yet verified.** Each item below is a Phase 0 task in section 10.
 
-- DSM2 runs correctly once built natively on Debian (section 9.3).
+- DSM2's forecast mode, driven by our live inputs. The native build already runs DWR's historical study: HYDRO does 14 days in 13 seconds and QUAL in 4 (section 9.3).
 - The exact live feed for every DSM2 boundary input.
 - Whether NOAA's Bay mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
-- A public copy of DSM2's map geometry. DWR's documentation points to internal network drives.
 - Enough USGS field measurements and conductance records on the river to calibrate water velocity and dispersion.
 - How long one DSM2 run takes, which sets how long a visitor waits for a what-if.
 - A public source for levee locations and island floor elevations in the Delta.
@@ -470,7 +469,7 @@ The modelled waterways are drawn as our own layer, because the plume must follow
 | Reach | Geometry source | Status |
 | --- | --- | --- |
 | Shasta to Sacramento | USGS national hydrography river centreline, measured in river miles | Source to confirm |
-| Delta | DSM2 channel centrelines and nodes. [DWR's documentation](https://github.com/CADWRDeltaModeling/dsm2) describes shapefiles of these, but on internal drives | Ask DWR, or rebuild from the published channel inputs |
+| Delta | DSM2 channel centrelines, nodes, reservoirs, gates and stations, from DWR's public georeferenced grid shapefiles (DSM2 Grid 2026-04-16) | In hand |
 | Bay | The NOAA Bay model's mesh, about 54,000 nodes, for placing currents; OpenStreetMap shoreline for drawing | To confirm |
 
 Each Delta channel on the map carries its DSM2 channel number, so a click maps directly to a model location.
@@ -865,9 +864,8 @@ The build runs in six phases, each ending in something that can be seen working;
 
 ### Open technical questions, answered in Phase 0
 
-- Does DSM2's forecast mode run cleanly from a script, and how long does one run take?
+- Does DSM2's forecast mode run cleanly from a script on our live inputs? (A historical run already takes 13 seconds for 14 days.)
 - What is the real forecast horizon and file size of NOAA's Bay product?
-- Is DSM2's channel geometry available outside DWR's network?
 - Which stations give each export, gate and inflow value in near real time?
 - Which river gauges have field measurements, conductance and temperature records long enough to calibrate water velocity and dispersion? Are there published time-of-travel or dye studies on the Sacramento?
 - Do NOAA's Bay files carry temperature and salinity, and at what depths?

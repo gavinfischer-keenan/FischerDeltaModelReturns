@@ -26,7 +26,7 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 
 ## 3. Things only people can do
 
-You do these. No letter to DWR is needed for the build: HEClib v6 is built from DWR's public source, and the channel geometry is in DWR's public DSM2 input release. A letter is worth sending only if that release turns out to lack map coordinates for the channels.
+You do these. No letter to DWR is needed: HEClib v6 is built from DWR's public source, and DWR publishes the DSM2 inputs and georeferenced grid shapefiles openly.
 
 | Task | Why | Needed by |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ Answers every open question in specification section 10, before any map is drawn
 
 | Workstream | What gets done |
 | --- | --- |
-| DSM2 | Build DSM2 natively in the model runner (`runner/dsm2`), with HEClib v6 from DWR's public source. Run a sample, then forecast mode with today's inputs, with QUAL salinity. Time one full run, and one with a breach reservoir added. |
+| DSM2 | Done 25 Nov 2026: built natively in the model runner (`runner/dsm2`). On DWR's historical inputs, HYDRO runs 14 days in 13 seconds and QUAL in 4. Still to do: forecast mode on our live inputs, and one run with a breach reservoir added. |
 | Data feeds | Fetch every one of the twelve feeds in specification section 6 by hand. For each, record the format, how often it updates, how late it arrives, the station or product IDs, and the license terms. |
 | NOAA Bay forecast | Done: 48 hours ahead, every 2 hours, about 57 MB per file, archive continuous since August 2024. Still to check: the temperature and salinity variables and depths, and how finely the mesh covers Suisun Bay up to Chipps Island. |
 | Geometry | Find the river centreline, the DSM2 channel geometry and the Delta levee and island data, or how to rebuild each. |

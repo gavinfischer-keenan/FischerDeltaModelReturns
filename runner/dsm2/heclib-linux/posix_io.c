@@ -153,6 +153,36 @@ void waits_(float *secs)
     if (*secs > 0) usleep((useconds_t)(*secs * 1e6f));
 }
 
+/* In-memory DSS buffers (Dss/zrmem.for, Dss/zwmem.for).
+   The Windows edition stores the buffer's address in a 4-byte INTEGER, which
+   cannot hold a 64-bit address. Here that INTEGER is a handle into a table of
+   real addresses: 0 means "not yet allocated". Units are few, so the table is small. */
+#define MAX_MEMBUFS 512
+static int32_t *membufs[MAX_MEMBUFS + 1];
+
+void reallocatemem_(int32_t *handle, int32_t *nbytes)
+{
+    int32_t h = *handle;
+    if (h <= 0 || h > MAX_MEMBUFS) {
+        for (h = 1; h <= MAX_MEMBUFS && membufs[h] != NULL; h++) ;
+        if (h > MAX_MEMBUFS) { fprintf(stderr, "reallocatemem: too many memory buffers\n"); abort(); }
+    }
+    int32_t *b = realloc(membufs[h], (size_t)*nbytes);
+    if (b == NULL && *nbytes > 0) { fprintf(stderr, "reallocatemem: out of memory\n"); abort(); }
+    membufs[h] = b;
+    *handle = h;
+}
+
+void readmem_(int32_t *handle, int32_t *wordpos, int32_t *intbuff, int32_t *nwords)
+{
+    memcpy(intbuff, membufs[*handle] + *wordpos, (size_t)*nwords * sizeof(int32_t));
+}
+
+void writemem_(int32_t *handle, int32_t *wordpos, int32_t *intbuff, int32_t *nwords)
+{
+    memcpy(membufs[*handle] + *wordpos, intbuff, (size_t)*nwords * sizeof(int32_t));
+}
+
 /* Every file the model runner uses is on a local disk. */
 void isonlocaldrive_(const char *path, int32_t *isLocal, size_t len)
 {
