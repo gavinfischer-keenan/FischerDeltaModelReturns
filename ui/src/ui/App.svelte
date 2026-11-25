@@ -165,8 +165,11 @@
   <div class="map" bind:this={mapEl} class:placing></div>
 
   <header>
-    <h1>{text.title}</h1>
-    <p class="disclaimer">{text.disclaimer}</p>
+    <img class="logo" src="./sturgeon-logo.webp" alt="" width="48" height="48" />
+    <div>
+      <h1>{text.title}</h1>
+      <p class="disclaimer">{text.disclaimer}</p>
+    </div>
   </header>
 
   {#if error}
@@ -227,7 +230,8 @@
   .app { position: relative; height: 100%; }
   .map { position: absolute; inset: 0; }
   .map.placing { cursor: crosshair; }
-  header { position: absolute; top: 12px; left: 12px; background: #0d1726cc; padding: 8px 12px; border-radius: 8px; max-width: 26rem; }
+  header { position: absolute; top: 12px; left: 12px; background: #0d1726cc; padding: 8px 12px; border-radius: 8px; max-width: 28rem; display: flex; gap: 10px; align-items: center; }
+  .logo { width: 48px; height: 48px; border-radius: 50%; background: #fff; flex: none; }
   h1 { font-size: 1.05rem; margin: 0; }
   .disclaimer { font-size: 0.75rem; opacity: 0.8; margin: 4px 0 0; }
   .panel { position: absolute; left: 12px; right: 12px; bottom: 12px; background: #0d1726e6; padding: 10px 12px; border-radius: 8px; display: grid; gap: 8px; font-size: 0.85rem; }

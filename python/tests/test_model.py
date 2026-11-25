@@ -38,3 +38,11 @@ def test_gaps_are_held():
     assert model.filled([None, 2.0, None, 4.0, None]) == [2.0, 2.0, 2.0, 4.0, 4.0]
     with pytest.raises(ValueError):
         model.filled([None, None])
+
+
+def test_water_factor_speeds_the_water_and_keeps_the_flow():
+    g = [model.GaugeRecord(0.0, SHAPE, [200.0] * 10), model.GaugeRecord(20_000.0, SHAPE, [200.0] * 10)]
+    f = model.build(20_000.0, g, 0, STEP, water_factor=[1.25])
+    u = 200.0 / SHAPE.area(200.0)
+    assert f.flow[3][4] == pytest.approx(200.0)
+    assert f.velocity[3][4] == pytest.approx(1.25 * u)

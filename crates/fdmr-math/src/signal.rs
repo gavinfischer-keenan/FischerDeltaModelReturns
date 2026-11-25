@@ -40,34 +40,61 @@ pub fn lag_by_cross_correlation(
     step: f64,
     max_lag_steps: usize,
 ) -> Option<f64> {
+    cross_correlation_peak(upstream, downstream, step, max_lag_steps).map(|(lag, _)| lag)
+}
+
+/// As [`lag_by_cross_correlation`], with the correlation at the peak (-1..1),
+/// so a caller can reject a lag that rests on a weak match.
+///
+/// Every lag is scored on the same stretch of `upstream`, its first
+/// `n - max_lag_steps` samples, against the matching stretch of `downstream`,
+/// as a Pearson correlation. Scoring each lag over a different number of
+/// samples would pull a broad peak toward zero lag.
+#[must_use]
+pub fn cross_correlation_peak(
+    upstream: &[f64],
+    downstream: &[f64],
+    step: f64,
+    max_lag_steps: usize,
+) -> Option<(f64, f64)> {
     let n = upstream.len().min(downstream.len());
-    let demean = |s: &[f64]| {
-        let m = s[..n].iter().sum::<f64>() / n as f64;
-        s[..n].iter().map(|v| v - m).collect::<Vec<f64>>()
+    let max_lag = max_lag_steps.min(n.saturating_sub(2));
+    let m = n - max_lag;
+    let pearson = |a: &[f64], b: &[f64]| {
+        let (ma, mb) = (a.iter().sum::<f64>() / m as f64, b.iter().sum::<f64>() / m as f64);
+        let (mut sab, mut saa, mut sbb) = (0.0, 0.0, 0.0);
+        for (x, y) in a.iter().zip(b) {
+            sab += (x - ma) * (y - mb);
+            saa += (x - ma) * (x - ma);
+            sbb += (y - mb) * (y - mb);
+        }
+        if saa == 0.0 || sbb == 0.0 {
+            None
+        } else {
+            Some(sab / (saa * sbb).sqrt())
+        }
     };
-    let (a, b) = (demean(upstream), demean(downstream));
-    let norm = (a.iter().map(|v| v * v).sum::<f64>() * b.iter().map(|v| v * v).sum::<f64>()).sqrt();
-    if norm == 0.0 {
-        return None;
-    }
-    let max_lag = max_lag_steps.min(n.saturating_sub(1));
+    let a = &upstream[..m];
     let corr: Vec<f64> = (0..=max_lag)
-        .map(|lag| (0..n - lag).map(|i| a[i] * b[i + lag]).sum::<f64>() / norm)
+        .map(|lag| pearson(a, &downstream[lag..lag + m]).unwrap_or(f64::NEG_INFINITY))
         .collect();
-    let (best, _) =
+    let (best, peak) =
         corr.iter().enumerate().fold(
             (0, f64::NEG_INFINITY),
             |acc, (i, &c)| if c > acc.1 { (i, c) } else { acc },
         );
+    if !peak.is_finite() {
+        return None;
+    }
     let mut lag = best as f64;
-    if best > 0 && best < max_lag {
+    if best > 0 && best < max_lag && corr[best - 1].is_finite() && corr[best + 1].is_finite() {
         let (y0, y1, y2) = (corr[best - 1], corr[best], corr[best + 1]);
         let denom = y0 - 2.0 * y1 + y2;
         if denom != 0.0 {
             lag += 0.5 * (y0 - y2) / denom;
         }
     }
-    Some(lag * step)
+    Some((lag * step, peak))
 }
 
 #[cfg(test)]
@@ -101,6 +128,19 @@ mod tests {
         let down = gaussian(400, step, 60_000.0 + 31_000.0, 5_000.0, 100.0);
         let lag = lag_by_cross_correlation(&up, &down, step, 100).unwrap();
         assert!((lag - 31_000.0).abs() < 150.0, "lag {lag}");
+    }
+
+    #[test]
+    fn weak_match_has_a_low_peak() {
+        let step = 900.0;
+        let up = gaussian(400, step, 60_000.0, 5_000.0, 100.0);
+        let down = gaussian(400, step, 91_000.0, 5_000.0, 100.0);
+        let (_, strong) = cross_correlation_peak(&up, &down, step, 100).unwrap();
+        // The same pulse against an unrelated wiggle.
+        let noise: Vec<f64> = (0..400).map(|i| ((i * 7919 % 97) as f64).sin()).collect();
+        let (_, weak) = cross_correlation_peak(&up, &noise, step, 100).unwrap();
+        assert!(strong > 0.95, "strong {strong}");
+        assert!(weak < 0.5, "weak {weak}");
     }
 
     #[test]

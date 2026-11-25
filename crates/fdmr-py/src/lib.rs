@@ -130,6 +130,17 @@ fn lag_by_cross_correlation(
     signal::lag_by_cross_correlation(&upstream, &downstream, step, max_lag_steps)
 }
 
+/// (lag s, correlation at the peak) by which `downstream` follows `upstream`, or None.
+#[pyfunction]
+fn cross_correlation_peak(
+    upstream: Vec<f64>,
+    downstream: Vec<f64>,
+    step: f64,
+    max_lag_steps: usize,
+) -> Option<(f64, f64)> {
+    signal::cross_correlation_peak(&upstream, &downstream, step, max_lag_steps)
+}
+
 /// Route an inflow series down one segment (variable lag-and-route).
 #[pyfunction]
 fn route(
@@ -176,6 +187,7 @@ fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fit_power_law, m)?)?;
     m.add_function(wrap_pyfunction!(temporal_moments, m)?)?;
     m.add_function(wrap_pyfunction!(lag_by_cross_correlation, m)?)?;
+    m.add_function(wrap_pyfunction!(cross_correlation_peak, m)?)?;
     m.add_function(wrap_pyfunction!(route, m)?)?;
     m.add_function(wrap_pyfunction!(remaining_fraction, m)?)?;
     m.add_function(wrap_pyfunction!(certainty_at, m)?)?;

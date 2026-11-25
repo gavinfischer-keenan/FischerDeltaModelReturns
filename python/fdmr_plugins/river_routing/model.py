@@ -8,10 +8,12 @@ the speed water and anything in it travel at) and volume.
 Between two main gauges, flow is a blend of the two gauges' records, each
 shifted by the wave's travel time to the element, so a change at the upstream
 gauge moves downstream at wave speed and both gauges are matched exactly.
-This is the measured past. Forecast flow comes from river forecasts, later.
+Past now, the gauges' records are carried on by river forecasts (the model
+runner does this before calling build).
 
-Wave speed is taken as 1.5 x water velocity, the wide-channel estimate,
-until calibrated travel times (wave.py) replace it.
+Wave speed starts as 1.5 x water velocity, the wide-channel estimate. The
+nightly calibration (calibration.py) gives each segment two corrections: a
+wave scale on that travel time, and a water factor on the water velocity.
 """
 
 from __future__ import annotations
@@ -94,11 +96,22 @@ def at(series: Sequence[float], x: float) -> float:
     return series[i] * (1 - f) + series[i + 1] * f
 
 
-def build(length: float, gauges: Sequence[GaugeRecord], t0: int, step: int, element_m: float = 1000.0) -> FlowField:
+def build(
+    length: float,
+    gauges: Sequence[GaugeRecord],
+    t0: int,
+    step: int,
+    element_m: float = 1000.0,
+    wave_scale: Sequence[float] | None = None,
+    water_factor: Sequence[float] | None = None,
+) -> FlowField:
     """Flow field for elements from chainage 0 to `length`, between gauges
     ordered upstream to downstream. Elements above the first gauge or below the
-    last take that gauge's record."""
+    last take that gauge's record. `wave_scale` and `water_factor` hold one
+    calibrated correction per segment between consecutive gauges (default 1)."""
     gs = sorted(gauges, key=lambda g: g.chainage)
+    ws = list(wave_scale) if wave_scale else [1.0] * max(1, len(gs) - 1)
+    wf = list(water_factor) if water_factor else [1.0] * max(1, len(gs) - 1)
     flows = [filled(g.flow) for g in gs]
     n = len(flows[0])
     els = elements_for(length, element_m)
@@ -120,9 +133,9 @@ def build(length: float, gauges: Sequence[GaugeRecord], t0: int, step: int, elem
     seg_total: dict[int, float] = {}
     for idx, (k, f, shape) in enumerate(place):
         q = typical[k] * (1 - f) + typical[min(k + 1, len(gs) - 1)] * f
-        c = WAVE_TO_WATER * shape.velocity(q)
+        c = WAVE_TO_WATER * shape.velocity(q) * wf[k]
         prev = travel_to[idx - 1] if idx > 0 and place[idx - 1][0] == k else 0.0
-        travel_to[idx] = prev + els[idx].length / c
+        travel_to[idx] = prev + els[idx].length / c * ws[k]
         seg_total[k] = travel_to[idx]
 
     flow = [[0.0] * len(els) for _ in range(n)]
@@ -135,6 +148,6 @@ def build(length: float, gauges: Sequence[GaugeRecord], t0: int, step: int, elem
         for i in range(n):
             q = (1 - f) * at(up, i - t_up) + f * at(down, i + t_down)
             q = max(q, 1e-3)
-            a = shape.area(q)
+            a = shape.area(q) / wf[k]  # faster water through the same flow: a smaller effective area
             flow[i][e], area[i][e], vel[i][e] = q, a, q / a
     return FlowField(els, t0, step, flow, area, vel)

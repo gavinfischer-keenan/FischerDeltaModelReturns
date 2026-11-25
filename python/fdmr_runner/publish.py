@@ -103,6 +103,40 @@ def dispersion_field(field, records, slopes):
     return out
 
 
+def river_chain(region_dir: Path, reach: str):
+    """The reach's release and main gauges, upstream to downstream, and their chainage (m)."""
+    region = load_region(region_dir)
+    geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
+    gauges = [g for g in region.gauges_for(reach) if g.role in ("release", "main")]
+    return gauges, {gauges[0].site: 0.0, **geo["gauges_m"]}
+
+
+def fit_shapes(gauges, chainage, store: Store) -> dict:
+    """Channel shape at each gauge from its USGS field measurements of the last
+    ten years; a gauge with too few takes the nearest gauge's shape."""
+    since = int(time.time()) - 10 * 365 * DAY
+    shapes = {g.site: channel.fit(store.channel_measurements(SOURCE, g.site), since=since) for g in gauges}
+    if not any(shapes.values()):
+        raise ValueError("no gauge has enough channel measurements")
+    return {
+        g.site: shapes[g.site] or min(
+            ((abs(chainage[o.site] - chainage[g.site]), shapes[o.site]) for o in gauges if shapes[o.site]),
+            key=lambda x: x[0],
+        )[1]
+        for g in gauges
+    }
+
+
+def corrections(calibration: dict | None, reach: str, gauges) -> tuple[list[float], list[float]]:
+    """Wave scale and water factor for each segment between consecutive gauges (1 where uncalibrated)."""
+    segs = {}
+    for r in (calibration or {}).get("reaches", []):
+        if r["reach"] == reach:
+            segs = {(s["up"], s["down"]): s for s in r["segments"]}
+    pairs = [segs.get((a.site, b.site), {}) for a, b in zip(gauges, gauges[1:])]
+    return [p.get("wave_scale", 1.0) for p in pairs], [p.get("water_factor", 1.0) for p in pairs]
+
+
 def publish(
     region_dir: Path,
     store: Store,
@@ -111,12 +145,12 @@ def publish(
     reach: str = "river",
     datums: dict[str, float | None] | None = None,
     ahead: int = 14,
+    calibration: dict | None = None,
 ) -> Path:
     region = load_region(region_dir)
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
     line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
-    gauges = [g for g in region.gauges_for(reach) if g.role in ("release", "main")]
-    chainage = {gauges[0].site: 0.0, **geo["gauges_m"]}
+    gauges, chainage = river_chain(region_dir, reach)
 
     # The model's "now": the latest time every main gauge has reported.
     latest = [store.latest(SOURCE, g.site, "discharge") for g in gauges]
@@ -128,18 +162,11 @@ def publish(
     end = now + ahead * DAY
     n = (end - t0) // STEP + 1
 
-    since = int(time.time()) - 10 * 365 * DAY
-    shapes = {g.site: channel.fit(store.channel_measurements(SOURCE, g.site), since=since) for g in gauges}
-    known = [s for s in shapes.values() if s]
-    if not known:
-        raise ValueError("no gauge has enough channel measurements")
+    shapes = fit_shapes(gauges, chainage, store)
     records = []
     fc_ends: list[int | None] = []  # last forecast step at each gauge that has a forecast
     for g in gauges:
-        shape = shapes[g.site] or min(  # nearest gauge with a fitted shape
-            ((abs(chainage[o.site] - chainage[g.site]), shapes[o.site]) for o in gauges if shapes[o.site]),
-            key=lambda x: x[0],
-        )[1]
+        shape = shapes[g.site]
         vals = store.values(SOURCE, g.site, "discharge", t0, now + STEP)
         measured = regular([(v.t, v.value) for v in vals], t0, STEP, i_now + 1)
         fc = None
@@ -151,7 +178,8 @@ def publish(
             fc_ends.append(fc_end)
         records.append(model.GaugeRecord(chainage[g.site], shape, flow))
 
-    field = model.build(max(chainage.values()), records, t0, STEP)
+    wave_scale, water_factor = corrections(calibration, reach, gauges)
+    field = model.build(max(chainage.values()), records, t0, STEP, wave_scale=wave_scale, water_factor=water_factor)
     slopes = segment_slopes(gauges, chainage, store, datums or {}, t0, now)
     dispersion = dispersion_field(field, records, slopes)
     # The solid forecast lasts the reach's set days, or as far as every gauge's
@@ -247,13 +275,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--days", type=int, default=14)
     ap.add_argument("--ahead", type=int, default=14)
     ap.add_argument("--keep", type=int, default=3, help="cycles to keep, the newest first")
+    ap.add_argument("--calibration", help="the calibration file written by fdmr_runner.calibrate")
     args = ap.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     region = load_region(args.region)
     usgs = UsgsAdapter(Store(":memory:"))
     datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main")}
-    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead)
+    cal_path = Path(args.calibration) if args.calibration else None
+    calibration = json.loads(cal_path.read_text(encoding="utf-8")) if cal_path and cal_path.exists() else None
+    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead, calibration=calibration)
     size = sum(f.stat().st_size for f in cdir.rglob("*") if f.is_file())
     print(f"published {cdir} ({size / 1e6:.1f} MB)")
     gone = prune(out, max(1, args.keep))
