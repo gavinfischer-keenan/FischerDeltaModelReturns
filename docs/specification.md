@@ -4,7 +4,7 @@ Draft 1 · 24 November 2026
 
 ## 1. Summary
 
-Fischer Delta Model Returns is a free web app that shows where a pollutant released anywhere between Shasta Dam and the Golden Gate will travel, starting from current river and tide conditions and running forward as a forecast movie on a zoomable map.
+Fischer Delta Model Returns is a free web app that shows how water is moving between Shasta Dam and the Golden Gate, now, over the last 14 days and over the next 14, and where a pollutant released anywhere in it will travel. Everything plays as a movie of moving particles on a zoomable map.
 
 It will live under Utilities on tripofisch.com, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
 
@@ -13,13 +13,14 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 | Topic | Decision |
 | --- | --- |
 | Extent | Shasta Dam to the Golden Gate |
-| Conditions | Current, with a forecast from now; no historical replay |
+| Conditions | One timeline: the last 14 days, now, and a 14-day forecast. The past window rolls forward and is always kept up to date; nothing older is replayed |
 | Delta engine | DWR's DSM2, run on our server |
 | River above Sacramento | Our own routing model using Hugo Fischer's dispersion method |
 | Bay below Martinez | NOAA's Bay current forecast, fetched as data; our own tracking on top |
 | Data and compute | Fetch public data freely; all modelling and display on our hardware |
 | Server | Intel, Debian guests under Proxmox; model runner separate from the web guest |
-| Movie length | 14 days, with growing uncertainty shown |
+| Movie length | 14 days back and 14 days forward. The colour fades as certainty fades into the forecast |
+| Display | Moving particles show the water's direction and speed everywhere, always; particles carrying a pollutant take its colour |
 | Release locations | Anywhere in the modelled network, including the San Joaquin side of the Delta up to Vernalis |
 | Historic layers | After launch |
 | Original FORTRAN | Not used; ownership not pursued |
@@ -30,7 +31,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 
 - DSM2 building and running on Debian. DWR supports Linux builds, but one library must be requested from them.
 - The exact live feed for every DSM2 boundary input.
-- NOAA's Bay forecast: horizon, coverage near Martinez, and file sizes.
+- NOAA's Bay forecast: horizon, file sizes, how far back its archive goes, and whether its mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
 - A public copy of DSM2's map geometry. DWR's documentation points to internal network drives.
 - Enough USGS field measurements and conductance records on the river to calibrate water velocity and dispersion.
 
@@ -57,7 +58,7 @@ The original FORTRAN is not used and its ownership is not pursued; the punch car
 
 ## 3. User specification
 
-A visitor picks a point on the water, describes what was released, and watches a movie of where it goes from now forward.
+A visitor watches the water move: as it is now, over the last two weeks, or over the next two. They can pick a point on the water, describe what was released, and watch where it goes.
 
 ### 3.1 Who it is for
 
@@ -68,7 +69,7 @@ Curious members of the public, students, boaters and anglers, and people who kno
 - Opens on the whole system, Shasta Dam to the Golden Gate, with the modelled waterways highlighted.
 - Zooms smoothly from the whole system down to a single slough.
 - Shows place names, towns, bridges, dams, pumping plants and gauging stations.
-- Shows current conditions before any pollutant is added: flow direction and speed in each reach, and the state of the tide.
+- Shows current conditions before any pollutant is added: particles drifting with the water in every reach, showing its direction and speed, and the state of the tide. In the Delta and the Bay the particles visibly turn around with the tide.
 - States when the conditions were last updated.
 
 ### 3.3 Adding a pollutant
@@ -79,18 +80,32 @@ The user presses "Add pollutant" and clicks or taps the water. The point snaps t
 | --- | --- | --- |
 | How is it released? | All at once, or continuously for a set duration | All at once |
 | How much? | A mass, or a volume with a concentration | None; required |
-| When? | Now, or a chosen time in the forecast window | Now |
+| When? | Now, a chosen time in the forecast, or a chosen time in the last 14 days (*proposed*) | Now |
 | Does it break down? (*proposed, later*) | No, or a half-life | No |
 
 Version 1 treats the pollutant as dissolved: it moves with the water and does not float, sink or decay. More than one release can be on the map at once (*proposed*).
 
-### 3.4 The movie
+A release in the past (*proposed*) answers "if something went in three days ago, where is it now, and where is it going?" It plays forward from the past release time through now and on into the forecast.
 
-- Plays forward from the release time, overlaid on the map.
-- Controls: play, pause, speed, and a time slider with the date and the tide state.
-- The plume is drawn as colour along the channels and across the Bay, graded by concentration, with a legend.
+### 3.4 The timeline and the movie
+
+There is one timeline, from 14 days ago through now to 14 days ahead, and three ways to use it.
+
+| Mode | What it shows | Time |
+| --- | --- | --- |
+| **Now** (the default on opening) | The water as it is moving at this moment | Stands still at now. The particles keep moving over the current flow, sped up so the motion is visible |
+| **Last 14 days** | How the water has actually moved: tides, release changes, storms, pumping | Plays the recent past. Built from measured conditions, so it is shown at full certainty |
+| **Next 14 days** | The forecast | Plays forward from now, fading as certainty fades |
+
+- The past window rolls: each day the oldest day drops off and the newest is added, so it is always the last 14 days.
+- Particles show the flow in every mode, with or without a pollutant (section 8.4).
+- The movie can run straight through, from 14 days ago to 14 days ahead. A "Now" button jumps back to the present at any time.
+- With a pollutant, the movie plays forward from the release time.
+- Controls: play, pause, speed, and a time slider with the date, the tide state and a "now" mark.
+- The plume is drawn as the particles carrying it: the same moving particles that show the flow, coloured by concentration, with a legend. Zoomed out to the whole system, where particles are too small to see, the channels and Bay are coloured instead (section 8.4).
 - The leading edge and the peak are marked.
-- The movie runs 14 days. The further ahead, the less certain, and the display shows that: the plume edge softens and the time slider is marked where each reach passes from solid forecast into assumption. Section 8 gives the limits for each reach.
+- The forecast runs 14 days. The further ahead, the less certain, and the display shows that: as certainty fades, so does the plume's colour, until a plume far into the forecast is a pale wash over the map. The time slider is shaded the same way, so the user can see where each reach passes from solid forecast into assumption. Section 8 gives the limits for each reach and how certainty is worked out.
+- Read-off answers carry the same certainty, in words: an arrival time on day 2 is "forecast", one on day 12 is "rough guide" (*proposed wording*).
 
 ### 3.5 Answers the user can read off
 
@@ -112,7 +127,7 @@ The tool can also show that the change in water level arrives before the water r
 
 ### 3.8 Out of scope for version 1
 
-The 1982 grid and all historic layers, oil and other floating spills, sediment-bound or sinking material, chemical reactions, temperature, wind effects on the Bay surface, the San Joaquin River above Vernalis, and any historical replay.
+The 1982 grid and all historic layers, oil and other floating spills, sediment-bound or sinking material, chemical reactions, temperature, wind effects on the Bay surface, the San Joaquin River above Vernalis, and any replay older than the rolling 14-day window.
 
 ## 4. Engineering: architecture
 
@@ -157,14 +172,14 @@ Data flows one way, top to bottom. The only thing that crosses from server to br
 **Server side, on a schedule**
 
 1. Fetch public measurements and forecasts.
-2. Build model inputs for now plus the forecast window.
+2. Build model inputs for the forecast window, and refresh the recent past from the latest measurements.
 3. Run the river model and DSM2; read in the NOAA Bay forecast.
 4. Convert all three flow fields to one compact published format.
-5. Publish the files and a small status file to the web server.
+5. Publish the files and a small status file to the web server, and roll the 14-day past window forward.
 
 **Browser side, on demand**
 
-1. Load the map and the current flow-field files.
+1. Load the map and the flow-field files for the time being shown, starting with now.
 2. Take the user's release point and amounts.
 3. Track parcels through the flow field in a background thread.
 4. Draw the movie and the read-off answers.
@@ -247,8 +262,8 @@ Each reach produces the same thing, water velocity along its waterways over time
 
 | | River | Delta | Bay |
 | --- | --- | --- | --- |
-| Extent | Shasta Dam to Sacramento | Sacramento to Martinez | Martinez to the Golden Gate |
-| Character | One-way river flow | Tidal, branching channels | Wide tidal bay |
+| Extent | Shasta Dam to Sacramento | Sacramento and Vernalis to Chipps Island, with Suisun Marsh (*proposed*) | Chipps Island to the Golden Gate, with Suisun Bay (*proposed*) |
+| Character | One-way river flow | Tidal, branching channels | Wide tidal bays |
 | Flow source | Our routing model | DSM2 HYDRO, forecast mode | NOAA Bay forecast, fetched |
 | Who does the math | Us | Us, running DWR's code | NOAA for currents, us for tracking |
 | Calibration | Automated, ours | Done by DWR | Not needed |
@@ -282,25 +297,48 @@ The wave is faster than the water. In a wide channel, theory puts it at about on
 - Large diversions remove water and pollutant in irrigation season. They are represented where gauged.
 - Pools, eddies and backwaters hold some water back and let it go slowly, which gives a real plume a longer tail than the dispersion model produces. Version 1 does not model this; the tracer checks in section 9.1 show how large the error is.
 
-### 7.2 Delta: Sacramento to Martinez
+### 7.2 Delta: Sacramento to Chipps Island
 
 DSM2's HYDRO module runs on our server in forecast mode and writes flow and stage for every channel through the forecast window. We use HYDRO only. DSM2's own transport modules are batch tools, and our interactive tracking replaces them, so they serve as a check on our engine instead.
 
-The whole DSM2 network is open for releases, including the San Joaquin side and the south Delta up to Vernalis. That makes the San Joaquin inflow and its forecast a required feed, not an optional one.
+The whole DSM2 network is open for releases, including the San Joaquin side and the south Delta up to Vernalis, and the Suisun Marsh sloughs. That makes the San Joaquin inflow and its forecast a required feed, not an optional one.
+
+DSM2 still runs its full network to Martinez, because its seaward boundary is the Martinez tide. Its channels seaward of Chipps Island are not used for tracking; they are kept as an overlap with the Bay model, to check one against the other (section 7.4).
 
 A run covers a warm-up period of recent days, so the model starts from realistic conditions, followed by the forecast.
 
-### 7.3 Bay: Martinez to the Golden Gate
+### 7.3 Bay: Chipps Island to the Golden Gate
 
 NOAA's forecast gives currents on a triangular mesh at hourly steps. The server reduces these to depth-averaged currents on a lighter mesh for the browser.
 
-Beyond the end of NOAA's forecast, the server extends the currents with a tidal fit made from the archive of past NOAA fields (*proposed*). That extension is our own calculation and covers tides only, not wind or river-flow effects.
+Beyond the end of NOAA's forecast, the server extends the currents with a fit made from the archive of past NOAA fields (*proposed*). At each mesh point the fit has two parts: the tides, and a net seaward drift that grows with Delta outflow. The extension uses DSM2's forecast outflow at Chipps Island, so the Bay and the Delta agree on how much river water is leaving. In Suisun Bay that drift matters as much as the tide, which is why a tides-only extension is not enough. The extension is our own calculation and does not include wind.
+
+A tidal fit needs at least a month of past fields to separate the main tides, and a year to do it well. The archive must be in hand before Phase 3: either NOAA's public archive goes back far enough, or we start saving the forecasts ourselves now.
 
 ### 7.4 Joining the reaches
 
 - **River to Delta** at the Sacramento River inflow point of DSM2. The river model's outflow and pollutant load become the Delta's inflow.
-- **Delta to Bay** at Martinez. Parcels cross in both directions with the tide. The NOAA grid also covers Suisun Bay, so there is overlap to check one against the other.
+- **Delta to Bay** at Chipps Island (*proposed*), detailed below.
 - All three share one clock and one published time step.
+
+**Why Chipps Island and not Martinez.** Both DSM2 and NOAA cover Suisun Bay, so one has to govern it.
+
+- Suisun Bay is a wide, shallow bay with side bays and shoals. DSM2 represents it as a few one-dimensional channels, so a plume there could not spread sideways across the shoals into Grizzly and Honker bays. NOAA's two-dimensional mesh can show that.
+- A model is least reliable near its own boundary. Martinez is DSM2's seaward boundary, where its water simply arrives from or leaves to "the ocean". At Chipps Island, DSM2 is well inside its network.
+- Chipps Island is already the Delta's standard reference point: Delta outflow and the salinity line known as X2 are both reckoned there.
+
+**The handoff line.** A line across the estuary at Chipps Island, from the Suisun Marsh shore to Mallard Island, split into segments, one for each DSM2 channel it crosses. The Suisun Marsh sloughs stay with DSM2, because DSM2 models the Montezuma Slough salinity control gates, so the line also takes in each point where a marsh slough opens into Suisun Bay. The exact points are set from both grids in Phase 3.
+
+**Crossing the line.**
+
+- Each parcel belongs to exactly one engine at a time, so nothing is counted twice.
+- A parcel leaving a DSM2 channel seaward enters the Bay mesh on that channel's segment of the line, placed across it in proportion to the local flow.
+- A Bay parcel crossing the line landward enters the DSM2 channel that owns that segment.
+- Parcels cross in both directions with every tide. The method conserves mass whatever the two models do.
+
+**The overlap.** The two models are forced separately, so their flows across the line will not match exactly. Between Chipps Island and Martinez both run, and the server compares their tidal and net flows each cycle and publishes the difference. A persistent mismatch shows up as parcels piling up or thinning out at the line; how large a mismatch is acceptable is set during Phase 3.
+
+**Fallback.** If Phase 0 finds NOAA's mesh too coarse in Suisun Bay, or not reaching Chipps Island, the handoff moves to Martinez, and Suisun Bay is tracked in DSM2's channels with the sideways-spreading limit above noted on screen.
 
 ## 8. Engineering: tracer engine, forecast and display
 
@@ -322,24 +360,66 @@ The engine runs in a background thread so the map stays responsive. Parcel count
 | Reach | Solid forecast | Beyond that |
 | --- | --- | --- |
 | River | About 5 days, from published flow forecasts | Assume the last forecast flow persists |
-| Delta | One to ten weeks is DSM2's documented range; tides are predictable, inflows are the limit | Inflows held at last forecast |
-| Bay | To the end of NOAA's forecast | Our tidal extension, tides only |
+| Delta | Tides for all 14 days. Inflows as far as the river forecasts, about 5 days; exports and gates as far as their published schedules. DSM2 can run ten weeks, but its inputs cannot | Inflows, exports and gates held at their last known values |
+| Bay | To the end of NOAA's forecast | Our extension: tides plus outflow drift, no wind (section 7.3) |
 
 Movie length: 14 days, with uncertainty shown growing along the timeline. Water from Keswick takes several days to reach the Delta, so upstream releases need most of that window.
 
+**Certainty** (*proposed method*). Every reach has a certainty value at every published time step, from 1 down toward 0.
+
+- Inside a reach's solid forecast, certainty is 1.
+- Past it, certainty falls steadily to a floor at day 14. The rate and floor are set per reach; to start, every reach falls to 0.2.
+- Once the river and Bay skill records (sections 9.1 and 9.2) are long enough, the rates are set from how far past forecasts actually drifted at each lead time, rather than by hand.
+- Each parcel carries its own certainty: the lowest value it has passed through. A parcel moved by assumed flow stays uncertain, even if it later enters a reach that is still inside its solid forecast.
+- The colour of a stretch of channel or patch of Bay is faded by the certainty of the parcels in it, weighted by their mass.
+
+This is certainty about the flow, not a statistical confidence. It does not cover errors in the models themselves inside the solid forecast, or in what the user entered.
+
+**Later: real spread** (*proposed, after launch*). The River Forecast Center also publishes ensemble flow forecasts, many possible futures rather than one. Running the river and DSM2 once per ensemble member would give real spread: a plume drawn from all of them, faded where they disagree. That multiplies the server's work and the published files, so it waits until the single forecast works.
+
 ### 8.3 Published flow-field format
 
-- One small index file: time range, time step, data age per source, and model status.
-- One binary file per reach, holding velocity and water volume per channel segment or mesh node per time step, quantised to keep it small.
-- Rough sizes, to be measured: the Delta is a few megabytes for two weeks; the Bay is the largest and may need coarsening.
-- Files are replaced as a set, so a browser never mixes two cycles.
+- One small index file: time range, time step, data age per source, model status, and each reach's certainty at each time step.
+- Binary files per reach per day, holding velocity and water volume per channel segment or mesh node per time step, quantised to keep them small. The browser fetches only the days it is about to play, so opening on "Now" loads one day, not 28.
+- The timeline holds 28 days: 14 past, 14 forecast.
+- **Past days** are built from measured conditions: the river model driven by observed gauges, DSM2's warm-up period on observed inputs, and NOAA's nowcasts. Measurements arrive late and are revised, so the last two days of the past are rebuilt each cycle. Older past days are final; they never change, and browsers can cache them.
+- **Forecast days** are rebuilt every cycle.
+- Each day ends with the river and DSM2 states needed to start the next, so the past and forecast join without a jump at "now".
+- Rough sizes, to be measured: the Delta is a few megabytes for two weeks; the Bay is the largest and may need coarsening. The past window doubles the total held, but not what a visitor downloads.
+- The index file and the forecast days are replaced as a set, so a browser never mixes two cycles.
 
 ### 8.4 Display
 
-- Channels are drawn as lines coloured by concentration on a logarithmic scale, since concentrations span many orders of magnitude.
-- The Bay is drawn as a shaded field from parcel density.
-- Before a release, the same layers show current speed and direction with moving streaks.
-- The time slider drives both the plume and the tide indicator.
+The water is always shown moving: particles drift along every river, channel and slough and across the Bay, showing which way the water is going and how fast. When a pollutant is added, the particles carrying it take on its colour, and that colour fades as certainty fades.
+
+**Flow particles, always on.**
+
+- Small dots with short trailing streaks, moving with the water in the published flow field. Direction is the direction of travel; speed shows as how fast they move and how long their streaks are.
+- In the channels they move along the channel and spread across its width when zoomed in far enough to see it. In the Bay they move in two dimensions.
+- They are a neutral colour, so they read as "water" and leave every colour free for the pollutant.
+- The tide is visible: in the Delta and the Bay the particles slow, stop and turn around with each tide.
+- They run before any release, so the map always shows current conditions (section 3.2), and they keep running through the movie at the movie's speed.
+- They are spread evenly through the water and kept at a steady density, so empty or crowded patches mean nothing. They are for showing the flow only and carry no mass.
+
+**Pollutant particles.**
+
+- The tracer engine's parcels (section 8.1) are drawn as particles in the same style, so the pollutant is visibly carried by the same water the flow particles show.
+- Each is coloured by the concentration where it is, the stretch of channel or patch of Bay around it, not by its own share of mass. This keeps the colour smooth across the plume.
+- Concentration uses a logarithmic scale, since concentrations span many orders of magnitude.
+- Certainty fades the colour back toward the neutral flow-particle colour. Far into the forecast the plume becomes a pale tint on the moving water rather than a bright cloud.
+- The palette is chosen so that its low end is still a strong colour and never pale. A faded high concentration must not look like a low concentration, so fading and concentration stay distinguishable.
+- The legend shows both: concentration across, certainty down.
+
+**Zoom.**
+
+- At the whole-system view, Shasta to the Golden Gate, particles would be smaller than a pixel. There, each channel is drawn as a line coloured by concentration and faded by certainty, and the Bay as a shaded field, with the particles faded out.
+- Zooming in hands over smoothly from lines to particles. The zoom level where this happens is tuned in Phase 4.
+
+**Rendering and other details.**
+
+- Particle positions are computed in the background thread with the tracer engine. They are drawn by the graphics hardware through a custom map layer, so tens of thousands of particles stay smooth on a phone.
+- The number of flow particles drawn is set by device capability, like the parcel count.
+- The time slider drives the particles, the plume and the tide indicator together.
 - Colours are chosen to work for colour-blind users and in both light and dark map styles.
 
 ## 9. Engineering: calibration, validation, deployment, licensing
@@ -372,7 +452,9 @@ The river model has three sets of parameters, each calibrated from a different k
 | DSM2 flows from our run | Observed flows at DWR's check stations, such as Rio Vista |
 | Our tracer engine in the Delta | DSM2's own transport modules on the same flow field |
 | Our tracer engine overall | Measured conductivity, which is a natural tracer of seawater |
-| Bay tidal extension | Later NOAA forecasts for the same hours |
+| Bay extension, tides and outflow drift | Later NOAA forecasts for the same hours |
+| Delta to Bay handoff | DSM2 against NOAA flows across the Chipps Island line, and through the overlap to Martinez, every cycle |
+| Certainty fade rates | How far past forecasts drifted from the past window that replaced them |
 | Mass balance | Exact, every run |
 
 ### 9.3 Deployment
@@ -401,7 +483,7 @@ The build runs in six phases, each ending in something that can be seen working;
 1. **Phase 0, proof.** Run DWR's prebuilt DSM2 in a Windows guest. Feed it today's conditions and get a forecast flow field out. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
 2. **Phase 1, the river.** River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method.
 3. **Phase 2, the Delta.** DSM2 on a schedule, flow-field publishing, and parcel tracking through the channel network. River and Delta joined.
-4. **Phase 3, the Bay.** NOAA currents, two-dimensional tracking, the tidal extension, and the join at Martinez.
+4. **Phase 3, the Bay.** NOAA currents, two-dimensional tracking, the extension with outflow drift, and the handoff at Chipps Island.
 5. **Phase 4, product.** Read-off answers, landmarks, the dam-release tool, the History section, phone layout, and the Utilities page on tripofisch.com.
 6. **Phase 5, hardening.** Native Linux DSM2, validation report, monitoring, and license and credits review. Launch follows this phase. The 1982 grid, the field-data layer and the historic scenario presets are a post-launch release.
 
@@ -415,6 +497,9 @@ The build runs in six phases, each ending in something that can be seen working;
 - The San Joaquin side of the Delta is in scope as a release location, up to DSM2's boundary at Vernalis. The river above Vernalis stays out.
 - This document is kept in the repository's docs folder.
 - River calibration keeps wave speed and water speed apart. Release changes calibrate flow routing only; pollutant travel and spreading come from USGS field measurements and natural tracers. See sections 7.1 and 9.1.
+- One timeline: the last 14 days, now, and the next 14 days. The past window rolls forward and is kept up to date. "Now" is the opening view. See section 3.4.
+- Moving particles show the flow everywhere, always. Particles carrying a pollutant take its colour, and the colour fades as certainty fades. See sections 3.4, 8.2 and 8.4.
+- Proposed, awaiting decision: the Delta-to-Bay handoff at Chipps Island rather than Martinez, with Martinez as the fallback. See section 7.4.
 
 ### Open technical questions, answered in Phase 0
 
@@ -423,6 +508,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Is DSM2's channel geometry available outside DWR's network?
 - Which stations give each export, gate and inflow value in near real time?
 - Which river gauges have field measurements, conductance and temperature records long enough to calibrate water velocity and dispersion? Are there published time-of-travel or dye studies on the Sacramento?
+- How far back does NOAA's public archive of Bay forecasts go? If it is short, start saving them ourselves at once, for the Bay extension's fit.
 
 ## Sources
 
