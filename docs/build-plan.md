@@ -108,7 +108,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | River temperature | The 1D heat model and the weather adapter. |
 | Releases | Outfalls, decay, up to five releases at once. |
 | Answers | Read-off answers, landmarks and certainty in words. |
-| What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. A small request service on the model runner, behind a route on the web edge, runs a what-if when asked: menu choices only, one at a time, kept until the next cycle. The UI says it takes a few minutes and shows progress. |
+| What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. A small request service on the model runner, behind a route on the web edge, runs a what-if when asked: menu choices only, one at a time, kept until the next cycle. The UI says it takes a few minutes and shows progress. In spare time, when the whole host has been quiet for 30 minutes, it works through the rest of the menu; visitors always come first. |
 | History | A simple text History page, with the words from you. |
 | Finish | Phone layout, and the Utilities page on tripofisch.com. |
 

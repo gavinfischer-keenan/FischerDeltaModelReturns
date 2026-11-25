@@ -26,7 +26,7 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 | Map layers | Toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level, water source), whether flow is shown moment by moment or net over the tides, and which overlays are drawn, including the X2 line and measured station readings |
 | Temperature and salinity | Computed on the server for every reach and shown as layers in version 1 |
 | Releases | All at once, continuous for a set time, or an ongoing outfall such as a sewage plant discharge; optional steady breakdown by half-life |
-| What-if scenarios | Changed dam releases and levee breaches, picked from a menu and run on the server when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle, so the next person gets it at once. Nothing is computed ahead for nobody |
+| What-if scenarios | Changed dam releases and levee breaches, picked from a menu and run on the server when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle, so the next person gets it at once. When the whole server has been quiet for a sustained stretch, the model runner also works through the menu in spare time |
 | UI and compute | The UI only displays; the compute only computes. They talk through one interface and could run on separate machines. In version 1 the compute engine runs on the visitor's device |
 | Plug-ins | Model kinds and math components are plug-ins behind fixed interfaces; the format and parcels carry a depth axis from the start, so 3D mixing models can be added later |
 | Release locations | Anywhere in the modelled network, including the San Joaquin side of the Delta up to Vernalis |
@@ -172,7 +172,8 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 
 **How they are offered.** The user picks from a menu: a few release levels, and a set of breach sites, each with a standard breach opening now.
 
-- Nothing is computed in advance. When a user picks a what-if, the server runs it then.
+- What-ifs are run on request. When a user picks one, the server runs it then.
+- In spare time, too: when the whole server has been quiet for a sustained stretch, the model runner works through the menu, so some what-ifs are ready before anyone asks (section 7.6). A visitor's request always comes first.
 - The app says plainly that a what-if takes a few minutes, shows that it is running, and loads it when it is done. What-ifs are never instant, and the app does not pretend otherwise.
 - A finished what-if is kept until the next 6-hourly cycle. Anyone who picks the same one before then gets it at once.
 - If two people pick the same what-if, they share one run.
@@ -641,6 +642,13 @@ Each what-if is a full model run with one thing changed, run when a visitor asks
 - A small request service on the model runner accepts only menu choices, never free input.
 - It runs one what-if at a time, at the same low priority as the rest of the model runner. Further requests wait their turn, and the app shows their place in the queue.
 - A finished what-if is kept until the next 6-hourly cycle, then discarded, because the forecast it was built on has moved on.
+- **Spare-time runs.** When the server is idle, the model runner works through the menu so that some what-ifs are ready before anyone asks.
+  - It starts only when the whole host has been quiet for a sustained stretch: to start with, under a quarter of its processor in use for 30 minutes.
+  - It runs one what-if at a time, at the same low priority and on the same efficiency cores as the rest of the model runner.
+  - It checks again before each run, and stops starting new ones the moment the host gets busy. A run already going is allowed to finish.
+  - A visitor's request always goes ahead of spare-time runs.
+  - It skips what-ifs already done this cycle, and its results are discarded at the next cycle like any other.
+  - The thresholds are settings, adjusted by hand. Phase 0 confirms the model runner can read the whole host's load from inside its container.
 - The menu starts with six Delta breach sites, two river breach sites and four release levels, chosen with an eye to the islands most often discussed. Phase 0's timing of a DSM2 run tells the app what wait to quote.
 
 **After launch:** custom what-ifs (section 3.7), more breach sites, changed gate or pumping operations, and flood spills into the bypasses, all using the same machinery.
@@ -786,7 +794,7 @@ The river model has three sets of parameters, each calibrated from a different k
 - **Web**: served at `tripofisch.com/fischer-delta/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
   - The model runner pushes each finished set of files over rsync and SSH, with a key that can write only into that folder. Each cycle goes into a new folder, and one link switch makes it live. The web edge never reaches into the model runner.
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
-- **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. What-ifs run only when asked for, one at a time.
+- **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. What-ifs run when asked for, one at a time, and in spare time when the whole host has been quiet for a sustained stretch (section 7.6).
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
 - **DSM2 on Linux first.** Phase 0 asks DWR for the Linux library and tries the Linux build in the model runner. A Windows VM for DWR's prebuilt release costs memory the host has little of to spare. It is used only if the Linux build stalls, kept small, and removed as soon as Linux works.
 
@@ -805,7 +813,7 @@ This section is not legal advice; the license choice deserves a second look befo
 
 The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn. The detailed plan, with workstreams, exit tests and risks, is in [build-plan.md](build-plan.md).
 
-1. **Phase 0, proof.** Run DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's prebuilt Windows release in a small, temporary VM. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to set the wait quoted for a what-if. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
+1. **Phase 0, proof.** Run DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's prebuilt Windows release in a small, temporary VM. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to set the wait quoted for a what-if, and confirm the model runner can read the whole host's load from inside its container. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
 2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
@@ -832,7 +840,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Map layers: toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level, water source), whether the flow is shown moment by moment or net over the tides, and which overlays are drawn, including the X2 line and measured readings such as dissolved oxygen and turbidity. All four are in version 1. See section 3.5.
 - Temperature and salinity are in version 1, computed on the server for every reach. See section 7.5.
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
-- What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. Nothing is computed ahead. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
+- What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. When the whole server has been quiet for a sustained stretch, the model runner also works through the menu in spare time; visitors always come first. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
