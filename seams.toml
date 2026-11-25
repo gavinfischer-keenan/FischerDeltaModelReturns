@@ -53,4 +53,19 @@ kind = "python"
 path = "python/fdmr_runner"
 package = "fdmr_runner"
 engine = true
-may_use = ["store", "adapters"]
+may_use = ["store", "adapters", "bindings"]
+
+[modules.bindings]
+kind = "rust"
+path = "crates/fdmr-py"
+crate = "fdmr-py"
+package = "fdmr_py"   # its Python import name
+engine = true
+may_use = ["math"]
+
+[modules.plugins]
+kind = "python"
+path = "python/fdmr_plugins"
+package = "fdmr_plugins"
+engine = true
+may_use = ["bindings", "store"]

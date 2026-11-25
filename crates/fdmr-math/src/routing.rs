@@ -59,8 +59,9 @@ pub fn route(inflow: &[f64], step: f64, seg: &SegmentRouting) -> Vec<f64> {
     let mut prev_lagged = first;
     for (i, &q_in) in inflow.iter().enumerate() {
         let t = i as f64 * step;
-        // The travel time for the flow now in the segment; outflow is a fair proxy.
-        let lagged = at(t - seg.travel_time(o.max(q_in).max(f64::MIN_POSITIVE)));
+        // A wave front between two flows travels at a speed set by both: take
+        // the travel time for the midpoint of the flow entering and leaving.
+        let lagged = at(t - seg.travel_time(f64::midpoint(o, q_in).max(f64::MIN_POSITIVE)));
         let k = seg.attenuation(o.max(f64::MIN_POSITIVE));
         o = if k <= 0.0 || i == 0 {
             lagged

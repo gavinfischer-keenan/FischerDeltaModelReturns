@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/fdmr-math", "crates/fdmr-format"]
+members = ["crates/fdmr-math", "crates/fdmr-format", "crates/fdmr-py"]
 
 [workspace.package]
 version = "0.1.0"

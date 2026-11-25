@@ -75,7 +75,7 @@ def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).resolve().parents[1])
     modules: dict[str, dict] = tomllib.loads((root / "seams.toml").read_text(encoding="utf-8"))["modules"]
     by_crate = {m["crate"]: n for n, m in modules.items() if m["kind"] == "rust"}
-    by_package = {m["package"]: n for n, m in modules.items() if m["kind"] == "python"}
+    by_package = {m["package"]: n for n, m in modules.items() if "package" in m}  # Python import names
     by_path = {m["path"]: n for n, m in modules.items()}
 
     guard: set[str] = set()
