@@ -62,8 +62,9 @@ Hugo B. Fischer's two main methods are the working core of the app, one in each 
 - After launch: a "1982 view" layer showing his original channel grid, if the published reports yield the geometry.
 - After launch: a historical layer of the salinity and velocity measurements collected on the Delta field trips, with dates.
 - After launch: scenario presets that reproduce questions he was paid to answer, such as a release at a named outfall.
+- **The Eureka story**, in the History section: a rhodamine dye study at the Eureka sewage outfall on Humboldt Bay. The dye built up in the oysters, the filter feeders, and turned them bright red. It is the real-world version of the bioaccumulation feature planned for after launch (section 3.10). A 1982 report whose title ends "Humboldt Bay", credited to Hugo B. Fischer, Inc. with Edmund H. Smith, is listed in the Smith Collection at UC Davis's Cadet Hand Library, the Bodega Marine Laboratory's library. A copy is to be requested, to confirm it is this study and for pictures and details.
 
-The original FORTRAN is not used and its ownership is not pursued; the punch cards appear only as photographs. Source material: the family papers and photographs, and the [Hugo B. Fischer papers at UC Riverside](https://public.ucrlib.aspace.cdlib.org/repositories/5/resources/816), which hold the 1982 DELFLO and DELSAL reports.
+The original FORTRAN is not used and its ownership is not pursued; the punch cards appear only as photographs. Source material: the family papers and photographs, and the [Hugo B. Fischer papers at UC Riverside](https://public.ucrlib.aspace.cdlib.org/repositories/5/resources/816), which hold the 1982 DELFLO and DELSAL reports, and the Humboldt Bay report in the [Cadet Hand Library's Smith Collection](https://marinescience.ucdavis.edu/sites/g/files/dgvnsk9221/files/inline-files/CHL_Smith_Catalog.pdf).
 
 ## 3. User specification
 
@@ -195,6 +196,19 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 - Custom what-if runs on request.
 - The San Joaquin River above Vernalis.
 - Any replay older than the rolling 14-day window.
+- Bioaccumulation, planned for after launch (section 3.10).
+
+### 3.10 Planned after launch: bioaccumulation
+
+Filter feeders such as oysters, mussels and clams concentrate some pollutants far above the level in the water around them, and stay contaminated long after the water is clean. The red oysters of the Eureka story (section 2) are that effect, made visible.
+
+- The user places a virtual shellfish bed: clicks the water, picks a species, and picks a substance from a short menu.
+- The app shows the tissue concentration over time beside the water concentration at that spot. It rises while the plume passes and falls slowly afterwards.
+- Substances come from a menu of real ones with published uptake and loss rates for each species, such as common metals and some organic chemicals in mussels, oysters and clams. A made-up pollutant has no such rates, so it cannot be used.
+- It runs in the browser on the concentration history the tracer engine already produces at that spot. It costs almost nothing, and nothing the user enters leaves their device.
+- Like the rest of the app, it is illustrative, not a seafood-safety tool, and every screen showing it says so.
+
+**Later steps.** Many pollutants are taken in with food rather than straight from the water. One famous case in this region is selenium in Suisun Bay clams, passed on to the sturgeon and diving ducks that eat them. Modelling that needs the dissolved pollutant to move onto particles first, which version 1 does not do (section 3.9). Food-web models that carry a chemical from plankton up through shellfish, fish and birds have been applied to San Francisco Bay for PCBs and mercury, and could follow after that.
 
 ## 4. Engineering: architecture
 
@@ -290,6 +304,8 @@ The library is pure calculation, with nothing about any place in it. Each compon
 | Weir flow through an opening between a channel and a pool | Levee breaches; spills into bypasses |
 | Tidal averaging of velocity | The net-flow display |
 | First-order decay by half-life | Tracer engine |
+| Uptake and loss in a living receptor: a one-compartment model driven by the water's concentration history (after launch) | Bioaccumulation (section 3.10) |
+| Split between dissolved and particle-bound pollutant (after launch) | Uptake with food; sediment-bound pollutants |
 | Certainty: horizons and fade per reach | Every reach; the display |
 | Quantising and packing fields into the published format | Publisher |
 
@@ -346,6 +362,7 @@ The rows below are sketches to show that the same kinds recur. They are not rese
 | Lower Mississippi | River routing above the reach of the tide; 1D tidal network to the passes; 2D field at the mouth, if a NOAA Gulf forecast resolves it |
 | Thames | River routing down to Teddington Lock, the tidal limit; 1D tidal network from Teddington through London to the estuary; 2D field for the outer estuary, if a European shelf forecast is fine enough |
 | Nile | River routing from the Aswan High Dam through the barrage-controlled delta branches to the Mediterranean, driven by global river forecasts where gauges are sparse |
+| Humboldt Bay | 2D field for the bay: a NOAA forecast if one covers it (to check), otherwise a 2D model we run as a plug-in. The home of the Eureka story, which could become a preset there |
 
 #### Data adapters, in tiers
 
@@ -749,6 +766,8 @@ The build runs in six phases, each ending in something that can be seen working;
 - Temperature and salinity are in version 1, computed on the server for every reach. See section 7.5.
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
 - What-ifs, changed dam releases and levee breaches, come from a menu computed in advance on the server, so user input still never leaves the device. See sections 3.7 and 7.6.
+- Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
+- The Eureka dye study, the oysters turned red at the Humboldt Bay outfall, is a story in the History section. See section 2.
 
 ### Open technical questions, answered in Phase 0
 
