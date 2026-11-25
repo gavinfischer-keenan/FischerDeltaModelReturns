@@ -37,6 +37,95 @@ from = "delta"
 to = "bay"
 at = "Chipps Island line"
 
+# River gauges, upstream to downstream (USGS site numbers, confirmed 25 Nov 2026).
+# role: "release" is the upstream boundary; "main" are main-stem calibration and
+# routing points; "tributary" are inflows added where they join. Ungauged
+# inflows and diversions between main-stem gauges are carried as each
+# segment's measured gain or loss.
+[[gauges]]
+reach = "river"
+site = "11370500"
+name = "Sacramento R at Keswick"
+role = "release"
+
+[[gauges]]
+reach = "river"
+site = "11372000"
+name = "Clear Creek near Igo"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11374000"
+name = "Cow Creek near Millville"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11376000"
+name = "Cottonwood Creek near Cottonwood"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11376550"
+name = "Battle Creek below Coleman Fish Hatchery"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11377100"
+name = "Sacramento R above Bend Bridge near Red Bluff"
+role = "main"
+
+[[gauges]]
+reach = "river"
+site = "11383500"
+name = "Deer Creek near Vina"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11389500"
+name = "Sacramento R at Colusa"
+role = "main"
+
+[[gauges]]
+reach = "river"
+site = "11390500"
+name = "Sacramento R below Wilkins Slough near Grimes"
+role = "main"
+
+[[gauges]]
+reach = "river"
+site = "11407000"
+name = "Feather R at Oroville"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11421000"
+name = "Yuba R near Marysville"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11425500"
+name = "Sacramento R at Verona"
+role = "main"
+
+[[gauges]]
+reach = "river"
+site = "11446500"
+name = "American R at Fair Oaks"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "11447650"
+name = "Sacramento R at Freeport"
+role = "main"
+
 # Words that must never appear in engine code (tools/check_seams.py).
 [guard]
 words = [

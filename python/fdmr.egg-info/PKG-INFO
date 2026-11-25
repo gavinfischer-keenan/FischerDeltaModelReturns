@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: fdmr
+Version: 0.1.0
+Summary: Fischer Delta Model Returns: model runner, model-kind plug-ins, data adapters and local data store
+License: PolyForm-Noncommercial-1.0.0
+Requires-Python: >=3.11
+Provides-Extra: test
+Requires-Dist: pytest>=8; extra == "test"

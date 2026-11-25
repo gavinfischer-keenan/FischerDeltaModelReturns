@@ -1,0 +1,70 @@
+[
+ {
+  "type": "FeatureCollection",
+  "features": [
+   {
+    "type": "Feature",
+    "properties": {
+     "id": "524ed483-3a9e-45ab-9126-a4a834710a4e",
+     "monitoring_location_id": "USGS-11370500",
+     "field_visit_id": "e1d2224c-2e1c-407d-91ba-51fd40bc0705",
+     "measurement_number": "1457",
+     "time": "2026-11-24T18:37:26+00:00",
+     "channel_name": "Main",
+     "channel_flow": "3130",
+     "channel_flow_unit": "ft^3/s",
+     "channel_width": "201",
+     "channel_width_unit": "ft",
+     "channel_area": "2840",
+     "channel_area_unit": "ft^2",
+     "channel_velocity": "1.10",
+     "channel_velocity_unit": "ft/s",
+     "channel_location_distance": "20.00",
+     "channel_location_distance_unit": "ft",
+     "channel_stability": "Firm",
+     "channel_material": "CobblesBoulders",
+     "channel_evenness": "Even",
+     "horizontal_velocity_description": "Even",
+     "vertical_velocity_description": "Standard",
+     "longitudinal_velocity_description": "Steady",
+     "measurement_type": "MannedMovingBoat",
+     "last_modified": "2026-11-24T22:52:44.866193+00:00",
+     "channel_measurement_type": "adcp",
+     "channel_location_direction": "Downstream"
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "id": "066f1b04-75dd-4b43-817d-bd597009e297",
+     "monitoring_location_id": "USGS-11370500",
+     "field_visit_id": "63ad3d70-44a6-4a12-9be1-46ada603eaf6",
+     "measurement_number": "1456",
+     "time": "2026-11-19T18:39:20+00:00",
+     "channel_name": "Main channel",
+     "channel_flow": "4140",
+     "channel_flow_unit": "ft^3/s",
+     "channel_width": "204",
+     "channel_width_unit": "ft",
+     "channel_area": "2880",
+     "channel_area_unit": "ft^2",
+     "channel_velocity": "1.44",
+     "channel_velocity_unit": "ft/s",
+     "channel_location_distance": "0.00",
+     "channel_location_distance_unit": "ft",
+     "channel_stability": "Firm",
+     "channel_material": "BedrockLedgeArtificial",
+     "channel_evenness": "Uneven",
+     "horizontal_velocity_description": "Even",
+     "vertical_velocity_description": "Standard",
+     "longitudinal_velocity_description": "Steady",
+     "measurement_type": "MannedMovingBoat",
+     "last_modified": "2026-11-24T22:52:44.866193+00:00",
+     "channel_measurement_type": "adcp",
+     "channel_location_direction": "AtTheGage"
+    }
+   }
+  ],
+  "links": []
+ }
+]

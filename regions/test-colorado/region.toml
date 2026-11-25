@@ -7,8 +7,8 @@
 #
 # Chosen because it is driven by dam releases like the launch region's river,
 # has long USGS gauge records, and USGS has measured its travel time and
-# dispersion with dye, which gives an independent check. Gauge numbers are
-# confirmed when the USGS adapter is built.
+# dispersion with dye, which gives an independent check. Gauge numbers were
+# confirmed against the USGS Water Data API on 25 November 2026.
 
 id = "test-colorado"
 name = "Colorado River, Glen Canyon Dam to Grand Canyon"
@@ -20,6 +20,31 @@ id = "river"
 name = "Colorado River, Lees Ferry to Grand Canyon"
 kind = "river-routing"
 certainty = { solid_days = 5, floor = 0.2 }
+
+# Gauges, upstream to downstream (USGS site numbers, confirmed 25 Nov 2026).
+[[gauges]]
+reach = "river"
+site = "09380000"
+name = "Colorado River at Lees Ferry"
+role = "release"
+
+[[gauges]]
+reach = "river"
+site = "09382000"
+name = "Paria River at Lees Ferry"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "09402000"
+name = "Little Colorado River near Cameron"
+role = "tributary"
+
+[[gauges]]
+reach = "river"
+site = "09402500"
+name = "Colorado River near Grand Canyon"
+role = "main"
 
 [guard]
 words = ["Colorado", "Glen Canyon", "Lees Ferry", "Grand Canyon", "Paria"]
