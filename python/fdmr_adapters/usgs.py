@@ -70,6 +70,13 @@ class UsgsAdapter:
             yield from page.get("features", [])
             url = next((link["href"] for link in page.get("links", []) if link.get("rel") == "next"), None)
 
+    def datum_m(self, site: str) -> float | None:
+        """The gauge's datum: the elevation of its zero, m. Gauge height plus datum
+        is the water-surface elevation. None if USGS does not publish one."""
+        d = self.client.get_json(f"{BASE}/collections/monitoring-locations/items/USGS-{site}?f=json")
+        alt = d.get("properties", {}).get("altitude")
+        return None if alt in (None, "") else float(alt) * FT
+
     def available(self, site: str, active_within_days: int = 30) -> set[str]:
         """Standard parameter names this gauge records as continuous values and
         has reported within the last `active_within_days`. One request."""

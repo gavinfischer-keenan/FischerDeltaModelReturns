@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import fdmr_py
-from fdmr_adapters.usgs import SOURCE
+from fdmr_adapters.usgs import SOURCE, UsgsAdapter
 from fdmr_plugins.river_routing import channel, model
 from fdmr_plugins.river_routing.centreline import Centreline
 from fdmr_plugins.river_routing.wave import regular
@@ -48,7 +48,52 @@ def element_lines(line: Centreline, elements: list[model.Element], max_points: i
     return out
 
 
-def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str = "river") -> Path:
+DEFAULT_SLOPE = 3e-4  # a typical lowland river, used only where no gauge pair gives one
+
+
+def segment_slopes(gauges, chainage, store, datums, t0, now) -> list[float]:
+    """Water-surface slope between each pair of consecutive main gauges: the drop
+    in (datum + median gauge height) over the distance. Missing or implausible
+    slopes take a neighbour's, or a default."""
+    def surface(site):
+        d = datums.get(site)
+        if d is None:
+            return None
+        gh = [v.value for v in store.values(SOURCE, site, "gage_height", t0, now + STEP) if v.value is not None]
+        return d + sorted(gh)[len(gh) // 2] if gh else None
+    z = [surface(g.site) for g in gauges]
+    s = []
+    for (g1, z1), (g2, z2) in zip(zip(gauges, z), list(zip(gauges, z))[1:]):
+        dist = chainage[g2.site] - chainage[g1.site]
+        slope = (z1 - z2) / dist if z1 is not None and z2 is not None and dist > 0 else None
+        s.append(slope if slope is not None and 1e-6 < slope < 0.05 else None)
+    for i, v in enumerate(s):  # fill gaps from the nearest segment that has a slope
+        if v is None:
+            near = [x for x in sorted(range(len(s)), key=lambda j: abs(j - i)) if s[x] is not None]
+            s[i] = s[near[0]] if near else DEFAULT_SLOPE
+    return s
+
+
+def dispersion_field(field, records, slopes):
+    """Fischer's longitudinal dispersion for every element and step, m2/s
+    (specification section 7.1): K = 0.011 U^2 W^2 / (d u*), u* = sqrt(g d S)."""
+    chain = sorted(r.chainage for r in records)
+    shapes = [r.shape for r in sorted(records, key=lambda r: r.chainage)]
+    out = [[0.0] * len(field.elements) for _ in range(field.steps)]
+    for e, el in enumerate(field.elements):
+        k = max(0, min(len(chain) - 2, sum(1 for c in chain[1:-1] if c <= el.mid)))
+        span = chain[k + 1] - chain[k]
+        f = 0.0 if span <= 0 else min(1.0, max(0.0, (el.mid - chain[k]) / span))
+        shape = channel.between(shapes[k], shapes[k + 1], f)
+        slope = slopes[min(k, len(slopes) - 1)]
+        for i in range(field.steps):
+            q = field.flow[i][e]
+            d, w, u = shape.depth(q), shape.width(q), field.velocity[i][e]
+            out[i][e] = fdmr_py.fischer_k(u, w, d, fdmr_py.shear_velocity(d, slope))
+    return out
+
+
+def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str = "river", datums: dict[str, float | None] | None = None) -> Path:
     region = load_region(region_dir)
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
     line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
@@ -78,6 +123,8 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
         records.append(model.GaugeRecord(chainage[g.site], shape, regular([(v.t, v.value) for v in vals], t0, STEP, n)))
 
     field = model.build(max(chainage.values()), records, t0, STEP)
+    slopes = segment_slopes(gauges, chainage, store, datums or {}, t0, now)
+    dispersion = dispersion_field(field, records, slopes)
     cycle = utc(now, "%Y%m%dT%H%MZ")
     cdir = out_dir / cycle
     (cdir / reach).mkdir(parents=True, exist_ok=True)
@@ -107,6 +154,7 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
                 ("area", "m2", True, flat(field.area)),
                 ("velocity", "m/s", True, flat(field.velocity)),
                 ("volume", "m3", True, [float(field.area[i][e] * els[e].length) for i in rows for e in range(len(els))]),
+                ("dispersion", "m2/s", True, flat(dispersion)),
             ],
         )
 
@@ -121,7 +169,7 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
         "data_age_s": {SOURCE: int(time.time() - now)},
         "reaches": [{
             "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
-            "fields": ["flow", "area", "velocity", "volume"],
+            "fields": ["flow", "area", "velocity", "volume", "dispersion"],
             "certainty": [1.0] * n,  # the past is built from measurements
         }],
         "status": "ok",
@@ -145,7 +193,10 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    cdir = publish(Path(args.region), Store(args.store), out, args.days)
+    region = load_region(args.region)
+    usgs = UsgsAdapter(Store(":memory:"))
+    datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main")}
+    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums)
     size = sum(f.stat().st_size for f in cdir.rglob("*") if f.is_file())
     print(f"published {cdir} ({size / 1e6:.1f} MB)")
     return 0

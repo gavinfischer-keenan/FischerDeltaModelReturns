@@ -106,6 +106,7 @@ The fields follow in descriptor order. Each field is `steps x layers x elements`
 | `u`, `v` | m/s | Eastward and northward velocity (2D, 3D) |
 | `volume` | m3 | Water volume of the element |
 | `area` | m2 | Cross-section area (1D) |
+| `dispersion` | m2/s | Longitudinal dispersion coefficient (1D) |
 | `level` | m | Water surface elevation against the region's datum |
 | `temperature` | degC | Water temperature |
 | `salinity` | psu | Salinity |
