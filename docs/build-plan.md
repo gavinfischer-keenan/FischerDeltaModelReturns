@@ -12,7 +12,6 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 - **Two regions from the start.** The plain test region (specification section 4.1) runs in the tests from the first river code, so nothing Delta-specific leaks into the engine.
 - **Small, reviewable changes.** Work lands as small pull requests, one module or one feature at a time, each with its tests. Nothing merges with a failing test or a broken dependency rule.
 - **One machine.** Everything server-side runs on the `webserver` host and nothing else, ever. Every other machine runs Electric Eel and is never touched. On the shared host, this app always gives way to Electric Eel.
-- **Things that take calendar time start on day one.** The Bay archive and the letters to DWR do not wait for their phase.
 
 ## 2. Decisions before building
 
@@ -27,13 +26,11 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 
 ## 3. Things only people can do
 
-You do these. Only one letter is needed for the build, and it starts now because replies take weeks.
+You do these. No letter to DWR is needed for the build: HEClib v6 is built from DWR's public source, and the channel geometry is in DWR's public DSM2 input release. A letter is worth sending only if that release turns out to lack map coordinates for the channels.
 
 | Task | Why | Needed by |
 | --- | --- | --- |
-| Email DWR's Delta Modeling Section for two things: HEClib v6, the DSS file library DSM2 needs to build on Linux (DWR's build guide says it is not public and to contact them), and the channel geometry files. If they have it, a note on how they represent levee breaches | DSM2 on Debian, the Delta map layer, the breach what-ifs | Phase 0 answers; Phase 2 at the latest |
 | Approve the model runner container on the `webserver` host, the only machine this app may use | Phase 0 needs somewhere to run DSM2 | Done 24 Nov 2026: container 705 `fdmr-runner`, 192.168.5.231, efficiency cores 12-19, 8 GB, CPU weight 25, 1 TB data disk at `/srv/fdmr-data` |
-| A Windows license, only if the Linux build of DSM2 stalls and a temporary Windows VM is needed | DWR's prebuilt DSM2 is a Windows release | Phase 0, if at all |
 | Explain how tripofisch.com is deployed, and set up access for the push | Publishing to the web guest | Phase 1 |
 
 **Model runner container on `webserver`, starting size:** 8 efficiency cores, 8 GB of memory (12 at most), and a 1 TB disk from the host's storage. It runs at lower CPU and disk priority than every Electric Eel container. The disk holds the data store, a year of reduced Bay archive and the published files. Phase 0 checks the size against real DSM2 timings.
@@ -48,10 +45,9 @@ Answers every open question in specification section 10, before any map is drawn
 
 | Workstream | What gets done |
 | --- | --- |
-| DSM2 | Run DSM2 in the model runner: the Linux build if DWR has sent HEClib v6; otherwise DWR's public Windows release (8.5.1) under Wine, checked against a native Windows run; a small temporary Windows VM only if Wine fails. Run a sample, then forecast mode with today's inputs, with QUAL salinity. Time one full run, and one with a breach reservoir added. |
+| DSM2 | Build DSM2 natively in the model runner (`runner/dsm2`), with HEClib v6 from DWR's public source. Run a sample, then forecast mode with today's inputs, with QUAL salinity. Time one full run, and one with a breach reservoir added. |
 | Data feeds | Fetch every one of the twelve feeds in specification section 6 by hand. For each, record the format, how often it updates, how late it arrives, the station or product IDs, and the license terms. |
-| NOAA Bay forecast | Download a cycle. Check the horizon, the file sizes, the temperature and salinity variables and depths, and how finely the mesh covers Suisun Bay up to Chipps Island. Check how far back the public archive goes. |
-| Bay archive | Start saving every NOAA Bay forecast cycle, from day one. The Bay extension needs at least a month of it, and a year to do well. |
+| NOAA Bay forecast | Done: 48 hours ahead, every 2 hours, about 57 MB per file, archive continuous since August 2024. Still to check: the temperature and salinity variables and depths, and how finely the mesh covers Suisun Bay up to Chipps Island. |
 | Geometry | Find the river centreline, the DSM2 channel geometry and the Delta levee and island data, or how to rebuild each. |
 | River data | List which gauges have field measurements and continuous conductance and temperature. Search for past dye and time-of-travel studies on the Sacramento. |
 
@@ -94,7 +90,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | --- | --- |
 | NOAA adapter | Fetch each cycle, reduce the mesh, and publish currents, temperature and salinity. |
 | 2D tracer | Parcel movement on the mesh. |
-| Bay extension | The fit to tides plus outflow drift, from the archive Phase 0 started. |
+| Bay extension | The fit to tides plus outflow drift, from a year of NOAA's public archive. |
 | Chipps Island handoff | Parcels crossing in both directions; the overlap comparison with DSM2 each cycle. |
 | Validation | The extension against later NOAA forecasts; the handoff mismatch; mass balance. |
 
@@ -118,7 +114,6 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 
 | Workstream | What gets done |
 | --- | --- |
-| Native Linux DSM2 | Retires the temporary Windows VM, if one was needed. |
 | Validation checks | Every row of specification 9.2 runs as an automated test. No separate report. |
 | Operations | The status file already shows how old the data is. Add a notice to you when a run fails, and test that stale data is shown honestly. |
 | Performance | Parcel and particle counts tuned by measured frame rate. |
@@ -145,13 +140,10 @@ flowchart LR
   P0["Phase 0: proof"] --> P2["Phase 2: Delta"]
   P0 --> P3["Phase 3: Bay"]
   P1["Phase 1: foundations and river"] --> P2 --> P3 --> P4["Phase 4: product"] --> P5["Phase 5: hardening"] --> L["Launch"]
-  A["Bay archive, from day one"] --> P3
-  D["Letters to DWR, from day one"] --> P2
 ```
 
 - Phase 1 starts alongside Phase 0 (decided). It does not depend on DSM2 or NOAA, so nothing waits for the Phase 0 report except Phases 2 and 3.
 - Phase 2 cannot start until Phase 0 has DSM2 running and the Delta geometry in hand.
-- Phase 3 needs at least a month of Bay archive, which is why archiving starts on day one.
 
 ## 6. Risks
 
@@ -161,7 +153,6 @@ flowchart LR
 | A DSM2 run is too slow | Visitors wait longer for a what-if | The app quotes the real wait, measured in Phase 0. |
 | NOAA's mesh is too coarse at Chipps Island | The handoff moves to Martinez | Fallback already in specification 7.4. |
 | A feed is late, sparse or changes format | Gaps in the past window, or a weaker forecast | The local store, data age shown on screen, and an adapter per source so one break stays contained. |
-| The Linux build of DSM2 stalls | A temporary Windows VM is needed, and it costs memory | Keep it small, run it only while needed, and remove it once Linux works. |
 | This app competes with Electric Eel on the shared host | Electric Eel slows | Fixed caps, lower CPU and disk priority, pinned to efficiency cores; Phase 0 measures the real load. |
 | A bad Caddy change breaks the shared web edge | Every site on it goes down, Electric Eel included | Check the config before reloading, reload rather than restart, keep the previous file, and change it only with your OK. |
 | Phones cannot keep up | Choppy movie | Parcel counts set by device; measured in Phase 4. |

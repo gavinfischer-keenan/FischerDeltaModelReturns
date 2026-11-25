@@ -37,9 +37,9 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 
 **Not yet verified.** Each item below is a Phase 0 task in section 10.
 
-- DSM2 running on Debian. DWR supports Linux builds, but one library, HEClib v6 (the DSS file library), is not public and must be requested from them. Until then, DWR's public Windows release may run under Wine (section 9.3).
+- DSM2 runs correctly once built natively on Debian (section 9.3).
 - The exact live feed for every DSM2 boundary input.
-- NOAA's Bay forecast: horizon, file sizes, how far back its archive goes, and whether its mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
+- Whether NOAA's Bay mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
 - A public copy of DSM2's map geometry. DWR's documentation points to internal network drives.
 - Enough USGS field measurements and conductance records on the river to calibrate water velocity and dispersion.
 - How long one DSM2 run takes, which sets how long a visitor waits for a what-if.
@@ -491,7 +491,7 @@ Every input comes from a free public source; three of the twelve have been check
 | Keswick and Shasta releases, Delta exports, gate positions | California Data Exchange Center (DWR) | River model, DSM2 | To confirm station by station |
 | River flow forecasts | [River Forecast Center hourly CSV files](https://www.cnrfc.noaa.gov/deterministicHourlyProductCSV.php), by forecast group | River model, DSM2 inflows | Checked. Upper and Lower Sacramento groups are published; about 5 days ahead |
 | Tide at Martinez, observed and predicted | NOAA tide stations | DSM2 seaward boundary | To confirm station and format |
-| Bay currents, nowcast and forecast | [NOAA San Francisco Bay Operational Forecast System](https://tidesandcurrents.noaa.gov/ofs/sfbofs/sfbofs_info.html), NetCDF files | Bay reach | Checked. Four runs a day; grid covers Suisun Bay to the ocean. Horizon believed to be about 48 hours, to confirm |
+| Bay currents, nowcast and forecast | [NOAA San Francisco Bay Operational Forecast System](https://tidesandcurrents.noaa.gov/ofs/sfbofs/sfbofs_info.html), NetCDF files on AWS | Bay reach | Checked 25 Nov 2026: four cycles a day (03, 09, 15 and 21 UTC); forecast 48 hours ahead, every 2 hours; nowcasts hourly; about 57 MB per field file; the public archive is continuous since at least August 2024 |
 | Bay temperature and salinity | The same NOAA files as the currents | Bay layers | To confirm the variables are included |
 | Temperature, conductance, dissolved oxygen and turbidity at river, Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay | To confirm station by station |
 | Keswick release temperature | CDEC or Reclamation | River temperature model | To confirm |
@@ -580,7 +580,7 @@ NOAA's forecast gives currents on a triangular mesh at hourly steps. The server 
 
 Beyond the end of NOAA's forecast, the server extends the currents with a fit made from the archive of past NOAA fields. At each mesh point the fit has two parts: the tides, and a net seaward drift that grows with Delta outflow. The extension uses DSM2's forecast outflow at Chipps Island, so the Bay and the Delta agree on how much river water is leaving. In Suisun Bay that drift matters as much as the tide, which is why a tides-only extension is not enough. The extension is our own calculation and does not include wind.
 
-A tidal fit needs at least a month of past fields to separate the main tides, and a year to do it well. The archive must be in hand before Phase 3: either NOAA's public archive goes back far enough, or we start saving the forecasts ourselves now.
+A tidal fit needs at least a month of past fields to separate the main tides, and a year to do it well. NOAA's public archive on AWS has kept every cycle continuously since at least August 2024, so Phase 3 draws the fit's year from it directly. Nothing is saved ahead of time.
 
 ### 7.4 Joining the reaches
 
@@ -796,12 +796,10 @@ The river model has three sets of parameters, each calibrated from a different k
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
 - **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. What-ifs run when asked for, one at a time, and in spare time when the whole host has been quiet for a sustained stretch (section 7.6).
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
-- **Running DSM2, in order of preference.** DSM2's Linux build needs HEClib v6, which DWR does not publish (its build guide says to contact them), plus Intel's Fortran compilers.
-  1. The Linux build, once DWR sends HEClib v6.
-  2. Until then, DWR's public Windows release (8.5.1, which ships with its Intel runtime) under Wine in the model runner. DSM2 is a command-line program, so this needs no Windows licence and little memory. Phase 0 checks that its results match the Windows release run natively.
-  3. Only if Wine fails: a small, temporary Windows VM, removed as soon as either of the above works.
-
-  Porting DSM2 to the open-source DSS 7 library is not an option: it would mean modifying DSM2, which this app does not do (section 9.4).
+- **DSM2 is built natively on Linux** in the model runner, by `runner/dsm2/build_dsm2.sh`. There is no Windows and no emulation.
+  - DSM2's Linux build needs HEClib v6, its DSS file library, which DWR does not publish on its own. Its source is, however, in DWR's public DSM2 8.1.2 source package, in a Windows edition.
+  - That edition compiles on Linux once its Windows file layer and seven Windows-only routines are replaced by standard POSIX and Fortran versions (`runner/dsm2/heclib-linux/`).
+  - DSM2 itself is built unmodified, from DWR's GitHub release, with Intel's oneAPI 2023.2 compilers.
 
 ### 9.4 Licensing and credit
 
@@ -818,7 +816,7 @@ This section is not legal advice; the license choice deserves a second look befo
 
 The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn. The detailed plan, with workstreams, exit tests and risks, is in [build-plan.md](build-plan.md).
 
-1. **Phase 0, proof.** Run DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's prebuilt Windows release in a small, temporary VM. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to set the wait quoted for a what-if, and confirm the model runner can read the whole host's load from inside its container. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
+1. **Phase 0, proof.** Build DSM2 natively in the model runner (section 9.3). Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to set the wait quoted for a what-if, and confirm the model runner can read the whole host's load from inside its container. Confirm every data feed in section 6.
 2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
@@ -851,6 +849,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
 - Address: `tripofisch.com/fischer-delta/`, listed under Utilities. See section 9.3.
 - Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. See section 9.3.
+- DSM2 is built natively on Linux, with HEClib v6 compiled from the source in DWR's public DSM2 8.1.2 package. No Windows, no Wine, no request to DWR. NOAA's public Bay archive is continuous since August 2024, so nothing is saved ahead. See sections 7.3 and 9.3.
 - Languages: Rust for the math library and compute engine; Python for the model runner, data adapters and publisher, calling the Rust math. See section 4.2 and build-plan.md.
 - Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
 - Swept all remaining proposals into decisions:
@@ -871,7 +870,6 @@ The build runs in six phases, each ending in something that can be seen working;
 - Is DSM2's channel geometry available outside DWR's network?
 - Which stations give each export, gate and inflow value in near real time?
 - Which river gauges have field measurements, conductance and temperature records long enough to calibrate water velocity and dispersion? Are there published time-of-travel or dye studies on the Sacramento?
-- How far back does NOAA's public archive of Bay forecasts go? If it is short, start saving them ourselves at once, for the Bay extension's fit.
 - Do NOAA's Bay files carry temperature and salinity, and at what depths?
 - How does DSM2's forecast mode set salinity at Martinez, and what weather inputs does QUAL need for temperature?
 - Where are public levee locations and island floor elevations for the Delta, and how has DSM2 represented past breaches?
