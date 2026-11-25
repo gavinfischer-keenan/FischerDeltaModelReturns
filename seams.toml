@@ -76,3 +76,28 @@ path = "crates/fdmr-compute"
 crate = "fdmr-compute"
 engine = true
 may_use = ["math", "format"]
+
+[modules.wasm]
+kind = "rust"
+path = "crates/fdmr-wasm"
+crate = "fdmr-wasm"
+engine = true
+may_use = ["compute"]
+
+[modules.compute_interface]
+kind = "ts"
+path = "ui/src/compute-interface"
+engine = true
+may_use = []
+
+[modules.compute_host]
+kind = "ts"
+path = "ui/src/compute"
+engine = true
+may_use = ["compute_interface"]
+
+[modules.ui]
+kind = "ts"
+path = "ui/src/ui"
+engine = true
+may_use = ["compute_interface", "text"]

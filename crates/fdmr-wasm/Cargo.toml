@@ -1,0 +1,18 @@
+[package]
+name = "fdmr-wasm"
+description = "The compute engine compiled to WebAssembly, for a web worker in the visitor's browser (specification section 4.2). Thin wrappers over fdmr-compute."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fdmr-compute = { path = "../fdmr-compute" }
+wasm-bindgen = "0.2.130"
+
+[lints]
+workspace = true
