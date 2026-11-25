@@ -141,6 +141,18 @@ Each day's `<day>.fdf` has one element per node, `u` and `v` (m/s, depth-average
 
 Here, parcels passing the end of the `river` reach enter the `delta` network at junction 330, in the channel that starts there, at the moment they arrived, with their mass.
 
+Where a network reach meets a mesh reach that covers some of its channels (the Delta and the Bay, both covering Suisun Bay), the join runs both ways:
+
+```json
+{ "from": "delta", "to": "bay", "owned": [416, 417, ...],
+  "junctions": [{ "node": 355, "id": 356, "element": 287, "fraction": 1, "x": 2001234.5, "y": 650123.4 }, ...] }
+```
+
+- `owned`: the network's channels the mesh tracks (their middle lies on the mesh). The network still publishes their flow; nothing is tracked in them, and a reader need not draw them.
+- `junctions`: every junction where one of the network's own channels meets an owned one, once per own channel there. A parcel arriving at the junction to go the owned way passes to the mesh at `x`, `y` (the junction's place in the mesh's coordinates, inside it). A parcel crossing the mesh's handoff edge (named after the network, in its geometry's `edges`) comes back at the nearest junction listed, into one of the network's own channels there (`element`, entered at its upstream end for `fraction` 0, downstream for 1), in proportion to the flow leaving the junction each way.
+
+Each parcel belongs to one reach at a time, with its mass, so the reaches together conserve mass whatever their two flows do (specification 7.4).
+
 ## Field files (`.fdf`)
 
 Little-endian throughout. A file holds one reach for one day.

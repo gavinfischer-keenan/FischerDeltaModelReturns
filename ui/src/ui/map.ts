@@ -118,7 +118,7 @@ interface NetworkGeometry {
 
 /** Draw a channel network's channels (docs/format.md, network reaches), each
  * coloured later by its current speed (drawNetworks). */
-export function addNetwork(map: Map, id: string, g: NetworkGeometry): void {
+export function addNetwork(map: Map, id: string, g: NetworkGeometry, hidden: Set<number> = new Set()): void {
   const add = () => {
     const src = `net-${id}`;
     if (map.getSource(src)) return;
@@ -126,12 +126,16 @@ export function addNetwork(map: Map, id: string, g: NetworkGeometry): void {
       type: "geojson",
       data: {
         type: "FeatureCollection",
-        features: g.lines.map((line, k) => ({
-          type: "Feature",
-          id: k,
-          properties: { channel: g.elements[k]?.id },
-          geometry: { type: "LineString", coordinates: line },
-        })),
+        features: g.lines.flatMap((line, k) =>
+          hidden.has(k)
+            ? []
+            : [{
+                type: "Feature" as const,
+                id: k,
+                properties: { channel: g.elements[k]?.id },
+                geometry: { type: "LineString" as const, coordinates: line },
+              }],
+        ),
       },
     });
     map.addLayer(
@@ -214,6 +218,7 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
     if (!net) continue;
     for (let i = 0; i < nf.particleElement.length; i++) {
       const e = nf.particleElement[i];
+      if (net.hidden.has(e)) continue; // another reach shows that water
       const lateral = ((i * 2654435761) % 1000) / 500 - 1;
       pts.push({
         type: "Feature",

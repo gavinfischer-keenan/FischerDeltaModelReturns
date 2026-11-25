@@ -138,7 +138,8 @@ pub struct MeshTracer {
     parcels: Vec<Parcel>,
     particles: Vec<MeshPlace>,
     balance: MeshBalance,
-    handed: Vec<(MeshFate, f64)>,
+    /// Crossed a handoff edge: where, with mass and half-life.
+    handed: Vec<(MeshFate, f64, Option<f64>)>,
 }
 
 /// Edge `e` of a triangle runs from its node `e` to node `e + 1`.
@@ -305,8 +306,8 @@ impl MeshTracer {
         self.parcels.push(Parcel {
             place: MeshPlace::In(t, x, y),
             mass,
-            // It moves from now on, whenever it was first released.
-            born: born.min(self.time),
+            // It moves from when it crossed (never before now).
+            born: born.max(self.time),
             half_life,
             counted: true,
         });
@@ -314,7 +315,7 @@ impl MeshTracer {
     }
 
     /// Parcels that crossed a handoff edge since the last call, with their mass.
-    pub fn take_handed(&mut self) -> Vec<(MeshFate, f64)> {
+    pub fn take_handed(&mut self) -> Vec<(MeshFate, f64, Option<f64>)> {
         std::mem::take(&mut self.handed)
     }
 
@@ -539,7 +540,7 @@ impl MeshTracer {
                     MeshPlace::Gone(MeshFate::ToSea) => self.balance.to_sea += mass,
                     MeshPlace::Gone(fate @ MeshFate::Handoff { .. }) => {
                         self.balance.handed_on += mass;
-                        self.handed.push((fate, mass));
+                        self.handed.push((fate, mass, p.half_life));
                     }
                     MeshPlace::In(..) => {}
                 }
@@ -645,7 +646,11 @@ impl MeshTracer {
     /// triangle over the water there, in the order of `parcels()`.
     #[must_use]
     pub fn parcel_concentration(&self) -> Vec<f64> {
-        let Some(now) = self.conditions(self.time) else {
+        // Past the end of the fields parcels stand still; their water is as last published.
+        let Some(end) = self.fields.end() else {
+            return Vec::new();
+        };
+        let Some(now) = self.conditions(self.time.min(end)) else {
             return Vec::new();
         };
         let mut mass = vec![0.0; self.topo.tri.len()];
@@ -886,6 +891,10 @@ mod tests {
             panic!("left the mesh")
         };
         assert!((x - 140.0).abs() < 1e-3, "{x}"); // 400 s of flow, then stopped
+                                                  // Still shown, with the water as last published.
+        let c = t.parcel_concentration();
+        assert_eq!(c.len(), 1);
+        assert!(c[0] > 0.0 && c[0].is_finite());
     }
 
     #[test]
@@ -965,7 +974,7 @@ mod tests {
         t.step_to(1_000.0);
         let handed = t.take_handed();
         assert_eq!(handed.len(), 1);
-        let (MeshFate::Handoff { id, x, y, .. }, m) = handed[0] else {
+        let (MeshFate::Handoff { id, x, y, .. }, m, _) = handed[0] else {
             panic!()
         };
         assert_eq!(id, 7);

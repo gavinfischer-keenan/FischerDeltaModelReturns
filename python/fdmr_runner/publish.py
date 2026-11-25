@@ -270,6 +270,16 @@ def publish(
         add_reach(cdir, extra, index)
     ids = {r["id"] for r in index["reaches"]}
     joins = [{k: h[k] for k in ("from", "to", "node") if k in h} for h in region.handoffs if h["from"] in ids and h["to"] in ids and "node" in h]
+    # A network reach meeting a mesh reach (the Delta and the Bay): the join is
+    # worked out from their two geometries (fdmr_runner.handoff).
+    kinds = {r["id"]: r for r in index["reaches"]}
+    for h in region.handoffs:
+        a, b = kinds.get(h["from"]), kinds.get(h["to"])
+        if a and b and a.get("network") and b.get("dims") == 2:
+            from .handoff import network_to_mesh
+
+            geo = lambda r: json.loads((cdir / "geometry" / f"{r}.json").read_text(encoding="utf-8"))  # noqa: E731
+            joins.append(network_to_mesh(h["from"], geo(h["from"]), h["to"], geo(h["to"])))
     if joins:
         index["handoffs"] = joins  # format 1.1: where parcels leaving one reach enter the next
     (cdir / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")

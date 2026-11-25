@@ -245,6 +245,40 @@ impl NetworkEngine {
         self.core.clear_releases();
     }
 
+    /// Channels another reach tracks (by index): parcels about to enter one are handed on.
+    pub fn set_handoff(&mut self, channels: &[u32]) {
+        let c: Vec<usize> = channels.iter().map(|&i| i as usize).collect();
+        self.core.set_handoff(&c);
+    }
+
+    /// Take in a parcel handed back from another reach at junction `node`, now.
+    /// `half_life` in s, or `NaN` for none.
+    pub fn take_parcel(&mut self, node: u32, mass: f64, half_life: f64) {
+        self.core.take_parcel(
+            node as usize,
+            mass,
+            if half_life.is_finite() && half_life > 0.0 {
+                Some(half_life)
+            } else {
+                None
+            },
+        );
+    }
+
+    /// Parcels handed on since the last call: flat (junction, time, mass,
+    /// half-life or `NaN`) for each.
+    pub fn take_handed(&mut self) -> Vec<f64> {
+        self.core
+            .take_handed()
+            .into_iter()
+            .flat_map(|h| {
+                #[allow(clippy::cast_precision_loss)]
+                let node = h.node as f64;
+                [node, h.t, h.mass, h.half_life.unwrap_or(f64::NAN)]
+            })
+            .collect()
+    }
+
     pub fn seed_flow_particles(&mut self, n: usize) {
         self.core.seed_flow_particles(n);
     }
@@ -288,12 +322,18 @@ impl NetworkEngine {
         self.core.parcel_concentration()
     }
 
-    /// [released, in water, exported, diverted, out to sea, broken down], kg.
+    /// [released, in water, exported, diverted, out to sea, broken down, handed on], kg.
     #[must_use]
     pub fn mass_balance(&self) -> Vec<f64> {
         let b = self.core.balance();
         vec![
-            b.released, b.in_water, b.exported, b.diverted, b.to_sea, b.decayed,
+            b.released,
+            b.in_water,
+            b.exported,
+            b.diverted,
+            b.to_sea,
+            b.decayed,
+            b.handed_on,
         ]
     }
 
@@ -403,14 +443,32 @@ impl MeshEngine {
         })
     }
 
+    /// Take in a parcel handed over from another reach at (x, y), m, released at
+    /// `born` (s). `half_life` in s, or `NaN` for none. False if (x, y) is off the mesh.
+    pub fn take_parcel(&mut self, x: f64, y: f64, mass: f64, born: f64, half_life: f64) -> bool {
+        self.core.take_parcel(
+            x,
+            y,
+            mass,
+            born,
+            if half_life.is_finite() && half_life > 0.0 {
+                Some(half_life)
+            } else {
+                None
+            },
+        )
+    }
+
     /// Parcels that crossed a handoff edge since the last call: flat
-    /// (handoff id, x, y, time, mass) for each.
+    /// (handoff id, x, y, time, mass, half-life or `NaN`) for each.
     pub fn take_handed(&mut self) -> Vec<f64> {
         self.core
             .take_handed()
             .into_iter()
-            .flat_map(|(fate, mass)| match fate {
-                MeshFate::Handoff { id, x, y, t } => vec![f64::from(id), x, y, t, mass],
+            .flat_map(|(fate, mass, half_life)| match fate {
+                MeshFate::Handoff { id, x, y, t } => {
+                    vec![f64::from(id), x, y, t, mass, half_life.unwrap_or(f64::NAN)]
+                }
                 MeshFate::ToSea => Vec::new(),
             })
             .collect()

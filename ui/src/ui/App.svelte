@@ -153,13 +153,17 @@
     document.title = text.title; // the page title comes from the text files too
     engine.onReply((r) => {
       if (r.type === "ready") {
+        // Channels a mesh reach tracks (index.json handoffs) are left to it.
+        const joins = fetch(`${cycle}/index.json`)
+          .then((x) => x.json())
+          .then((ix: { handoffs?: { from: string; owned?: number[] }[] }) => ix.handoffs ?? []);
         for (const id of r.networks) {
-          fetch(`${cycle}/geometry/${id}.json`)
-            .then((x) => x.json())
-            .then((g: NetworkGeometry) => {
-              addNetwork(map, id, g);
-              nets.push(new NetworkPlace(id, g));
-            });
+          Promise.all([fetch(`${cycle}/geometry/${id}.json`).then((x) => x.json()), joins]).then(([g, hs]: [NetworkGeometry, { from: string; owned?: number[] }[]]) => {
+            const hidden = hs.filter((h) => h.from === id && h.owned && r.meshes.length).flatMap((h) => h.owned!);
+            const place = new NetworkPlace(id, g, hidden);
+            addNetwork(map, id, g, place.hidden);
+            nets.push(place);
+          });
         }
         for (const id of r.meshes) {
           fetch(`${cycle}/geometry/${id}.json`)

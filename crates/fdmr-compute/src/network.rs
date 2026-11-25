@@ -56,6 +56,8 @@ pub enum Fate {
     Exported,
     Diverted,
     ToSea,
+    /// Passed to another reach at this junction (see `set_handoff`).
+    HandedOn(usize),
 }
 
 /// A release into the network.
@@ -78,7 +80,8 @@ struct Parcel {
     half_life: Option<f64>,
 }
 
-/// [released, in the water, exported, diverted, out to sea, broken down], kg.
+/// [released, in the water, exported, diverted, out to sea, broken down,
+/// handed on to another reach], kg.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct NetBalance {
     pub released: f64,
@@ -87,6 +90,17 @@ pub struct NetBalance {
     pub diverted: f64,
     pub to_sea: f64,
     pub decayed: f64,
+    pub handed_on: f64,
+}
+
+/// A parcel passed to another reach: at junction `node`, at time `t` (s), with
+/// its mass (kg) and half-life (s, if it breaks down).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Handed {
+    pub node: usize,
+    pub t: f64,
+    pub mass: f64,
+    pub half_life: Option<f64>,
 }
 
 /// Conditions at one moment, worked out once per step.
@@ -119,6 +133,9 @@ pub struct NetworkTracer {
     parcels: Vec<Parcel>,
     particles: Vec<Place>,
     balance: NetBalance,
+    /// Channels another reach tracks (such as a bay's, where a mesh covers them).
+    handed_channel: Vec<bool>,
+    handed: Vec<Handed>,
 }
 
 impl NetworkTracer {
@@ -155,6 +172,76 @@ impl NetworkTracer {
             parcels: Vec::new(),
             particles: Vec::new(),
             balance: NetBalance::default(),
+            handed_channel: Vec::new(),
+            handed: Vec::new(),
+        }
+    }
+
+    /// Channels another reach tracks: a parcel about to enter one is passed on
+    /// instead, at the junction it reached (`take_handed`). Their flow still
+    /// carries water away from the junction, so the share leaving that way is
+    /// the share passed on (specification 7.4: each parcel belongs to one
+    /// reach at a time).
+    pub fn set_handoff(&mut self, channels: &[usize]) {
+        self.handed_channel = vec![false; self.topo.up.len()];
+        for &c in channels {
+            if c < self.handed_channel.len() {
+                self.handed_channel[c] = true;
+            }
+        }
+    }
+
+    /// Parcels passed to another reach since the last call.
+    pub fn take_handed(&mut self) -> Vec<Handed> {
+        std::mem::take(&mut self.handed)
+    }
+
+    /// Take in a parcel handed back from another reach, arriving at junction
+    /// `node` now. It goes into one of the network's own channels there, in
+    /// proportion to the flow leaving the junction into each (or, if none is
+    /// leaving that way, into any of them, evenly), at the junction's end.
+    /// It counts as released at once, and moves from the next step.
+    pub fn take_parcel(&mut self, node: usize, mass: f64, half_life: Option<f64>) {
+        let ours: Vec<(usize, End)> = self.at_node.get(node).map_or_else(Vec::new, |v| {
+            v.iter()
+                .copied()
+                .filter(|&(c, _)| !self.handed_channel.get(c).copied().unwrap_or(false))
+                .collect()
+        });
+        if ours.is_empty() {
+            return;
+        }
+        let now = self.conditions(self.time);
+        let mut ways: Vec<(Place, f64)> = ours
+            .iter()
+            .map(|&(c, end)| {
+                let x = if end == End::Up {
+                    0.0
+                } else {
+                    self.topo.length[c]
+                };
+                let q = now.as_ref().map_or(0.0, |n| match end {
+                    End::Up => n.q_up[c],
+                    End::Down => -n.q_down[c],
+                });
+                (Place::Channel(c, x), q.max(0.0))
+            })
+            .collect();
+        if ways.iter().all(|w| w.1 <= 0.0) {
+            for w in &mut ways {
+                w.1 = 1.0;
+            }
+        }
+        let u = self.rng.uniform();
+        if let Some(place) = pick(u, &ways) {
+            self.balance.released += mass;
+            self.parcels.push(Parcel {
+                place,
+                mass,
+                // Just before now: in the water now, and not counted again by the step.
+                born: self.time - 1e-6,
+                half_life,
+            });
         }
     }
 
@@ -238,6 +325,7 @@ impl NetworkTracer {
 
     pub fn clear_releases(&mut self) {
         self.parcels.clear();
+        self.handed.clear();
         self.balance = NetBalance::default();
     }
 
@@ -334,7 +422,12 @@ impl NetworkTracer {
                 ways.push((Place::Gone(Fate::ToSea), out));
             }
         }
-        pick(u, &ways)
+        match pick(u, &ways) {
+            Some(Place::Channel(c, _)) if self.handed_channel.get(c).copied().unwrap_or(false) => {
+                Some(Place::Gone(Fate::HandedOn(n)))
+            }
+            other => other,
+        }
     }
 
     /// Move one thing for `dt` s under `now`. `k` is its dispersion (0 for flow particles).
@@ -443,6 +536,15 @@ impl NetworkTracer {
                         Fate::Exported => self.balance.exported += mass,
                         Fate::Diverted => self.balance.diverted += mass,
                         Fate::ToSea => self.balance.to_sea += mass,
+                        Fate::HandedOn(node) => {
+                            self.balance.handed_on += mass;
+                            self.handed.push(Handed {
+                                node,
+                                t: self.time + dt,
+                                mass,
+                                half_life: p.half_life,
+                            });
+                        }
                     }
                 }
                 if p.born >= self.time && p.born < self.time + dt {
@@ -747,6 +849,54 @@ mod tests {
         let share = n[1] as f64 / (n[1] + n[2]) as f64;
         assert!((share - 0.75).abs() < 0.03, "share {share}");
         assert!((t.balance().in_water - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn channels_another_reach_tracks_take_their_share_as_handed_on() {
+        // As the split above, but channel 2 (a quarter of the flow) is tracked by
+        // another reach: its share is passed on at the junction, with its mass.
+        let mut t = split();
+        t.set_handoff(&[2]);
+        t.add_release(NetRelease {
+            at: Place::Channel(0, 0.0),
+            start: 0.0,
+            duration: 0.0,
+            mass: 1.0,
+            half_life: None,
+            parcels: 4000,
+        });
+        t.step_to(600.0);
+        let b = t.balance();
+        assert!((b.handed_on - 0.25).abs() < 0.03, "{b:?}");
+        assert!((b.in_water + b.handed_on - 1.0).abs() < 1e-9);
+        let handed = t.take_handed();
+        let mass: f64 = handed.iter().map(|h| h.mass).sum();
+        assert!((mass - b.handed_on).abs() < 1e-12);
+        let junction = t.topo.down[0];
+        assert!(handed
+            .iter()
+            .all(|h| h.node == junction && h.t > 0.0 && h.t <= 600.0));
+        assert!(t.take_handed().is_empty(), "each parcel is handed on once");
+        assert!(t
+            .parcels
+            .iter()
+            .all(|p| !matches!(p.place, Place::Channel(2, _))));
+    }
+
+    #[test]
+    fn a_parcel_handed_back_enters_the_networks_own_channel() {
+        let mut t = split();
+        t.set_handoff(&[2]);
+        t.step_to(60.0);
+        let junction = t.topo.down[0];
+        t.take_parcel(junction, 0.5, None);
+        assert_eq!(t.parcels.len(), 1);
+        // Water leaves the junction only by channels 1 and 2; 2 is the other reach's.
+        assert!(matches!(t.parcels[0].place, Place::Channel(1, x) if x == 0.0));
+        let b = t.balance();
+        assert!((b.released - 0.5).abs() < 1e-12 && (b.in_water - 0.5).abs() < 1e-12);
+        t.step_to(120.0);
+        assert!((t.balance().released - 0.5).abs() < 1e-12, "counted once");
     }
 
     #[test]

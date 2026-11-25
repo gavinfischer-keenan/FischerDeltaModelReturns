@@ -4,9 +4,12 @@
 // No drawing happens here.
 //
 // A region has a river reach (a line) and may have network reaches (a tidal
-// delta) and mesh reaches (a bay). Each has its own engine; they run in step. Parcels that pass the end
-// of the river are handed to the network at the junction the index names
-// (specification 7.4), at the moment they arrived, with their mass.
+// delta) and mesh reaches (a bay). Each has its own engine; they run in step,
+// a few minutes of model time at a time, and pass parcels between them where
+// the index joins them (specification 7.4): from the river's end into a
+// network at a junction; between a network and a mesh both ways, where the
+// mesh covers some of the network's channels (index.json `handoffs`). Each
+// parcel belongs to one reach at a time, with its mass, so the total balances.
 
 import init, { Engine, MeshEngine, NetworkEngine } from "./pkg/fdmr_wasm.js";
 import type { Frame, MeshFrame, NetworkFrame, Reply, Request, Words } from "../compute-interface/messages";
@@ -18,11 +21,25 @@ interface ReachEntry {
   dims?: number;
   time?: { days: string[] };
 }
+interface Junction {
+  node: number;
+  element: number;
+  fraction: number;
+  x: number;
+  y: number;
+}
+interface Handoff {
+  from: string;
+  to: string;
+  node?: number;
+  owned?: number[];
+  junctions?: Junction[];
+}
 interface Index {
   time: { start: string; step_s: number; days: string[] };
   now: string;
   reaches: ReachEntry[];
-  handoffs?: { from: string; to: string; node: number }[];
+  handoffs?: Handoff[];
 }
 interface LineGeometry {
   elements: { start_m: number; end_m: number }[];
@@ -83,6 +100,9 @@ const MESH_PARTICLES = 5_000;
 // averaged-out vertical shear would cause (Elder's 5.93 H u*, about 3 m²/s for
 // 10 m of water and u* = 0.05 m/s, along the flow).
 const MESH_DIFFUSIVITY = 2;
+// Reaches pass parcels to each other this often, s of model time. A parcel
+// handed back waits at most this long at the join.
+const EXCHANGE_S = 300;
 
 let engine: Engine | null = null;
 let days: Uint8Array[] = [];
@@ -94,6 +114,11 @@ let certainty: number[] = [];
 let start = 0;
 let step = 900;
 let now = 0;
+let index: Index | null = null;
+let riverId = "river";
+/** Mass passed into another reach since the engines were built, kg: counted
+ * there as released, so taken off the total once. */
+let handedIn = 0;
 
 interface Net {
   id: string;
@@ -113,8 +138,6 @@ interface Net {
   /** Channel where parcels from the river enter, if this network takes them. */
   entry: number | null;
   releases: NetRelease[];
-  /** Parcels handed on from the river, replayed with it. */
-  handed: NetRelease[];
   engine: NetworkEngine | null;
 }
 const nets: Net[] = [];
@@ -128,6 +151,8 @@ interface Mesh {
   open: Uint32Array;
   handoff: Uint32Array;
   handoffId: Uint32Array;
+  /** The reach each handoff id leads to. */
+  handoffTo: string[];
   days: Uint8Array[];
   releases: MeshRelease[];
   engine: MeshEngine | null;
@@ -142,69 +167,36 @@ const bytes = async (url: string): Promise<Uint8Array | null> => {
   return r.ok ? new Uint8Array(await r.arrayBuffer()) : null;
 };
 const present = (list: (Uint8Array | null)[]): Uint8Array[] => list.filter((b): b is Uint8Array => b !== null);
+const hl = (h: number | null) => h ?? NaN;
 
 async function open(cycle: string, reach: string, n: number): Promise<void> {
   await init();
-  const [index, geometry] = (await Promise.all([
+  const [ix, geometry] = (await Promise.all([
     fetch(`${cycle}/index.json`).then((r) => r.json()),
     fetch(`${cycle}/geometry/${reach}.json`).then((r) => r.json()),
   ])) as [Index, LineGeometry];
+  index = ix;
+  riverId = reach;
   starts = Float64Array.from(geometry.elements.map((e) => e.start_m));
   ends = Float64Array.from(geometry.elements.map((e) => e.end_m));
-  days = present(await Promise.all(index.time.days.map((d) => bytes(`${cycle}/${reach}/${d}.fdf`))));
+  days = present(await Promise.all(ix.time.days.map((d) => bytes(`${cycle}/${reach}/${d}.fdf`))));
   particles = n;
-  now = epoch(index.now);
-  start = epoch(index.time.start);
-  step = index.time.step_s;
-  certainty = index.reaches.find((x) => x.id === reach)?.certainty ?? [1];
+  now = epoch(ix.now);
+  start = epoch(ix.time.start);
+  step = ix.time.step_s;
+  certainty = ix.reaches.find((x) => x.id === reach)?.certainty ?? [1];
   build(now);
   const end = start + (certainty.length - 1) * step; // the last published step
-  const netReaches = index.reaches.filter((r) => r.network);
-  const meshReaches = index.reaches.filter((r) => r.dims === 2);
+  const netReaches = ix.reaches.filter((r) => r.network);
+  const meshReaches = ix.reaches.filter((r) => r.dims === 2);
   post({ type: "ready", start, end, now, length: engine!.length(), certainty, step, networks: netReaches.map((r) => r.id), meshes: meshReaches.map((r) => r.id) });
   frame();
   // Network and mesh reaches load in the background: the river is ready to play first.
-  for (const r of netReaches) {
-    const node = index.handoffs?.find((h) => h.from === reach && h.to === r.id)?.node ?? null;
-    void loadNetwork(cycle, r.id, r.time?.days ?? index.time.days, node);
-  }
-  for (const r of meshReaches) void loadMesh(cycle, r.id, r.time?.days ?? index.time.days);
+  for (const r of netReaches) void loadNetwork(cycle, r.id, r.time?.days ?? ix.time.days);
+  for (const r of meshReaches) void loadMesh(cycle, r.id, r.time?.days ?? ix.time.days);
 }
 
-async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<void> {
-  const g = (await fetch(`${cycle}/geometry/${id}.json`).then((r) => r.json())) as MeshGeometry;
-  const handoffs = Object.entries(g.edges).filter(([k]) => k !== "open");
-  const m: Mesh = {
-    id,
-    x: Float64Array.from(g.x),
-    y: Float64Array.from(g.y),
-    depth: Float64Array.from(g.depth_m),
-    triangles: Uint32Array.from(g.triangles.flat()),
-    open: Uint32Array.from((g.edges.open ?? []).flat()),
-    handoff: Uint32Array.from(handoffs.flatMap(([, es]) => es.flat())),
-    handoffId: Uint32Array.from(handoffs.flatMap(([, es], k) => es.map(() => k))),
-    days: present(await Promise.all(meshDays.map((d) => bytes(`${cycle}/${id}/${d}.fdf`)))),
-    releases: [],
-    engine: null,
-  };
-  meshes.push(m);
-  buildMesh(m, engine ? engine.time() : now);
-  frame();
-}
-
-/** A fresh mesh engine at time t, with its releases replayed. */
-function buildMesh(m: Mesh, t: number): void {
-  m.engine?.free();
-  const first = Math.min(t, ...m.releases.map((r) => r.start));
-  const e = new MeshEngine(m.x, m.y, m.depth, m.triangles, m.open, m.handoff, m.handoffId, first, 2028, MESH_DIFFUSIVITY);
-  for (const b of m.days) e.load_day(b);
-  for (const r of m.releases) e.add_release(r.triangle, r.w1, r.w2, r.start, r.duration, r.mass, r.halfLife ?? NaN, r.parcels);
-  e.step_to(t);
-  e.seed_flow_particles(MESH_PARTICLES);
-  m.engine = e;
-}
-
-async function loadNetwork(cycle: string, id: string, netDays: string[], entryNode: number | null): Promise<void> {
+async function loadNetwork(cycle: string, id: string, netDays: string[]): Promise<void> {
   const g = (await fetch(`${cycle}/geometry/${id}.json`).then((r) => r.json())) as NetworkGeometry;
   const nodeIndex = new Map(g.nodes.map((n, i) => [n.id, i]));
   const poolIndex = new Map((g.pools ?? []).map((p, i) => [p.id, i]));
@@ -214,8 +206,9 @@ async function loadNetwork(cycle: string, id: string, netDays: string[], entryNo
       Promise.all(netDays.map((d) => bytes(`${cycle}/${id}/${d}${suffix}.fdf`))).then(present),
     ),
   );
-  const entry = entryNode === null ? -1 : g.elements.findIndex((e) => e.up === entryNode);
-  const net: Net = {
+  const entryNode = index?.handoffs?.find((h) => h.from === riverId && h.to === id)?.node;
+  const entry = entryNode === undefined ? -1 : g.elements.findIndex((e) => e.up === entryNode);
+  nets.push({
     id,
     topo: {
       up: Uint32Array.from(g.elements.map((e) => ix(e.up))),
@@ -232,69 +225,129 @@ async function loadNetwork(cycle: string, id: string, netDays: string[], entryNo
     linkDays,
     entry: entry >= 0 ? entry : null,
     releases: [],
-    handed: [],
     engine: null,
-  };
-  nets.push(net);
-  // Hand on what the river has already passed on, then catch up.
+  });
+  // Play the river's (and any other reach's) handoffs into it from the start.
   build(engine ? engine.time() : now);
   frame();
 }
 
-/** A fresh network engine at time t, with its releases and handed-on parcels replayed. */
-function buildNet(net: Net, t: number): void {
-  net.engine?.free();
-  const all = [...net.releases, ...net.handed];
-  const first = Math.min(t, ...all.map((r) => r.start));
-  const T = net.topo;
-  const e = new NetworkEngine(T.up, T.down, T.length, T.nodes, T.sea, T.pools, T.linkPool, T.linkNode, first, 2027, NETWORK_DISPERSION);
-  for (const b of net.channels) e.load_channels(b);
-  for (const b of net.nodeDays) e.load_nodes(b);
-  for (const b of net.linkDays) e.load_links(b);
-  for (const r of all) {
-    e.add_release(r.element, r.fraction, T.length[r.element], r.start, r.duration, r.mass, r.halfLife ?? NaN, r.parcels);
-  }
-  e.step_to(t);
-  e.seed_flow_particles(NETWORK_PARTICLES);
-  net.engine = e;
+async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<void> {
+  const g = (await fetch(`${cycle}/geometry/${id}.json`).then((r) => r.json())) as MeshGeometry;
+  const handoffs = Object.entries(g.edges).filter(([k]) => k !== "open");
+  meshes.push({
+    id,
+    x: Float64Array.from(g.x),
+    y: Float64Array.from(g.y),
+    depth: Float64Array.from(g.depth_m),
+    triangles: Uint32Array.from(g.triangles.flat()),
+    open: Uint32Array.from((g.edges.open ?? []).flat()),
+    handoff: Uint32Array.from(handoffs.flatMap(([, es]) => es.flat())),
+    handoffId: Uint32Array.from(handoffs.flatMap(([, es], k) => es.map(() => k))),
+    handoffTo: handoffs.map(([k]) => k),
+    days: present(await Promise.all(meshDays.map((d) => bytes(`${cycle}/${id}/${d}.fdf`)))),
+    releases: [],
+    engine: null,
+  });
+  build(engine ? engine.time() : now);
+  frame();
 }
 
-/** Parcels the river engine passed on since last asked, as releases into each network that takes them. */
-function handOn(): NetRelease[] {
-  if (!engine) return [];
-  const out = engine.take_outflow();
-  const list: NetRelease[] = [];
-  for (let i = 0; i + 2 < out.length; i += 3) {
-    list.push({ element: 0, fraction: 0, start: out[i], duration: 0, mass: out[i + 1], halfLife: Number.isNaN(out[i + 2]) ? null : out[i + 2], parcels: 1 });
-  }
-  return list;
+/** The join between a network and a mesh, when both are loaded. */
+function join(net: Net, mesh: Mesh): Handoff | undefined {
+  return index?.handoffs?.find((h) => h.from === net.id && h.to === mesh.id && h.junctions);
 }
 
-function giveTo(nets_: Net[], handed: NetRelease[], live: boolean): void {
-  for (const net of nets_) {
-    if (net.entry === null) continue;
-    for (const h of handed) {
-      const r = { ...h, element: net.entry };
-      net.handed.push(r);
-      if (live) net.engine?.add_release(r.element, 0, net.topo.length[r.element], r.start, 0, r.mass, r.halfLife ?? NaN, 1);
-    }
-  }
-}
-
-/** Fresh engines at time t, with every release replayed up to t. */
+/** Fresh engines at time t: every release replayed from its start, the reaches
+ * run together and passing parcels as they go. */
 function build(t: number): void {
   engine?.free();
-  const first = Math.min(t, ...riverReleases.map((r) => r.start), ...nets.flatMap((n) => n.releases.map((r) => r.start)));
+  for (const net of nets) net.engine?.free();
+  for (const m of meshes) m.engine?.free();
+  const first = Math.min(
+    t,
+    ...riverReleases.map((r) => r.start),
+    ...nets.flatMap((n) => n.releases.map((r) => r.start)),
+    ...meshes.flatMap((m) => m.releases.map((r) => r.start)),
+  );
   const e = new Engine(starts, ends, first, 2026);
   for (const d of days) e.load_day(d);
-  for (const r of riverReleases) e.add_release(r.x, r.start, r.duration, r.mass, r.halfLife ?? NaN, PARCELS_PER_RELEASE);
+  for (const r of riverReleases) e.add_release(r.x, r.start, r.duration, r.mass, hl(r.halfLife), PARCELS_PER_RELEASE);
   engine = e;
-  e.step_to(t);
-  for (const net of nets) net.handed = [];
-  giveTo(nets, handOn(), false);
+  for (const net of nets) {
+    const T = net.topo;
+    const ne = new NetworkEngine(T.up, T.down, T.length, T.nodes, T.sea, T.pools, T.linkPool, T.linkNode, first, 2027, NETWORK_DISPERSION);
+    for (const b of net.channels) ne.load_channels(b);
+    for (const b of net.nodeDays) ne.load_nodes(b);
+    for (const b of net.linkDays) ne.load_links(b);
+    for (const r of net.releases) ne.add_release(r.element, r.fraction, T.length[r.element], r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
+    const owned = index?.handoffs?.filter((h) => h.from === net.id && h.owned && meshes.some((m) => m.id === h.to)).flatMap((h) => h.owned!) ?? [];
+    ne.set_handoff(Uint32Array.from(owned));
+    net.engine = ne;
+  }
+  for (const m of meshes) {
+    const me = new MeshEngine(m.x, m.y, m.depth, m.triangles, m.open, m.handoff, m.handoffId, first, 2028, MESH_DIFFUSIVITY);
+    for (const b of m.days) me.load_day(b);
+    for (const r of m.releases) me.add_release(r.triangle, r.w1, r.w2, r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
+    m.engine = me;
+  }
+  handedIn = 0;
+  run(t);
   e.seed_flow_particles(particles);
-  for (const net of nets) buildNet(net, t);
-  for (const m of meshes) buildMesh(m, t);
+  for (const net of nets) net.engine!.seed_flow_particles(NETWORK_PARTICLES);
+  for (const m of meshes) m.engine!.seed_flow_particles(MESH_PARTICLES);
+}
+
+/** Run every reach on to `to` together, passing parcels across every join. */
+function run(to: number): void {
+  if (!engine) return;
+  while (engine.time() < to) {
+    const t = Math.min(to, engine.time() + EXCHANGE_S);
+    engine.step_to(t);
+    // The river's end into the networks that take it.
+    const out = engine.take_outflow();
+    for (const net of nets) {
+      if (net.entry === null) continue;
+      for (let i = 0; i + 2 < out.length; i += 3) {
+        net.engine!.add_release(net.entry, 0, net.topo.length[net.entry], out[i], 0, out[i + 1], out[i + 2], 1);
+        handedIn += out[i + 1];
+      }
+    }
+    // Networks on, then into the meshes that track some of their channels.
+    for (const net of nets) {
+      net.engine!.step_to(t);
+      const h = net.engine!.take_handed(); // (junction, time, mass, half-life) ...
+      for (const m of meshes) {
+        const j = join(net, m);
+        if (!j) continue;
+        for (let i = 0; i + 3 < h.length; i += 4) {
+          const at = j.junctions!.find((x) => x.node === h[i]);
+          if (at && m.engine!.take_parcel(at.x, at.y, h[i + 2], h[i + 1], h[i + 3])) handedIn += h[i + 2];
+        }
+      }
+    }
+    // Meshes on, then back into the networks at the nearest junction of the join.
+    for (const m of meshes) {
+      m.engine!.step_to(t);
+      const h = m.engine!.take_handed(); // (handoff id, x, y, time, mass, half-life) ...
+      for (let i = 0; i + 5 < h.length; i += 6) {
+        const net = nets.find((n) => n.id === m.handoffTo[h[i]]);
+        const j = net && join(net, m);
+        if (!net || !j || !j.junctions!.length) continue;
+        let best = j.junctions![0];
+        let d = Infinity;
+        for (const x of j.junctions!) {
+          const dd = (x.x - h[i + 1]) ** 2 + (x.y - h[i + 2]) ** 2;
+          if (dd < d) {
+            d = dd;
+            best = x;
+          }
+        }
+        net.engine!.take_parcel(best.node, h[i + 4], h[i + 5]);
+        handedIn += h[i + 4];
+      }
+    }
+  }
 }
 
 function advance(to: number): void {
@@ -303,10 +356,7 @@ function advance(to: number): void {
     build(to);
     return;
   }
-  engine.step_to(to);
-  giveTo(nets, handOn(), true);
-  for (const net of nets) net.engine?.step_to(to);
-  for (const m of meshes) m.engine?.step_to(to);
+  run(to);
 }
 
 /** Certainty at time t. One reach, and certainty never rises with time, so a
@@ -322,19 +372,19 @@ function words(c: number, t: number): Words {
   return c >= 0.5 ? "forecast" : "rough_guide";
 }
 
-/** Every reach's mass balance together (see Frame.massBalance). */
+/** Every reach's mass balance together (see Frame.massBalance). Mass passed
+ * from one reach to another is counted as released once. */
 function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Float64Array {
   const [rReleased, rIn, rPast, rDecayed] = engine!.mass_balance();
   const taken = nets.some((n) => n.entry !== null && n.engine);
   const out = new Float64Array(8);
-  out[0] = rReleased;
+  out[0] = rReleased - handedIn;
   out[1] = rIn;
   out[2] = taken ? 0 : rPast; // handed on, it is counted in the network instead
   out[3] = rDecayed;
   for (const n of networks) {
     const [released, inWater, exported, diverted, toSea, decayed] = n.massBalance;
-    const handed = nets.find((x) => x.id === n.id)?.handed.reduce((s, h) => s + (h.start <= engine!.time() ? h.mass : 0), 0) ?? 0;
-    out[0] += Math.max(0, released - handed);
+    out[0] += released;
     out[1] += inWater;
     out[3] += decayed;
     out[4] += exported;

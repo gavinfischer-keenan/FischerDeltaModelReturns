@@ -17,7 +17,11 @@ export class NetworkPlace {
   private poolCentre: [number, number][];
   private poolRadiusM: number[];
 
-  constructor(readonly id: string, readonly geometry: NetworkGeometry) {
+  /** Channels another reach tracks (a mesh covers them): not drawn, not offered for releases. */
+  readonly hidden: Set<number>;
+
+  constructor(readonly id: string, readonly geometry: NetworkGeometry, hidden: number[] = []) {
+    this.hidden = new Set(hidden);
     this.cum = geometry.lines.map(cumulative);
     const at = new Map(geometry.nodes.map((n) => [n.id, [n.lon, n.lat] as [number, number]]));
     this.poolCentre = (geometry.pools ?? []).map((p) => {
@@ -49,6 +53,7 @@ export class NetworkPlace {
   nearest(lon: number, lat: number): { element: number; fraction: number; metres: number } {
     let best = { element: 0, fraction: 0, metres: Infinity };
     this.geometry.lines.forEach((line, e) => {
+      if (this.hidden.has(e)) return;
       const c = this.cum[e];
       line.forEach((p, i) => {
         const d = metres(p, [lon, lat]);
