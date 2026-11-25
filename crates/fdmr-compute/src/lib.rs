@@ -12,7 +12,9 @@
 use fdmr_format::{FieldFile, FormatError};
 use fdmr_math::{decay, parcel, rng::Rng};
 
+pub mod mesh;
 pub mod network;
+mod series;
 
 /// Largest time step the engine takes, s.
 pub const MAX_DT: f64 = 60.0;

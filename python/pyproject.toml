@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Fischer Delta Model Returns: model runner, model-kind plug-ins, data adapters and local data store"
 requires-python = ">=3.11"
 license = { text = "PolyForm-Noncommercial-1.0.0" }
-dependencies = ["h5py>=3.12", "pyshp>=2.3"]  # DSM2 output (HDF5) and grid (shapefiles)
+dependencies = ["h5py>=3.12", "pyshp>=2.3", "scipy>=1.11"]  # DSM2 and NOAA output (HDF5), DSM2 grid (shapefiles), mesh coarsening
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
@@ -14,7 +14,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["fdmr_store", "fdmr_adapters", "fdmr_runner", "fdmr_plugins", "fdmr_plugins.river_routing", "fdmr_plugins.dsm2"]
+packages = ["fdmr_store", "fdmr_adapters", "fdmr_runner", "fdmr_plugins", "fdmr_plugins.river_routing", "fdmr_plugins.dsm2", "fdmr_plugins.fvcom"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

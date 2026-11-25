@@ -5,9 +5,12 @@
 #   cycle.sh hourly    gauges and forecasts, then publish
 #   cycle.sh nightly   the same, plus channel measurements and recalibration
 #   cycle.sh delta     the same as hourly, plus a DSM2 run for every region that
-#                      has one (regions/<id>/dsm2.toml), every 6 hours
+#                      has one (regions/<id>/dsm2.toml) and NOAA's latest Bay
+#                      forecast for every region with a bay (regions/<id>/bay.toml),
+#                      every 6 hours
 #
-# Every publish includes the region's latest DSM2 run as its own reach. A
+# Every publish includes the region's latest DSM2 run and Bay forecast as reaches
+# of their own. A
 # region's failure does not stop the next one. A cycle still running when the
 # next is due makes the next one wait its turn (flock).
 set -u
@@ -43,8 +46,14 @@ for region in $REGIONS; do
     "$PY" -m fdmr_runner.delta "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$delta/runs" \
       --publish "$delta/published" || status=1
   fi
+  bay="$DATA/bay/$region"
+  if [ "$MODE" = delta ] && [ -f "$ROOT/regions/$region/bay.toml" ]; then
+    echo "== $region: Bay (NOAA)"
+    mkdir -p "$bay/published"
+    "$PY" -m fdmr_runner.bay "$ROOT/regions/$region" "$bay" --publish "$bay/published" || status=1
+  fi
   echo "== $region: publish"
   "$PY" -m fdmr_runner.publish "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$DATA/publish/$region" \
-    --calibration "$DATA/calibration/$region.json" --with-reach "$delta/published/latest" || status=1
+    --calibration "$DATA/calibration/$region.json" --with-reach "$delta/published/latest"     --with-reach "$bay/published/latest" || status=1
 done
 exit $status

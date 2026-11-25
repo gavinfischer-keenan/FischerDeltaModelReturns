@@ -1,0 +1,35 @@
+# The Bay reach (specification 7.3): NOAA's San Francisco Bay forecast system
+# (SFBOFS, an FVCOM model), fetched each cycle, cut at Chipps Island and past
+# the Golden Gate, and coarsened for the compute engine. Data only.
+
+reach = "bay"
+ofs = "sfbofs"
+cycles = [3, 9, 15, 21]   # UTC hours of NOAA's cycles
+forecast_hours = 48       # each cycle's forecast reaches this far
+days_back = 14            # the past published, like the Delta's
+
+# The mesh: NOAA's triangles kept between these longitudes. East of
+# `east_of` is the Delta's (DSM2's), across the estuary at Chipps Island;
+# west of `west_of` is open ocean too far out to matter.
+[mesh]
+east_of = -121.915
+west_of = -122.75
+# Coarse node spacing: k times the size of NOAA's own triangles there, within
+# these limits (m). 2, 80 and 2500 give 5,317 nodes and 9,265 triangles over
+# 99% of NOAA's water area, with Carquinez Strait several triangles wide
+# (checked 25 Nov 2026); NOAA's mesh has 54,120 nodes.
+k = 2.0
+min_m = 80.0
+max_m = 2500.0
+
+# Edges where water leaves the Bay for the ocean: west of the Golden Gate and
+# deeper than the coast there.
+[mesh.open_sea]
+west_of = -122.52
+deeper_than_m = 15.0
+
+# Edges on the cut at Chipps Island hand over to the Delta (region.toml's
+# delta-to-bay handoff).
+[[mesh.handoffs]]
+id = "delta"
+east_of = -121.925

@@ -109,6 +109,28 @@ Each day of a network reach then has two more field files beside `<day>.fdf`:
 - **`<day>.links.fdf`** has one element per link. Its `flow` field (m3/s) is positive from the pool to its junction.
 - **`<day>.quality.fdf`** has one element per channel, like `<day>.fdf`, and holds water-quality fields: `ec` (uS/cm), `salinity` (psu), `temperature` (degC) and `source:<name>` (shares, 0 to 1). The reach's index entry lists them as `quality_fields`. They live in their own file so that moving parcels does not mean downloading them; a reader loads it only to show them. A `.nodes.fdf` may also carry each pool's `ec`.
 
+### Mesh geometry (2D, version 1.1)
+
+A 2D reach is a triangular mesh, such as the Bay's (from NOAA's forecast, coarsened). Its geometry file:
+
+```json
+{
+  "reach": "bay", "dims": 2,
+  "lon": [-122.48, ...], "lat": [37.81, ...],
+  "x": [1960123.4, ...], "y": [631234.5, ...],
+  "depth_m": [12.3, ...],
+  "triangles": [[0, 1, 2], ...],
+  "edges": { "open": [[4, 9], ...], "delta": [[5310, 5311], ...] }
+}
+```
+
+- `lon`, `lat`: each node, for drawing. `x`, `y` (m): the same nodes in a planar projection (the source model's own), for moving parcels.
+- `depth_m`: still-water depth at each node, positive down, on the datum of the `level` field.
+- `triangles`: node triples, counter-clockwise in `x`, `y`.
+- `edges`: boundary edges that are not land, as node pairs: `open` where water leaves to the open sea, and one list per handoff, named by the reach it hands to. Every other boundary edge is land.
+
+Each day's `<day>.fdf` has one element per node, `u` and `v` (m/s, depth-averaged, east and north) and `level` (m), all linear within each triangle. `<day>.quality.fdf` holds `temperature` (degC) and `salinity` (psu), depth-averaged. A 2D reach's steps may differ from the other reaches' (the Bay's are hourly, as NOAA publishes them), and it may end sooner: its entry in `index.json` carries its own `time`.
+
 ### Handoffs between reaches (version 1.1)
 
 `index.json` may list where parcels leaving one reach enter the next:
