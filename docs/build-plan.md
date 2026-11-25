@@ -149,7 +149,7 @@ flowchart LR
   D["Letters to DWR, from day one"] --> P2
 ```
 
-- Phase 1 does not depend on DSM2 or NOAA, so it can start while Phase 0 is still running.
+- Phase 1 starts alongside Phase 0 (decided). It does not depend on DSM2 or NOAA, so nothing waits for the Phase 0 report except Phases 2 and 3.
 - Phase 2 cannot start until Phase 0 has DSM2 running and the Delta geometry in hand.
 - Phase 3 needs at least a month of Bay archive, which is why archiving starts on day one.
 
@@ -172,6 +172,6 @@ flowchart LR
 
 1. Decisions 3 to 5 in section 2: keep as recommended? Decision 6 needs a description of how tripofisch.com is hosted today.
 2. Answered: you send the one DWR letter in section 3.
-3. Should Phase 1 start alongside Phase 0, or wait for the Phase 0 report?
+3. Answered: Phase 1 starts alongside Phase 0.
 4. What counts as launch: a public link on tripofisch.com, or a quiet period with invited users first?
 5. Where should the development address live while we build: on your hardware, or somewhere private?
