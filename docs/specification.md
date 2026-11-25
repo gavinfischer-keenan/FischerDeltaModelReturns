@@ -186,7 +186,7 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 
 ### 3.9 Out of scope for version 1
 
-- Oil and other floating spills; sediment-bound or sinking material.
+- Oil and other floating spills; sediment-bound or sinking material. Floating spills in floods are planned in section 3.11, and sediment in section 3.12.
 - Chemical reactions other than a steady half-life.
 - The heat or salt a release itself carries: a release does not change the water's temperature or salinity.
 - Wind effects on the Bay beyond NOAA's own forecast.
@@ -269,6 +269,28 @@ The flood map and the floodplain model are checked against FEMA flood zones, the
 - The published format already has a water level field slot (section 8.3) and a depth axis.
 - Weir connections, pools and what-ifs exist from version 1 (section 7.6), so floodplain spills reuse them.
 - The floodplain is a model kind, like any other, so the tracer engine and display need no changes to draw water on land.
+
+### 3.12 Planned after launch: sediment transport
+
+*A placeholder, to be filled in much more.* Rivers move sand, silt and clay as well as water. Sediment clouds the water, settles in quiet places, is scoured out again in floods, and builds or starves the Delta's marshes and the Bay's mudflats. Much of a pollutant can ride on it instead of dissolving.
+
+**What the user might see.**
+
+- Where sediment is carried, settles and is scoured out along the river, through the Delta and into the Bay.
+- How cloudy the water is, compared with measured turbidity.
+- A pollutant that sticks to particles, such as some metals and organic chemicals, carried and settled with the sediment rather than with the water.
+- In a flood (section 3.11), the large loads a storm carries, and where they settle as the water spreads and slows.
+
+**People.** Catherine Vaningen (*spelling to confirm*) was a professor at UC Berkeley, a colleague of the owner's father, and worked in this area. Her published work is to be found and, where it fits, built in and credited, as with Fischer's (section 2).
+
+**Likely data** (*to confirm*): USGS suspended sediment concentration and turbidity at river and Delta gauges; CDEC turbidity stations; USGS sediment studies of the Delta and the Bay.
+
+**Planned for now, built later.** Version 1 leaves room for it:
+
+- Each parcel already carries a phase field (section 3.10), always "dissolved" in version 1. Particle-bound pollutants use it.
+- The river model already computes shear velocity for every element (section 7.1), which is what sets whether a bed is scoured or settled on.
+- Measured turbidity is already a station overlay in version 1 (section 3.5).
+- Sediment would be a plug-in, like the other model kinds (section 4.1).
 
 ## 4. Engineering: architecture
 
@@ -900,6 +922,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
 - What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. When the whole server has been quiet for a sustained stretch, the model runner also works through the menu in spare time; visitors always come first. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
+- Sediment transport is planned for after launch: carried, settled and scoured sediment, turbidity, and particle-bound pollutants. It is to include Catherine Vaningen's work, as described in section 3.12.
 - River levels and floods are planned for after launch, not version 1. That means level against flood stage, flood maps, and water on the floodplain, for snowmelt, extreme rain, big dam releases and dam or levee failures, and their effect on flow and Delta salinity. See section 3.11.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.

@@ -61,7 +61,10 @@ pub fn cross_correlation_peak(
     let max_lag = max_lag_steps.min(n.saturating_sub(2));
     let m = n - max_lag;
     let pearson = |a: &[f64], b: &[f64]| {
-        let (ma, mb) = (a.iter().sum::<f64>() / m as f64, b.iter().sum::<f64>() / m as f64);
+        let (ma, mb) = (
+            a.iter().sum::<f64>() / m as f64,
+            b.iter().sum::<f64>() / m as f64,
+        );
         let (mut sab, mut saa, mut sbb) = (0.0, 0.0, 0.0);
         for (x, y) in a.iter().zip(b) {
             sab += (x - ma) * (y - mb);
@@ -137,7 +140,7 @@ mod tests {
         let down = gaussian(400, step, 91_000.0, 5_000.0, 100.0);
         let (_, strong) = cross_correlation_peak(&up, &down, step, 100).unwrap();
         // The same pulse against an unrelated wiggle.
-        let noise: Vec<f64> = (0..400).map(|i| ((i * 7919 % 97) as f64).sin()).collect();
+        let noise: Vec<f64> = (0..400).map(|i| f64::from(i * 7919 % 97).sin()).collect();
         let (_, weak) = cross_correlation_peak(&up, &noise, step, 100).unwrap();
         assert!(strong > 0.95, "strong {strong}");
         assert!(weak < 0.5, "weak {weak}");

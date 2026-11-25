@@ -128,6 +128,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 In no fixed order:
 - bioaccumulation
 - custom what-ifs
+- sediment transport, including Catherine Vaningen's work (spec section 3.12)
 - river levels and floods: flood stage, flood maps, floodplain flow, snowmelt, storm and dam-failure what-ifs (spec section 3.11), including flood spill into the bypasses
 - ensemble spread
 - the 1D tidal model decision
