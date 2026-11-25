@@ -49,5 +49,9 @@
   "source_sjr": "San Joaquin",
   "source_east": "Eastside rivers",
   "source_sea": "The sea",
-  "source_ag": "Farm drainage"
+  "source_ag": "Farm drainage",
+  "flow_as": "Show the flow as",
+  "flow_moment": "Moment by moment",
+  "flow_net": "Net flow",
+  "flow_net_note": "The particles move on the flow averaged over the tides (Godin's filter: running means over 24, 24 and 25 hours), so they show where the water is actually going over a day. A release still moves with the real tide."
 }

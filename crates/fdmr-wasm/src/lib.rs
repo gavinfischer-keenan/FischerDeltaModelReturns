@@ -307,6 +307,12 @@ impl NetworkEngine {
         self.core.drift_frozen(dt);
     }
 
+    /// Show the flow as net flow (tides filtered out) or moment by moment.
+    /// Only the flow particles change; parcels keep the real flow.
+    pub fn set_net_flow(&mut self, on: bool) {
+        self.core.set_net_flow(on);
+    }
+
     #[must_use]
     pub fn time(&self) -> f64 {
         self.core.time()
@@ -504,6 +510,12 @@ impl MeshEngine {
 
     pub fn drift_frozen(&mut self, dt: f64) {
         self.core.drift_frozen(dt);
+    }
+
+    /// Show the flow as net flow (tides filtered out) or moment by moment.
+    /// Only the flow particles change; parcels keep the real flow.
+    pub fn set_net_flow(&mut self, on: bool) {
+        self.core.set_net_flow(on);
     }
 
     #[must_use]

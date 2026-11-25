@@ -129,6 +129,10 @@ pub struct NetworkTracer {
     quality: Series,
     nodes: Series,
     links: Series,
+    /// Tidally filtered copies of the channel, junction and link files, which
+    /// the flow particles move on in net-flow mode; built by `set_net_flow`.
+    net: Option<[Series; 3]>,
+    net_on: bool,
     dispersion: f64,
     time: f64,
     rng: Rng,
@@ -169,6 +173,8 @@ impl NetworkTracer {
             nodes: Series::default(),
             quality: Series::default(),
             links: Series::default(),
+            net: None,
+            net_on: false,
             dispersion,
             time: start_time,
             rng: Rng::new(seed),
@@ -253,6 +259,7 @@ impl NetworkTracer {
     /// # Errors
     /// If the file is not a network channel file for this topology.
     pub fn load_channels(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
+        self.net = None;
         self.channels
             .load_day(bytes, &["flow_up", "flow_down", "area"])?;
         if self.channels.elements != self.topo.up.len() {
@@ -268,6 +275,7 @@ impl NetworkTracer {
     /// # Errors
     /// If the file is not a junction file for this topology.
     pub fn load_nodes(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
+        self.net = None;
         self.nodes
             .load_day(bytes, &["export", "withdrawal", "volume"])?;
         if self.nodes.elements != self.topo.nodes + self.topo.pools {
@@ -326,6 +334,7 @@ impl NetworkTracer {
     /// # Errors
     /// If the file is not a link file for this topology.
     pub fn load_links(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
+        self.net = None;
         self.links.load_day(bytes, &["flow"])?;
         if self.links.elements != self.topo.link_pool.len() {
             return Err(FormatError::Invalid(
@@ -375,17 +384,52 @@ impl NetworkTracer {
         self.balance = NetBalance::default();
     }
 
+    /// Show the flow as net flow (`true`: the flow particles move on the flow
+    /// with the tides filtered out) or moment by moment (`false`). Parcels
+    /// always move with the real, instant flow. The filtered copies are built
+    /// on first use and again after more days are loaded.
+    pub fn set_net_flow(&mut self, on: bool) {
+        self.net_on = on;
+        if on && self.net.is_none() {
+            self.net = Some([
+                self.channels.tidal_mean(),
+                self.nodes.tidal_mean(),
+                self.links.tidal_mean(),
+            ]);
+        }
+    }
+
+    /// The conditions the parcels move in: the real flow at `t`.
     fn conditions(&self, t: f64) -> Option<Now> {
+        self.conditions_in(t, &self.channels, &self.nodes, &self.links)
+    }
+
+    /// The conditions the flow particles move in: the real flow, or in
+    /// net-flow mode the tidally filtered flow.
+    fn particle_conditions(&self, t: f64) -> Option<Now> {
+        match (&self.net, self.net_on) {
+            (Some([c, n, l]), true) => self.conditions_in(t, c, n, l),
+            _ => self.conditions(t),
+        }
+    }
+
+    fn conditions_in(
+        &self,
+        t: f64,
+        channels: &Series,
+        nodes: &Series,
+        links: &Series,
+    ) -> Option<Now> {
         let (q_up, q_down, area) = (
-            self.channels.at(t, "flow_up")?,
-            self.channels.at(t, "flow_down")?,
-            self.channels.at(t, "area")?,
+            channels.at(t, "flow_up")?,
+            channels.at(t, "flow_down")?,
+            channels.at(t, "area")?,
         );
         let n = self.topo.nodes;
         let (export, withdrawal, volume) = match (
-            self.nodes.at(t, "export"),
-            self.nodes.at(t, "withdrawal"),
-            self.nodes.at(t, "volume"),
+            nodes.at(t, "export"),
+            nodes.at(t, "withdrawal"),
+            nodes.at(t, "volume"),
         ) {
             (Some(e), Some(w), Some(v)) => (e, w, v),
             _ => (
@@ -394,8 +438,7 @@ impl NetworkTracer {
                 vec![f64::NAN; n + self.topo.pools],
             ),
         };
-        let link_flow = self
-            .links
+        let link_flow = links
             .at(t, "flow")
             .unwrap_or_else(|| vec![0.0; self.topo.link_pool.len()]);
         let u = |q: &Vec<f64>| -> Vec<f64> {
@@ -598,7 +641,13 @@ impl NetworkTracer {
                 }
                 self.parcels[i] = Parcel { place, mass, ..p };
             }
-            self.move_particles(dt, &now);
+            if self.net_on {
+                if let Some(pnow) = self.particle_conditions(self.time + dt / 2.0) {
+                    self.move_particles(dt, &pnow);
+                }
+            } else {
+                self.move_particles(dt, &now);
+            }
             self.time += dt;
         }
     }
@@ -609,7 +658,7 @@ impl NetworkTracer {
         let mut left = dt;
         while left > 0.0 {
             let step = left.min(MAX_DT);
-            if let Some(now) = self.conditions(self.time) {
+            if let Some(now) = self.particle_conditions(self.time) {
                 self.move_particles(step, &now);
             }
             left -= step;
@@ -639,10 +688,11 @@ impl NetworkTracer {
         Place::Channel(0, 0.0)
     }
 
-    /// Each channel's mean velocity now, m/s, positive downstream; empty before the first day.
+    /// Each channel's mean velocity now, m/s, positive downstream (net of the
+    /// tides in net-flow mode, as the flow particles move); empty before the first day.
     #[must_use]
     pub fn velocities(&self) -> Vec<f32> {
-        let Some(now) = self.conditions(self.time) else {
+        let Some(now) = self.particle_conditions(self.time) else {
             return Vec::new();
         };
         #[allow(clippy::cast_possible_truncation)]
@@ -656,7 +706,7 @@ impl NetworkTracer {
     /// Seed `n` flow particles through the network, more where there is more water.
     pub fn seed_flow_particles(&mut self, n: usize) {
         self.particles.clear();
-        let Some(now) = self.conditions(self.time) else {
+        let Some(now) = self.particle_conditions(self.time) else {
             return;
         };
         for _ in 0..n {

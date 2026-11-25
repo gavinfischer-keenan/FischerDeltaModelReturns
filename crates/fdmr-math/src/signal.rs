@@ -100,9 +100,106 @@ pub fn cross_correlation_peak(
     Some((lag * step, peak))
 }
 
+/// Running mean over `w` samples, centred: sample `i` averages
+/// `x[i - w/2 ..= i - w/2 + w - 1]`. Within half a window of either end, where
+/// a full window does not fit, the nearest full-window value is held: a mean
+/// over a fragment of a tide is no mean. A series no longer than the window
+/// is its own mean throughout.
+#[must_use]
+pub fn running_mean_held(x: &[f64], w: usize) -> Vec<f64> {
+    let n = x.len();
+    let w = w.max(1);
+    if n <= w {
+        let m = if n == 0 {
+            0.0
+        } else {
+            x.iter().sum::<f64>() / n as f64
+        };
+        return vec![m; n];
+    }
+    let half = w / 2;
+    let mut out = vec![0.0; n];
+    let mut sum: f64 = x[..w].iter().sum();
+    out[half] = sum / w as f64;
+    // Each next window gains the sample after it and loses its first.
+    for (s, o) in out[half + 1..n - half].iter_mut().enumerate() {
+        sum += x[s + w] - x[s];
+        *o = sum / w as f64;
+    }
+    let (first, last) = (out[half], out[n - half - 1]);
+    out[..half].fill(first);
+    out[n - half..].fill(last);
+    out
+}
+
+/// The subtidal part of a series sampled `per_hour` times an hour: Godin's
+/// filter, running means over 24, 24 and 25 hours in turn, which takes out the
+/// diurnal and semidiurnal tides far more cleanly than one long running mean
+/// (Godin 1972, *The Analysis of Tides*, University of Toronto Press). The
+/// ends are held as [`running_mean_held`] holds them.
+#[must_use]
+pub fn godin(x: &[f64], per_hour: f64) -> Vec<f64> {
+    let mut m = x.to_vec();
+    for h in [24.0, 24.0, 25.0] {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let w = (h * per_hour).round().max(1.0) as usize;
+        m = running_mean_held(&m, w);
+    }
+    m
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn running_mean_matches_a_direct_sum_and_holds_the_ends() {
+        let x: Vec<f64> = (0..40).map(|i| f64::from(i * i % 13)).collect();
+        for w in [4, 5] {
+            let m = running_mean_held(&x, w);
+            let half = w / 2;
+            for i in half..x.len() - half {
+                let direct = x[i - half..i - half + w].iter().sum::<f64>() / w as f64;
+                assert!((m[i] - direct).abs() < 1e-12, "w {w} i {i}");
+            }
+            let same = |a: f64, b: f64| a.to_bits() == b.to_bits();
+            assert!(m[..half].iter().all(|&v| same(v, m[half])));
+            assert!(m[x.len() - half..]
+                .iter()
+                .all(|&v| same(v, m[x.len() - half - 1])));
+        }
+        assert_eq!(running_mean_held(&[1.0, 3.0], 5), vec![2.0, 2.0]);
+    }
+
+    #[test]
+    fn godin_takes_out_the_tides_and_keeps_the_mean_flow() {
+        // 15-minute samples over 20 days: a steady 250 plus the four main
+        // constituents (M2, S2, K1, O1, periods in hours), 1500 at their largest.
+        let per_hour = 4.0;
+        let tides = [
+            (12.4206, 900.0),
+            (12.0, 250.0),
+            (23.9345, 200.0),
+            (25.8193, 150.0),
+        ];
+        let x: Vec<f64> = (0..20 * 96)
+            .map(|i| {
+                let t = f64::from(i) / per_hour;
+                250.0
+                    + tides
+                        .iter()
+                        .map(|(p, a)| a * (std::f64::consts::TAU * t / p).sin())
+                        .sum::<f64>()
+            })
+            .collect();
+        let m = godin(&x, per_hour);
+        // Away from the held ends, the tide is gone to within 0.5% of its range.
+        let worst = m[4 * 96..16 * 96]
+            .iter()
+            .map(|v| (v - 250.0).abs())
+            .fold(0.0, f64::max);
+        assert!(worst < 7.5, "worst {worst}");
+    }
 
     fn gaussian(n: usize, step: f64, centre: f64, sd: f64, base: f64) -> Vec<f64> {
         (0..n)

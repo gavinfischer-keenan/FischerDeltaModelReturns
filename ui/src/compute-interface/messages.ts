@@ -25,7 +25,9 @@ export type Request = { seq?: number } & (
       halfLife: number | null; // s
     }
   | { type: "clear" }
-  | { type: "layer"; layer: Layer });
+  | { type: "layer"; layer: Layer }
+  /** Show the flow particles on the flow net over the tides, or moment by moment (spec 3.5). */
+  | { type: "flow"; net: boolean });
 
 /** A network reach at one moment. Positions are an element (a channel; pools
  * follow the channels, at `channels + pool`) and a fraction along it, 0 at its

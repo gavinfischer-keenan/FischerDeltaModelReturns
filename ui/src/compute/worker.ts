@@ -120,6 +120,8 @@ let now = 0;
 let index: Index | null = null;
 let cycleUrl = "";
 let layer: Layer = "plain";
+/** Flow particles on the tidally filtered flow (net flow) rather than the instant flow. */
+let netFlow = false;
 /** Water sources the networks carry shares of (from `source:<name>` fields). */
 let sources: string[] = [];
 let riverId = "river";
@@ -322,6 +324,7 @@ function build(t: number): void {
     for (const b of net.quality ?? []) ne.load_quality(b);
     const owned = index?.handoffs?.filter((h) => h.from === net.id && h.owned && meshes.some((m) => m.id === h.to)).flatMap((h) => h.owned!) ?? [];
     ne.set_handoff(Uint32Array.from(owned));
+    if (netFlow) ne.set_net_flow(true);
     net.engine = ne;
   }
   for (const m of meshes) {
@@ -329,6 +332,7 @@ function build(t: number): void {
     for (const b of m.days) me.load_day(b);
     for (const r of m.releases) me.add_release(r.triangle, r.w1, r.w2, r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
     for (const b of m.quality ?? []) me.load_quality(b);
+    if (netFlow) me.set_net_flow(true);
     m.engine = me;
   }
   handedIn = 0;
@@ -600,6 +604,12 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         build(engine ? engine.time() : r.start);
         break;
       }
+      case "flow":
+        netFlow = r.net;
+        // The river above the Delta has no tide: its flow is the same either way.
+        for (const net of nets) net.engine?.set_net_flow(netFlow);
+        for (const m of meshes) m.engine?.set_net_flow(netFlow);
+        break;
       case "layer":
         layer = r.layer;
         if (QUALITY_LAYERS.has(layer)) await loadQuality();

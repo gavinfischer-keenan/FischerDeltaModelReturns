@@ -41,6 +41,11 @@
     layer = l;
     engine.send({ type: "layer", layer: l });
   }
+  let netFlow = $state(false);
+  function setFlow(net: boolean) {
+    netFlow = net;
+    engine.send({ type: "flow", net });
+  }
   const nets: NetworkPlace[] = [];
   const meshes: MeshPlace[] = [];
   let placing = $state(false);
@@ -334,6 +339,12 @@
         {:else if layer === "plain"}
           <span class="unit">{text.legend_plain}</span>
         {/if}
+      </div>
+      <div class="layer">
+        <span>{text.flow_as}</span>
+        <label><input type="radio" name="flow" checked={!netFlow} onchange={() => setFlow(false)} /> {text.flow_moment}</label>
+        <label><input type="radio" name="flow" checked={netFlow} onchange={() => setFlow(true)} /> {text.flow_net}</label>
+        {#if netFlow}<span class="unit">{text.flow_net_note}</span>{/if}
       </div>
       <div class="updated">{text.updated}: {fmt(ready.now)}</div>
     </div>

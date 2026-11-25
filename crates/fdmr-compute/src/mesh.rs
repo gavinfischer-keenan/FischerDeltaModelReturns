@@ -132,6 +132,10 @@ pub struct MeshTracer {
     area2: Vec<f64>,
     grid: Grid,
     fields: Series,
+    /// A tidally filtered copy of the fields, which the flow particles move on
+    /// in net-flow mode; built by `set_net_flow`.
+    net: Option<Series>,
+    net_on: bool,
     /// Water-quality fields at the nodes (`<day>.quality.fdf`), loaded to be shown.
     quality: Series,
     diffusivity: f64,
@@ -201,6 +205,8 @@ impl MeshTracer {
             area2,
             grid,
             fields: Series::default(),
+            net: None,
+            net_on: false,
             quality: Series::default(),
             diffusivity,
             time: start_time,
@@ -217,6 +223,7 @@ impl MeshTracer {
     /// # Errors
     /// If the file is not a field file for this mesh.
     pub fn load_day(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
+        self.net = None;
         self.fields.load_day(bytes, &["u", "v", "level"])?;
         if self.fields.elements != self.topo.x.len() {
             return Err(FormatError::Invalid(
@@ -331,12 +338,36 @@ impl MeshTracer {
     /// The fields at `t`, or `None` outside the days held: past the end of the
     /// published forecast nothing moves, rather than moving on a frozen tide.
     fn conditions(&self, t: f64) -> Option<Now> {
-        if t > self.fields.end()? {
+        self.conditions_in(t, &self.fields)
+    }
+
+    /// Show the flow as net flow (`true`: the flow particles move on the
+    /// fields with the tides filtered out) or moment by moment (`false`).
+    /// Parcels always move with the real, instant flow. The filtered copy is
+    /// built on first use and again after more days are loaded.
+    pub fn set_net_flow(&mut self, on: bool) {
+        self.net_on = on;
+        if on && self.net.is_none() {
+            self.net = Some(self.fields.tidal_mean());
+        }
+    }
+
+    /// The conditions the flow particles move in: the real fields, or in
+    /// net-flow mode the tidally filtered ones.
+    fn particle_conditions(&self, t: f64) -> Option<Now> {
+        match (&self.net, self.net_on) {
+            (Some(net), true) => self.conditions_in(t, net),
+            _ => self.conditions(t),
+        }
+    }
+
+    fn conditions_in(&self, t: f64, fields: &Series) -> Option<Now> {
+        if t > fields.end()? {
             return None;
         }
-        let u = self.fields.at(t, "u")?;
-        let v = self.fields.at(t, "v")?;
-        let level = self.fields.at(t, "level")?;
+        let u = fields.at(t, "u")?;
+        let v = fields.at(t, "v")?;
+        let level = fields.at(t, "level")?;
         let h = self
             .topo
             .depth
@@ -554,7 +585,13 @@ impl MeshTracer {
                     ..p
                 };
             }
-            self.move_particles(dt, &now);
+            if self.net_on {
+                if let Some(pnow) = self.particle_conditions(self.time + dt / 2.0) {
+                    self.move_particles(dt, &pnow);
+                }
+            } else {
+                self.move_particles(dt, &now);
+            }
             self.time += dt;
         }
     }
@@ -564,7 +601,7 @@ impl MeshTracer {
         let mut left = dt;
         while left > 0.0 {
             let step = left.min(MAX_DT);
-            if let Some(now) = self.conditions(self.time) {
+            if let Some(now) = self.particle_conditions(self.time) {
                 self.move_particles(step, &now);
             }
             left -= step;
@@ -738,10 +775,11 @@ impl MeshTracer {
             .collect()
     }
 
-    /// Each flow particle's speed now, m/s, in the order of `particles()`.
+    /// Each flow particle's speed now, m/s, in the order of `particles()`
+    /// (net of the tides in net-flow mode, as the particles move).
     #[must_use]
     pub fn particle_speeds(&self) -> Vec<f32> {
-        let Some(now) = self.conditions(self.time) else {
+        let Some(now) = self.particle_conditions(self.time) else {
             return vec![0.0; self.particles.len()];
         };
         self.particles
@@ -1150,5 +1188,88 @@ mod tests {
             "deep share {}",
             deep_share(&t)
         );
+    }
+
+    /// Five days, hourly, of a uniform eastward flow: 0.01 m/s net plus a 0.05 m/s M2 tide.
+    fn tidal_day(n: usize) -> (Vec<u8>, Vec<f32>) {
+        let steps = 121u32;
+        let u: Vec<f32> = (0..steps)
+            .map(|i| {
+                let h = f64::from(i);
+                (0.01 + 0.05 * (std::f64::consts::TAU * h / 12.4206).sin()) as f32
+            })
+            .collect();
+        let field = |name: &str, per: &dyn Fn(usize) -> f32| Field {
+            name: name.into(),
+            unit: "m/s".into(),
+            encoding: Encoding::F32,
+            values: (0..steps as usize * n).map(|k| per(k / n)).collect(),
+        };
+        let file = FieldFile {
+            reach: "test".into(),
+            dims: 2,
+            elements: u32::try_from(n).unwrap(),
+            layers: 1,
+            steps,
+            t0: 0,
+            step_s: 3600,
+            fields: vec![
+                field("u", &|i| u[i]),
+                field("v", &|_| 0.0),
+                field("level", &|_| 0.0),
+            ],
+        };
+        let mut b = Vec::new();
+        file.write_to(&mut b).unwrap();
+        (b, u)
+    }
+
+    #[test]
+    fn net_flow_moves_particles_on_the_tidal_mean_and_parcels_on_the_tide() {
+        let topo = channel(5.0);
+        let n = topo.x.len();
+        let mut t = MeshTracer::new(topo, 60.0 * 3600.0, 1, 0.0);
+        let (bytes, u) = tidal_day(n);
+        t.load_day(&bytes).unwrap();
+        t.seed_flow_particles(50);
+        // Moment by moment, the particles go at the tide's speed.
+        let now = f64::from(u[60]).abs();
+        assert!(t
+            .particle_speeds()
+            .iter()
+            .all(|s| (f64::from(*s) - now).abs() < 1e-6));
+        t.set_net_flow(true);
+        // Net, at the steady 0.01 m/s, the tide gone to within 0.001.
+        for s in t.particle_speeds() {
+            assert!((f64::from(s) - 0.01).abs() < 1e-3, "net speed {s}");
+        }
+        t.add_release(MeshRelease {
+            x: 300.0,
+            y: 50.0,
+            start: t.time(),
+            duration: 0.0,
+            mass: 1.0,
+            half_life: None,
+            parcels: 1,
+        });
+        t.step_to(61.0 * 3600.0);
+        // The parcel went with the real flow: the mean of the hour's two ends
+        // (the flow is linear within the hour) for 3600 s.
+        let MeshPlace::In(_, x, _) = t.parcels[0].place else {
+            panic!("left the mesh")
+        };
+        let moved = 3600.0 * (f64::from(u[60]) + f64::from(u[61])) / 2.0;
+        assert!(
+            (x - 300.0 - moved).abs() < 1e-2,
+            "parcel at {x}, expected {}",
+            300.0 + moved
+        );
+        // Back to moment by moment.
+        t.set_net_flow(false);
+        let now = f64::from(u[61]).abs();
+        assert!(t
+            .particle_speeds()
+            .iter()
+            .all(|s| (f64::from(*s) - now).abs() < 1e-6));
     }
 }

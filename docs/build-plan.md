@@ -114,7 +114,7 @@ A cycle takes 5 minutes. |
 
 | Workstream | What gets done |
 | --- | --- |
-| Layers and toggles | Every colour choice, net flow, and every overlay, including X2 and the station readings. |
+| Layers and toggles | Every colour choice, net flow, and every overlay, including X2 and the station readings. Colours done 25 Nov 2026: plain, contaminant, speed, temperature, salinity, water level and water source, on colour-blind-safe scales. Net flow done 25 Nov 2026: the Delta's and the Bay's engines build a copy of their flows with Godin's tidal filter (running means over 24, 24 and 25 hours, in `fdmr_math::signal::godin`, the same filter the Bay's outflow correction uses), and in net-flow mode the flow particles move on it while parcels keep the real, instant flow. Tested on a 0.01 m/s flow under a 0.05 m/s M2 tide: net particles at 0.01 m/s within 0.001, the parcel exactly on the instant flow. Still to do: the overlays, and a check of net flows against USGS's tidally filtered flows at Delta stations (section 9). |
 | River temperature | The 1D heat model and the weather adapter. |
 | Releases | Outfalls, decay, up to five releases at once. |
 | Answers | Read-off answers, landmarks and certainty in words. |
