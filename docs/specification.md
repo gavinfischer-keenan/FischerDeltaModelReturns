@@ -30,7 +30,7 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 | UI and compute | The UI only displays; the compute only computes. They talk through one interface and could run on separate machines. In version 1 the compute engine runs on the visitor's device |
 | Plug-ins | Model kinds and math components are plug-ins behind versioned interfaces; the format and parcels carry a depth axis from the start, so 3D mixing models can be added later |
 | Release locations | Anywhere in the modelled network, including the San Joaquin side of the Delta up to Vernalis |
-| Historic layers | After launch |
+| History | None: no history section and no historic layers. This is a visualization project |
 | Original FORTRAN | Not used; ownership not pursued |
 | License | PolyForm Noncommercial 1.0.0 for code, CC BY-NC 4.0 for content |
 | Commercial use | None |
@@ -47,25 +47,17 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 
 This is version 1.0, the agreed specification for the build. Everything in it is decided unless marked *to confirm*; those items are checked in Phase 0. The decisions log in section 10 records what was decided and when. The build plan is in [build-plan.md](build-plan.md).
 
-## 2. Heritage
+## 2. Method lineage
 
-Hugo B. Fischer's two main methods are the working core of the app, one in each of the reaches we model ourselves.
+This is a visualization project. Hugo B. Fischer's two main methods are its working core, and they are used because they are the right methods, not for their history.
 
-| His work | Where it runs in the app |
+| His method | Where it runs in the app |
 | --- | --- |
 | Longitudinal dispersion in natural streams ([Caltech thesis, 1966](https://thesis.library.caltech.edu/9180)) | The river from Keswick to Sacramento: how a slug of pollutant stretches as it travels |
-| Lagrangian parcel tracking (DELSAL, the salt half of the Fischer Delta Model) | The tracer engine everywhere: the pollutant is carried as parcels of water |
+| Lagrangian parcel tracking, from the Fischer Delta Model | The tracer engine everywhere: the pollutant is carried as parcels of water |
 | The Fischer Delta Model | The ancestor of DWR's DSM2, which supplies the Delta flows |
 
-**Visible heritage in the product**
-
-- A History section telling the story in words and pictures: the thesis, the work at sewage treatment plant outfalls where it started, the 1970s and 1980s Delta studies, the field trips, the punch cards, the Fischer Delta Model, and its line of descent to DSM2.
-- After launch: a "1982 view" layer showing his original channel grid, if the published reports yield the geometry.
-- After launch: a historical layer of the salinity and velocity measurements collected on the Delta field trips, with dates.
-- After launch: scenario presets that reproduce questions he was paid to answer, such as a release at a named outfall.
-- **The Eureka story**, in the History section: a rhodamine dye study at the Eureka sewage outfall on Humboldt Bay. The dye built up in the oysters, the filter feeders, and turned them bright red. It is the real-world version of the bioaccumulation feature planned for after launch (section 3.10). A 1982 report whose title ends "Humboldt Bay", credited to Hugo B. Fischer, Inc. with Edmund H. Smith, is listed in the Smith Collection at UC Davis's Cadet Hand Library, the Bodega Marine Laboratory's library. A copy is to be requested, to confirm it is this study and for pictures and details.
-
-The original FORTRAN is not used and its ownership is not pursued; the punch cards appear only as photographs. Source material: the family papers and photographs, and the [Hugo B. Fischer papers at UC Riverside](https://public.ucrlib.aspace.cdlib.org/repositories/5/resources/816), which hold the 1982 DELFLO and DELSAL reports, and the Humboldt Bay report in the [Cadet Hand Library's Smith Collection](https://marinescience.ucdavis.edu/sites/g/files/dgvnsk9221/files/inline-files/CHL_Smith_Catalog.pdf).
+The app is built from published methods only. The original code, papers and studies are not used, and there is no history section or historic layer.
 
 ## 3. User specification
 
@@ -153,7 +145,6 @@ When the water is coloured by something other than contaminant, any active plume
 - Landmarks used for arrival times, and place names.
 - The X2 line: the estimated point where the water near the bed reaches about 2 parts per thousand of salt. It is a standard Delta measure of how far the sea reaches inland.
 - Map style: light or dark. Aerial imagery comes later.
-- After launch: the historic layers in section 2.
 
 The legend follows the choice of colour. Everything in the forecast fades as certainty fades, whatever it is coloured by.
 
@@ -189,7 +180,6 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 
 ### 3.9 Out of scope for version 1
 
-- The 1982 grid and all historic layers.
 - Oil and other floating spills; sediment-bound or sinking material.
 - Chemical reactions other than a steady half-life.
 - The heat or salt a release itself carries: a release does not change the water's temperature or salinity.
@@ -201,7 +191,7 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 
 ### 3.10 Planned after launch: bioaccumulation
 
-Filter feeders such as oysters, mussels and clams concentrate some pollutants far above the level in the water around them, and stay contaminated long after the water is clean. The red oysters of the Eureka story (section 2) are that effect, made visible.
+Filter feeders such as oysters, mussels and clams concentrate some pollutants far above the level in the water around them, and stay contaminated long after the water is clean. A dye released at a sewage outfall can turn nearby oysters red for the same reason.
 
 - The user places a virtual shellfish bed: clicks the water, picks a species, and picks a substance from a short menu.
 - The app shows the tissue concentration over time beside the water concentration at that spot. It rises while the plume passes and falls slowly afterwards.
@@ -375,7 +365,7 @@ The rows below are sketches to show that the same kinds recur. They are not rese
 | Lower Mississippi | River routing above the reach of the tide; 1D tidal network to the passes; 2D field at the mouth, if a NOAA Gulf forecast resolves it |
 | Thames | River routing down to Teddington Lock, the tidal limit; 1D tidal network from Teddington through London to the estuary; 2D field for the outer estuary, if a European shelf forecast is fine enough |
 | Nile | River routing from the Aswan High Dam through the barrage-controlled delta branches to the Mediterranean, driven by global river forecasts where gauges are sparse |
-| Humboldt Bay | 2D field for the bay: a NOAA forecast if one covers it (to check), otherwise a 2D model we run as a plug-in. The home of the Eureka story, which could become a preset there |
+| Humboldt Bay | 2D field for the bay: a NOAA forecast if one covers it (to check), otherwise a 2D model we run as a plug-in. |
 
 #### Data adapters, in tiers
 
@@ -413,7 +403,7 @@ The UI only displays, and the compute only computes. They talk through one defin
 | UI | Map, particles, colours, legend, controls, words on screen | Any modelling or calculation of results |
 
 - **The interface.** The UI sends requests: load this stretch of time, add this release, show this layer, give the history at this point. The compute engine replies with snapshots of particle positions and values at each time step, and with answers. The UI only smooths between snapshots so the motion looks continuous; that is drawing, not modelling.
-- **Where the compute engine runs.** In version 1 it runs in a background thread of the visitor's browser: instant, free to scale and private. The same engine can instead run on its own machine and serve a UI over the network. A visitor's releases would then travel to that machine, and section 3.8 would change to say so.
+- **Where the compute engine runs.** In version 1 it runs in a background thread of the visitor's browser: instant and private. The same engine can instead run on its own machine and serve a UI over the network. A visitor's releases would then travel to that machine, and section 3.8 would change to say so.
 - **One compute codebase.** The compute engine is written once and runs in both places, so moving it is a deployment change, not a rewrite. The compute engine and the math library are written in Rust, compiled to WebAssembly for the browser and natively for a server. The model runner is written in Python and calls the same Rust math through bindings, so the math exists once.
 - **Words on screen.** All text the UI shows is kept in separate files, not in code. Version 1 is in English only; another language is a new set of files.
 - **Testing apart.** The compute engine is tested without any UI. The UI is tested against a recorded stream of compute results.
@@ -690,7 +680,7 @@ This is certainty about the flow, not a statistical confidence. It does not cove
 - A tidally averaged velocity per reach for the net-flow display. Averaging over the tides needs data on both sides, so the first and last half-day of the timeline use a shorter average.
 - **What-ifs.** Each what-if on the menu is a full set of forecast days under its own name, sharing the main run's past days.
 - The timeline holds 28 days: 14 past, 14 forecast.
-- **Past days** are built from measured conditions: the river model driven by observed gauges, DSM2's warm-up period on observed inputs, and NOAA's nowcasts. Measurements arrive late and are revised, so the last two days of the past are rebuilt each cycle. Older past days are final; they never change, and browsers can cache them.
+- **Past days** are built from measured conditions: the river model driven by observed gauges, DSM2's warm-up period on observed inputs, and NOAA's nowcasts. Measurements arrive late and are revised, so the last two days of the past are rebuilt each cycle. Older past days are final and never change.
 - **Forecast days** are rebuilt every cycle.
 - Each day ends with the river and DSM2 states needed to start the next, so the past and forecast join without a jump at "now".
 - Rough sizes, to be measured: the Delta is a few megabytes for two weeks; the Bay is the largest and may need coarsening. The past window doubles the total held, but not what a visitor downloads.
@@ -784,15 +774,13 @@ The river model has three sets of parameters, each calibrated from a different k
 - **Web**: served at `tripofisch.com/fischer-delta/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
   - The model runner pushes each finished set of files over rsync and SSH, with a key that can write only into that folder. Each cycle goes into a new folder, and one link switch makes it live. The web edge never reaches into the model runner.
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
-- **Scale**: version 1 is sized for up to about 100 visitors a day, which the home connection and the shared tunnel carry easily. Past days never change, so they are sent with long-lived cache headers, which costs nothing. A Cloudflare cache rule is optional.
-- **If it takes off**: the web side moves to a cloud server straight away. It is only static files, so the move is quick, and visitors' tracking already runs in their own browsers. The model runner can follow later if needed. Phase 5 writes the steps down as a short migration runbook.
 - **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. The what-if menu reruns with each DSM2 cycle; if it does not fit in 6 hours, once a day.
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
 - **DSM2 on Linux first.** Phase 0 asks DWR for the Linux library and tries the Linux build in the model runner. A Windows VM for DWR's prebuilt release costs memory the host has little of to spare. It is used only if the Linux build stalls, kept small, and removed as soon as Linux works.
 
 ### 9.4 Licensing and credit
 
-- **Our code**: PolyForm Noncommercial 1.0.0 for the software, and Creative Commons BY-NC 4.0 for the written and heritage content. None of the data sources requires GPL for our code, because DSM2 runs as a separate, unmodified program.
+- **Our code**: PolyForm Noncommercial 1.0.0 for the software, and Creative Commons BY-NC 4.0 for the written content. None of the data sources requires GPL for our code, because DSM2 runs as a separate, unmodified program.
 - **DSM2**: GNU GPL version 3 or later. We run it unmodified and do not redistribute it. Any code of ours that copies or modifies DSM2 source would have to be GPL, and GPL cannot carry a non-commercial restriction, so we keep the two strictly apart.
 - **DWR data**: credited as the source; DWR's terms bar commercial redistribution.
 - **USGS and NOAA data**: US government public data, credited.
@@ -809,16 +797,16 @@ The build runs in six phases, each ending in something that can be seen working;
 2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
-5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; the what-if menu of dam releases and levee breaches; the History section; phone layout; and the Utilities page on tripofisch.com.
-6. **Phase 5, hardening.** Native Linux DSM2, validation report, monitoring, and license and credits review. Launch follows this phase. The 1982 grid, the field-data layer and the historic scenario presets are a post-launch release.
+5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; the what-if menu of dam releases and levee breaches; phone layout; and the Utilities page on tripofisch.com.
+6. **Phase 5, hardening.** Native Linux DSM2, validation report, monitoring, and license and credits review. Launch follows this phase.
 
 ### Decisions log, 24 November 2026
 
 - License: PolyForm Noncommercial 1.0.0 for code, CC BY-NC 4.0 for content. See section 9.4.
 - The model runner is its own Proxmox guest; the web guest only serves. See section 9.3.
 - Movie length is 14 days, with growing uncertainty shown. See sections 3.4 and 8.2.
-- The 1982 grid and all historic layers come after launch.
-- The punch cards are not read. The app does not depend on the original code or on any claim to it. A History section will hold pictures.
+- The app does not depend on the original code or on any claim to it.
+- No history section or historic layers: this is a visualization project. See section 2.
 - The San Joaquin side of the Delta is in scope as a release location, up to DSM2's boundary at Vernalis. The river above Vernalis stays out.
 - This document is kept in the repository's docs folder.
 - River calibration keeps wave speed and water speed apart. Release changes calibrate flow routing only; pollutant travel and spreading come from USGS field measurements and natural tracers. See sections 7.1 and 9.1.
@@ -834,11 +822,10 @@ The build runs in six phases, each ending in something that can be seen working;
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
 - What-ifs, changed dam releases and levee breaches, come from a menu computed in advance on the server, so user input still never leaves the device. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
-- The Eureka dye study, the oysters turned red at the Humboldt Bay outfall, is a story in the History section. See section 2.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
 - Address: `tripofisch.com/fischer-delta/`, listed under Utilities. See section 9.3.
-- Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. Sized for up to about 100 visitors a day; if it takes off, it moves to a cloud server. See section 9.3.
+- Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. See section 9.3.
 - Languages: Rust for the math library and compute engine; Python for the model runner, data adapters and publisher, calling the Rust math. See section 4.2 and build-plan.md.
 - Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
 - Swept all remaining proposals into decisions:
@@ -878,7 +865,6 @@ The build runs in six phases, each ending in something that can be seen working;
 - [USGS Water Data APIs migration guide](https://api.waterdata.usgs.gov/docs/ogcapi/migration/)
 - [California Nevada River Forecast Center hourly forecast files](https://www.cnrfc.noaa.gov/deterministicHourlyProductCSV.php)
 - [Protomaps](https://protomaps.com/)
-- [Hugo B. Fischer papers, UC Riverside](https://public.ucrlib.aspace.cdlib.org/repositories/5/resources/816)
 - [Fischer, Longitudinal Dispersion in Laboratory and Natural Streams, Caltech 1966](https://thesis.library.caltech.edu/9180)
 - Fischer, List, Koh, Imberger and Brooks, *Mixing in Inland and Coastal Waters*, Academic Press 1979: the source of the dispersion estimate in section 7.1. Citation from memory, to check against the book.
 

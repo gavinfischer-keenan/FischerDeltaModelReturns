@@ -23,18 +23,15 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 | 3 | UI stack | Recommended: TypeScript, MapLibre and Svelte | The browser needs TypeScript or JavaScript for the UI. Particles are drawn by our own graphics layer inside MapLibre; Svelte handles controls, forms, legend, timeline and graphs. Because the UI only displays, a framework change later touches only the UI. |
 | 4 | Repository layout | Recommended: one repository, one package per module | `math/`, `format/`, `compute/` and `plugins/` in Rust; `runner/` and `adapters/` in Python; `ui/` in TypeScript; `regions/` and `text/` as data. Seams enforced by tooling in each language: the Rust compiler, a Python import checker and a TypeScript dependency checker. The build fails on a forbidden import. |
 | 5 | Continuous integration | Recommended: GitHub Actions | Free for this public repository. Every change runs the Rust tests and WebAssembly build, the Python tests, the UI tests against recorded compute output, the dependency checks and the plug-in conformance tests. The running app never depends on GitHub. |
-| 6 | How finished files reach the web edge | Path decided: `/fischer-delta/`. Waiting on your OK for the web-edge change | Served at `tripofisch.com/fischer-delta/` from `/srv/fdmr` on the existing web edge (container 703), through a Caddy route like Lux's `/play/`: no new hostname, no tunnel change. rsync over SSH from the model runner, with a key that can write only into that folder; each cycle goes into a new folder and one link switch makes it live. Past days carry long-lived cache headers; a Cloudflare cache rule is optional. |
+| 6 | How finished files reach the web edge | Path decided: `/fischer-delta/`. Waiting on your OK for the web-edge change | Served at `tripofisch.com/fischer-delta/` from `/srv/fdmr` on the existing web edge (container 703), through a Caddy route like Lux's `/play/`: no new hostname, no tunnel change. rsync over SSH from the model runner, with a key that can write only into that folder; each cycle goes into a new folder and one link switch makes it live. |
 
 ## 3. Things only people can do
 
-These have no code in them, and several take weeks of waiting, so they start now.
+You do these. Only one letter is needed for the build, and it starts now because replies take weeks.
 
 | Task | Why | Needed by |
 | --- | --- | --- |
-| Email DWR's Delta Modeling Section: the Linux library for DSM2, the channel geometry files, how breaches have been represented, and whether they run forecasts already | DSM2 on Debian, the Delta map layer, the breach what-ifs | Phase 0 answers; Phase 2 at the latest |
-| Request the 1982 DELFLO and DELSAL reports and related papers from UC Riverside | History section; the 1982 grid after launch | Phase 4 |
-| Request the Humboldt Bay report from UC Davis's Cadet Hand Library | The Eureka story | Phase 4 |
-| Gather family photographs and papers, including the punch cards | History section | Phase 4 |
+| Email DWR's Delta Modeling Section for two things: the Linux library DSM2 needs, and the channel geometry files. If they have it, a note on how they represent levee breaches | DSM2 on Debian, the Delta map layer, the breach what-ifs | Phase 0 answers; Phase 2 at the latest |
 | Approve the model runner container on the `webserver` host, the only machine this app may use | Phase 0 needs somewhere to run DSM2 | Phase 0 |
 | A Windows license, only if the Linux build of DSM2 stalls and a temporary Windows VM is needed | DWR's prebuilt DSM2 is a Windows release | Phase 0, if at all |
 | Explain how tripofisch.com is deployed, and set up access for the push | Publishing to the web guest | Phase 1 |
@@ -112,7 +109,6 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Releases | Outfalls, decay, up to five releases at once. |
 | Answers | Read-off answers, landmarks and certainty in words. |
 | What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. |
-| History | The History section, including the Eureka story. |
 | Finish | Phone layout, and the Utilities page on tripofisch.com. |
 
 **Done when:** every user-facing item in specification section 3 works on a phone and a desktop.
@@ -127,7 +123,6 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Performance | Parcel and particle counts tuned by measured frame rate. |
 | Accessibility | Colour-blind checks on every scale. |
 | Review | License and credits review. |
-| Migration runbook | The steps to move the web side, and later the model runner, to a cloud server if the app takes off. |
 
 **Done when:** it has run unattended for two weeks without a gap, then launch.
 
@@ -138,7 +133,6 @@ In no fixed order:
 - custom what-ifs
 - flood spill into the bypasses
 - ensemble spread
-- the historic layers
 - the 1D tidal model decision
 - the second region
 - 3D plug-ins
@@ -168,7 +162,6 @@ flowchart LR
 | A feed is late, sparse or changes format | Gaps in the past window, or a weaker forecast | The local store, data age shown on screen, and an adapter per source so one break stays contained. |
 | The Linux build of DSM2 stalls | A temporary Windows VM is needed, and it costs memory | Keep it small, run it only while needed, and remove it once Linux works. |
 | This app competes with Electric Eel on the shared host | Electric Eel slows | Fixed caps, lower CPU and disk priority, pinned to efficiency cores; Phase 0 measures the real load. |
-| The app takes off, well past about 100 visitors a day | The home connection and the shared tunnel, which Electric Eel also uses, get busy | Move the web side to a cloud server straight away. It is only static files, so the move is quick. The steps are written down in Phase 5. |
 | A bad Caddy change breaks the shared web edge | Every site on it goes down, Electric Eel included | Check the config before reloading, reload rather than restart, keep the previous file, and change it only with your OK. |
 | Phones cannot keep up | Choppy movie | Parcel counts set by device; measured in Phase 4. |
 | A data source's license forbids our use | That feed cannot be used | Checked for every feed in Phase 0. |
@@ -177,7 +170,7 @@ flowchart LR
 ## 7. Questions for our discussion
 
 1. Decisions 3 to 5 in section 2: keep as recommended? Decision 6 needs a description of how tripofisch.com is hosted today.
-2. Who handles the letters and requests in section 3, and do you want drafts of them?
+2. Answered: you send the one DWR letter in section 3.
 3. Should Phase 1 start alongside Phase 0, or wait for the Phase 0 report?
 4. What counts as launch: a public link on tripofisch.com, or a quiet period with invited users first?
 5. Where should the development address live while we build: on your hardware, or somewhere private?
