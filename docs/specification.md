@@ -32,6 +32,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 - The exact live feed for every DSM2 boundary input.
 - NOAA's Bay forecast: horizon, coverage near Martinez, and file sizes.
 - A public copy of DSM2's map geometry. DWR's documentation points to internal network drives.
+- Enough USGS field measurements and conductance records on the river to calibrate water velocity and dispersion.
 
 This is a first draft. Items marked *proposed* are suggestions, not decisions.
 
@@ -100,6 +101,8 @@ Version 1 treats the pollutant as dissolved: it moves with the water and does no
 ### 3.6 Dam releases
 
 The user can see the current Keswick release and, as a separate tool, try a different release to see the expected change in water level and its arrival time at downstream gauges. This is a second-stage feature.
+
+The tool can also show that the change in water level arrives before the water released with it, since a wave travels faster than the water carrying it (*proposed*). Section 7.1 explains why.
 
 ### 3.7 Privacy and operation
 
@@ -203,11 +206,13 @@ Gauging stations with live readings, dams, pumping plants, gates and barriers wi
 
 ## 6. Engineering: live data feeds
 
-Every input comes from a free public source; three of the five have been checked and two still need checking.
+Every input comes from a free public source; three of the seven have been checked and four still need checking.
 
 | Input | Source | Used by | Status |
 | --- | --- | --- | --- |
 | River flow and stage at gauges, Keswick to Freeport | [USGS Water Data APIs](https://api.waterdata.usgs.gov/docs/ogcapi/migration/) | River model, calibration | Checked. Build on the new API only: the old WaterServices shuts down in February 2027 |
+| Field measurements at river gauges: area, width, mean velocity | USGS Water Data APIs | River velocity and channel shape (section 9.1) | To confirm the new API serves them, and how often each gauge is measured |
+| Specific conductance and water temperature at river gauges | USGS Water Data APIs | River tracer calibration (section 9.1) | To confirm which gauges record them continuously |
 | Keswick and Shasta releases, Delta exports, gate positions | California Data Exchange Center (DWR) | River model, DSM2 | To confirm station by station |
 | River flow forecasts | [River Forecast Center hourly CSV files](https://www.cnrfc.noaa.gov/deterministicHourlyProductCSV.php), by forecast group | River model, DSM2 inflows | Checked. Upper and Lower Sacramento groups are published; about 5 days ahead |
 | Tide at Martinez, observed and predicted | NOAA tide stations | DSM2 seaward boundary | To confirm station and format |
@@ -250,11 +255,24 @@ Each reach produces the same thing, water velocity along its waterways over time
 
 ### 7.1 River: Shasta Dam to Sacramento
 
-**Structure.** The river is a chain of segments between gauges. Keswick Reservoir, between Shasta and Keswick dams, is a single mixed pool. The Keswick release drives everything below it.
+**Structure.** The river is a chain of segments between gauges. Keswick Reservoir, between Shasta and Keswick dams, is a single mixed pool. The Keswick release drives everything below it. Tributary inflows are added where they join, taken from gauges; the largest, the Feather and the American, join just above Sacramento.
 
-**Flow routing.** Changes in release travel downstream as a wave. Each segment has a travel time and an attenuation that depend on flow. Tributary inflows are added where they join, taken from gauges.
+**Two speeds.** The river carries two different things at two different speeds, and the model keeps them apart.
 
-**Pollutant transport.** Within each segment the pollutant moves at the water velocity and spreads along the river by longitudinal dispersion. The dispersion coefficient comes from Fischer's method, using the segment's width, depth, velocity and shear velocity.
+| | A change in flow | A pollutant |
+| --- | --- | --- |
+| Travels as | A wave | Part of the water |
+| Speed | Wave speed (celerity) | Mean water velocity: flow divided by cross-section area |
+| Drives | Flow and stage at the gauges; the dam-release tool | The movie |
+| Calibrated from | Release changes arriving at gauges | USGS field measurements and natural tracers (section 9.1) |
+
+The wave is faster than the water. In a wide channel, theory puts it at about one and a half to one and two-thirds times the water velocity; each segment's ratio is measured, not assumed. A pollutant released at the same moment as a change in release arrives downstream later than the change in water level. Using one speed for both would make every pollutant arrival time too early.
+
+**Flow routing.** Changes in release travel downstream as a wave. Each segment has a wave travel time and an attenuation that depend on flow.
+
+**Water velocity and channel shape.** Each segment has a relation between flow and its cross-section area, width and depth, and so its mean water velocity. These start from the measurements USGS makes at each gauge, and are corrected toward the reach average by the tracer checks in section 9.1, because a gauge site is not a typical cross-section.
+
+**Pollutant transport.** Within each segment the pollutant moves at the mean water velocity and spreads along the river by longitudinal dispersion. The dispersion coefficient starts from Fischer's estimate, K = 0.011 U²W² / (d u\*), where U is mean velocity, W width, d mean depth and u\* shear velocity, all taken from the segment's channel shape at the current flow. The estimate is known to be good only to within a factor of several, which is why section 9.1 checks it against the river's own tracers.
 
 **Water levels from releases.** Routed flow at each gauge is converted to stage with that gauge's published rating curve. This gives the dam-release tool in the user specification.
 
@@ -262,6 +280,7 @@ Each reach produces the same thing, water velocity along its waterways over time
 
 - In floods the river spills over weirs into the Sutter and Yolo bypasses. Version 1 detects this from gauges and warns that the forecast is unreliable (*proposed*).
 - Large diversions remove water and pollutant in irrigation season. They are represented where gauged.
+- Pools, eddies and backwaters hold some water back and let it go slowly, which gives a real plume a longer tail than the dispersion model produces. Version 1 does not model this; the tracer checks in section 9.1 show how large the error is.
 
 ### 7.2 Delta: Sacramento to Martinez
 
@@ -329,15 +348,27 @@ Only the river model needs calibrating, and it calibrates itself from data the r
 
 ### 9.1 Automated river calibration
 
-- **Travel time.** Every change in Keswick release is a natural experiment. The server detects the change, finds its arrival at each downstream gauge, and updates the flow-to-travel-time relation for each segment.
-- **Dispersion.** There is no routine tracer in the river. Dispersion starts from Fischer's formula using channel dimensions, and is checked against how sharp release changes smooth out downstream, and against water temperature or conductivity signals where gauges record them.
+The river model has three sets of parameters, each calibrated from a different kind of evidence. Keeping them apart is the point: the wave outruns the water (section 7.1), so evidence about one says nothing direct about the other.
+
+| Parameters | Used for | Calibrated from |
+| --- | --- | --- |
+| Wave travel time and attenuation | Flow and stage forecasts; the dam-release tool | Keswick release changes arriving at downstream gauges |
+| Water velocity and channel shape | Pollutant travel time; the inputs to Fischer's estimate | USGS field measurements at each gauge, corrected by natural tracers |
+| Dispersion | How fast the plume spreads | Fischer's estimate, checked against natural tracers |
+
+- **Wave travel time.** Every change in Keswick release is a natural experiment. The server detects the change, finds its arrival at each downstream gauge, and updates the flow-to-wave-travel-time relation for each segment. How a sharp release change smooths out on the way down calibrates the wave's attenuation. Neither is used for pollutant travel or spreading.
+- **Water velocity and channel shape.** Several times a year USGS measures each gauge's flow by hand, recording cross-section area, width and mean velocity. Fitting these against flow gives velocity, width and depth at any flow, at each gauge. New measurements are picked up as USGS publishes them.
+- **Natural tracers.** Specific conductance and water temperature, where gauges record them, carry signals that move with the water: a pulse of tributary or drainage water, or a step in release temperature from Shasta's temperature control. When a signal passes two gauges, the lag between them gives the reach-average water travel time, which corrects the gauge-site velocity toward the reach average. The change in the signal's shape gives dispersion. Conductance is the better tracer; temperature is not conserved, since the river warms and cools along the way, so it is used for timing only.
+- **Published studies** (*proposed*). Look for past time-of-travel or dye studies on the Sacramento below Keswick, and use any found as a one-off check on velocity and dispersion.
 - **Schedule.** Recalibration runs nightly. Parameters change slowly and are logged, so a bad night's data cannot swing the model.
-- **Skill score.** The server keeps a running record of predicted against observed arrival times and publishes it.
+- **Skill scores.** Two, kept separate and published: predicted against observed arrival of flow changes, which scores the wave; and predicted against observed lag of tracer signals, which scores pollutant travel.
 
 ### 9.2 Validation
 
 | What | Checked against |
 | --- | --- |
+| River flow and stage forecasts | Observed flow and stage at the gauges |
+| River pollutant travel time and spreading | Natural tracer signals between gauges; any published time-of-travel studies |
 | DSM2 flows from our run | Observed flows at DWR's check stations, such as Rio Vista |
 | Our tracer engine in the Delta | DSM2's own transport modules on the same flow field |
 | Our tracer engine overall | Measured conductivity, which is a natural tracer of seawater |
@@ -368,7 +399,7 @@ This section is not legal advice; the license choice deserves a second look befo
 The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn.
 
 1. **Phase 0, proof.** Run DWR's prebuilt DSM2 in a Windows guest. Feed it today's conditions and get a forecast flow field out. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
-2. **Phase 1, the river.** River routing model with automated calibration, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method.
+2. **Phase 1, the river.** River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method.
 3. **Phase 2, the Delta.** DSM2 on a schedule, flow-field publishing, and parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, two-dimensional tracking, the tidal extension, and the join at Martinez.
 5. **Phase 4, product.** Read-off answers, landmarks, the dam-release tool, the History section, phone layout, and the Utilities page on tripofisch.com.
@@ -383,6 +414,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - The punch cards are not read. The app does not depend on the original code or on any claim to it. A History section will hold pictures.
 - The San Joaquin side of the Delta is in scope as a release location, up to DSM2's boundary at Vernalis. The river above Vernalis stays out.
 - This document is kept in the repository's docs folder.
+- River calibration keeps wave speed and water speed apart. Release changes calibrate flow routing only; pollutant travel and spreading come from USGS field measurements and natural tracers. See sections 7.1 and 9.1.
 
 ### Open technical questions, answered in Phase 0
 
@@ -390,6 +422,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - What is the real forecast horizon and file size of NOAA's Bay product?
 - Is DSM2's channel geometry available outside DWR's network?
 - Which stations give each export, gate and inflow value in near real time?
+- Which river gauges have field measurements, conductance and temperature records long enough to calibrate water velocity and dispersion? Are there published time-of-travel or dye studies on the Sacramento?
 
 ## Sources
 
@@ -402,5 +435,6 @@ The build runs in six phases, each ending in something that can be seen working;
 - [Protomaps](https://protomaps.com/)
 - [Hugo B. Fischer papers, UC Riverside](https://public.ucrlib.aspace.cdlib.org/repositories/5/resources/816)
 - [Fischer, Longitudinal Dispersion in Laboratory and Natural Streams, Caltech 1966](https://thesis.library.caltech.edu/9180)
+- Fischer, List, Koh, Imberger and Brooks, *Mixing in Inland and Coastal Waters*, Academic Press 1979: the source of the dispersion estimate in section 7.1. Citation from memory, to check against the book.
 
 The NOAA, USGS and River Forecast Center entries were checked from search results, not read in full; Phase 0 reads each one properly.
