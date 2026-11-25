@@ -1,0 +1,25 @@
+# Region package: Colorado River below Glen Canyon Dam (the test region).
+#
+# A deliberately plain second region (specification section 4.1, "Keeping it
+# honest"): one gauged, non-tidal river outside California, run with only the
+# river model and national adapters. If the engine needs changing to run it,
+# something regional has leaked into the engine.
+#
+# Chosen because it is driven by dam releases like the launch region's river,
+# has long USGS gauge records, and USGS has measured its travel time and
+# dispersion with dye, which gives an independent check. Gauge numbers are
+# confirmed when the USGS adapter is built.
+
+id = "test-colorado"
+name = "Colorado River, Glen Canyon Dam to Grand Canyon"
+timezone = "America/Phoenix"
+display_units = "us"
+
+[[reaches]]
+id = "river"
+name = "Colorado River, Lees Ferry to Grand Canyon"
+kind = "river-routing"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[guard]
+words = ["Colorado", "Glen Canyon", "Lees Ferry", "Grand Canyon", "Paria"]

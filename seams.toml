@@ -1,0 +1,49 @@
+# The module seams (specification section 4.3). tools/check_seams.py fails the
+# build if any module depends on something its `may_use` does not list, or if
+# engine code names a place listed in a region's guard words.
+#
+# kind: rust  -> a crate; dependencies read from its Cargo.toml
+#       python -> a package; dependencies read from its imports
+#       ts    -> a folder of TypeScript; dependencies read from its imports
+#       data  -> files only; may contain no code
+# engine: true for modules that must contain nothing place-specific
+
+[modules.math]
+kind = "rust"
+path = "crates/fdmr-math"
+crate = "fdmr-math"
+engine = true
+may_use = []
+
+[modules.format]
+kind = "rust"
+path = "crates/fdmr-format"
+crate = "fdmr-format"
+engine = true
+may_use = []
+
+[modules.store]
+kind = "python"
+path = "python/fdmr_store"
+package = "fdmr_store"
+engine = true
+may_use = []
+
+[modules.adapters]
+kind = "python"
+path = "python/fdmr_adapters"
+package = "fdmr_adapters"
+engine = true
+may_use = ["store"]
+
+[modules.regions]
+kind = "data"
+path = "regions"
+engine = false
+may_use = []
+
+[modules.text]
+kind = "data"
+path = "text"
+engine = false
+may_use = []

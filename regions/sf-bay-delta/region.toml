@@ -1,0 +1,46 @@
+# Region package: San Francisco Bay-Delta, Shasta Dam to the Golden Gate (the launch region).
+# Data only (specification section 4.1). Reaches are added in detail as each
+# phase builds them: the river in Phase 1, the Delta in Phase 2, the Bay in Phase 3.
+
+id = "sf-bay-delta"
+name = "San Francisco Bay-Delta, Shasta Dam to the Golden Gate"
+timezone = "America/Los_Angeles"
+display_units = "us"   # cubic feet per second, feet, miles, degrees Fahrenheit
+
+[[reaches]]
+id = "river"
+name = "Sacramento River, Keswick Dam to Sacramento"
+kind = "river-routing"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "delta"
+name = "Sacramento-San Joaquin Delta, to Chipps Island, with Suisun Marsh"
+kind = "1d-tidal-network"
+flow_source = "dsm2"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "bay"
+name = "Suisun Bay to the Golden Gate"
+kind = "2d-field"
+flow_source = "noaa-ofs:sfbofs"
+certainty = { solid_days = 2, floor = 0.2 }
+
+[[handoffs]]
+from = "river"
+to = "delta"
+at = "Sacramento River inflow to DSM2"
+
+[[handoffs]]
+from = "delta"
+to = "bay"
+at = "Chipps Island line"
+
+# Words that must never appear in engine code (tools/check_seams.py).
+[guard]
+words = [
+  "Sacramento", "San Joaquin", "Shasta", "Keswick", "Suisun", "Martinez",
+  "Chipps", "Golden Gate", "Vernalis", "Rio Vista", "Freeport", "Mallard",
+  "Montezuma", "Jones Tract", "Grizzly Bay", "Honker Bay", "sfbofs",
+]
