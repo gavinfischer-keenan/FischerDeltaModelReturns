@@ -47,3 +47,10 @@ kind = "data"
 path = "text"
 engine = false
 may_use = []
+
+[modules.runner]
+kind = "python"
+path = "python/fdmr_runner"
+package = "fdmr_runner"
+engine = true
+may_use = ["store", "adapters"]
