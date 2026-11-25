@@ -210,6 +210,13 @@ Filter feeders such as oysters, mussels and clams concentrate some pollutants fa
 
 **Later steps.** Many pollutants are taken in with food rather than straight from the water. One famous case in this region is selenium in Suisun Bay clams, passed on to the sturgeon and diving ducks that eat them. Modelling that needs the dissolved pollutant to move onto particles first, which version 1 does not do (section 3.9). Food-web models that carry a chemical from plankton up through shellfish, fish and birds have been applied to San Francisco Bay for PCBs and mercury, and could follow after that.
 
+**Planned for now, built later.** Like other geographies, bioaccumulation is coming but not first. Version 1 leaves room for it, so it needs no engine changes later:
+
+- The tracer engine can produce the concentration history at any point, which the read-off graph in section 3.6 already needs.
+- Each parcel carries the identity of its substance and a phase field. In version 1 the phase is always "dissolved"; the field is there for particle-bound pollutants later.
+- A receptor, such as a shellfish bed, is a plug-in kind (section 4.1). It reads concentration histories and writes its own results, without touching the tracer engine.
+- The substance and species rates are a data file shared by every region, with a source recorded for each rate.
+
 ## 4. Engineering: architecture
 
 The server computes where the water is going and what it is like; the visitor's browser computes where the pollutant goes in that water.
