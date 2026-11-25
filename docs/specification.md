@@ -16,7 +16,8 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 | Conditions | One timeline: the last 14 days, now, and a 14-day forecast. The past window rolls forward and is always kept up to date; nothing older is replayed |
 | Delta engine | DWR's DSM2, run on our server |
 | River above Sacramento | Our own routing model using Hugo Fischer's dispersion method |
-| Bay below Martinez | NOAA's Bay current forecast, fetched as data; our own tracking on top |
+| Bay below Chipps Island | NOAA's Bay current forecast, fetched as data; our own tracking on top. The Delta hands off to the Bay at Chipps Island, with Martinez as the fallback if Phase 0 rules Chipps out |
+| Release times | Now, any time in the forecast, or any time in the last 14 days |
 | Data and compute | Fetch public data freely; all modelling and display on our hardware |
 | Server | Intel, Debian guests under Proxmox; model runner separate from the web guest |
 | Movie length | 14 days back and 14 days forward. The colour fades as certainty fades into the forecast |
@@ -81,12 +82,12 @@ The user presses "Add pollutant" and clicks or taps the water. The point snaps t
 | --- | --- | --- |
 | How is it released? | All at once, or continuously for a set duration | All at once |
 | How much? | A mass, or a volume with a concentration | None; required |
-| When? | Now, a chosen time in the forecast, or a chosen time in the last 14 days (*proposed*) | Now |
+| When? | Now, a chosen time in the forecast, or a chosen time in the last 14 days | Now |
 | Does it break down? (*proposed, later*) | No, or a half-life | No |
 
 Version 1 treats the pollutant as dissolved: it moves with the water and does not float, sink or decay. More than one release can be on the map at once (*proposed*).
 
-A release in the past (*proposed*) answers "if something went in three days ago, where is it now, and where is it going?" It plays forward from the past release time through now and on into the forecast.
+A release in the past answers "if something went in three days ago, where is it now, and where is it going?" It plays forward from the past release time through now and on into the forecast.
 
 ### 3.4 The timeline and the movie
 
@@ -353,7 +354,7 @@ Each reach produces the same thing, water velocity along its waterways over time
 
 | | River | Delta | Bay |
 | --- | --- | --- | --- |
-| Extent | Shasta Dam to Sacramento | Sacramento and Vernalis to Chipps Island, with Suisun Marsh (*proposed*) | Chipps Island to the Golden Gate, with Suisun Bay (*proposed*) |
+| Extent | Shasta Dam to Sacramento | Sacramento and Vernalis to Chipps Island, with Suisun Marsh | Chipps Island to the Golden Gate, with Suisun Bay |
 | Character | One-way river flow | Tidal, branching channels | Wide tidal bays |
 | Flow source | Our routing model | DSM2 HYDRO, forecast mode | NOAA Bay forecast, fetched |
 | Who does the math | Us | Us, running DWR's code | NOAA for currents, us for tracking |
@@ -409,7 +410,7 @@ A tidal fit needs at least a month of past fields to separate the main tides, an
 ### 7.4 Joining the reaches
 
 - **River to Delta** at the Sacramento River inflow point of DSM2. The river model's outflow and pollutant load become the Delta's inflow.
-- **Delta to Bay** at Chipps Island (*proposed*), detailed below.
+- **Delta to Bay** at Chipps Island, detailed below.
 - All three share one clock and one published time step.
 
 **Why Chipps Island and not Martinez.** Both DSM2 and NOAA cover Suisun Bay, so one has to govern it.
@@ -591,7 +592,8 @@ The build runs in six phases, each ending in something that can be seen working;
 - One timeline: the last 14 days, now, and the next 14 days. The past window rolls forward and is kept up to date. "Now" is the opening view. See section 3.4.
 - Moving particles show the flow everywhere, always. Particles carrying a pollutant take its colour, and the colour fades as certainty fades. See sections 3.4, 8.2 and 8.4.
 - The engine is built to serve any geography. Its math is a shared library written once; each region's package picks a model kind for each reach (river routing, 1D tidal network, 2D field, pool, ocean boundary) and its data feeds. Launch ships Shasta Dam to the Golden Gate; other estuaries and rivers follow. See section 4.1.
-- Proposed, awaiting decision: the Delta-to-Bay handoff at Chipps Island rather than Martinez, with Martinez as the fallback. See section 7.4.
+- The Delta hands off to the Bay at Chipps Island rather than Martinez. Martinez is the fallback if Phase 0 finds NOAA's mesh cannot support the handoff at Chipps. See section 7.4.
+- A pollutant can be released at any time in the last 14 days as well as now or in the forecast; it plays forward through now into the forecast. See section 3.3.
 
 ### Open technical questions, answered in Phase 0
 
