@@ -1,11 +1,15 @@
-"""Publish a region's flow field for the last N days (docs/format.md).
+"""Publish a region's flow field for the last N days and the next M (docs/format.md).
 
-    python -m fdmr_runner.publish REGION_DIR STORE_FILE OUT_DIR [--days 14]
+    python -m fdmr_runner.publish REGION_DIR STORE_FILE OUT_DIR [--days 14] [--ahead 14]
 
 Writes OUT_DIR/<cycle>/ with index.json, geometry/<reach>.json and
 <reach>/<YYYY-MM-DD>.fdf, then points OUT_DIR/current at the new cycle in one
-step, so a reader never sees half a cycle. The past only, for now: forecast
-days come with the river-forecast adapter.
+step, so a reader never sees half a cycle.
+
+After now, each main gauge follows its river forecast (fdmr_runner.forecast);
+the dam release, which has no forecast, is held. Every step carries the reach's
+certainty: 1 to the end of the solid forecast, then falling to the floor at the
+end (specification 8.2).
 """
 
 from __future__ import annotations
@@ -19,16 +23,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import fdmr_py
+from fdmr_adapters import cnrfc
 from fdmr_adapters.usgs import SOURCE, UsgsAdapter
 from fdmr_plugins.river_routing import channel, model
 from fdmr_plugins.river_routing.centreline import Centreline
 from fdmr_plugins.river_routing.wave import regular
 from fdmr_store import Store
 
+from . import forecast
 from .region import load_region
 
 STEP = 900
 DAY = 86_400
+BLEND_S = DAY  # the gap between forecast and measurement at now closes over a day
 
 
 def utc(t: float, fmt: str = "%Y-%m-%dT%H:%MZ") -> str:
@@ -93,7 +100,15 @@ def dispersion_field(field, records, slopes):
     return out
 
 
-def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str = "river", datums: dict[str, float | None] | None = None) -> Path:
+def publish(
+    region_dir: Path,
+    store: Store,
+    out_dir: Path,
+    days: int,
+    reach: str = "river",
+    datums: dict[str, float | None] | None = None,
+    ahead: int = 14,
+) -> Path:
     region = load_region(region_dir)
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
     line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
@@ -106,7 +121,9 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
         raise ValueError("a main gauge has no discharge in the store")
     now = min(t for t, _ in latest) // STEP * STEP
     t0 = (now - days * DAY) // DAY * DAY
-    n = (now - t0) // STEP + 1
+    i_now = (now - t0) // STEP
+    end = now + ahead * DAY
+    n = (end - t0) // STEP + 1
 
     since = int(time.time()) - 10 * 365 * DAY
     shapes = {g.site: channel.fit(store.channel_measurements(SOURCE, g.site), since=since) for g in gauges}
@@ -114,17 +131,34 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
     if not known:
         raise ValueError("no gauge has enough channel measurements")
     records = []
+    fc_ends: list[int | None] = []  # last forecast step at each gauge that has a forecast
     for g in gauges:
         shape = shapes[g.site] or min(  # nearest gauge with a fitted shape
             ((abs(chainage[o.site] - chainage[g.site]), shapes[o.site]) for o in gauges if shapes[o.site]),
             key=lambda x: x[0],
         )[1]
         vals = store.values(SOURCE, g.site, "discharge", t0, now + STEP)
-        records.append(model.GaugeRecord(chainage[g.site], shape, regular([(v.t, v.value) for v in vals], t0, STEP, n)))
+        measured = regular([(v.t, v.value) for v in vals], t0, STEP, i_now + 1)
+        fc = None
+        if g.forecast and g.forecast.get("source") == cnrfc.SOURCE:
+            fv = store.values(cnrfc.SOURCE, g.forecast["point"], "discharge", now - DAY, end + DAY)
+            fc = forecast.on_grid([(v.t, v.value) for v in fv], t0, STEP, n) if fv else None
+        flow, fc_end = forecast.extend(measured, fc, i_now, n, BLEND_S // STEP)
+        if fc is not None:
+            fc_ends.append(fc_end)
+        records.append(model.GaugeRecord(chainage[g.site], shape, flow))
 
     field = model.build(max(chainage.values()), records, t0, STEP)
     slopes = segment_slopes(gauges, chainage, store, datums or {}, t0, now)
     dispersion = dispersion_field(field, records, slopes)
+    # The solid forecast lasts the reach's set days, or as far as every gauge's
+    # forecast reaches, whichever is shorter; with no forecast, nothing is solid.
+    rc = next((r.get("certainty", {}) for r in region.reaches if r["id"] == reach), {})
+    covered = (min(fc_ends) - i_now) * STEP if fc_ends and None not in fc_ends else 0
+    solid = min(rc.get("solid_days", 5) * DAY, covered)
+    floor = rc.get("floor", 0.2)
+    certainty = [round(fdmr_py.certainty_at((i - i_now) * STEP, solid, ahead * DAY, floor), 4) for i in range(n)]
+
     cycle = utc(now, "%Y%m%dT%H%MZ")
     cdir = out_dir / cycle
     (cdir / reach).mkdir(parents=True, exist_ok=True)
@@ -139,7 +173,7 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
     }, separators=(",", ":")), encoding="utf-8")
 
     day_names = []
-    for d0 in range(t0, now + 1, DAY):
+    for d0 in range(t0, end + 1, DAY):
         i0, i1 = (d0 - t0) // STEP, min(n, (d0 + DAY - t0) // STEP)
         if i0 >= i1:
             continue
@@ -158,6 +192,11 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
             ],
         )
 
+    data_age = {SOURCE: int(time.time() - now)}
+    issues = [store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") for g in gauges if g.forecast]
+    fetched = [f for _, f in (x for x in issues if x)]
+    if fetched:
+        data_age[cnrfc.SOURCE] = int(time.time() - min(fetched))
     index = {
         "format": "fdmr-flow-field",
         "format_version": [1, 0],
@@ -166,11 +205,11 @@ def publish(region_dir: Path, store: Store, out_dir: Path, days: int, reach: str
         "created": utc(time.time()),
         "time": {"start": utc(t0), "step_s": STEP, "days": day_names},
         "now": utc(now),
-        "data_age_s": {SOURCE: int(time.time() - now)},
+        "data_age_s": data_age,
         "reaches": [{
             "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
             "fields": ["flow", "area", "velocity", "volume", "dispersion"],
-            "certainty": [1.0] * n,  # the past is built from measurements
+            "certainty": certainty,
         }],
         "status": "ok",
     }
@@ -190,13 +229,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("store")
     ap.add_argument("out")
     ap.add_argument("--days", type=int, default=14)
+    ap.add_argument("--ahead", type=int, default=14)
     args = ap.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     region = load_region(args.region)
     usgs = UsgsAdapter(Store(":memory:"))
     datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main")}
-    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums)
+    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead)
     size = sum(f.stat().st_size for f in cdir.rglob("*") if f.is_file())
     print(f"published {cdir} ({size / 1e6:.1f} MB)")
     return 0

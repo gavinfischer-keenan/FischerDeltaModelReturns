@@ -4,8 +4,11 @@
 
 For each gauge it asks which series the gauge records, then fetches those for
 the period, and every channel measurement on record. Series the store already
-covers are skipped, so a rerun only fills gaps. One gauge's failure does not
-stop the rest.
+covers are skipped, so a rerun only fills gaps. Then it fetches the latest river
+forecast for every gauge that names a forecast point. One gauge's failure does
+not stop the rest.
+
+    --forecast-only   skip the gauges and fetch only the forecasts
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ import sys
 import time
 from datetime import datetime, timezone
 
+from fdmr_adapters.cnrfc import CnrfcAdapter
 from fdmr_adapters.usgs import PARAMETERS, SOURCE, UsgsAdapter
 from fdmr_store import Store
 
@@ -31,6 +35,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("store")
     ap.add_argument("--days", type=int, default=365, help="how far back to fetch (default 365)")
     ap.add_argument("--pause", type=float, default=2.0, help="seconds between requests, to be polite")
+    ap.add_argument("--forecast-only", action="store_true")
     args = ap.parse_args(argv)
 
     region = load_region(args.region)
@@ -49,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{label:40s} FAILED {e}", flush=True)
         time.sleep(args.pause)
 
-    for g in region.gauges:
+    for g in [] if args.forecast_only else region.gauges:
         try:
             have = usgs.available(g.site)
         except Exception as e:
@@ -66,6 +71,20 @@ def main(argv: list[str] | None = None) -> int:
             from_t = max(start, cov[1]) if cov and cov[0] <= start + 2 * 86_400 else start
             attempt(f"{g.site} {p}", lambda p=p, f=from_t: usgs.fetch_values(g.site, p, f"{iso(f)}/{iso(now)}"))
         attempt(f"{g.site} channel_measurements", lambda: usgs.fetch_channel_measurements(g.site))
+    # River forecasts: one file per forecast group holds all its points.
+    groups: dict[str, list[str]] = {}
+    for g in region.gauges:
+        if g.forecast and g.forecast.get("source") == "cnrfc":
+            groups.setdefault(g.forecast["group"], []).append(g.forecast["point"])
+    cnrfc = CnrfcAdapter(store)
+    for group, points in groups.items():
+        try:
+            issue, n = cnrfc.fetch(group, points)
+            print(f"cnrfc {group:34s} {n:7d} issue {issue}", flush=True)
+        except Exception as e:
+            failures += 1
+            print(f"cnrfc {group:34s} FAILED {e}", flush=True)
+        time.sleep(args.pause)
     store.close()
     print(f"done: {len(region.gauges)} gauges, {failures} failures")
     return 1 if failures else 0

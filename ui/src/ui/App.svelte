@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import type { Map } from "maplibre-gl";
   import { connect } from "../compute-interface/connect";
-  import type { Frame, Ready } from "../compute-interface/messages";
+  import type { Frame, Ready, Words } from "../compute-interface/messages";
   import text from "../../../text/en.json";
   import { Reach, type ReachGeometry } from "./reach";
   import { createMap, drawFrame } from "./map";
@@ -23,7 +23,9 @@
 
   let ready = $state<Ready | null>(null);
   let error = $state<string | null>(null);
-  let mode = $state<"now" | "past">("now");
+  type Mode = "now" | "past" | "next";
+  let mode = $state<Mode>("now");
+  let words = $state<Words>("measured");
   let playing = $state(false);
   let hoursPerSecond = $state(2);
   let t = $state(0);
@@ -44,6 +46,7 @@
     busy = false;
     t = f.t;
     balance = Array.from(f.massBalance);
+    words = f.words;
     if (map && reach) drawFrame(map, reach, f);
   }
 
@@ -52,7 +55,7 @@
     last = ms;
     if (ready && !busy) {
       if (mode === "now") {
-        busy = true;
+        busy = true; // "Now" holds the moment and lets the water drift
         engine.send({ type: "drift", dt: dt * NOW_SPEEDUP });
       } else if (playing) {
         const to = Math.min(ready.end, t + dt * hoursPerSecond * 3600);
@@ -64,28 +67,53 @@
     requestAnimationFrame(tick);
   }
 
-  function setMode(m: "now" | "past") {
+  function setMode(m: Mode) {
     mode = m;
-    playing = false;
+    playing = m === "next";
     if (!ready) return;
     busy = true;
-    engine.send({ type: "seek", t: m === "now" ? ready.now : ready.start });
+    const to = m === "past" ? ready.start : ready.now;
+    t = to; // so the play loop starts from here
+    engine.send({ type: "seek", t: to });
   }
+
+  // The slider's track, shaded by certainty: full colour where measured, fading
+  // through the forecast (specification 3.4). Display only: the values come
+  // from the compute engine.
+  function track(r: Ready): string {
+    const span = r.end - r.start;
+    if (span <= 0) return "";
+    const pct = (s: number) => ((s - r.start) / span) * 100;
+    const stops = [`#2f6db5 0%`, `#2f6db5 ${pct(r.now).toFixed(2)}%`];
+    const every = Math.max(1, Math.floor(r.certainty.length / 40));
+    for (let i = 0; i < r.certainty.length; i += every) {
+      const s = r.start + i * r.step;
+      if (s <= r.now) continue;
+      const a = 0.15 + 0.85 * r.certainty[i];
+      stops.push(`rgba(47, 109, 181, ${a.toFixed(2)}) ${pct(s).toFixed(2)}%`);
+    }
+    return `background: linear-gradient(to right, ${stops.join(", ")});`;
+  }
+  const forecastAhead = $derived(ready !== null && ready.end > ready.now);
 
   function scrub(e: Event) {
     if (!ready) return;
-    mode = "past";
+    const to = Number((e.target as HTMLInputElement).value);
+    mode = to > ready.now ? "next" : "past";
+    playing = false;
     busy = true;
-    engine.send({ type: "seek", t: Number((e.target as HTMLInputElement).value) });
+    t = to;
+    engine.send({ type: "seek", t: to });
   }
 
-  // Until the forecast arrives there is no future to play into, so a release
-  // made in "Now" starts this far back and plays forward to now.
+  // Without a forecast there is no future to play into, so a release made in
+  // "Now" starts this far back and plays forward to now.
   const NO_FORECAST_LOOKBACK = 3 * 24 * 3600;
 
   function release() {
     if (!draft || !ready) return;
-    const start = mode === "now" ? Math.max(ready.start, ready.now - NO_FORECAST_LOOKBACK) : t;
+    const back = mode === "now" && !forecastAhead;
+    const start = back ? Math.max(ready.start, ready.now - NO_FORECAST_LOOKBACK) : mode === "now" ? ready.now : t;
     if (mode === "now") {
       t = start; // so the play loop starts from here, not from the old "now"
       engine.send({ type: "seek", t: start });
@@ -100,7 +128,7 @@
     });
     draft = null;
     if (mode === "now") {
-      mode = "past";
+      mode = back ? "past" : "next";
       playing = true;
     }
   }
@@ -149,13 +177,13 @@
       <div class="modes">
         <button class:on={mode === "now"} onclick={() => setMode("now")}>{text.mode_now}</button>
         <button class:on={mode === "past"} onclick={() => setMode("past")}>{text.mode_past}</button>
-        <button disabled title={text.mode_next_soon}>{text.mode_next}</button>
+        <button class:on={mode === "next"} disabled={!forecastAhead} title={forecastAhead ? "" : text.mode_next_soon} onclick={() => setMode("next")}>{text.mode_next}</button>
       </div>
       <div class="time">
-        <input type="range" min={ready.start} max={ready.end} step="900" value={t} oninput={scrub} />
-        <span>{fmt(t)} · {text.measured}</span>
+        <input type="range" min={ready.start} max={ready.end} step="900" value={t} oninput={scrub} style={track(ready)} />
+        <span class="when" class:faint={words === "rough_guide"}>{fmt(t)} · {text[words]}</span>
       </div>
-      {#if mode === "past"}
+      {#if mode !== "now"}
         <div class="play">
           <button onclick={() => (playing = !playing)}>{playing ? text.pause : text.play}</button>
           <label>{text.speed}
@@ -170,7 +198,7 @@
           <label>{text.release_mass} <input type="number" min="0" bind:value={mass} /></label>
           <label>{text.release_continuous} <input type="number" min="0" bind:value={continuousHours} /></label>
           <label>{text.release_half_life} <input type="number" min="0" bind:value={halfLifeHours} /></label>
-          {#if mode === "now"}<span class="note">{text.release_starts_back}</span>{/if}
+          {#if mode === "now"}<span class="note">{forecastAhead ? text.release_plays_ahead : text.release_starts_back}</span>{/if}
           <button class="go" onclick={release}>{text.release_go}</button>
           <button onclick={() => (draft = null)}>{text.cancel}</button>
         {:else if placing}
@@ -205,7 +233,9 @@
   .error { color: #ffb4a8; }
   .modes, .play, .release { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .time { display: flex; gap: 10px; align-items: center; }
-  .time input { flex: 1; }
+  .time input { flex: 1; appearance: none; height: 6px; border-radius: 3px; }
+  .when { min-width: 14rem; }
+  .faint { opacity: 0.7; }
   button { background: #1c2d45; color: inherit; border: 1px solid #34507a; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
   button.on, button.go { background: #2f6db5; border-color: #2f6db5; }
   button:disabled { opacity: 0.45; cursor: default; }

@@ -13,6 +13,7 @@ class Gauge:
     site: str
     name: str
     role: str  # "release", "main" or "tributary"
+    forecast: dict | None = None  # {source, group, point}
 
 
 @dataclass(frozen=True)

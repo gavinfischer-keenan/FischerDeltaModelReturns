@@ -194,6 +194,7 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 - The San Joaquin River above Vernalis.
 - Any replay older than the rolling 14-day window.
 - Bioaccumulation, planned for after launch (section 3.10).
+- River levels against flood stage, flood zones and water out of the channel, planned after launch (section 3.11).
 
 ### 3.10 Planned after launch: bioaccumulation
 
@@ -213,6 +214,61 @@ Filter feeders such as oysters, mussels and clams concentrate some pollutants fa
 - Each parcel carries the identity of its substance and a phase field. In version 1 the phase is always "dissolved"; the field is there for particle-bound pollutants later.
 - A receptor, such as a shellfish bed, is a plug-in kind (section 4.1). It reads concentration histories and writes its own results, without touching the tracer engine.
 - The substance and species rates are a data file shared by every region, with a source recorded for each rate.
+
+### 3.11 Planned after launch: river levels and floods
+
+Version 1 shows where the water goes while it stays in its channels. This module adds how high it is, where it would leave them, and what that does to everything downstream. It covers:
+
+- spring snowmelt floods;
+- extreme rain, such as an atmospheric river;
+- a very large dam release, when Shasta, Oroville or Folsom has to let go;
+- a dam or spillway failure;
+- levee breaches large enough to flood land, not only Delta islands.
+
+The winters of 2017 and 2023 are the kind of events it is for. In 2017 Oroville's spillway failed. In 2023 snowmelt and rain refilled Tulare Lake, a "bonus lake" on long-dry farmland.
+
+**What the user sees.**
+
+- *River level and flood stage.* The water level at each gauge, past, now and forecast, drawn against that point's flood categories (action, minor, moderate and major flood). Along the river the level is shaded by how close it is to flood stage.
+- *Where the water would go.* On the map, the land the water would cover at the forecast level, or in a what-if, and how deep. Shading is faded by certainty in the same way as the rest of the app.
+- *What it does elsewhere.* Water leaving the river is taken out of the flow downstream, and water returning from the bypasses enters the Delta. A big outflow pushes salt back toward the Bay; when the flood recedes, the salt returns. A pollutant released during a flood follows the water onto the floodplain.
+- *How much the land holds.* When a levee breaks, the land behind it fills to a volume set by the terrain: area times depth, read from the land surface height. Water spread on a floodplain is held back and let go slowly. This is floodplain storage: the flood peak downstream arrives lower and later. Some water also soaks into the ground (infiltration) or stays in low spots until pumped out. The user sees how much water left the river, how much the land is holding, and how much has returned.
+- *What the flood carries.* A spill during a flood, such as a fuel or oil tank struck by floodwater, is followed across the flooded land and back into the river, the Delta and the Bay. Oil floats and spreads on the surface, unlike the dissolved pollutants of version 1 (section 3.9). So this needs a floating-spill kind of release: it moves with the surface water and the wind, spreads into a thin film, evaporates in part, and strands on banks and fields.
+- *New what-ifs.* Big releases from Shasta, Oroville or Folsom; a dam or spillway failure; a storm or snowmelt made larger than forecast; a river levee breach. Each runs on request, like the version 1 what-ifs (section 3.7).
+
+**How it would be built, in steps.** Each step is useful on its own.
+
+1. *Levels at gauges.* Stage from routed flow through each gauge's rating curve (already in section 7.1), with the River Forecast Center's stage forecasts and flood categories for its forecast points. This costs almost nothing.
+2. *A rough flood map.* The forecast water surface is carried across the land surface from the river, and connected land below it is marked as wet. Levees count as walls until overtopped. It is quick, and labelled as a rough guide.
+3. *Water moving on the floodplain.* A two-dimensional floodplain model is added as a model kind (section 4.1). It is joined to the river and the Delta through the same weir and pool connections used for breaches (section 7.6), so flow spills out, travels across the land and comes back. This also models the Sutter and Yolo bypasses, which version 1 only warns about (section 7.1).
+4. *Storage and loss on the land.* Volume on the floodplain from the terrain, with soaking into the ground taken from published soil rates, so the water returned to the river and the Delta is right.
+5. *Floating spills.* Oil and fuel as a release kind that rides the surface water, built on the tracer engine with a surface layer (the depth axis already allows it).
+6. *Upstream of the dams.* For snowmelt and storm scenarios, the River Forecast Center's longer-range and ensemble forecasts, and the snowpack, set how much water the reservoirs must pass.
+
+The flood map and the floodplain model are checked against FEMA flood zones, the state's dam inundation maps, and the 2017 and 2023 floods.
+
+**Data it needs** (*to confirm* each one when the module starts):
+
+| Need | Likely public source |
+|---|---|
+| Land surface height (the key input: it sets where water goes and how much the land holds) | USGS 3D Elevation Program lidar; DWR's Central Valley floodplain lidar |
+| Soil soaking rates | USDA soil survey (SSURGO) |
+| Fuel and oil storage sites | State and federal facility listings for oil and hazardous material storage |
+| Channel and Delta bottom | DWR's Bay–Delta bathymetry surface; USGS San Francisco Bay elevation model |
+| Levees, crest heights | USACE National Levee Database; DWR levee data |
+| Flood categories, stage forecasts | National Weather Service and CNRFC forecast points |
+| Official flood zones, as a check | FEMA National Flood Hazard Layer |
+| Dam failure inundation, as a check | California Division of Safety of Dams inundation maps |
+| Snowpack and reservoir state | CDEC snow sensors and reservoir data; NOAA's national snow analysis |
+| Rain and longer-range flow | CNRFC precipitation and ensemble forecasts |
+
+**Open questions for later.** Which two-dimensional floodplain model to use: an open-source one, USACE's free HEC-RAS (which has a Linux compute engine, *to confirm*), or our own in the math library. How fine the land grid can be on the webserver. Tulare Lake lies south of the launch region, in a separate basin, so modelling it means a new region (section 4.1), not this one.
+
+**Planned for now, built later.** Version 1 leaves room for it:
+
+- The published format already has a water level field slot (section 8.3) and a depth axis.
+- Weir connections, pools and what-ifs exist from version 1 (section 7.6), so floodplain spills reuse them.
+- The floodplain is a model kind, like any other, so the tracer engine and display need no changes to draw water on land.
 
 ## 4. Engineering: architecture
 
@@ -559,7 +615,7 @@ The wave is faster than the water. In a wide channel, theory puts it at about on
 
 **Known complications.**
 
-- In floods the river spills over weirs into the Sutter and Yolo bypasses. Version 1 detects this from gauges and warns that the forecast is unreliable. After launch, the spill is modelled with the weir and pool components built for levee breaches (section 7.6).
+- In floods the river spills over weirs into the Sutter and Yolo bypasses. Version 1 detects this from gauges and warns that the forecast is unreliable. After launch, the spill is modelled with the weir and pool components built for levee breaches (section 7.6), as part of the river levels and floods module (section 3.11).
 - Large diversions remove water and pollutant in irrigation season. They are represented where gauged.
 - Pools, eddies and backwaters hold some water back and let it go slowly, which gives a real plume a longer tail than the dispersion model produces. Version 1 does not model this; the tracer checks in section 9.1 show how large the error is.
 
@@ -844,6 +900,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
 - What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. When the whole server has been quiet for a sustained stretch, the model runner also works through the menu in spare time; visitors always come first. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
+- River levels and floods are planned for after launch, not version 1. That means level against flood stage, flood maps, and water on the floodplain, for snowmelt, extreme rain, big dam releases and dam or levee failures, and their effect on flow and Delta salinity. See section 3.11.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
 - Address: `tripofisch.com/fischer-delta/`, listed under Utilities. See section 9.3.

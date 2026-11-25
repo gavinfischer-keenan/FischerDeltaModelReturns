@@ -31,7 +31,13 @@ export interface Frame {
   parcelConcentration: Float64Array;
   /** [released, in water, past the end, decayed], kg. */
   massBalance: Float64Array;
+  /** Certainty of the flow at this moment, 1 down toward 0 (specification 8.2). */
+  certainty: number;
+  /** The same in words, for the timeline. */
+  words: Words;
 }
+
+export type Words = "measured" | "forecast" | "rough_guide";
 
 export interface Ready {
   type: "ready";
@@ -39,6 +45,9 @@ export interface Ready {
   end: number;
   now: number;
   length: number;
+  /** Certainty at each published step from `start`, `step` s apart. */
+  certainty: number[];
+  step: number;
 }
 
 export interface Failed {

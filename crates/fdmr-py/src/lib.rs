@@ -12,7 +12,7 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
 use fdmr_format::{Encoding, Field, FieldFile};
-use fdmr_math::{decay, dispersion, geometry, routing, signal};
+use fdmr_math::{certainty, decay, dispersion, geometry, routing, signal};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
@@ -156,6 +156,18 @@ fn remaining_fraction(dt: f64, half_life: Option<f64>) -> f64 {
     decay::remaining_fraction(dt, half_life)
 }
 
+/// Certainty of a reach's flow `t` s after now (negative for the past): 1 to the
+/// end of the solid forecast, then falling linearly to `floor` at `forecast_end`.
+#[pyfunction]
+fn certainty_at(t: f64, solid_until: f64, forecast_end: f64, floor: f64) -> f64 {
+    certainty::ReachCertainty {
+        solid_until,
+        forecast_end,
+        floor,
+    }
+    .at(t)
+}
+
 #[pymodule]
 fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(shear_velocity, m)?)?;
@@ -166,6 +178,7 @@ fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(lag_by_cross_correlation, m)?)?;
     m.add_function(wrap_pyfunction!(route, m)?)?;
     m.add_function(wrap_pyfunction!(remaining_fraction, m)?)?;
+    m.add_function(wrap_pyfunction!(certainty_at, m)?)?;
     m.add_function(wrap_pyfunction!(write_field_file, m)?)?;
     m.add_function(wrap_pyfunction!(read_field_file, m)?)?;
     Ok(())

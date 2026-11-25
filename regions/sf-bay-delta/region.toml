@@ -38,6 +38,9 @@ to = "bay"
 at = "Chipps Island line"
 
 # River gauges, upstream to downstream (USGS site numbers, confirmed 25 Nov 2026).
+# forecast: the River Forecast Center point whose flow forecast continues the gauge
+# (CNRFC QINE columns match the USGS gauges at the issue time). The release has
+# no forecast: it is held at its last measured value (specification 8.2).
 # role: "release" is the upstream boundary; "main" are main-stem calibration and
 # routing points; "tributary" are inflows added where they join. Ungauged
 # inflows and diversions between main-stem gauges are carried as each
@@ -77,6 +80,7 @@ reach = "river"
 site = "11377100"
 name = "Sacramento R above Bend Bridge near Red Bluff"
 role = "main"
+forecast = { source = "cnrfc", group = "UpperSacramento", point = "BDBC1" }
 
 [[gauges]]
 reach = "river"
@@ -89,12 +93,14 @@ reach = "river"
 site = "11389500"
 name = "Sacramento R at Colusa"
 role = "main"
+forecast = { source = "cnrfc", group = "UpperSacramento", point = "CLUC1" }
 
 [[gauges]]
 reach = "river"
 site = "11390500"
 name = "Sacramento R below Wilkins Slough near Grimes"
 role = "main"
+forecast = { source = "cnrfc", group = "UpperSacramento", point = "WLKC1" }
 
 [[gauges]]
 reach = "river"
@@ -113,6 +119,7 @@ reach = "river"
 site = "11425500"
 name = "Sacramento R at Verona"
 role = "main"
+forecast = { source = "cnrfc", group = "LowerSacramento", point = "VONC1" }
 
 [[gauges]]
 reach = "river"
@@ -125,6 +132,7 @@ reach = "river"
 site = "11447650"
 name = "Sacramento R at Freeport"
 role = "main"
+forecast = { source = "cnrfc", group = "LowerSacramento", point = "FPOC1" }
 
 # The basemap extract: west, south, east, north (degrees), and the deepest zoom.
 [basemap]

@@ -1,8 +1,16 @@
 // The map and its layers: drawing only (specification section 8.4).
-// Version 0: a plain background, the river, flow particles and pollutant
-// particles. The self-hosted basemap comes next.
+// The self-hosted basemap, the river, flow particles and pollutant particles,
+// the pollutant's colour faded toward neutral as certainty falls.
 
-import { AttributionControl, Map, NavigationControl, addProtocol, setWorkerUrl, type GeoJSONSource } from "maplibre-gl";
+import {
+  AttributionControl,
+  Map,
+  NavigationControl,
+  addProtocol,
+  setWorkerUrl,
+  type ExpressionSpecification,
+  type GeoJSONSource,
+} from "maplibre-gl";
 import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
@@ -16,6 +24,23 @@ import type { Frame } from "../compute-interface/messages";
 import type { Reach } from "./reach";
 
 const MAX_DRAWN_PARCELS = 4000;
+
+// Concentration on a log scale; the low end is still a strong colour (spec 8.4).
+const POLLUTANT_STOPS: [number, string][] = [[-6, "#5b2a86"], [-4, "#b5338a"], [-2, "#f26a4f"], [0, "#fde74c"]];
+const NEUTRAL = "#9aa7b4";
+
+/** `colour` faded toward neutral as certainty falls (spec 8.4). */
+function faded(colour: string, certainty: number): string {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const a = rgb(colour), b = rgb(NEUTRAL);
+  const c = Math.max(0, Math.min(1, certainty));
+  return "#" + a.map((v, i) => Math.round(v * c + b[i] * (1 - c)).toString(16).padStart(2, "0")).join("");
+}
+
+function pollutantColour(certainty: number): ExpressionSpecification {
+  return ["interpolate", ["linear"], ["get", "c"], ...POLLUTANT_STOPS.flatMap(([v, h]) => [v, faded(h, certainty)])] as ExpressionSpecification;
+}
+let drawnCertainty = 1;
 
 export function createMap(container: HTMLElement, reach: Reach, region: string): Map {
   // Fonts, icons and tiles all come from our own server: nothing from a third party.
@@ -74,11 +99,7 @@ export function createMap(container: HTMLElement, reach: Reach, region: string):
       source: "pollutant",
       paint: {
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 6, 1.6, 12, 4],
-        // Concentration on a log scale; the low end is still a strong colour (spec 8.4).
-        "circle-color": [
-          "interpolate", ["linear"], ["get", "c"],
-          -6, "#5b2a86", -4, "#b5338a", -2, "#f26a4f", 0, "#fde74c",
-        ],
+        "circle-color": pollutantColour(1),
         "circle-opacity": 0.9,
       },
     });
@@ -112,4 +133,9 @@ export function drawFrame(map: Map, reach: Reach, f: Frame): void {
     });
   }
   pollutant.setData({ type: "FeatureCollection", features: ps });
+  const c = Math.round(f.certainty * 50) / 50; // restyle only when it visibly changes
+  if (c !== drawnCertainty) {
+    drawnCertainty = c;
+    map.setPaintProperty("pollutant", "circle-color", pollutantColour(c));
+  }
 }

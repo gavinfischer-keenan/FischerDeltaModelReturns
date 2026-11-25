@@ -4,11 +4,12 @@
 // No drawing happens here.
 
 import init, { Engine } from "./pkg/fdmr_wasm.js";
-import type { Frame, Reply, Request } from "../compute-interface/messages";
+import type { Frame, Reply, Request, Words } from "../compute-interface/messages";
 
 interface Index {
   time: { start: string; step_s: number; days: string[] };
   now: string;
+  reaches: { id: string; certainty: number[] }[];
 }
 interface Geometry {
   elements: { start_m: number; end_m: number }[];
@@ -28,6 +29,10 @@ let starts = new Float64Array();
 let ends = new Float64Array();
 let particles = 0;
 let releases: PendingRelease[] = [];
+let certainty: number[] = [];
+let start = 0;
+let step = 900;
+let now = 0;
 
 const post = (reply: Reply, transfer: Transferable[] = []) =>
   (self as unknown as Worker).postMessage(reply, transfer);
@@ -49,9 +54,13 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
     ),
   );
   particles = n;
-  const now = epoch(index.now);
+  now = epoch(index.now);
+  start = epoch(index.time.start);
+  step = index.time.step_s;
+  certainty = index.reaches.find((x) => x.id === reach)?.certainty ?? [1];
   build(now);
-  post({ type: "ready", start: epoch(index.time.start), end: now, now, length: engine!.length() });
+  const end = start + (certainty.length - 1) * step; // the last published step
+  post({ type: "ready", start, end, now, length: engine!.length(), certainty, step });
   frame();
 }
 
@@ -67,17 +76,34 @@ function build(t: number): void {
   engine = e;
 }
 
+/** Certainty at time t. One reach, and certainty never rises with time, so a
+ * parcel's lowest certainty so far is the reach's certainty now (spec 8.2). */
+function certaintyAt(t: number): number {
+  const i = Math.max(0, Math.min(certainty.length - 1, Math.round((t - start) / step)));
+  return certainty[i] ?? 1;
+}
+
+/** The three tiers of section 3.4, as in fdmr-math's certainty::words. */
+function words(c: number, t: number): Words {
+  if (t <= now) return "measured";
+  return c >= 0.5 ? "forecast" : "rough_guide";
+}
+
 function frame(): void {
   if (!engine) return;
+  const t = engine.time();
+  const c = certaintyAt(t);
   const f: Frame = {
     type: "frame",
-    t: engine.time(),
+    t,
     particleX: engine.particle_x(),
     particleLateral: engine.particle_lateral(),
     particleSpeed: engine.particle_speed(),
     parcelX: engine.parcel_x(),
     parcelConcentration: engine.parcel_concentration(),
     massBalance: engine.mass_balance(),
+    certainty: c,
+    words: words(c, t),
   };
   post(f, [f.particleX.buffer, f.particleLateral.buffer, f.particleSpeed.buffer, f.parcelX.buffer, f.parcelConcentration.buffer]);
 }

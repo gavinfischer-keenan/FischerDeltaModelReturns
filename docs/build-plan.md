@@ -62,11 +62,11 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Skeleton | Repository with one package per module; continuous integration; dependency checks that fail the build on a forbidden import. |
 | Published format | Version 1 of the format, with the depth axis, substance identity and phase field already in it; a reader and writer with tests. |
 | Math library, first set | Fischer dispersion, flood-wave routing, hydraulic geometry fitting, gauge-to-gauge lag analysis, 1D parcel movement, decay, certainty. Each is tested against textbook cases. |
-| Data adapters | USGS, the River Forecast Center and CDEC for Keswick; the local data store. |
+| Data adapters | USGS, the River Forecast Center and CDEC for Keswick; the local data store. Done 25 Nov 2026: USGS (with an API key), the River Forecast Center's hourly flow forecasts at five main gauges, and the store. CDEC is still to do; until then the Keswick release is held at its last measured value. |
 | River model kind | Routing with both speeds kept apart; nightly calibration; skill scores. |
 | Model runner | Scheduler and publisher; hourly river runs; the rolling 14-day past window. |
 | Compute engine, first version | 1D tracer, flow particles and answers, behind the interface in specification 4.2, in a browser background thread. |
-| UI, first version | Self-hosted map stack, flow particles, the timeline with Now, the last 14 days and the next 14, and Add pollutant. All words in text files. |
+| UI, first version | Self-hosted map stack, flow particles, the timeline with Now, the last 14 days and the next 14, and Add pollutant. All words in text files. Done 25 Nov 2026 for the river: the next 14 days play from the forecast, the timeline is shaded by certainty, and the time reads measured, forecast or rough guide. |
 | Test region | A plain river outside California, running in the tests. |
 
 **Done when:** on a private development address, the river from Shasta Dam to Sacramento shows live flow particles and a pollutant movie across past, now and forecast. The test region runs with no engine changes. Calibration skill scores are being logged.
@@ -128,7 +128,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 In no fixed order:
 - bioaccumulation
 - custom what-ifs
-- flood spill into the bypasses
+- river levels and floods: flood stage, flood maps, floodplain flow, snowmelt, storm and dam-failure what-ifs (spec section 3.11), including flood spill into the bypasses
 - ensemble spread
 - the 1D tidal model decision
 - the second region
