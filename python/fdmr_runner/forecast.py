@@ -71,3 +71,62 @@ def extend(
         else:
             last = out[i]
     return out, end
+
+
+def fit_tide(
+    observed: Sequence[float | None], predicted: Sequence[float | None], step: int, max_shift_steps: int = 8
+) -> tuple[float, float, float] | None:
+    """How a gauge's water level follows a nearby station's tide predictions:
+    (shift in steps, scale, offset), so that observed(i) ~ scale * predicted(i -
+    shift) + offset. The shift comes from the peak of the cross-correlation
+    (either way), then scale and offset by least squares. River flow damps
+    and delays the tide, and the two stations are not the same place, so all
+    three are fitted to the recent record. None if too little overlaps."""
+    import fdmr_py
+
+    both = [i for i in range(min(len(observed), len(predicted))) if observed[i] is not None and predicted[i] is not None]
+    if len(both) < 96:
+        return None
+    lo, hi = both[0], both[-1] + 1
+    obs = [observed[i] for i in range(lo, hi)]
+    pre = [predicted[i] for i in range(lo, hi)]
+    if any(v is None for v in obs) or any(v is None for v in pre):
+        # Bridge short gaps so the correlation sees an even series.
+        obs, pre = _bridge(obs), _bridge(pre)
+    late = fdmr_py.cross_correlation_peak(pre, obs, float(step), max_shift_steps)  # observed after predicted
+    early = fdmr_py.cross_correlation_peak(obs, pre, float(step), max_shift_steps)
+    if late is None or early is None:
+        return None
+    shift = late[0] / step if late[1] >= early[1] else -early[0] / step
+    sp = shifted(pre, shift)
+    pairs = [(p, o) for p, o in zip(sp, obs) if p is not None and o is not None]
+    n = len(pairs)
+    mp, mo = sum(p for p, _ in pairs) / n, sum(o for _, o in pairs) / n
+    var = sum((p - mp) ** 2 for p, _ in pairs)
+    scale = sum((p - mp) * (o - mo) for p, o in pairs) / var if var > 0 else 1.0
+    return shift, scale, mo - scale * mp
+
+
+def shifted(series: Sequence[float | None], shift: float) -> list[float | None]:
+    """series(i - shift), linear between samples; None where it would fall outside."""
+    out: list[float | None] = []
+    for i in range(len(series)):
+        x = i - shift
+        j = int(x // 1)
+        f = x - j
+        if j < 0 or j + 1 >= len(series) or series[j] is None or series[j + 1] is None:
+            out.append(series[j] if 0 <= j < len(series) and f == 0 else None)
+        else:
+            out.append(series[j] * (1 - f) + series[j + 1] * f)
+    return out
+
+
+def _bridge(s: Sequence[float | None]) -> list[float]:
+    out = list(s)
+    last = next((v for v in out if v is not None), 0.0)
+    for i, v in enumerate(out):
+        if v is None:
+            out[i] = last
+        else:
+            last = v
+    return out  # type: ignore[return-value]

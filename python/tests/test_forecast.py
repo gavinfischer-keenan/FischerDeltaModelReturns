@@ -32,3 +32,15 @@ def test_on_grid_leaves_long_gaps_empty():
     assert g[1] == pytest.approx(1.5)
     assert all(v is None for v in g[3:12])  # the five-hour gap is not filled
     assert g[12] == pytest.approx(7.0)
+
+
+def test_fit_tide_recovers_shift_scale_and_offset():
+    import math
+
+    from fdmr_runner.forecast import fit_tide, shifted
+
+    step = 900
+    pred = [math.sin(2 * math.pi * i * step / 44_712) + 0.3 * math.sin(2 * math.pi * i * step / 86_164) for i in range(7 * 96)]
+    obs = [None if v is None else 0.8 * v + 1.25 for v in shifted(pred, 2.0)]  # 30 minutes later, damped, raised
+    shift, scale, offset = fit_tide(obs, pred, step)
+    assert abs(shift - 2.0) < 0.1 and abs(scale - 0.8) < 0.01 and abs(offset - 1.25) < 0.01

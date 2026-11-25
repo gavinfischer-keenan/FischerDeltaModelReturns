@@ -30,12 +30,18 @@ version_settings = ["HISTFLOWVERSION", "HISTSTAGEVERSION", "HISTQUALVERSION"]
 output_a = "HYDROV8.5.1"            # A part of HYDRO's output paths (the DSM2 version built)
 
 # Live inputs: a DSS path (A to E parts, F added), and the store series feeding it.
+# Past now, an input with a `forecast` follows it (River Forecast Center flows,
+# or NOAA tide predictions fitted to the gauge); the rest are held at their last
+# value (specification 8.2). The Cosumnes and Mokelumne have no hourly River
+# Forecast Center forecast, and its Fremont Weir point is the river's flow, not
+# the spill into the Yolo Bypass (checked 25 Nov 2026), so those are held.
 # CDEC duration: E for event (15-minute) readings, H hourly, D daily.
 [[live]]
 path = "/FILL+CHAN/RSAC155/FLOW//15MIN/"
 units = "CFS"
 source = "usgs"
 site = "11447650"
+forecast = { source = "cnrfc", group = "LowerSacramento", point = "FPOC1" }
 parameter = "discharge"
 average_h = 25
 
@@ -44,6 +50,7 @@ path = "/FILL+CHAN/RSAN112/FLOW//15MIN/"
 units = "CFS"
 source = "usgs"
 site = "11303500"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "VNSC1" }
 parameter = "discharge"
 
 [[live]]
@@ -121,6 +128,7 @@ path = "/FILL+CHAN/RSAC054/STAGE//15MIN/"
 units = "FEET"
 source = "cdec"
 site = "MRZ"
+forecast = { source = "noaa-tides", station = "9415102" }   # Martinez-Amorco Pier
 duration = "E"
 parameter = "gage_height"
 

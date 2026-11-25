@@ -1,12 +1,24 @@
-"""Run DSM2 for the Delta on live inputs (specification 7.2).
+"""Run DSM2 for the Delta on live inputs, through the forecast (specification 7.2, 8.2).
 
-    python -m fdmr_runner.delta REGION_DIR STORE_FILE WORK_DIR [--days 28]
+    python -m fdmr_runner.delta REGION_DIR STORE_FILE WORK_DIR [--days 28] [--ahead 14] [--as-of 2026-11-22T00:00]
 
-Reads REGION_DIR/dsm2.toml, builds each live series from the store (15-minute,
-tidally averaged where asked, short gaps bridged, the edges held), writes a run
-folder under WORK_DIR, runs HYDRO, and compares DSM2's flows with the measured
-check stations. For now the run ends at the last midnight (Pacific Standard
-Time) that every live input reaches: the forecast comes next.
+Reads REGION_DIR/dsm2.toml and builds each live input from the store on a
+15-minute grid up to now, then carries it on:
+
+- a tide (forecast source noaa-tides): NOAA's predictions, fitted to the
+  gauge's last week for timing, size and level;
+- a river (forecast source cnrfc): the River Forecast Center's forecast,
+  joined to the measured flow over the first day, as the river model does;
+- anything else, such as pumping: held at its last value.
+
+Tidal averaging, where an input asks for it, comes after, over the joined series. Gates are held
+in their last state. The run covers `--days` before today's midnight (Pacific
+Standard Time) and `--ahead` after it.
+
+`--as-of` pretends it is an earlier time: nothing measured after it is used,
+and river forecasts are left out (the store keeps only the latest issue, which
+would know the answer). DSM2's forecast is then checked against what the
+stations measured.
 """
 
 from __future__ import annotations
@@ -14,21 +26,25 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import tomllib
+from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
 
+from fdmr_adapters.noaa_tides import PARAMETER as TIDE
 from fdmr_plugins.dsm2 import dss, study
 from fdmr_plugins.river_routing.calibration import running_mean
 from fdmr_plugins.river_routing.model import filled
 from fdmr_store import Store
 
-from .forecast import on_grid
+from .forecast import extend, fit_tide, on_grid, shifted
 
 STEP = 900
 DAY = 86_400
 TO_DSS = {"CFS": 1 / 0.3048**3, "FEET": 1 / 0.3048}  # from the store's SI units
 DSM2_ROOT = Path("/srv/fdmr-data/dsm2")
+BLEND = 96  # forecasts join the measured series over a day
 
 
 def load(region_dir: Path) -> dict | None:
@@ -42,33 +58,62 @@ def feeds(region_dir: Path) -> list[dict]:
     return [*cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", [])]
 
 
-def grid(store: Store, f: dict, t0: int, n: int, average_h: float | None = None) -> list[float | None]:
-    vals = store.values(f["source"], f["site"], f["parameter"], t0 - 3 * DAY, t0 + (n + 4 * 96) * STEP)
+def forecasts(region_dir: Path) -> list[dict]:
+    """The forecast of every live input that has one, for fetching."""
+    return [f["forecast"] for f in (load(region_dir) or {}).get("live", []) if "forecast" in f]
+
+
+def grid(store: Store, f: dict, t0: int, n: int, cutoff: int | None = None) -> list[float | None]:
+    """A series on the 15-minute grid from t0, as measured up to `cutoff`."""
+    end = t0 + (n + 1) * STEP if cutoff is None else min(cutoff + 1, t0 + (n + 1) * STEP)
+    vals = [v for v in store.values(f["source"], f["site"], f["parameter"], t0 - 3 * DAY, end) if v.value is not None]
     g0 = t0 - 3 * DAY
-    m = n + 3 * 96 + 4 * 96
+    m = n + 3 * 96
     if f.get("duration") == "D":
         # A daily figure holds through its day, as in DWR's own inputs.
         full: list[float | None] = [None] * m
         for v in vals:
-            if v.value is None:
-                continue
             first = max(0, (v.t - g0 + STEP - 1) // STEP)
-            for i in range(first, min(m, (v.t + DAY - g0 + STEP - 1) // STEP)):
+            last = (min(v.t + DAY, end) - g0 + STEP - 1) // STEP
+            for i in range(first, min(m, last)):
                 full[i] = v.value
     else:
         # Others are bridged across gaps of up to 6 hours.
         full = on_grid([(v.t, v.value) for v in vals], g0, STEP, m, max_gap_s=6 * 3600)
-    if average_h:
-        full = running_mean(full, int(average_h * 3600 / STEP))
-    return full[3 * 96 : 3 * 96 + n]
+    return full[3 * 96 :]
 
 
-def live_series(store: Store, f: dict, t0: int, n: int) -> study.LiveSeries:
-    g = grid(store, f, t0, n, f.get("average_h"))
-    if all(v is None for v in g):
+def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forecasts: bool) -> tuple[list[float], str]:
+    """A live input from t0 for n steps: measured up to now, then its forecast or
+    held. Returns the series (SI units) and how it was carried on."""
+    g = grid(store, f, t0, n, cutoff=now)
+    known = [i for i, v in enumerate(g) if v is not None and i <= (now - t0) // STEP]
+    if not known:
         raise ValueError(f"no data for {f['source']} {f['site']} {f['parameter']}")
-    k = TO_DSS[f["units"]]
-    return study.LiveSeries(f["path"], f["units"], t0, [v * k for v in filled(g)])
+    i_now = known[-1]
+    fc = f.get("forecast")
+    how = "held"
+    if fc and fc["source"] == "noaa-tides":
+        pv = store.values("noaa-tides", fc["station"], TIDE, t0 - DAY, t0 + (n + 1) * STEP)
+        pred = on_grid([(v.t, v.value) for v in pv], t0, STEP, n)
+        week = max(0, i_now - 7 * 96)
+        fit = fit_tide(g[week : i_now + 1], pred[week : i_now + 1], STEP)
+        if fit is None:
+            raise ValueError(f"cannot fit tide predictions {fc['station']} to {f['site']}")
+        shift, scale, offset = fit
+        tide = [None if v is None else scale * v + offset for v in shifted(pred, shift)]
+        g, _ = extend(g, tide, i_now, n, BLEND)
+        how = f"tide {fc['station']}: {shift * STEP / 60:+.0f} min, x{scale:.3f}, {offset:+.3f} m"
+    elif fc and fc["source"] == "cnrfc" and use_river_forecasts:
+        fv = store.values("cnrfc", fc["point"], "discharge", t0, t0 + (n + 1) * STEP)
+        if fv:
+            g, last = extend(g, on_grid([(v.t, v.value) for v in fv], t0, STEP, n), i_now, n, BLEND)
+            how = f"forecast {fc['point']} to {dss.label(t0 + last * STEP)[0] if last else 'now'}"
+    if how == "held":
+        g = g[: i_now + 1] + [None] * (n - i_now - 1)
+    if f.get("average_h"):
+        g = running_mean(g, int(f["average_h"] * 3600 / STEP))
+    return filled(g), how
 
 
 def gate_states(readings: list[tuple[int, float]], open_above: float, confirm: int = 2) -> list[tuple[int, bool]]:
@@ -92,8 +137,9 @@ def gate_states(readings: list[tuple[int, float]], open_above: float, confirm: i
     return out
 
 
-def gate_setting(store: Store, g: dict, t0: int, t1: int) -> study.LiveSetting:
-    vals = [(v.t, v.value) for v in store.values(g["source"], g["site"], g["parameter"], t0 - 2 * DAY, t1) if v.value is not None]
+def gate_setting(store: Store, g: dict, t0: int, now: int) -> study.LiveSetting:
+    """A gate's position from its measured flow up to now, held after."""
+    vals = [(v.t, v.value) for v in store.values(g["source"], g["site"], g["parameter"], t0 - 2 * DAY, now + 1) if v.value is not None]
     states = gate_states(vals, g["open_above"])
     if not states:
         raise ValueError(f"no data for gate feed {g['source']} {g['site']}")
@@ -106,15 +152,13 @@ def gate_setting(store: Store, g: dict, t0: int, t1: int) -> study.LiveSetting:
     return study.LiveSetting(g["path"], g.get("units", "UNSPECIF"), pts)
 
 
-def latest_midnight(store: Store, live: list[dict]) -> int:
-    """The last midnight, Pacific Standard Time, that every live input has reached."""
-    last = min(store.latest(f["source"], f["site"], f["parameter"])[0] for f in live)
-    return (last - dss.PST) // DAY * DAY + dss.PST
+def pst_midnight(t: int) -> int:
+    return (t - dss.PST) // DAY * DAY + dss.PST
 
 
 def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int) -> dict:
-    """DSM2's flow at a check station against the measured one: tidal (25 h mean)
-    and instantaneous differences, m3/s."""
+    """DSM2's flow at a check station against the measured one over [start, end):
+    means, the moment-to-moment and the tidally averaged (25 h) differences, m3/s."""
     modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
     out = run_dir / "output" / f"{modifier}_hydro.dss"
     n = (end - start) // STEP
@@ -122,14 +166,14 @@ def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int)
     vals, _, _ = dss.Dss(str(DSM2_ROOT / "bin" / "dsstool")).read(str(out), path, start + STEP, n)
     model = [None if v is None else v / TO_DSS["CFS"] for v in vals]
     meas = grid(store, c, start + STEP, n)
-    w = 100  # 25 hours of 15-minute steps
+    w = 100  # 25 hours
     tm, tmeas = running_mean(model, w), running_mean(meas, w)
     both = [(a, b) for a, b in zip(model, meas) if a is not None and b is not None]
     tide = [(a, b) for a, b in zip(tm, tmeas) if a is not None and b is not None]
     if not both:
         return {"name": c["name"], "n": 0}
     return {
-        "name": c["name"], "n": len(both),
+        "name": c["name"], "hours": round(len(both) / 4),
         "measured_mean": round(mean(b for _, b in both), 1),
         "model_mean": round(mean(a for a, _ in both), 1),
         "instant_mae": round(mean(abs(a - b) for a, b in both), 1),
@@ -143,7 +187,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("region")
     ap.add_argument("store")
     ap.add_argument("work")
-    ap.add_argument("--days", type=int, default=28, help="length of the run, days (warm-up plus the past window)")
+    ap.add_argument("--days", type=int, default=28, help="days before today: warm-up plus the past window")
+    ap.add_argument("--ahead", type=int, default=14, help="days of forecast")
+    ap.add_argument("--as-of", help="pretend it is this UTC time, to check the forecast against what happened")
     args = ap.parse_args(argv)
     region_dir = Path(args.region)
     cfg = load(region_dir)
@@ -151,26 +197,33 @@ def main(argv: list[str] | None = None) -> int:
         print("no dsm2.toml in this region")
         return 1
     store = Store(args.store)
-    end = latest_midnight(store, cfg["live"])
-    start = end - args.days * DAY
+    hindcast = args.as_of is not None
+    now = int(datetime.fromisoformat(args.as_of).replace(tzinfo=timezone.utc).timestamp()) if hindcast else int(time.time())
+    today = pst_midnight(now)
+    start, end = today - args.days * DAY, today + args.ahead * DAY
     t0 = start - DAY
     n = (end + DAY - t0) // STEP + 1
-    live = [live_series(store, f, t0, n) for f in cfg["live"]]
-    live += [gate_setting(store, g, t0, end + DAY) for g in cfg.get("live_gate", [])]
+    live: list[study.LiveSeries | study.LiveSetting] = []
+    for f in cfg["live"]:
+        series, how = carried_on(store, f, t0, n, now, use_river_forecasts=not hindcast)
+        live.append(study.LiveSeries(f["path"], f["units"], t0, [v * TO_DSS[f["units"]] for v in series]))
+        print(f"{f['path']:44s} {f['source']} {f['site']:9s} {how}")
+    live += [gate_setting(store, g, t0, now) for g in cfg.get("live_gate", [])]
     root = DSM2_ROOT
     settings = study.RunSettings(
         study=root / "inputs" / cfg["inputs"] / cfg["study"],
         replace=cfg["replace"], version=cfg["version"], version_settings=cfg["version_settings"],
         reference_year=cfg["reference_year"], tool=str(root / "bin" / "dsstool"), hydro=str(root / "bin" / "hydro"),
     )
-    run_dir = Path(args.work) / dss.label(end)[0].lower()
+    run_dir = Path(args.work) / (dss.label(today + DAY)[0].lower() + ("-asof" if hindcast else ""))
     summary = study.build(settings, run_dir, start, end, live)
-    print(f"run folder {run_dir}: {len(summary['live'])} live series, {summary['reference_year']} from {cfg['reference_year']}")
+    print(f"run folder {run_dir}: {len(summary['live'])} live inputs, {summary['reference_year']} from {cfg['reference_year']}")
     secs = study.run_hydro(settings, run_dir)
-    print(f"hydro: {args.days} days in {secs:.0f} s")
-    results = [check(store, run_dir, cfg, c, start + 7 * DAY, end) for c in cfg.get("checks", [])]
-    for r in results:
-        print(json.dumps(r))
+    print(f"hydro: {args.days + args.ahead} days in {secs:.0f} s")
+    for c in cfg.get("checks", []):
+        print("past    ", json.dumps(check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP)))
+        if hindcast:
+            print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP)))
     store.close()
     return 0
 

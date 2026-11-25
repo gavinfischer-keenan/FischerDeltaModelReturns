@@ -25,6 +25,8 @@ from pathlib import Path
 from fdmr_adapters.cdec import SOURCE as CDEC
 from fdmr_adapters.cdec import CdecAdapter
 from fdmr_adapters.cnrfc import CnrfcAdapter
+from fdmr_adapters.noaa_tides import PARAMETER as TIDE
+from fdmr_adapters.noaa_tides import NoaaTidesAdapter
 from fdmr_adapters.usgs import PARAMETERS, SOURCE, UsgsAdapter
 from fdmr_store import Store
 
@@ -111,6 +113,20 @@ def main(argv: list[str] | None = None) -> int:
     for g in region.gauges:
         if g.forecast and g.forecast.get("source") == "cnrfc":
             groups.setdefault(g.forecast["group"], []).append(g.forecast["point"])
+    for fc in delta.forecasts(Path(args.region)):
+        if fc["source"] == "cnrfc" and fc["point"] not in groups.setdefault(fc["group"], []):
+            groups[fc["group"]].append(fc["point"])
+    # Tide predictions: kept a month back and a fortnight ahead.
+    tides = NoaaTidesAdapter(store)
+    for fc in [] if args.forecast_only else delta.forecasts(Path(args.region)):
+        if fc["source"] != "noaa-tides":
+            continue
+        cov = store.coverage("noaa-tides", fc["station"], TIDE)
+        if cov and cov[0] <= now - 35 * 86_400 and cov[1] >= now + 15 * 86_400:
+            print(f"noaa {fc['station']} {TIDE:26s} held", flush=True)
+            continue
+        f0 = now - 40 * 86_400 if not cov or cov[0] > now - 35 * 86_400 else cov[1] - 86_400
+        attempt(f"noaa {fc['station']} {TIDE}", lambda st=fc["station"], f0=f0: tides.fetch_predictions(st, int(f0), int(now + 16 * 86_400)))
     cnrfc = CnrfcAdapter(store)
     for group, points in groups.items():
         try:
