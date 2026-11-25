@@ -414,7 +414,7 @@ The UI only displays, and the compute only computes. They talk through one defin
 
 - **The interface.** The UI sends requests: load this stretch of time, add this release, show this layer, give the history at this point. The compute engine replies with snapshots of particle positions and values at each time step, and with answers. The UI only smooths between snapshots so the motion looks continuous; that is drawing, not modelling.
 - **Where the compute engine runs.** In version 1 it runs in a background thread of the visitor's browser: instant, free to scale and private. The same engine can instead run on its own machine and serve a UI over the network. A visitor's releases would then travel to that machine, and section 3.8 would change to say so.
-- **One compute codebase.** The compute engine is written once and runs in both places, so moving it is a deployment change, not a rewrite. The language is chosen at the start of the build; one option is a language that compiles both to WebAssembly for the browser and to a native program for a server.
+- **One compute codebase.** The compute engine is written once and runs in both places, so moving it is a deployment change, not a rewrite. The compute engine and the math library are written in Rust, compiled to WebAssembly for the browser and natively for a server. The model runner is written in Python and calls the same Rust math through bindings, so the math exists once.
 - **Words on screen.** All text the UI shows is kept in separate files, not in code. Version 1 is in English only; another language is a new set of files.
 - **Testing apart.** The compute engine is tested without any UI. The UI is tested against a recorded stream of compute results.
 
@@ -828,6 +828,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - The Eureka dye study, the oysters turned red at the Humboldt Bay outfall, is a story in the History section. See section 2.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
+- Languages: Rust for the math library and compute engine; Python for the model runner, data adapters and publisher, calling the Rust math. See section 4.2 and build-plan.md.
 - Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
 - Swept all remaining proposals into decisions:
   - up to five releases at once;

@@ -13,18 +13,16 @@ Nothing has been built yet. This plan says what will be built, in what order, ho
 - **Small, reviewable changes.** Work lands as small pull requests, one module or one feature at a time, each with its tests. Nothing merges with a failing test or a broken dependency rule.
 - **Things that take calendar time start on day one.** The Bay archive and the letters to DWR do not wait for their phase.
 
-## 2. Decisions needed before building
+## 2. Decisions before building
 
-These are the choices the specification left for the start of the build. Each has a recommendation.
-
-| # | Decision | Options | Recommendation and why |
+| # | Decision | Status | Choice and why |
 | --- | --- | --- | --- |
-| 1 | Language for the math library and compute engine | Rust, compiled to WebAssembly for the browser and native for a server; or TypeScript throughout | **Rust.** The math library is shared by the model runner and the compute engine, and the compute engine must run in a browser and on a server (specification 4.2). Rust does both from one codebase and is fast enough for tens of thousands of parcels on a phone. TypeScript is simpler, but slower, and it cannot easily be shared with the server-side models. |
-| 2 | Language for the model runner, adapters and publisher | Python, or Rust throughout | **Python**, calling the Rust math library through bindings. Python has the tools for this data: NetCDF for NOAA, the DSS time-series format for DSM2, and DWR's own Python tools for DSM2. The math stays written once, in Rust. |
-| 3 | UI stack | TypeScript with MapLibre, plus a small framework or none | **TypeScript, MapLibre and a small framework such as Svelte.** The UI is display only, so it stays light. |
-| 4 | Repository layout | One repository with a package per module, or several repositories | **One repository**, one package per row of the module table in specification 4.3. One place makes the dependency checks simple to run. |
-| 5 | Continuous integration | GitHub Actions, or a runner on our own hardware | **GitHub Actions** for tests and checks; nothing about the running app depends on it. |
-| 6 | How finished files reach the web guest | rsync over SSH, or another push | **rsync over SSH, pushed from the model runner.** To be fitted to how tripofisch.com is deployed today, which you know and I do not. |
+| 1 | Language for the math library and compute engine | **Decided: Rust** | The only option where the math is written once and runs everywhere it is needed. It compiles to WebAssembly for the compute engine in the browser, natively for a compute engine on a server, and as a module the Python model runner calls. Strict types suit versioned interfaces. It also leaves room for 2D meshes, 3D and bioaccumulation. |
+| 2 | Language for the model runner, adapters and publisher | **Decided: Python**, calling the Rust math through bindings | Python has the tools for this data: NetCDF for NOAA's files, and DWR's own Python tools for DSM2's DSS files (to confirm). The runner fetches, schedules and publishes; all its math comes from the Rust library. |
+| 3 | UI stack | Recommended: TypeScript, MapLibre and Svelte | The browser needs TypeScript or JavaScript for the UI. Particles are drawn by our own graphics layer inside MapLibre; Svelte handles controls, forms, legend, timeline and graphs. Because the UI only displays, a framework change later touches only the UI. |
+| 4 | Repository layout | Recommended: one repository, one package per module | `math/`, `format/`, `compute/` and `plugins/` in Rust; `runner/` and `adapters/` in Python; `ui/` in TypeScript; `regions/` and `text/` as data. Seams enforced by tooling in each language: the Rust compiler, a Python import checker and a TypeScript dependency checker. The build fails on a forbidden import. |
+| 5 | Continuous integration | Recommended: GitHub Actions | Free for this public repository. Every change runs the Rust tests and WebAssembly build, the Python tests, the UI tests against recorded compute output, the dependency checks and the plug-in conformance tests. The running app never depends on GitHub. |
+| 6 | How finished files reach the web guest | Waiting on how tripofisch.com is hosted today | Proposed: rsync over SSH from the model runner, with a key that can write only into one folder. Each cycle goes into a new folder and a single link switch makes it live, so a visitor never sees a half-replaced set. |
 
 ## 3. Things only people can do
 
@@ -173,7 +171,7 @@ flowchart LR
 
 ## 7. Questions for our discussion
 
-1. Do the six recommendations in section 2 suit you, especially Rust for the math and compute engine?
+1. Decisions 3 to 5 in section 2: keep as recommended? Decision 6 needs a description of how tripofisch.com is hosted today.
 2. Who handles the letters and requests in section 3, and do you want drafts of them?
 3. Should Phase 1 start alongside Phase 0, or wait for the Phase 0 report?
 4. What counts as launch: a public link on tripofisch.com, or a quiet period with invited users first?
