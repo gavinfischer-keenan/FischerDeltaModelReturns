@@ -61,7 +61,7 @@ path = "crates/fdmr-py"
 crate = "fdmr-py"
 package = "fdmr_py"   # its Python import name
 engine = true
-may_use = ["math"]
+may_use = ["math", "format"]
 
 [modules.plugins]
 kind = "python"

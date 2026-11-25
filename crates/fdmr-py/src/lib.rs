@@ -1,13 +1,93 @@
-//! Python bindings to the math library (specification section 4.2).
+//! Python bindings to the math library and the published format
+//! (specification section 4.2).
 //!
-//! Thin wrappers only: every calculation lives in `fdmr-math`, so the model
-//! runner (Python) and the compute engine (Rust, in the browser) use the same
-//! code. Arguments and results are plain numbers and lists.
+//! Thin wrappers only: every calculation lives in `fdmr-math` and every byte
+//! of the format in `fdmr-format`, so the model runner (Python) and the compute
+//! engine (Rust, in the browser) share the same code. Arguments and results are
+//! plain numbers, strings and lists.
 
 #![allow(clippy::needless_pass_by_value)] // PyO3 hands over owned lists
 
+use std::fs::File;
+use std::io::{BufReader, BufWriter};
+
+use fdmr_format::{Encoding, Field, FieldFile};
 use fdmr_math::{decay, dispersion, geometry, routing, signal};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+
+/// One field to write: (name, unit, quantised, values).
+type FieldSpec = (String, String, bool, Vec<f32>);
+
+/// Write a field file (`docs/format.md`). Values are `steps x layers x elements`,
+/// element index fastest; `NaN` means no value.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+fn write_field_file(
+    path: String,
+    reach: String,
+    dims: u8,
+    elements: u32,
+    layers: u32,
+    steps: u32,
+    t0: i64,
+    step_s: u32,
+    fields: Vec<FieldSpec>,
+) -> PyResult<()> {
+    let file = FieldFile {
+        reach,
+        dims,
+        elements,
+        layers,
+        steps,
+        t0,
+        step_s,
+        fields: fields
+            .into_iter()
+            .map(|(name, unit, quantised, values)| Field {
+                name,
+                unit,
+                encoding: if quantised {
+                    Encoding::QuantisedI16
+                } else {
+                    Encoding::F32
+                },
+                values,
+            })
+            .collect(),
+    };
+    let mut w = BufWriter::new(File::create(&path)?);
+    file.write_to(&mut w)
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+}
+
+/// Read a field file. Returns `(reach, dims, elements, layers, steps, t0, step_s,
+/// [(name, unit, values)])`.
+#[pyfunction]
+#[allow(clippy::type_complexity)]
+fn read_field_file(
+    path: String,
+) -> PyResult<(
+    String,
+    u8,
+    u32,
+    u32,
+    u32,
+    i64,
+    u32,
+    Vec<(String, String, Vec<f32>)>,
+)> {
+    let mut r = BufReader::new(File::open(&path)?);
+    let f = FieldFile::read_from(&mut r).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let fields = f
+        .fields
+        .into_iter()
+        .map(|x| (x.name, x.unit, x.values))
+        .collect();
+    Ok((
+        f.reach, f.dims, f.elements, f.layers, f.steps, f.t0, f.step_s, fields,
+    ))
+}
 
 /// Shear velocity √(g d S), m/s.
 #[pyfunction]
@@ -86,5 +166,7 @@ fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(lag_by_cross_correlation, m)?)?;
     m.add_function(wrap_pyfunction!(route, m)?)?;
     m.add_function(wrap_pyfunction!(remaining_fraction, m)?)?;
+    m.add_function(wrap_pyfunction!(write_field_file, m)?)?;
+    m.add_function(wrap_pyfunction!(read_field_file, m)?)?;
     Ok(())
 }

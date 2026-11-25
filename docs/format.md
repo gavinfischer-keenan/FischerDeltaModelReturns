@@ -45,6 +45,21 @@ A what-if is a full set of forecast days under `whatif/<name>/`, sharing the mai
 
 `certainty` has one value per published time step, from 1 down toward 0 (specification section 8.2).
 
+## Reach geometry (`geometry/<reach>.json`)
+
+Where each element lies, for the compute engine and for drawing. For a 1D reach:
+
+```json
+{
+  "reach": "river",
+  "dims": 1,
+  "elements": [{ "start_m": 0.0, "end_m": 1002.3 }, "..."],
+  "lines": [[[-122.4462, 40.6078], ["..."]], "..."]
+}
+```
+
+`start_m` and `end_m` are distances along the reach (chainage). `lines` holds a short polyline per element, longitude and latitude, from its upstream end to its downstream end.
+
 ## Field files (`.fdf`)
 
 Little-endian throughout. A file holds one reach for one day.
@@ -86,6 +101,7 @@ The fields follow in descriptor order. Each field is `steps x layers x elements`
 
 | Name | Unit | Meaning |
 | --- | --- | --- |
+| `flow` | m3/s | Flow through the element, positive downstream (1D) |
 | `velocity` | m/s | Mean velocity along the channel, positive downstream (1D) |
 | `u`, `v` | m/s | Eastward and northward velocity (2D, 3D) |
 | `volume` | m3 | Water volume of the element |
