@@ -75,6 +75,10 @@ export function createMap(container: HTMLElement, reach: Reach, region: string):
     if (b) map.setMaxBounds([b[0], b[1], b[2], b[3]]);
   });
   map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+  // Once the visitor moves the map, the reaches loading later leave the view alone.
+  map.on("movestart", (e) => {
+    if ((e as { originalEvent?: Event }).originalEvent) viewTouched = true;
+  });
   map.on("load", () => {
     map.addSource("river", { type: "geojson", data: reach.asGeoJSON() });
     map.addLayer({
@@ -159,6 +163,24 @@ export function addNetwork(map: Map, id: string, g: NetworkGeometry, hidden: Set
   };
   if (map.isStyleLoaded()) add();
   else map.once("load", add);
+}
+
+// The first view: the river, widened to each reach as it loads, unless the
+// address held a view or the visitor has moved the map since.
+let viewBounds: [number, number, number, number] | null = null;
+let viewTouched = /[#&]view=/.test(location.hash);
+
+/** Widen the first view to take in these points (drawing only). */
+export function widenView(map: Map, lons: number[], lats: number[]): void {
+  if (viewTouched || !lons.length) return;
+  const b: [number, number, number, number] = [Math.min(...lons), Math.min(...lats), Math.max(...lons), Math.max(...lats)];
+  if (!viewBounds) {
+    const c = map.getBounds();
+    viewBounds = [c.getWest(), c.getSouth(), c.getEast(), c.getNorth()];
+  }
+  viewBounds = [Math.min(viewBounds[0], b[0]), Math.min(viewBounds[1], b[1]), Math.max(viewBounds[2], b[2]), Math.max(viewBounds[3], b[3])];
+  // Room at the top for the title and at the bottom for the controls.
+  map.fitBounds(viewBounds, { padding: { top: 70, bottom: 190, left: 30, right: 30 }, duration: 0 });
 }
 
 /** Draw a mesh reach's water (docs/format.md, 2D reaches) under the particles. */

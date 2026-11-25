@@ -7,7 +7,7 @@
   import type { Frame, Ready, Words } from "../compute-interface/messages";
   import text from "../../../text/en.json";
   import { Reach, type ReachGeometry } from "./reach";
-  import { addMesh, addNetwork, createMap, drawFrame, drawNetworks } from "./map";
+  import { addMesh, addNetwork, createMap, drawFrame, drawNetworks, widenView } from "./map";
   import { MeshPlace, type MeshGeometry } from "./mesh";
   import { NetworkPlace, type NetworkGeometry } from "./network";
 
@@ -181,6 +181,7 @@
             .then((g: MeshGeometry) => {
               addMesh(map, id, g);
               meshes.push(new MeshPlace(id, g));
+              widenView(map, g.lon, g.lat);
             });
         }
         ready = r;
