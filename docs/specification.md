@@ -586,7 +586,7 @@ Every input comes from a free public source; three of the twelve have been check
 | Bay temperature and salinity | The same NOAA files as the currents | Bay layers | To confirm the variables are included |
 | Temperature, conductance, dissolved oxygen and turbidity at river, Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay; river tracer calibration | River checked 25 Nov 2026: hourly water temperature for the past year at five CDEC stations from Keswick to Red Bluff (KWK, CCR, BSF, BND, RDB), and USGS temperature at Wilkins Slough and Freeport. CDEC times are Pacific Standard Time all year. Delta and Bay still to confirm |
 | Keswick release temperature | CDEC or Reclamation | River temperature model | To confirm |
-| Weather forecast: air temperature, sunshine, humidity, wind | National Weather Service | River and Delta temperature models | To confirm product and format |
+| Weather: air temperature, humidity, wind, cloud and air pressure | Past: [NOAA's hourly airport archive (GHCNh)](https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly), a file per station and year. Recent: the [Weather Service's station observations](https://www.weather.gov/documentation/services-web-api). Ahead: the Weather Service's gridded forecast for one 2.5 km cell | Delta temperature (QUAL); river temperature later | Checked 25 Nov 2026. GHCNh runs about four days behind (NOAA's older ISD archive stops in 2025); the Weather Service keeps about a week of observations, so the two overlap. The forecast reaches about 7 days and has no air pressure. Airport sky reports reach about 3.7 km up, so higher cloud is missed. The Delta takes the mean of Sacramento Executive, Stockton and Travis airports |
 | Levee locations and island floor elevations | DWR Delta levee and island data | Breach what-ifs | To confirm a public source |
 
 ### 6.1 What DSM2 needs
@@ -981,6 +981,8 @@ The build runs in six phases, each ending in something that can be seen working;
 - [NOAA forecast system data on AWS](https://docs.opendata.aws/noaa-ofs-pds/readme.html)
 - [USGS Water Data APIs migration guide](https://api.waterdata.usgs.gov/docs/ogcapi/migration/)
 - [California Nevada River Forecast Center hourly forecast files](https://www.cnrfc.noaa.gov/deterministicHourlyProductCSV.php)
+- [NOAA Global Historical Climatology Network hourly (GHCNh)](https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly)
+- [National Weather Service API](https://www.weather.gov/documentation/services-web-api)
 - [Protomaps](https://protomaps.com/)
 - [Fischer, Longitudinal Dispersion in Laboratory and Natural Streams, Caltech 1966](https://thesis.library.caltech.edu/9180)
 - Fischer, List, Koh, Imberger and Brooks, *Mixing in Inland and Coastal Waters*, Academic Press 1979: the source of the dispersion estimate in section 7.1. Citation from memory, to check against the book.

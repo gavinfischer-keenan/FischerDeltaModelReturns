@@ -279,3 +279,159 @@ sjr = ["vernalis"]
 east = ["calaveras", "cosumnes", "moke"]
 sea = ["mtz"]
 ag = ["dicu_drain_.*", "bc_150", "bc_151"]
+
+# Water temperature (specification 7.5): QUAL's heat budget, on live weather.
+# DWR's temperature study reads a weather file its public release leaves out
+# (25 Nov 2026), so the study is written afresh (fdmr_plugins.dsm2.temperature).
+# QUAL takes one weather for the whole Delta: the mean of these airports,
+# around it to the north, east and west. NOAA's hourly archive (GHCNh) covers
+# the past and runs about four days behind; the Weather Service's observations
+# of the same airports cover the last week.
+[temperature]
+stations = [
+  { ghcnh = "USW00023232", nws = "KSAC", name = "Sacramento Executive Airport" },
+  { ghcnh = "USW00023237", nws = "KSCK", name = "Stockton Metropolitan Airport" },
+  { ghcnh = "USW00023202", nws = "KSUU", name = "Travis Air Force Base" },
+]
+# Past now, the Weather Service's forecast for the grid cell at 38.1 N 121.6 W
+# (the central Delta), about 7 days; then its last day over again.
+forecast = { office = "MTR", x = 116, y = 114 }
+
+# Each inflow's water temperature: a series, and the inflows that take it (by
+# DSM2's own names, regular expressions allowed); "*" takes the rest, such as
+# treatment plant discharges. "drainage" is a stand-in: the air's daily mean
+# temperature for water run off fields (DWR uses a monthly pattern it does not
+# publish).
+[temperature.inflows]
+sac = ["sac", "*"]
+yolo = ["yolo", "yolo_toe"]
+sjr = ["vernalis"]
+sea = ["mtz"]
+east = ["moke", "cosumnes"]
+calaveras = ["calaveras"]
+drainage = ["dicu_drain_.*", "bc_150", "bc_151"]
+
+# QUAL's heat-budget constants: the Delta's place (degrees, west positive, and
+# the Pacific time zone's meridian), elevation (ft), and QUAL2E's textbook
+# values for dust in the air and evaporation (ft/hr/inHg, and per mph of wind).
+[temperature.scalars]
+lat = 38.05
+long = 121.6
+long_std_merid = 120.0
+elev = 5.0
+dust_attcoeff = 0.06
+evapcoeff_a = 0.00068
+evapcoeff_b = 0.00027
+
+# Water temperature where each inflow enters (CDEC, degC), as DWR's own study
+# takes it. The eastside rivers share the Mokelumne's; the Calaveras, which has
+# no station near its mouth, takes the San Joaquin's at Stockton.
+[[temperature.water]]
+name = "sac"
+source = "cdec"
+site = "FPT"         # Sacramento R at Freeport
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "yolo"
+source = "cdec"
+site = "LIS"         # Yolo Bypass toe drain at Lisbon
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "sjr"
+source = "cdec"
+site = "VER"         # San Joaquin R at Vernalis
+duration = "H"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "sea"
+source = "cdec"
+site = "MRZ"         # Carquinez Strait at Martinez
+duration = "H"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "east"
+source = "cdec"
+site = "MOK"         # Mokelumne R
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "calaveras"
+source = "cdec"
+site = "RRI"         # San Joaquin R at Rough and Ready Island, Stockton
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+# Measured water temperature to check QUAL against, across the Delta, at DWR's
+# own output points for each station (channel, distance in ft).
+[[temp_checks]]
+name = "Sacramento R at Mallard Island"
+output = "MAL"
+channel = 437
+distance = 9033
+source = "cdec"
+site = "MAL"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Sacramento R at Rio Vista"
+output = "RVB"
+channel = 430
+distance = 12521
+source = "cdec"
+site = "RVB"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Montezuma Slough at Beldon Landing"
+output = "BDL"
+channel = 517
+distance = 7876
+source = "cdec"
+site = "BDL"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Holland Cut near Bethel Island"
+output = "HOL"
+channel = 117
+distance = 3584
+source = "cdec"
+site = "HOL"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Old River at Highway 4"
+output = "OH4"
+channel = 90
+distance = 2081
+source = "cdec"
+site = "OH4"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Turner Cut near Holt"
+output = "TRN"
+channel = 172
+distance = 1571
+source = "cdec"
+site = "TRN"
+duration = "E"
+parameter = "water_temperature"

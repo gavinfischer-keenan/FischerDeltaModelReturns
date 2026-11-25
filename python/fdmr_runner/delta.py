@@ -38,7 +38,7 @@ from fdmr_plugins.river_routing.calibration import running_mean
 from fdmr_plugins.river_routing.model import filled
 from fdmr_store import Store
 
-from .forecast import extend, fit_tide, on_grid, shifted
+from .forecast import extend, fit_tide, on_grid, repeat_last_day, shifted
 
 STEP = 900
 DAY = 86_400
@@ -55,7 +55,10 @@ def load(region_dir: Path) -> dict | None:
 def feeds(region_dir: Path) -> list[dict]:
     """Every series the Delta's DSM2 run reads or is checked against, for fetching."""
     cfg = load(region_dir) or {}
-    return [*cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", []), *cfg.get("ec_checks", [])]
+    return [
+        *cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", []), *cfg.get("ec_checks", []),
+        *cfg.get("temperature", {}).get("water", []), *cfg.get("temp_checks", []),
+    ]
 
 
 def forecasts(region_dir: Path) -> list[dict]:
@@ -122,6 +125,52 @@ def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forec
     return filled(g), how
 
 
+WEATHER = ("air_temperature", "dew_point", "wind_speed", "cloud_cover", "air_pressure")
+
+
+def weather(store: Store, tcfg: dict, t0: int, n: int, now: int, use_forecast: bool) -> tuple[dict[str, list[float]], dict[str, str]]:
+    """The Delta's weather on the 15-minute grid from t0: the mean of the
+    region's weather stations up to now (NOAA's archive and the Weather
+    Service's recent observations of each), then the Weather Service's forecast,
+    joined over a day, then its last day over again. Air pressure has no
+    forecast: held at its 25 h mean. Returns each parameter's series and how
+    it was carried on."""
+    from fdmr_adapters import noaa_weather as nw
+
+    fc = tcfg.get("forecast") if use_forecast else None
+    i_cut = (now - t0) // STEP
+    out, how = {}, {}
+    for p in WEATHER:
+        per = []
+        for s in tcfg["stations"]:
+            pts = {v.t: v.value for v in store.values(nw.GHCNH, s["ghcnh"], p, t0 - DAY, now + 1) if v.value is not None}
+            pts.update({v.t: v.value for v in store.values(nw.NWS, s["nws"], p, t0 - DAY, now + 1) if v.value is not None})
+            per.append(on_grid(sorted(pts.items()), t0, STEP, i_cut + 1, max_gap_s=6 * 3600))
+        g: list[float | None] = []
+        for i in range(i_cut + 1):
+            vs = [s[i] for s in per if s[i] is not None]
+            g.append(sum(vs) / len(vs) if vs else None)
+        known = [i for i, v in enumerate(g) if v is not None]
+        if not known:
+            raise ValueError(f"no weather data for {p}")
+        i_now = known[-1]
+        g += [None] * (n - len(g))
+        last = None
+        if fc:
+            fv = store.values(nw.NWS_FORECAST, f"{fc['office']}/{fc['x']},{fc['y']}", p, t0, t0 + (n + 1) * STEP)
+            if fv:
+                g, last = extend(g, on_grid([(v.t, v.value) for v in fv], t0, STEP, n), i_now, n, BLEND, floor=None)
+        if last is not None:
+            g = repeat_last_day(g, last, 96)
+            how[p] = f"forecast to {dss.label(t0 + last * STEP)[0]}, then its last day again"
+        else:
+            day = [v for v in g[max(0, i_now - 99) : i_now + 1] if v is not None]
+            g = g[: i_now + 1] + [sum(day) / len(day)] * (n - i_now - 1)
+            how[p] = "held at its 25 h mean"
+        out[p] = filled(g)
+    return out, how
+
+
 def resample(series: list[float], step: int) -> list[float]:
     """A 15-minute series from t0 at a DSS path's interval: every 4th value for
     hourly, and for daily the mean of each day, stamped at its end (DSS's way),
@@ -175,13 +224,17 @@ def pst_midnight(t: int) -> int:
     return (t - dss.PST) // DAY * DAY + dss.PST
 
 
-def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int, salinity: bool = False) -> dict:
+def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int, kind: str = "flow") -> dict:
     """DSM2 at a check station against the measured value over [start, end):
     means, the moment-to-moment and the tidally averaged (25 h) differences.
-    Flow (m3/s) from HYDRO, or with `salinity` EC (uS/cm) from QUAL."""
+    Flow (m3/s) from HYDRO; "ec" (uS/cm) or "temp" (degC) from QUAL."""
     modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
     n = (end - start) // STEP
-    if salinity:
+    if kind == "temp":
+        out = run_dir / "output" / "qual_temp.dss"
+        path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{c['output']}/TEMP//15MIN/{modifier.upper()}+FROM-ALL/"
+        scale = 1.0
+    elif kind == "ec":
         out = run_dir / "output" / f"{modifier}_qual.dss"
         path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{c['output']}/EC//15MIN/{modifier.upper()}+FROM-ALL/"
         scale = 1.0
@@ -236,10 +289,12 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     start = (now - 14 * DAY) // DAY * DAY
     qual_file = run_dir / "output" / "qual_ec.h5"
     fp_file = run_dir / "output" / "qual_fp.h5"
+    temp_file = run_dir / "output" / "qual_temp.h5"
     days = fields.write_days(tidefile, reach, pub / reach, start, end,
                              node_ids=[n["id"] for n in geo["nodes"]], extras=extras, exports=set(exports),
                              qual_file=qual_file if qual_file.exists() else None,
-                             sources_file=fp_file if fp_file.exists() else None)
+                             sources_file=fp_file if fp_file.exists() else None,
+                             temp_file=temp_file if temp_file.exists() else None)
     sources = [f"source:{g}" for g in cfg.get("fingerprint", {})] if fp_file.exists() else []
     rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {}).get("certainty", {})
     solid, floor = rc.get("solid_days", 5) * DAY, rc.get("floor", 0.2)
@@ -251,7 +306,7 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         "id": reach, "kind": "1d-tidal-network", "dims": 1, "network": True,
         "elements": len(channels), "layers": 1, "fields": fields.FIELDS,
         # In <day>.quality.fdf, loaded only to show them (docs/format.md).
-        "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + sources,
+        "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + (["temperature"] if temp_file.exists() else []) + sources,
         "time": {"start": utc(start), "step_s": STEP, "days": days},
         "now": utc(now),
         "certainty": [round(fdmr_py.certainty_at(start + i * STEP - now, solid, end - now, floor), 4) for i in range(steps)],
@@ -334,10 +389,31 @@ def main(argv: list[str] | None = None) -> int:
         counts = fingerprint.write_study(run_dir, settings.mains[1], summary["env"], cfg["fingerprint"])
         secs = study.run_qual(settings, run_dir, fingerprint.MAIN)
         print(f"qual (water sources: {', '.join(f'{g} {n} inflows' for g, n in counts.items())}): {secs:.0f} s")
-    for c, sal in [*((c, False) for c in cfg.get("checks", [])), *((c, True) for c in cfg.get("ec_checks", []) if len(settings.mains) > 1)]:
-        print("past    ", json.dumps(check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP, sal)))
+    tcfg = cfg.get("temperature")
+    if tcfg and len(settings.mains) > 1:
+        from fdmr_plugins.dsm2 import temperature
+
+        wx, how = weather(store, tcfg, t0, n, now, use_forecast=not hindcast)
+        for p, h in how.items():
+            print(f"weather {p:28s} {h}")
+        climate = temperature.Climate(t0, wx["air_temperature"], wx["dew_point"], wx["wind_speed"], wx["cloud_cover"], wx["air_pressure"])
+        water = {}
+        for f in tcfg["water"]:
+            water[f["name"]], h = carried_on(store, f, t0, n, now, use_river_forecasts=False)
+            print(f"water temperature {f['name']:10s} {f['source']} {f['site']:9s} {h}")
+        outputs = [(c["output"], c["channel"], str(c["distance"])) for c in cfg.get("temp_checks", [])]
+        counts = temperature.write_study(run_dir, settings.mains[1], summary["env"], settings.tool, climate, water,
+                                         tcfg["inflows"], tcfg.get("scalars", {}), outputs)
+        secs = study.run_qual(settings, run_dir, temperature.MAIN)
+        print(f"qual (temperature: {', '.join(f'{g} {k} inflows' for g, k in counts.items())}): {secs:.0f} s")
+    kinds = [(c, "flow") for c in cfg.get("checks", [])]
+    if len(settings.mains) > 1:
+        kinds += [(c, "ec") for c in cfg.get("ec_checks", [])]
+        kinds += [(c, "temp") for c in cfg.get("temp_checks", []) if tcfg]
+    for c, kind in kinds:
+        print("past    ", json.dumps(check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP, kind)))
         if hindcast:
-            print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP, sal)))
+            print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP, kind)))
     store.close()
     if args.publish and not hindcast:
         pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish))

@@ -46,6 +46,7 @@ def write_days(
     node_ids: list[int] | None = None, extras=None, exports: set[str] | None = None,
     qual_file: Path | None = None,
     sources_file: Path | None = None,
+    temp_file: Path | None = None,
 ) -> list[str]:
     """Field files for every UTC day overlapping [start, end); returns the day names.
 
@@ -78,6 +79,12 @@ def write_days(
         s_names = [x.decode().strip() for x in sh["output/constituent_names"][:]]
         s_chan = sh["output/channel avg concentration"]
         s_t0 = tidefile_start(s_chan.attrs["start_time"][0])
+    th = h5py.File(temp_file, "r") if temp_file else None
+    if th is not None:
+        t_names = [x.decode().strip() for x in th["output/constituent_names"][:]]
+        t_chan = th["output/channel avg concentration"]
+        t_t0 = tidefile_start(t_chan.attrs["start_time"][0])
+        k_temp = t_names.index("temp")
     with h5py.File(tidefile, "r") as f:
         if node_ids is not None and extras is not None:
             k_of = {n: i for i, n in enumerate(node_ids)}
@@ -127,6 +134,13 @@ def write_days(
                     ("ec", "uS/cm", True, flat),
                     ("salinity", "psu", True, fdmr_py.practical_salinity(flat)),
                 ]
+            if th is not None:
+                j0 = (a - t_t0) // 900
+                temp = np.full((steps, n), np.nan)
+                if j0 >= 0:
+                    have = t_chan[j0 : j0 + steps, k_temp, :]
+                    temp[: have.shape[0]] = have
+                quality.append(("temperature", "degC", True, temp.ravel().tolist()))
             if sh is not None:
                 j0 = (a - s_t0) // 900
                 for k, g in enumerate(s_names):
@@ -171,7 +185,7 @@ def write_days(
                     [("flow", "m3/s", False, links.ravel().tolist())],
                 )
             days.append(name)
-    for h in (qh, sh):
+    for h in (qh, sh, th):
         if h is not None:
             h.close()
     return days

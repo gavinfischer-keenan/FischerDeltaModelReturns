@@ -1,4 +1,7 @@
+import math
 from calendar import timegm
+
+import pytest
 
 from fdmr_plugins.dsm2 import dss, inp, study
 
@@ -142,3 +145,44 @@ def test_fingerprint_groups_take_inflows_by_name():
     assert "RESERVOIR_CONCENTRATION" in conc and "clifton_court" in conc
     # QUAL simulates only what an output asks for: one per group.
     assert out.count("fp_") == 3 and "qual_fp.h5" in main
+
+
+def test_wet_bulb_gives_back_the_dew_points_vapour_pressure():
+    from fdmr_plugins.dsm2 import temperature as tm
+
+    assert tm.wet_bulb(68.0, 68.0, 29.92) == pytest.approx(68.0, abs=0.01)  # saturated air
+    wb = tm.wet_bulb(86.0, 66.0, 29.92)  # 30 C at about 50% humidity
+    assert 66.0 < wb < 86.0 and wb == pytest.approx(71.5, abs=1.5)
+    e = 0.1001 * math.exp(0.03 * wb) - 0.0837 - 0.000367 * 29.92 * (86.0 - wb) * (1 + (wb - 32) / 1571)
+    assert e == pytest.approx(tm.vapour_pressure(66.0), abs=1e-6)
+
+
+def test_temperature_study_gives_every_inflow_a_series():
+    from fdmr_plugins.dsm2 import temperature as tm
+
+    flows = [("sac", "node", "330"), ("yolo", "node", "316"), ("dicu_drain_1", "node", "1"), ("potw_x", "node", "9"),
+             ("res_drain", "reservoir", "clifton_court")]
+    assign = {"sac": ["sac", "*"], "yolo": ["yolo"], "drainage": ["dicu_drain_.*", "res_drain"]}
+    main, ts, out, counts = tm.study_text(flows, assign, {"lat": 38.05}, [("RVB", 430, "12521")])
+    assert counts == {"sac": 2, "yolo": 1, "drainage": 2}
+    assert "potw_x" in ts and "/FDMR/SAC/TEMP-WATER//15MIN/FDMR-LIVE/" in ts.split("potw_x", 1)[1].splitlines()[0]
+    assert "RESERVOIR_CONCENTRATION" in ts and "INPUT_CLIMATE" in ts and "wet_bulb" in ts
+    assert "lat              38.05" in main and "temp_outputs.inp" in main
+    assert "RVB" in out and "430" in out
+    with pytest.raises(ValueError):
+        tm.study_text([("odd", "node", "2")], {"sac": ["sac"]}, {}, [])
+
+
+def test_climate_in_quals_units():
+    from fdmr_plugins.dsm2 import temperature as tm
+
+    c = tm.Climate(0, [20.0], [10.0], [10.0], [1.2], [1013.25]).qual()
+    assert c["dry_bulb"][1][0] == pytest.approx(68.0) and c["wind"][1][0] == pytest.approx(22.369, abs=0.01)
+    assert c["atm_pressure"][1][0] == pytest.approx(29.92, abs=0.01) and c["cloud"][1][0] == 1.0
+
+
+def test_drainage_is_a_daily_series():
+    from fdmr_plugins.dsm2 import temperature as tm
+
+    assert "/1DAY/" in tm.water_path("drainage") and "/15MIN/" in tm.water_path("sac")
+    assert tm.daily([1.0] * 96 + [3.0] * 96) == [1.0, 1.0, 3.0]

@@ -42,11 +42,13 @@ def extend(
     i_now: int,
     n: int,
     blend_steps: int,
+    floor: float | None = 0.0,
 ) -> tuple[list[float | None], int | None]:
     """The record on a grid of `n` steps: measured up to `i_now`, forecast after.
 
     Returns the series and the last step the forecast covers (None if it covers
     nothing after now). Measured gaps before now are left for the model to fill.
+    The forecast is kept at or above `floor` (flows; None for no floor).
     """
     out: list[float | None] = list(measured[: i_now + 1]) + [None] * (n - i_now - 1)
     m_now = next((v for v in reversed(out[: i_now + 1]) if v is not None), None)
@@ -63,7 +65,7 @@ def extend(
             if f is None:
                 continue
             w = max(0.0, 1.0 - (i - i_now) / blend_steps) if blend_steps > 0 else 0.0
-            last = max(f + offset * w, 0.0)
+            last = f + offset * w if floor is None else max(f + offset * w, floor)
             out[i], end = last, i
     for i in range(i_now + 1, n):  # hold past the forecast, and in its gaps
         if out[i] is None:
@@ -71,6 +73,18 @@ def extend(
         else:
             last = out[i]
     return out, end
+
+
+def repeat_last_day(series: Sequence[float | None], last: int, per_day: int) -> list[float | None]:
+    """Past step `last`, the day up to it over again, and again: a series with
+    a daily cycle, such as the weather, carried on past its forecast without
+    freezing one moment of the day."""
+    out = list(series)
+    if last + 1 < per_day:
+        return out
+    for i in range(last + 1, len(out)):
+        out[i] = out[i - per_day * ((i - last - 1) // per_day + 1)]
+    return out
 
 
 def fit_tide(

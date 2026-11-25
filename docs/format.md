@@ -107,7 +107,7 @@ Each day of a network reach then has two more field files beside `<day>.fdf`:
   - `withdrawal` (m3/s): water taken by anything else, such as farm intakes;
   - `volume` (m3): each pool's water, with no value at plain junctions.
 - **`<day>.links.fdf`** has one element per link. Its `flow` field (m3/s) is positive from the pool to its junction.
-- **`<day>.quality.fdf`** has one element per channel, like `<day>.fdf`, and holds water-quality fields: `ec` (uS/cm), `salinity` (psu) and `source:<name>` (shares, 0 to 1). The reach's index entry lists them as `quality_fields`. They live in their own file so that moving parcels does not mean downloading them; a reader loads it only to show them. A `.nodes.fdf` may also carry each pool's `ec`.
+- **`<day>.quality.fdf`** has one element per channel, like `<day>.fdf`, and holds water-quality fields: `ec` (uS/cm), `salinity` (psu), `temperature` (degC) and `source:<name>` (shares, 0 to 1). The reach's index entry lists them as `quality_fields`. They live in their own file so that moving parcels does not mean downloading them; a reader loads it only to show them. A `.nodes.fdf` may also carry each pool's `ec`.
 
 ### Handoffs between reaches (version 1.1)
 

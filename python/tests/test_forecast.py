@@ -44,3 +44,15 @@ def test_fit_tide_recovers_shift_scale_and_offset():
     obs = [None if v is None else 0.8 * v + 1.25 for v in shifted(pred, 2.0)]  # 30 minutes later, damped, raised
     shift, scale, offset = fit_tide(obs, pred, step)
     assert abs(shift - 2.0) < 0.1 and abs(scale - 0.8) < 0.01 and abs(offset - 1.25) < 0.01
+
+
+def test_extend_without_a_floor_keeps_values_below_zero():
+    out, end = extend([1.0, 0.5], [0.5, 0.5, -2.0, -3.0], i_now=1, n=4, blend_steps=0, floor=None)
+    assert out[2:] == [-2.0, -3.0] and end == 3
+
+
+def test_repeat_last_day_carries_the_daily_cycle_on():
+    from fdmr_runner.forecast import repeat_last_day
+
+    s = [1.0, 2.0, 3.0, 4.0, None, None, None, None, None]
+    assert repeat_last_day(s, 3, 2) == [1.0, 2.0, 3.0, 4.0, 3.0, 4.0, 3.0, 4.0, 3.0]

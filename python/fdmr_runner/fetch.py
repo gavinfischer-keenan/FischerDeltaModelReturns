@@ -27,6 +27,7 @@ from fdmr_adapters.cdec import CdecAdapter
 from fdmr_adapters.cnrfc import CnrfcAdapter
 from fdmr_adapters.noaa_tides import PARAMETER as TIDE
 from fdmr_adapters.noaa_tides import NoaaTidesAdapter
+from fdmr_adapters.noaa_weather import GHCNH, NoaaWeatherAdapter
 from fdmr_adapters.usgs import PARAMETERS, SOURCE, UsgsAdapter
 from fdmr_store import Store
 
@@ -108,6 +109,24 @@ def main(argv: list[str] | None = None) -> int:
         elif src == CDEC:
             dur = f.get("duration", "H")
             attempt(f"cdec {site} {p}", lambda site=site, p=p, f0=from_t, dur=dur: cdec.fetch_values(site, p, int(f0), int(now), duration=dur))
+    # Weather, for the Delta's water temperature. NOAA's archive comes a year's
+    # file per station and runs days behind, so it is fetched once a day; the
+    # Weather Service's observations (its last week) and forecast every run.
+    tcfg = (delta.load(Path(args.region)) or {}).get("temperature")
+    if tcfg:
+        wx = NoaaWeatherAdapter(store)
+        for s in [] if args.forecast_only else tcfg["stations"]:
+            cov = store.coverage(GHCNH, s["ghcnh"], "air_temperature")
+            fetched = store.latest(GHCNH, s["ghcnh"], "air_temperature")
+            if cov and cov[0] <= start + 2 * 86_400 and fetched and fetched[1] >= now - 20 * 3600:
+                print(f"ghcnh {s['ghcnh']} {'':25s} held    {s['name']}", flush=True)
+            else:
+                f0 = max(start, cov[1] - 86_400) if cov and cov[0] <= start + 2 * 86_400 else start
+                attempt(f"ghcnh {s['ghcnh']}", lambda s=s, f0=f0: wx.fetch_archive(s["ghcnh"], int(f0), int(now)))
+            attempt(f"nws {s['nws']} observations", lambda s=s: wx.fetch_observations(s["nws"], int(now - 7 * 86_400)))
+        if "forecast" in tcfg:
+            fc = tcfg["forecast"]
+            attempt(f"nws forecast {fc['office']}/{fc['x']},{fc['y']}", lambda: wx.fetch_forecast(fc["office"], fc["x"], fc["y"])[1])
     # River forecasts: one file per forecast group holds all its points.
     groups: dict[str, list[str]] = {}
     for g in region.gauges:
