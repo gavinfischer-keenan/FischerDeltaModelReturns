@@ -1,6 +1,6 @@
 # Fischer Delta Model Returns: User and Engineering Specification
 
-Draft 1 · 24 November 2026
+Version 1.0 · 24 November 2026
 
 ## 1. Summary
 
@@ -8,7 +8,7 @@ Fischer Delta Model Returns is a free web app that shows how water is moving bet
 
 It will live under Utilities on tripofisch.com, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
 
-**Decisions already made**
+**Key decisions**
 
 | Topic | Decision |
 | --- | --- |
@@ -45,7 +45,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 - How long one DSM2 run takes, which sets how many what-if scenarios can be computed each cycle.
 - A public source for levee locations and island floor elevations in the Delta.
 
-This is a working draft. Everything in it is decided unless marked *to confirm*; the decisions log in section 10 records what was decided and when.
+This is version 1.0, the agreed specification for the build. Everything in it is decided unless marked *to confirm*; those items are checked in Phase 0. The decisions log in section 10 records what was decided and when. The build plan is in [build-plan.md](build-plan.md).
 
 ## 2. Heritage
 
@@ -129,7 +129,7 @@ The particles always move with the water. The user chooses what colours them and
 | Choice | What it shows | Computed by |
 | --- | --- | --- |
 | Plain water (the default) | Neutral particles: direction and speed only | The flow field |
-| Contaminant | Concentration of the user's releases and outfalls. Chosen automatically when a release is added | The browser's tracer engine |
+| Contaminant | Concentration of the user's releases and outfalls. Chosen automatically when a release is added | The compute engine (section 4.2) |
 | Speed | How fast the water is moving | The flow field |
 | Temperature | Water temperature | The server (section 7.5) |
 | Salinity | Salt content, from fresh river water to the ocean | The server (section 7.5) |
@@ -354,7 +354,7 @@ Model kinds and math components are plug-ins behind fixed interfaces, so new one
 - The math library separates horizontal movement from vertical mixing, so a vertical-mixing component can be added on its own.
 - The display can show a depth-averaged view, which is all version 1 needs, and later the surface, the bed or a chosen depth, or a slice through the water.
 
-Moving parcels in 3D is heavier work, and may be too much for a phone. A 3D plug-in may therefore do its tracking on the server, or publish depth-averaged fields for phones and full 3D for desktops. That choice is made when the first 3D plug-in is built.
+Moving parcels in 3D is heavier work, and may be too much for a phone. A 3D plug-in may therefore have its tracking done by a compute engine on a server (section 4.2), or publish depth-averaged fields for phones and full 3D for desktops. That choice is made when the first 3D plug-in is built.
 
 **The gap for other regions: a general 1D tidal model.** DSM2 is set up, calibrated and maintained for the Delta. The tidal Thames, the Mississippi below Baton Rouge or another delta would each need a 1D tidal model of its own. There are two routes, to be decided before the second region:
 
@@ -400,7 +400,7 @@ The rows below are sketches to show that the same kinds recur. They are not rese
 
 **Keeping it honest.** Nothing place-specific may appear in the engine's code: no station numbers, channel numbers, place names or coordinates. To test this, a second, small region is built alongside the first: a single gauged river outside California, with no tide, using only the river model and national adapters. It runs in the test suite from Phase 1. If the engine needs changing to run it, something regional leaked into the engine. This is why it matters: with only one region, Delta assumptions creep into the engine unnoticed, and the Mississippi or the Thames would later mean a rewrite. A second, deliberately plain region catches that on the day it happens, while it is cheap to fix. The river is chosen at the start of Phase 1.
 
-**Serving several regions** (*after version 1*). Each region publishes its own flow-field set. The browser loads a short list of regions and opens the one chosen. A region can run on its own model runner, so adding one does not slow another.
+**Serving several regions** (*after version 1*). Each region publishes its own flow-field set. The UI loads a short list of regions and opens the one chosen. A region can run on its own model runner, so adding one does not slow another.
 
 ### 4.2 UI and compute kept apart
 
@@ -524,9 +524,9 @@ DSM2 reads these from the Army Corps' DSS time-series format. Converting our fet
 - Record the time and source of every value, and publish the age of the data with the flow field.
 - Be a polite client: identify ourselves, cache, and never fetch more often than the source updates.
 
-## 7. Engineering: the three reach models
+## 7. Engineering: the reach models
 
-Each reach produces the same thing, water velocity along its waterways over time, by the method that suits its physics.
+Each reach produces the same things, water velocity along its waterways over time, with temperature and salinity, by the method that suits its physics. Sections 7.5 and 7.6 cover temperature, salinity and what-ifs across all three reaches.
 
 | | River | Delta | Bay |
 | --- | --- | --- | --- |
@@ -567,7 +567,7 @@ The wave is faster than the water. In a wide channel, theory puts it at about on
 
 ### 7.2 Delta: Sacramento to Chipps Island
 
-DSM2's HYDRO module runs on our server in forecast mode and writes flow and stage for every channel through the forecast window. Its QUAL module runs after it, on the server, for salinity and temperature, which are the same for every visitor (section 7.5). A visitor's own releases are tracked in the browser, not in QUAL, and QUAL doubles as a check on our tracer engine.
+DSM2's HYDRO module runs on our server in forecast mode and writes flow and stage for every channel through the forecast window. Its QUAL module runs after it, on the server, for salinity and temperature, which are the same for every visitor (section 7.5). A visitor's own releases are tracked in the compute engine, not in QUAL, and QUAL doubles as a check on our tracer engine.
 
 The whole DSM2 network is open for releases, including the San Joaquin side and the south Delta up to Vernalis, and the Suisun Marsh sloughs. That makes the San Joaquin inflow and its forecast a required feed, not an optional one.
 
@@ -577,7 +577,7 @@ A run covers a warm-up period of recent days, so the model starts from realistic
 
 ### 7.3 Bay: Chipps Island to the Golden Gate
 
-NOAA's forecast gives currents on a triangular mesh at hourly steps. The server reduces these to depth-averaged currents on a lighter mesh for the browser.
+NOAA's forecast gives currents on a triangular mesh at hourly steps. The server reduces these to depth-averaged currents on a lighter mesh for the compute engine.
 
 Beyond the end of NOAA's forecast, the server extends the currents with a fit made from the archive of past NOAA fields. At each mesh point the fit has two parts: the tides, and a net seaward drift that grows with Delta outflow. The extension uses DSM2's forecast outflow at Chipps Island, so the Bay and the Delta agree on how much river water is leaving. In Suisun Bay that drift matters as much as the tide, which is why a tides-only extension is not enough. The extension is our own calculation and does not include wind.
 
@@ -610,7 +610,7 @@ A tidal fit needs at least a month of past fields to separate the main tides, an
 
 ### 7.5 Temperature and salinity
 
-Temperature and salinity are the same for every visitor, so the server computes them alongside the flow and publishes them with it. The browser's tracer engine does not carry them.
+Temperature and salinity are the same for every visitor, so the server computes them alongside the flow and publishes them with it. The compute engine's tracer does not carry them.
 
 | Reach | Temperature | Salinity |
 | --- | --- | --- |
@@ -644,7 +644,7 @@ Each what-if is a full model run with one thing changed, published as its own se
 
 ## 8. Engineering: tracer engine, forecast and display
 
-The pollutant is carried as thousands of parcels, each holding a share of the released mass, moved through the published flow field in the browser.
+The pollutant is carried as thousands of parcels, each holding a share of the released mass, moved through the published flow field by the compute engine.
 
 ### 8.1 Tracer engine
 
@@ -666,7 +666,7 @@ In version 1 the engine runs in a background thread of the visitor's browser, ap
 | Delta | Tides for all 14 days. Inflows as far as the river forecasts, about 5 days; exports and gates as far as their published schedules. DSM2 can run ten weeks, but its inputs cannot | Inflows, exports and gates held at their last known values |
 | Bay | To the end of NOAA's forecast | Our extension: tides plus outflow drift, no wind (section 7.3) |
 
-Movie length: 14 days, with uncertainty shown growing along the timeline. Water from Keswick takes several days to reach the Delta, so upstream releases need most of that window.
+Forecast length: 14 days, with uncertainty shown growing along the timeline. Water from Keswick takes several days to reach the Delta, so upstream releases need most of that window.
 
 **Certainty.** Every reach has a certainty value at every published time step, from 1 down toward 0.
 
@@ -685,7 +685,7 @@ This is certainty about the flow, not a statistical confidence. It does not cove
 ### 8.3 Published flow-field format
 
 - One small index file: time range, time step, data age per source, model status, and each reach's certainty at each time step.
-- Binary files per reach per day, holding velocity and water volume per channel segment or mesh node per time step, quantised to keep them small. The browser fetches only the days it is about to play, so opening on "Now" loads one day, not 28.
+- Binary files per reach per day, holding velocity and water volume per channel segment or mesh node per time step, quantised to keep them small. The compute engine fetches only the days it is about to play, so opening on "Now" loads one day, not 28.
 - Optional fields per reach per day, beside velocity and volume: water level, temperature, salinity and water-source shares.
 - A tidally averaged velocity per reach for the net-flow display. Averaging over the tides needs data on both sides, so the first and last half-day of the timeline use a shorter average.
 - **What-ifs.** Each what-if on the menu is a full set of forecast days under its own name, sharing the main run's past days.
@@ -775,7 +775,7 @@ The river model has three sets of parameters, each calibrated from a different k
 
 ### 9.3 Deployment
 
-- **Model runner**: its own Debian guest on Proxmox, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Compute and serving stay separate: the web guest only serves pages and files, and no model code is installed on it.
+- **Model runner**: its own Debian guest on Proxmox, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Modelling and serving stay separate: the web guest only serves pages and files, and no model code is installed on it.
 - **Web**: static files under Utilities on tripofisch.com. The model runner pushes each finished set of files to the web guest; the web guest never reaches into the model runner. The push method is to be chosen to fit how the site is deployed today.
 - **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. The what-if menu reruns with each DSM2 cycle; if it does not fit in 6 hours, once a day.
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
@@ -794,10 +794,10 @@ This section is not legal advice; the license choice deserves a second look befo
 
 ## 10. Build phases and open questions
 
-The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn.
+The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn. The detailed plan, with workstreams, exit tests and risks, is in [build-plan.md](build-plan.md).
 
 1. **Phase 0, proof.** Run DWR's prebuilt DSM2 in a Windows guest. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to size the what-if menu. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
-2. **Phase 1, the river.** River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
+2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
 5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; the what-if menu of dam releases and levee breaches; the History section; phone layout; and the Utilities page on tripofisch.com.
@@ -827,6 +827,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
 - The Eureka dye study, the oysters turned red at the Humboldt Bay outfall, is a story in the History section. See section 2.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
+- The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
 - Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
 - Swept all remaining proposals into decisions:
   - up to five releases at once;
