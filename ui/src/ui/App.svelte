@@ -134,6 +134,7 @@
   }
 
   onMount(async () => {
+    document.title = text.title; // the page title comes from the text files too
     engine.onReply((r) => {
       if (r.type === "ready") {
         ready = r;
