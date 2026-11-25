@@ -196,7 +196,13 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     reach = cfg.get("reach", "delta")
     stamp = datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ")
     pub = out_root / stamp
-    (pub / "geometry").mkdir(parents=True, exist_ok=True)
+    if pub.exists():
+        # Never rewrite a published file in place: hourly cycles hard-link these
+        # files, and a browser may be reading one. Fresh files, fresh folder.
+        import shutil
+
+        shutil.rmtree(pub)
+    (pub / "geometry").mkdir(parents=True)
     (pub / "geometry" / f"{reach}.json").write_text(json.dumps(grid.geometry(reach, channels, nodes), separators=(",", ":")), encoding="utf-8")
     start = (now - 14 * DAY) // DAY * DAY
     days = fields.write_days(tidefile, reach, pub / reach, start, end)

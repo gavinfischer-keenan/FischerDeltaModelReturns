@@ -147,8 +147,13 @@ def add_reach(cdir: Path, src: Path, index: dict) -> None:
         if f.is_file() and f.name != "reach.json":
             dest = cdir / f.relative_to(src)
             dest.parent.mkdir(parents=True, exist_ok=True)
-            if not dest.exists():
-                os.link(f, dest)
+            if dest.exists() and os.path.samefile(f, dest):
+                continue
+            tmp = dest.with_name(dest.name + ".tmp")
+            if tmp.exists():
+                tmp.unlink()
+            os.link(f, tmp)
+            os.replace(tmp, dest)  # a newer run replaces the file whole, never in place
     index["reaches"].append(entry)
     index["format_version"] = [1, 1]
 

@@ -22,9 +22,10 @@ def test_utm_scale_is_right():
     assert 110_900 < (y1 - y0) / 0.9996 < 111_100
 
 
-def test_lines_run_from_the_upstream_junction():
+def test_lines_run_from_the_upstream_junction_and_meet_both():
     line = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0)]
-    assert grid.orient(line, (2.0, 0.1), (0.0, -0.1)) == line[::-1]
+    # Drawn the other way round, and stopping short of both junctions.
+    assert grid.orient(line, (2.1, 0.0), (-0.1, 0.0)) == [(2.1, 0.0), (2.0, 0.0), (1.0, 0.0), (0.0, 0.0), (-0.1, 0.0)]
     assert grid.orient(line, (0.0, 0.0), (2.0, 0.0)) == line
 
 

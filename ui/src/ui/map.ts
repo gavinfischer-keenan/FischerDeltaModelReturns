@@ -60,9 +60,11 @@ export function createMap(container: HTMLElement, reach: Reach, region: string):
       },
       layers: layers("protomaps", namedFlavor("dark"), { lang: "en" }),
     },
-    bounds: reach.bounds(),
+    // A view in the address (a shared link) wins; otherwise fit the river.
+    bounds: /[#&]view=/.test(location.hash) ? undefined : reach.bounds(),
     fitBoundsOptions: { padding: 40 },
     attributionControl: false,
+    hash: "view", // the view lives in the address (#view=zoom/lat/lon), so a view can be shared
   });
   map.addControl(new AttributionControl({ compact: true }), "bottom-right");
   // Keep the view inside the region's basemap extract, so its edges never show.

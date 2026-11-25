@@ -57,14 +57,25 @@ class Channel:
 
 
 def orient(line: Sequence[tuple[float, float]], up: tuple[float, float] | None, down: tuple[float, float] | None) -> list[tuple[float, float]]:
-    """The line running from the upstream junction to the downstream one."""
+    """The line running from the upstream junction to the downstream one, and
+    joined to both. DWR's drawn centrelines often stop short of their
+    junctions (checked 25 Nov 2026: half within 36 m, one in ten more than
+    400 m short, the worst 1.6 km), so a channel would not meet its
+    neighbours on the map. The junctions are added as the line's ends."""
     pts = list(line)
-    if up is None or down is None or len(pts) < 2:
+    if up is None or down is None:
         return pts
-    d = lambda a, b: (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2  # noqa: E731
-    keep = d(pts[0], up) + d(pts[-1], down)
-    flip = d(pts[0], down) + d(pts[-1], up)
-    return pts[::-1] if flip < keep else pts
+    if len(pts) >= 2:
+        d = lambda a, b: (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2  # noqa: E731
+        keep = d(pts[0], up) + d(pts[-1], down)
+        flip = d(pts[0], down) + d(pts[-1], up)
+        if flip < keep:
+            pts = pts[::-1]
+    if not pts or pts[0] != up:
+        pts.insert(0, up)
+    if pts[-1] != down:
+        pts.append(down)
+    return pts
 
 
 def load(shapefile_prefix: str, channels: Sequence[tuple[int, int, int, float]], zone: int = 10, decimals: int = 5) -> tuple[list[Channel], dict[int, tuple[float, float]]]:
