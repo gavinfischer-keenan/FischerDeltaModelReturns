@@ -20,6 +20,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 | Data and compute | Fetch public data freely; all modelling and display on our hardware |
 | Server | Intel, Debian guests under Proxmox; model runner separate from the web guest |
 | Movie length | 14 days back and 14 days forward. The colour fades as certainty fades into the forecast |
+| Engine and regions | One engine, usable by any geography; everything place-specific lives in a region package. Version 1 ships one region |
 | Display | Moving particles show the water's direction and speed everywhere, always; particles carrying a pollutant take its colour |
 | Release locations | Anywhere in the modelled network, including the San Joaquin side of the Delta up to Vernalis |
 | Historic layers | After launch |
@@ -185,6 +186,49 @@ Data flows one way, top to bottom. The only thing that crosses from server to br
 4. Draw the movie and the read-off answers.
 
 Nothing the browser does requires a call back to the server beyond fetching static files, and no third-party server is contacted at all.
+
+### 4.1 One engine, many geographies
+
+The engine knows nothing about the Delta. Everything specific to a place lives in a region package, so another river, estuary or bay can use the same engine by writing a new package, without changing the engine.
+
+Version 1 ships one region, Shasta Dam to the Golden Gate. Sections 5 to 9 describe that region. This section says which parts of it are general.
+
+**The general engine**
+
+| Piece | What makes it general |
+| --- | --- |
+| Network model | Any waterway is described with the same parts: one-dimensional channels, junctions, well-mixed pools (DSM2's reservoirs, Keswick Reservoir), two-dimensional mesh areas, sinks such as pumps and diversions, open boundaries such as the ocean, and handoff lines between reaches |
+| Published flow-field format | Velocity and volume on that network per time step, per day, plus certainty (section 8.3). It names no place |
+| Tracer engine | Moves parcels through any network in that format: channels, junctions, pools, meshes, sinks and handoffs |
+| Display | Flow and pollutant particles, colour, certainty fade and zoom handover work on any network |
+| River model | Routing, the two speeds, Fischer's dispersion and the automated calibration in section 9.1 work on any gauged river |
+| Certainty | Per-reach horizons and fade rates are settings, not code |
+| Scheduler and publisher | Runs whatever flow sources a region lists, on the cadence it sets |
+
+**Flow sources.** Each reach in a region names the source of its flow field. There are three kinds; each is a plug-in with one job, to write its reach in the published format.
+
+| Kind | Example in this region | Where else it could serve |
+| --- | --- | --- |
+| Our river routing model | Shasta Dam to Sacramento | Any river with flow gauges |
+| An external model we run | DSM2 for the Delta | Another region's own hydrodynamic model, with its own adapter |
+| A fetched forecast | NOAA's San Francisco Bay forecast | NOAA runs operational forecast systems in the same format for other US estuaries and the Great Lakes, among them Chesapeake Bay, Delaware Bay, New York Harbor and the Columbia River estuary, so one adapter should cover them all (*to confirm*) |
+
+**Data adapters.** Each data source is an adapter that writes into the common local store (section 6.2). Some are national and serve every US region: USGS gauges, NOAA tides, NOAA forecast systems, and the National Weather Service River Forecast Centers, if their files share a format (*to confirm*). Some are regional: CDEC and DWR's operations data serve California only.
+
+**A region package holds**
+
+- Its name, extent and the base map extract to draw it on.
+- Its network geometry, reaches and the flow source for each.
+- Its handoff lines, such as Chipps Island here.
+- Its gauges, feeds and the adapters that read them.
+- Its sinks, gates and their data.
+- Its landmarks, for arrival times.
+- Its forecast horizons and certainty settings.
+- Its own written content. The Fischer heritage and History section belong to this region's package, not the engine.
+
+**Keeping it honest** (*proposed*). Nothing place-specific may appear in the engine's code: no station numbers, channel numbers, place names or coordinates. To test this, a second, small region is built alongside the first: a single gauged river somewhere else, using only the river model and national adapters. It runs in the test suite from Phase 1. If the engine needs changing to run it, something regional leaked into the engine.
+
+**Serving several regions** (*after version 1*). Each region publishes its own flow-field set. The browser loads a short list of regions and opens the one chosen. A region can run on its own model runner, so adding one does not slow another.
 
 ## 5. Engineering: the map
 
@@ -481,7 +525,7 @@ This section is not legal advice; the license choice deserves a second look befo
 The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn.
 
 1. **Phase 0, proof.** Run DWR's prebuilt DSM2 in a Windows guest. Feed it today's conditions and get a forecast flow field out. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
-2. **Phase 1, the river.** River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method.
+2. **Phase 1, the river.** River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The engine and region-package split (section 4.1) is set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, flow-field publishing, and parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, two-dimensional tracking, the extension with outflow drift, and the handoff at Chipps Island.
 5. **Phase 4, product.** Read-off answers, landmarks, the dam-release tool, the History section, phone layout, and the Utilities page on tripofisch.com.
@@ -499,6 +543,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - River calibration keeps wave speed and water speed apart. Release changes calibrate flow routing only; pollutant travel and spreading come from USGS field measurements and natural tracers. See sections 7.1 and 9.1.
 - One timeline: the last 14 days, now, and the next 14 days. The past window rolls forward and is kept up to date. "Now" is the opening view. See section 3.4.
 - Moving particles show the flow everywhere, always. Particles carrying a pollutant take its colour, and the colour fades as certainty fades. See sections 3.4, 8.2 and 8.4.
+- The engine is built to serve any geography; everything specific to a place lives in a region package. Version 1 ships Shasta Dam to the Golden Gate. See section 4.1.
 - Proposed, awaiting decision: the Delta-to-Bay handoff at Chipps Island rather than Martinez, with Martinez as the fallback. See section 7.4.
 
 ### Open technical questions, answered in Phase 0
