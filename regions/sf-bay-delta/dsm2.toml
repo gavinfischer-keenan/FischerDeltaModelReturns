@@ -164,3 +164,15 @@ source = "usgs"
 site = "11337190"
 parameter = "discharge"
 output = "RSAN018"   # its name in DSM2's output
+
+# DSM2's external flows that are exports: water pumped out of the Delta, which a
+# release can be carried into (Phase 2's "toward the pumps"). Name in DSM2, and
+# the words shown for it. Every other withdrawal (farm intakes, small
+# diversions) is counted together as "taken by other diversions".
+[exports]
+swp = "State Water Project pumps (Banks)"
+cvp = "Central Valley Project pumps (Jones)"
+ccc = "Contra Costa Water District, Rock Slough"
+cccoldr = "Contra Costa Water District, Old River"
+ccw = "Contra Costa Water District, Victoria Canal"
+north_bay = "North Bay Aqueduct"

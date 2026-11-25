@@ -10,13 +10,32 @@ export type Request =
   | { type: "drift"; dt: number }
   | {
       type: "release";
-      x: number; // chainage, m
+      x: number; // chainage, m, on the river
+      /** Release into a network reach instead: a channel and how far along it (0..1). */
+      network?: { id: string; element: number; fraction: number };
       start: number;
       duration: number; // s; 0 for all at once
       mass: number; // kg
       halfLife: number | null; // s
     }
   | { type: "clear" };
+
+/** A network reach at one moment. Positions are an element (a channel; pools
+ * follow the channels, at `channels + pool`) and a fraction along it, 0 at its
+ * upstream junction. */
+export interface NetworkFrame {
+  id: string;
+  /** Each channel's mean velocity, m/s, positive downstream. */
+  velocity: Float32Array;
+  particleElement: Uint32Array;
+  particleFraction: Float32Array;
+  parcelElement: Uint32Array;
+  parcelFraction: Float32Array;
+  /** Concentration where each parcel is, kg/m3. */
+  parcelConcentration: Float64Array;
+  /** [released, in water, taken by the pumps, taken by other diversions, out to sea, broken down], kg. */
+  massBalance: Float64Array;
+}
 
 /** A snapshot of the water at one moment. */
 export interface Frame {
@@ -29,14 +48,16 @@ export interface Frame {
   /** Parcels in the water: chainage (m) and concentration where each is (kg/m3). */
   parcelX: Float64Array;
   parcelConcentration: Float64Array;
-  /** [released, in water, past the end, decayed], kg. */
+  /** Every reach together, kg: [released so far, in the water, past the end of
+   * the last reach, broken down, taken by the pumps, taken by other diversions,
+   * out to sea]. Mass handed from one reach to the next is counted once. */
   massBalance: Float64Array;
   /** Certainty of the flow at this moment, 1 down toward 0 (specification 8.2). */
   certainty: number;
   /** The same in words, for the timeline. */
   words: Words;
-  /** Channel networks loaded so far: each channel's mean velocity, m/s, positive downstream. */
-  networks: { id: string; velocity: Float32Array }[];
+  /** Network reaches loaded so far. */
+  networks: NetworkFrame[];
 }
 
 export type Words = "measured" | "forecast" | "rough_guide";
@@ -50,7 +71,7 @@ export interface Ready {
   /** Certainty at each published step from `start`, `step` s apart. */
   certainty: number[];
   step: number;
-  /** Network reaches (such as a tidal delta), by id: their velocities arrive in later frames. */
+  /** Network reaches (such as a tidal delta), by id: they arrive in later frames. */
   networks: string[];
 }
 

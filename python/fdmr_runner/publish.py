@@ -268,6 +268,10 @@ def publish(
     }
     for extra in extra_reaches or []:
         add_reach(cdir, extra, index)
+    ids = {r["id"] for r in index["reaches"]}
+    joins = [{k: h[k] for k in ("from", "to", "node") if k in h} for h in region.handoffs if h["from"] in ids and h["to"] in ids and "node" in h]
+    if joins:
+        index["handoffs"] = joins  # format 1.1: where parcels leaving one reach enter the next
     (cdir / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
 
     tmp = out_dir / ".current.tmp"

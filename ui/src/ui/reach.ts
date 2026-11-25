@@ -15,12 +15,7 @@ export class Reach {
 
   constructor(readonly geometry: ReachGeometry) {
     this.starts = Float64Array.from(geometry.elements.map((e) => e.start_m));
-    this.cum = geometry.lines.map((line) => {
-      const c = new Float64Array(line.length);
-      for (let i = 1; i < line.length; i++) c[i] = c[i - 1] + metres(line[i - 1], line[i]);
-      const total = c[c.length - 1] || 1;
-      return c.map((v) => v / total);
-    });
+    this.cum = geometry.lines.map(cumulative);
   }
 
   get length(): number {
@@ -45,27 +40,7 @@ export class Reach {
     const e = this.element(x);
     const { start_m, end_m } = this.geometry.elements[e];
     const f = Math.min(1, Math.max(0, (x - start_m) / (end_m - start_m || 1)));
-    const line = this.geometry.lines[e];
-    const c = this.cum[e];
-    let i = 1;
-    while (i < c.length - 1 && c[i] < f) i++;
-    const seg = c[i] - c[i - 1] || 1;
-    const g = (f - c[i - 1]) / seg;
-    const [x0, y0] = line[i - 1];
-    const [x1, y1] = line[i];
-    let lon = x0 + g * (x1 - x0);
-    let lat = y0 + g * (y1 - y0);
-    if (lateral && halfWidthM) {
-      // Perpendicular to the line, in degrees.
-      const kx = Math.cos((lat * Math.PI) / 180);
-      const dx = (x1 - x0) * kx;
-      const dy = y1 - y0;
-      const n = Math.hypot(dx, dy) || 1;
-      const off = (lateral * halfWidthM) / M_PER_DEG_LAT;
-      lon += ((-dy / n) * off) / kx;
-      lat += (dx / n) * off;
-    }
-    return [lon, lat];
+    return pointOnLine(this.geometry.lines[e], this.cum[e], f, lateral, halfWidthM);
   }
 
   /** The chainage nearest a point, for snapping a click to the river. */
@@ -103,7 +78,40 @@ export class Reach {
   }
 }
 
-function metres(a: [number, number], b: [number, number]): number {
+/** Cumulative length along a line, 0 at its start to 1 at its end. */
+export function cumulative(line: [number, number][]): Float64Array {
+  const c = new Float64Array(line.length);
+  for (let i = 1; i < line.length; i++) c[i] = c[i - 1] + metres(line[i - 1], line[i]);
+  const total = c[c.length - 1] || 1;
+  return c.map((v) => v / total);
+}
+
+/** The point a fraction f along a line (with its cumulative lengths), nudged
+ * sideways by `lateral` (-1..1) x `halfWidthM`. */
+export function pointOnLine(line: [number, number][], cum: Float64Array, f: number, lateral = 0, halfWidthM = 0): [number, number] {
+  if (line.length < 2) return line[0] ?? [0, 0];
+  let i = 1;
+  while (i < cum.length - 1 && cum[i] < f) i++;
+  const seg = cum[i] - cum[i - 1] || 1;
+  const g = Math.min(1, Math.max(0, (f - cum[i - 1]) / seg));
+  const [x0, y0] = line[i - 1];
+  const [x1, y1] = line[i];
+  let lon = x0 + g * (x1 - x0);
+  let lat = y0 + g * (y1 - y0);
+  if (lateral && halfWidthM) {
+    // Perpendicular to the line, in degrees.
+    const kx = Math.cos((lat * Math.PI) / 180);
+    const dx = (x1 - x0) * kx;
+    const dy = y1 - y0;
+    const n = Math.hypot(dx, dy) || 1;
+    const off = (lateral * halfWidthM) / M_PER_DEG_LAT;
+    lon += ((-dy / n) * off) / kx;
+    lat += (dx / n) * off;
+  }
+  return [lon, lat];
+}
+
+export function metres(a: [number, number], b: [number, number]): number {
   const kx = Math.cos((((a[1] + b[1]) / 2) * Math.PI) / 180);
   return Math.hypot((b[0] - a[0]) * kx, b[1] - a[1]) * M_PER_DEG_LAT;
 }

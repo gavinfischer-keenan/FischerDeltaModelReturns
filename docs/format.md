@@ -83,8 +83,40 @@ A channel network, such as a tidal delta, is many short channels meeting at junc
 - `id` is the flow source's own channel number.
 - `up` and `down` are junction ids. Flow is positive from `up` to `down`.
 - `start_m` is 0 and `end_m` is the channel's length.
-- `nodes` gives each junction's position.
+- `nodes` gives each junction's position. A junction may carry a `kind`:
+  - `stage_boundary` is where the sea sets the level; water leaving there goes to sea;
+  - `flow_boundary` is where a river or boundary flow enters or leaves.
 - `lines` runs from the `up` junction to the `down` one.
+
+A network may also have pools: well-mixed bodies of water, such as flooded islands and forebays, joined to junctions.
+
+```json
+"pools": [{ "id": "clifton_court", "area_m2": 8534000, "bottom_m": -2.36, "nodes": [72] }],
+"links": [{ "pool": "clifton_court", "node": 72 }],
+"exports": [{ "name": "swp", "label": "State Water Project pumps (Banks)", "pool": "clifton_court" }]
+```
+
+- `links` lists every pool's connections to junctions. Their order is the order of the link field file below.
+- `exports` names the external flows that are exports: water pumped out of the network. Each sits at a `node` or in a `pool`.
+
+Each day of a network reach then has two more field files beside `<day>.fdf`:
+
+- **`<day>.nodes.fdf`** has one element per junction, in `nodes` order, then one per pool, in `pools` order. Its fields:
+  - `inflow` (m3/s): water coming in from outside;
+  - `export` (m3/s): water taken by the named exports;
+  - `withdrawal` (m3/s): water taken by anything else, such as farm intakes;
+  - `volume` (m3): each pool's water, with no value at plain junctions.
+- **`<day>.links.fdf`** has one element per link. Its `flow` field (m3/s) is positive from the pool to its junction.
+
+### Handoffs between reaches (version 1.1)
+
+`index.json` may list where parcels leaving one reach enter the next:
+
+```json
+"handoffs": [{ "from": "river", "to": "delta", "node": 330 }]
+```
+
+Here, parcels passing the end of the `river` reach enter the `delta` network at junction 330, in the channel that starts there, at the moment they arrived, with their mass.
 
 ## Field files (`.fdf`)
 

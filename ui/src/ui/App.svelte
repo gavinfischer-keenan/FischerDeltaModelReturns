@@ -8,6 +8,7 @@
   import text from "../../../text/en.json";
   import { Reach, type ReachGeometry } from "./reach";
   import { addNetwork, createMap, drawFrame, drawNetworks } from "./map";
+  import { NetworkPlace, type NetworkGeometry } from "./network";
 
   const params = new URLSearchParams(location.search);
   const region = params.get("region") ?? "sf-bay-delta";
@@ -29,9 +30,10 @@
   let playing = $state(false);
   let hoursPerSecond = $state(2);
   let t = $state(0);
-  let balance = $state<number[]>([0, 0, 0, 0]);
+  let balance = $state<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const nets: NetworkPlace[] = [];
   let placing = $state(false);
-  let draft = $state<{ x: number; lon: number; lat: number } | null>(null);
+  let draft = $state<{ x: number; lon: number; lat: number; network?: { id: string; element: number; fraction: number } } | null>(null);
   let mass = $state(100);
   let continuousHours = $state(0);
   let halfLifeHours = $state<number | null>(null);
@@ -47,7 +49,7 @@
     t = f.t;
     balance = Array.from(f.massBalance);
     words = f.words;
-    if (map && reach) drawFrame(map, reach, f);
+    if (map && reach) drawFrame(map, reach, f, nets);
     if (map) drawNetworks(map, f);
   }
 
@@ -122,6 +124,8 @@
     engine.send({
       type: "release",
       x: draft.x,
+      // A plain copy: a reactive proxy cannot be sent to the worker.
+      network: draft.network ? $state.snapshot(draft.network) : undefined,
       start,
       duration: Math.max(0, continuousHours) * 3600,
       mass,
@@ -141,7 +145,10 @@
         for (const id of r.networks) {
           fetch(`${cycle}/geometry/${id}.json`)
             .then((x) => x.json())
-            .then((g) => addNetwork(map, id, g));
+            .then((g: NetworkGeometry) => {
+              addNetwork(map, id, g);
+              nets.push(new NetworkPlace(id, g));
+            });
         }
         ready = r;
         t = r.now;
@@ -154,9 +161,19 @@
       map = createMap(mapEl, reach, region);
       map.on("click", (e) => {
         if (!placing) return;
+        // The nearest water: the river, or a channel of a network reach.
         const near = reach.nearest(e.lngLat.lng, e.lngLat.lat);
         const [lon, lat] = reach.place(near.x);
         draft = { x: near.x, lon, lat };
+        let best = near.metres;
+        for (const net of nets) {
+          const n = net.nearest(e.lngLat.lng, e.lngLat.lat);
+          if (n.metres < best) {
+            best = n.metres;
+            const [nlon, nlat] = net.place(n.element, n.fraction);
+            draft = { x: 0, lon: nlon, lat: nlat, network: { id: net.id, element: n.element, fraction: n.fraction } };
+          }
+        }
         placing = false;
       });
       engine.send({ type: "open", cycle, reach: "river", particles: FLOW_PARTICLES });
@@ -222,8 +239,12 @@
       </div>
       {#if balance[0] > 0}
         <div class="balance">
-          {text.mass_in_water}: {balance[1].toFixed(1)} kg · {text.mass_past_end}: {balance[2].toFixed(1)} kg ·
-          {text.mass_decayed}: {balance[3].toFixed(1)} kg
+          {text.mass_in_water}: {balance[1].toFixed(1)} kg
+          {#if balance[4] > 0} · {text.mass_pumped}: {balance[4].toFixed(1)} kg{/if}
+          {#if balance[5] > 0} · {text.mass_diverted}: {balance[5].toFixed(1)} kg{/if}
+          {#if balance[6] > 0} · {text.mass_to_sea}: {balance[6].toFixed(1)} kg{/if}
+          {#if balance[2] > 0} · {text.mass_past_end}: {balance[2].toFixed(1)} kg{/if}
+          · {text.mass_decayed}: {balance[3].toFixed(1)} kg
         </div>
       {/if}
       <div class="updated">{text.updated}: {fmt(ready.now)}</div>

@@ -24,6 +24,7 @@ class Region:
     reaches: list[dict]
     gauges: list[Gauge]
     stations: list[dict] = field(default_factory=list)  # tracer stations: {reach, source, id, name, lat, lon, measures}
+    handoffs: list[dict] = field(default_factory=list)  # {from, to, at, node?}: where one reach's water enters the next
 
     def gauges_for(self, reach: str) -> list[Gauge]:
         return [g for g in self.gauges if g.reach == reach]
@@ -41,4 +42,5 @@ def load_region(path: str | Path) -> Region:
         reaches=d.get("reaches", []),
         gauges=[Gauge(**g) for g in d.get("gauges", [])],
         stations=d.get("stations", []),
+        handoffs=d.get("handoffs", []),
     )

@@ -21,6 +21,7 @@ setWorkerUrl(mapWorkerUrl);
 // The basemap is one PMTiles file on our own server, read in pieces (specification 5.1).
 addProtocol("pmtiles", new Protocol().tile);
 import type { Frame } from "../compute-interface/messages";
+import type { NetworkPlace } from "./network";
 import type { Reach } from "./reach";
 
 const MAX_DRAWN_PARCELS = 4000;
@@ -169,8 +170,8 @@ export function drawNetworks(map: Map, f: Frame): void {
   }
 }
 
-/** Draw a frame from the compute engine. Drawing only: placing chainage on the line. */
-export function drawFrame(map: Map, reach: Reach, f: Frame): void {
+/** Draw a frame from the compute engine. Drawing only: placing positions on the lines. */
+export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[] = []): void {
   const flow = map.getSource("flow") as GeoJSONSource | undefined;
   const pollutant = map.getSource("pollutant") as GeoJSONSource | undefined;
   if (!flow || !pollutant) return;
@@ -181,6 +182,19 @@ export function drawFrame(map: Map, reach: Reach, f: Frame): void {
       properties: { s: f.particleSpeed[i] },
       geometry: { type: "Point", coordinates: reach.place(f.particleX[i], f.particleLateral[i], 40) },
     });
+  }
+  for (const nf of f.networks) {
+    const net = nets.find((x) => x.id === nf.id);
+    if (!net) continue;
+    for (let i = 0; i < nf.particleElement.length; i++) {
+      const e = nf.particleElement[i];
+      const lateral = ((i * 2654435761) % 1000) / 500 - 1;
+      pts.push({
+        type: "Feature",
+        properties: { s: Math.abs(nf.velocity[e] ?? 0) },
+        geometry: { type: "Point", coordinates: net.place(e, nf.particleFraction[i], lateral, 25, i) },
+      });
+    }
   }
   flow.setData({ type: "FeatureCollection", features: pts });
   const n = f.parcelX.length;
@@ -193,6 +207,20 @@ export function drawFrame(map: Map, reach: Reach, f: Frame): void {
       properties: { c: Math.log10(Math.max(1e-9, f.parcelConcentration[i] * 1000)) }, // mg/L
       geometry: { type: "Point", coordinates: reach.place(f.parcelX[i], lateral, 40) },
     });
+  }
+  for (const nf of f.networks) {
+    const net = nets.find((x) => x.id === nf.id);
+    if (!net) continue;
+    const m = nf.parcelElement.length;
+    const each = Math.max(1, Math.ceil(m / MAX_DRAWN_PARCELS));
+    for (let i = 0; i < m; i += each) {
+      const lateral = ((i * 2654435761) % 1000) / 500 - 1;
+      ps.push({
+        type: "Feature",
+        properties: { c: Math.log10(Math.max(1e-9, nf.parcelConcentration[i] * 1000)) }, // mg/L
+        geometry: { type: "Point", coordinates: net.place(nf.parcelElement[i], nf.parcelFraction[i], lateral, 25, i) },
+      });
+    }
   }
   pollutant.setData({ type: "FeatureCollection", features: ps });
   const c = Math.round(f.certainty * 50) / 50; // restyle only when it visibly changes

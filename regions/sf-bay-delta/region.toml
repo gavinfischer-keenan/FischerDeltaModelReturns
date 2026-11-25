@@ -31,6 +31,7 @@ certainty = { solid_days = 2, floor = 0.2 }
 from = "river"
 to = "delta"
 at = "Sacramento River inflow to DSM2"
+node = 330   # DSM2's junction where the Sacramento enters, at Freeport (its boundary flow "sac")
 
 [[handoffs]]
 from = "delta"

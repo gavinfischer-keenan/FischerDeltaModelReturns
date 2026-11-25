@@ -5,7 +5,7 @@
 //! Results come back as typed arrays of numbers: chainage, concentration,
 //! speed. Turning chainage into a place on the map is the UI's job.
 
-use fdmr_compute::network::NetworkFlow;
+use fdmr_compute::network::{NetRelease, NetworkTracer, Place, Topology};
 use fdmr_compute::{Engine as Core, Release};
 use wasm_bindgen::prelude::*;
 
@@ -118,6 +118,16 @@ impl Engine {
         self.core.concentration()
     }
 
+    /// Parcels that passed the end since the last call, for the next reach:
+    /// flat triples of (time, mass, half-life or `NaN`).
+    pub fn take_outflow(&mut self) -> Vec<f64> {
+        self.core
+            .take_outflow()
+            .into_iter()
+            .flat_map(|(t, m, h)| [t, m, h.unwrap_or(f64::NAN)])
+            .collect()
+    }
+
     /// [released, in water, past the end, decayed], kg.
     #[must_use]
     pub fn mass_balance(&self) -> Vec<f64> {
@@ -126,41 +136,169 @@ impl Engine {
     }
 }
 
-/// A channel network's flow (a network reach), for colouring its channels.
+/// Parcels and flow particles moving through a channel network (a network reach).
+///
+/// Junctions and pools are indices from 0. Positions come back as an element
+/// index and a fraction along it: channels first, then pools (index
+/// `channels + pool`, fraction 0.5), for the UI to place on the map.
 #[wasm_bindgen]
-pub struct Network {
-    flow: NetworkFlow,
+pub struct NetworkEngine {
+    core: NetworkTracer,
 }
 
 #[wasm_bindgen]
-impl Network {
+impl NetworkEngine {
+    /// The network: each channel's upstream and downstream junction and length
+    /// (m), the junction count, the sea junctions, the pool count, and each
+    /// link's pool and junction. `dispersion` in m²/s.
     #[wasm_bindgen(constructor)]
     #[must_use]
-    pub fn new() -> Self {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        up: &[u32],
+        down: &[u32],
+        length: &[f64],
+        nodes: u32,
+        sea: &[u32],
+        pools: u32,
+        link_pool: &[u32],
+        link_node: &[u32],
+        start_time: f64,
+        seed: u32,
+        dispersion: f64,
+    ) -> Self {
+        let ix = |v: &[u32]| v.iter().map(|&i| i as usize).collect::<Vec<_>>();
+        let topo = Topology {
+            up: ix(up),
+            down: ix(down),
+            length: length.to_vec(),
+            nodes: nodes as usize,
+            sea: ix(sea),
+            pools: pools as usize,
+            link_pool: ix(link_pool),
+            link_node: ix(link_node),
+        };
         Self {
-            flow: NetworkFlow::new(),
+            core: NetworkTracer::new(topo, start_time, u64::from(seed), dispersion),
         }
     }
 
-    /// Load one day's field file, as fetched.
+    /// Load one day's channel file.
     ///
     /// # Errors
-    /// If the bytes are not a network field file.
-    pub fn load_day(&mut self, bytes: &[u8]) -> Result<(), JsError> {
-        self.flow
-            .load_day(bytes)
+    /// If it does not match the network.
+    pub fn load_channels(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.core
+            .load_channels(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
-    /// Each channel's mean velocity at `t`, m/s, positive downstream; empty before the first day.
-    #[must_use]
-    pub fn velocities(&self, t: f64) -> Vec<f32> {
-        self.flow.velocities(t).unwrap_or_default()
+    /// Load one day's junction and pool file.
+    ///
+    /// # Errors
+    /// If it does not match the network.
+    pub fn load_nodes(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.core
+            .load_nodes(bytes)
+            .map_err(|e| JsError::new(&e.to_string()))
     }
-}
 
-impl Default for Network {
-    fn default() -> Self {
-        Self::new()
+    /// Load one day's link file.
+    ///
+    /// # Errors
+    /// If it does not match the network.
+    pub fn load_links(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.core
+            .load_links(bytes)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Release into channel `channel` at `fraction` along it. `half_life` in s, or `NaN` for none.
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_release(
+        &mut self,
+        channel: u32,
+        fraction: f64,
+        length: f64,
+        start: f64,
+        duration: f64,
+        mass: f64,
+        half_life: f64,
+        parcels: u32,
+    ) {
+        self.core.add_release(NetRelease {
+            at: Place::Channel(channel as usize, fraction.clamp(0.0, 1.0) * length),
+            start,
+            duration,
+            mass,
+            half_life: if half_life.is_finite() && half_life > 0.0 {
+                Some(half_life)
+            } else {
+                None
+            },
+            parcels: parcels as usize,
+        });
+    }
+
+    pub fn clear_releases(&mut self) {
+        self.core.clear_releases();
+    }
+
+    pub fn seed_flow_particles(&mut self, n: usize) {
+        self.core.seed_flow_particles(n);
+    }
+
+    pub fn step_to(&mut self, t: f64) {
+        self.core.step_to(t);
+    }
+
+    pub fn drift_frozen(&mut self, dt: f64) {
+        self.core.drift_frozen(dt);
+    }
+
+    #[must_use]
+    pub fn time(&self) -> f64 {
+        self.core.time()
+    }
+
+    #[must_use]
+    pub fn particle_element(&self) -> Vec<u32> {
+        self.core.particles().0
+    }
+
+    #[must_use]
+    pub fn particle_fraction(&self) -> Vec<f32> {
+        self.core.particles().1
+    }
+
+    #[must_use]
+    pub fn parcel_element(&self) -> Vec<u32> {
+        self.core.parcels().0
+    }
+
+    #[must_use]
+    pub fn parcel_fraction(&self) -> Vec<f32> {
+        self.core.parcels().1
+    }
+
+    /// Concentration where each parcel is, kg/m³, in the order of the parcel positions.
+    #[must_use]
+    pub fn parcel_concentration(&self) -> Vec<f64> {
+        self.core.parcel_concentration()
+    }
+
+    /// [released, in water, exported, diverted, out to sea, broken down], kg.
+    #[must_use]
+    pub fn mass_balance(&self) -> Vec<f64> {
+        let b = self.core.balance();
+        vec![
+            b.released, b.in_water, b.exported, b.diverted, b.to_sea, b.decayed,
+        ]
+    }
+
+    /// Each channel's mean velocity now, m/s, positive downstream.
+    #[must_use]
+    pub fn velocities(&self) -> Vec<f32> {
+        self.core.velocities()
     }
 }

@@ -123,6 +123,59 @@ def geometry(reach: str, channels: Sequence[Channel], nodes: dict[int, tuple[flo
     }
 
 
+@dataclass(frozen=True)
+class Extras:
+    """Everything beyond channels that a tracer needs, from HYDRO's output."""
+
+    pools: list[dict]  # {id, area_m2, bottom_m}, in HYDRO's order
+    links: list[dict]  # {pool, node}: a pool's connections to junctions, in HYDRO's order
+    stage_nodes: list[int]  # junctions where the sea sets the water level
+    flow_nodes: list[int]  # junctions where a river or boundary flow enters or leaves
+    external: list[dict]  # {name, node | pool}: every external flow, in HYDRO's order
+
+
+def read_extras(tidefile: Path) -> Extras:
+    import h5py
+
+    with h5py.File(tidefile, "r") as f:
+        name = lambda b: b.decode().strip()  # noqa: E731
+        pools = [{"id": name(r["name"]), "area_m2": float(r["area"]) * 1e6 * FT**2, "bottom_m": float(r["bot_elev"]) * FT}
+                 for r in f["hydro/input/reservoir"][:]]
+        order = [name(r) for r in f["hydro/geometry/reservoir_names"][:]]
+        pools.sort(key=lambda p: order.index(p["id"]))
+        links = [{"pool": name(r["res_name"]), "node": int(r["ext_node_no"])} for r in f["hydro/geometry/reservoir_node_connect"][:]]
+        stage = [int(r["ext_node_no"]) for r in f["hydro/geometry/stage_boundaries"][:]]
+        flow_nodes = sorted({int(r["node"]) for r in f["hydro/input/boundary_flow"][:]})
+        ext = []
+        for r in f["hydro/geometry/qext"][:]:
+            at = name(r["attach_obj_name"])
+            ext.append({"name": name(r["name"]), "node": int(at)} if int(r["attached_obj_type"]) == 2 else {"name": name(r["name"]), "pool": at})
+    return Extras(pools, links, stage, flow_nodes, ext)
+
+
+def add_extras(geo: dict, extras: Extras, nodes: dict[int, tuple[float, float]], exports: dict[str, str]) -> dict:
+    """The network geometry with pools, their links, boundary kinds and the
+    named exports (docs/format.md, network reaches)."""
+    kinds = {**{n: "flow_boundary" for n in extras.flow_nodes}, **{n: "stage_boundary" for n in extras.stage_nodes}}
+    listed = {n["id"] for n in geo["nodes"]}
+    for n in geo["nodes"]:
+        if n["id"] in kinds:
+            n["kind"] = kinds[n["id"]]
+    for link in extras.links:  # a pool's junction that no channel uses still needs a place
+        if link["node"] not in listed and link["node"] in nodes:
+            geo["nodes"].append({"id": link["node"], "lon": nodes[link["node"]][0], "lat": nodes[link["node"]][1]})
+            listed.add(link["node"])
+    geo["pools"] = [
+        {**p, "nodes": [lk["node"] for lk in extras.links if lk["pool"] == p["id"]]} for p in extras.pools
+    ]
+    geo["links"] = extras.links
+    geo["exports"] = [
+        {"name": e["name"], "label": exports[e["name"]], **({"node": e["node"]} if "node" in e else {"pool": e["pool"]})}
+        for e in extras.external if e["name"] in exports
+    ]
+    return geo
+
+
 def read_channels(tidefile: Path) -> list[tuple[int, int, int, float]]:
     """(number, up node, down node, length ft) of every channel, in HYDRO's order."""
     import h5py

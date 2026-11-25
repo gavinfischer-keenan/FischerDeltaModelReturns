@@ -203,9 +203,13 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
 
         shutil.rmtree(pub)
     (pub / "geometry").mkdir(parents=True)
-    (pub / "geometry" / f"{reach}.json").write_text(json.dumps(grid.geometry(reach, channels, nodes), separators=(",", ":")), encoding="utf-8")
+    extras = grid.read_extras(tidefile)
+    exports = cfg.get("exports", {})
+    geo = grid.add_extras(grid.geometry(reach, channels, nodes), extras, nodes, exports)
+    (pub / "geometry" / f"{reach}.json").write_text(json.dumps(geo, separators=(",", ":")), encoding="utf-8")
     start = (now - 14 * DAY) // DAY * DAY
-    days = fields.write_days(tidefile, reach, pub / reach, start, end)
+    days = fields.write_days(tidefile, reach, pub / reach, start, end,
+                             node_ids=[n["id"] for n in geo["nodes"]], extras=extras, exports=set(exports))
     rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {}).get("certainty", {})
     solid, floor = rc.get("solid_days", 5) * DAY, rc.get("floor", 0.2)
     import fdmr_py

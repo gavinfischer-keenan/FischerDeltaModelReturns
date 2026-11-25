@@ -96,6 +96,9 @@ pub struct Engine {
     parcels: Vec<Parcel>,
     particles: Vec<FlowParticle>,
     balance: MassBalance,
+    /// Parcels that passed the end since last taken: (time, mass, half-life),
+    /// for handing on to the next reach (specification 7.4).
+    outflow: Vec<(f64, f64, Option<f64>)>,
 }
 
 impl Engine {
@@ -112,6 +115,7 @@ impl Engine {
             parcels: Vec::new(),
             particles: Vec::new(),
             balance: MassBalance::default(),
+            outflow: Vec::new(),
         }
     }
 
@@ -287,6 +291,13 @@ impl Engine {
                     q.in_water = false;
                     self.balance.in_water -= kept;
                     self.balance.past_end += kept;
+                    // When it reached the end: the share of the step's move needed to get there.
+                    let frac = if x > p.x {
+                        ((len - p.x) / (x - p.x)).clamp(0.0, 1.0)
+                    } else {
+                        1.0
+                    };
+                    self.outflow.push((now + dt * frac, kept, half_life));
                 }
             }
             for i in 0..self.particles.len() {
@@ -318,6 +329,14 @@ impl Engine {
     #[must_use]
     pub fn mass_balance(&self) -> MassBalance {
         self.balance
+    }
+
+    /// Parcels that passed the end of the reach since the last call: (time,
+    /// mass, half-life), in time order, for the next reach downstream.
+    pub fn take_outflow(&mut self) -> Vec<(f64, f64, Option<f64>)> {
+        let mut out = std::mem::take(&mut self.outflow);
+        out.sort_by(|a, b| a.0.total_cmp(&b.0));
+        out
     }
 
     /// Concentration in each element now, kg/m³: parcel mass over water volume.
@@ -454,6 +473,11 @@ mod tests {
         assert!((b.released - 50.0).abs() < 1e-9);
         assert!((b.in_water + b.past_end + b.decayed - b.released).abs() < 1e-9);
         assert!(b.past_end > 0.0 && b.decayed > 0.0);
+        // What passed the end is handed on whole, in time order.
+        let out = e.take_outflow();
+        assert!((out.iter().map(|o| o.1).sum::<f64>() - b.past_end).abs() < 1e-9);
+        assert!(out.windows(2).all(|w| w[0].0 <= w[1].0));
+        assert_eq!(e.take_outflow().len(), 0);
     }
 
     #[test]

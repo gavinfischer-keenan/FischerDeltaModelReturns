@@ -11,7 +11,7 @@
   "speed": "Speed",
   "hours_per_second": "h per second",
   "add_pollutant": "Add pollutant",
-  "click_the_river": "Click the river to place the release",
+  "click_the_river": "Click the water to place the release",
   "release_mass": "Mass (kg)",
   "release_how": "Released",
   "release_at_once": "All at once",
@@ -29,5 +29,8 @@
   "mass_past_end": "Past the end of the reach",
   "mass_decayed": "Broken down",
   "updated": "Conditions updated",
-  "error": "Something went wrong:"
+  "error": "Something went wrong:",
+  "mass_pumped": "Taken by the pumps",
+  "mass_diverted": "Taken by other diversions",
+  "mass_to_sea": "Out to the Bay"
 }

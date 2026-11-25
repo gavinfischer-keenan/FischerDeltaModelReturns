@@ -292,6 +292,20 @@ The flood map and the floodplain model are checked against FEMA flood zones, the
 - Measured turbidity is already a station overlay in version 1 (section 3.5).
 - Sediment would be a plug-in, like the other model kinds (section 4.1).
 
+### 3.13 Planned after launch: the Feather and the American from their dams
+
+At launch the river reach runs from Keswick, below Shasta, to Freeport. The Feather and the American join it only as measured inflows at their gauges. After launch, each becomes a river reach of its own, starting at its dam's release, the same way the Sacramento starts at Keswick:
+
+- **The Feather River from Oroville Dam:** Lake Oroville's release, through the Thermalito afterbay, down the Feather to where it joins the Sacramento above Verona. The Yuba joins on the way.
+- **The American River from Folsom Dam:** Folsom Lake's release, through Lake Natoma below Nimbus Dam, down the American to where it joins the Sacramento in Sacramento.
+
+What this adds for the user:
+
+- A pollutant or outfall placed anywhere on either river is tracked down it, into the Sacramento, and on through the Delta.
+- A changed release from Oroville or Folsom becomes a what-if, as Keswick's is (section 3.7). The big-release and dam-failure what-ifs of section 3.11 can start there too.
+
+**Planned for now, built later.** These use the river-routing model kind as it is (section 7.1), with their own gauges, channel measurements and forecast points. The handoff where each joins the Sacramento is the kind already built from the river into the Delta (section 7.4). It runs from one reach into another at a junction, not only into a network. The dams' releases, and the River Forecast Center's forecasts below them, come from feeds the app already uses.
+
 ## 4. Engineering: architecture
 
 The model runner computes where the water is going and what it is like. The compute engine works out where a pollutant goes in that water. The UI only shows the results.
@@ -922,6 +936,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
 - What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. When the whole server has been quiet for a sustained stretch, the model runner also works through the menu in spare time; visitors always come first. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
+- The Feather River from Oroville Dam and the American River from Folsom Dam are planned as river reaches of their own after launch. Each starts at its dam's release and is handed on into the Sacramento. See section 3.13.
 - Sediment transport is planned for after launch: carried, settled and scoured sediment, turbidity, and particle-bound pollutants. It is to include Catherine Vaningen's work, as described in section 3.12.
 - River levels and floods are planned for after launch, not version 1. That means level against flood stage, flood maps, and water on the floodplain, for snowmelt, extreme rain, big dam releases and dam or levee failures, and their effect on flow and Delta salinity. See section 3.11.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
