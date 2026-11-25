@@ -63,7 +63,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 
 | Workstream | What gets done |
 | --- | --- |
-| Skeleton | Repository with one package per module; continuous integration; dependency checks that fail the build on a forbidden import; versioned interfaces. |
+| Skeleton | Repository with one package per module; continuous integration; dependency checks that fail the build on a forbidden import. |
 | Published format | Version 1 of the format, with the depth axis, substance identity and phase field already in it; a reader and writer with tests. |
 | Math library, first set | Fischer dispersion, flood-wave routing, hydraulic geometry fitting, gauge-to-gauge lag analysis, 1D parcel movement, decay, certainty. Each is tested against textbook cases. |
 | Data adapters | USGS, the River Forecast Center and CDEC for Keswick; the local data store. |
@@ -109,6 +109,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Releases | Outfalls, decay, up to five releases at once. |
 | Answers | Read-off answers, landmarks and certainty in words. |
 | What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. |
+| History | A simple text History page, with the words from you. |
 | Finish | Phone layout, and the Utilities page on tripofisch.com. |
 
 **Done when:** every user-facing item in specification section 3 works on a phone and a desktop.
@@ -118,8 +119,8 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Workstream | What gets done |
 | --- | --- |
 | Native Linux DSM2 | Retires the temporary Windows VM, if one was needed. |
-| Validation report | Every row of specification 9.2, written up. |
-| Operations | Monitoring and alerts; tested failure behaviour, so stale data is shown honestly. |
+| Validation checks | Every row of specification 9.2 runs as an automated test. No separate report. |
+| Operations | The status file already shows how old the data is. Add a notice to you when a run fails, and test that stale data is shown honestly. |
 | Performance | Parcel and particle counts tuned by measured frame rate. |
 | Accessibility | Colour-blind checks on every scale. |
 | Review | License and credits review. |

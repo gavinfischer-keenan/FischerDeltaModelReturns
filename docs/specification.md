@@ -28,9 +28,9 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 | Releases | All at once, continuous for a set time, or an ongoing outfall such as a sewage plant discharge; optional steady breakdown by half-life |
 | What-if scenarios | Changed dam releases and levee breaches, from a menu computed in advance on the server |
 | UI and compute | The UI only displays; the compute only computes. They talk through one interface and could run on separate machines. In version 1 the compute engine runs on the visitor's device |
-| Plug-ins | Model kinds and math components are plug-ins behind versioned interfaces; the format and parcels carry a depth axis from the start, so 3D mixing models can be added later |
+| Plug-ins | Model kinds and math components are plug-ins behind fixed interfaces; the format and parcels carry a depth axis from the start, so 3D mixing models can be added later |
 | Release locations | Anywhere in the modelled network, including the San Joaquin side of the Delta up to Vernalis |
-| History | None: no history section and no historic layers. This is a visualization project |
+| History | A simple text History page, written by the owner and added to over time. No historic layers and no outside sources. This is a visualization project |
 | Original FORTRAN | Not used; ownership not pursued |
 | License | PolyForm Noncommercial 1.0.0 for code, CC BY-NC 4.0 for content |
 | Commercial use | None |
@@ -57,7 +57,7 @@ This is a visualization project. Hugo B. Fischer's two main methods are its work
 | Lagrangian parcel tracking, from the Fischer Delta Model | The tracer engine everywhere: the pollutant is carried as parcels of water |
 | The Fischer Delta Model | The ancestor of DWR's DSM2, which supplies the Delta flows |
 
-The app is built from published methods only. The original code, papers and studies are not used, and there is no history section or historic layer.
+The app is built from published methods only. The original code, papers and studies are not used in the models. There is a simple text History page, which the owner writes and adds to over time from his own originals; it needs nothing from outside sources. There are no historic layers.
 
 ## 3. User specification
 
@@ -334,7 +334,7 @@ Model kinds and math components are plug-ins behind fixed interfaces, so new one
 - **A model-kind plug-in** takes the region's settings, the local data store and the shared clock. It writes its reaches in the published format. It declares what it provides: its dimensions (1D, 2D or 3D), the fields it carries (velocity, volume, level, temperature, salinity, mixing), its forecast horizon and its certainty settings.
 - **A math-component plug-in** replaces or adds one calculation behind the same inputs and outputs. Examples are another dispersion estimate, a turbulence or vertical-mixing scheme, or a heat-exchange formula.
 - **Conformance tests.** Every plug-in must pass the engine's tests before a region can use it: mass balance, the published format, and textbook cases for its kind.
-- **Versioned interfaces.** The plug-in interfaces and the published format carry version numbers, so an old plug-in keeps working when the engine moves on, or fails clearly.
+- **Versioned format.** The published format carries a version number, so a file from an older format is refused clearly rather than misread. The other interfaces live in the one repository and change together, in the same change as everything that uses them.
 - **Outside programs.** A plug-in can wrap an outside program, as the DSM2 adapter does. A GPL model is run as a separate, unmodified program, never linked into our code (section 9.4).
 
 **Ready for 3D from the start.** So that a 3D plug-in does not mean a rewrite, version 1 builds in the depth axis even though nothing uses it yet:
@@ -434,7 +434,7 @@ The code is built from small, separate modules, with every seam between them exp
 - The UI holds no modelling or calculation of results; the compute engine and model runner hold no drawing code. Section 4.2 sets this out.
 - Nothing place-specific in the engine (section 4.1); nothing language-specific in code (section 4.2).
 - Every module builds and is tested on its own, against its interface, with stand-ins for its neighbours.
-- Interfaces carry version numbers. A change that breaks one is a new version, not a quiet edit.
+- Only the published format carries a version number. A change to any other interface updates everything that uses it in the same change.
 - The build checks these rules automatically: a dependency check fails the build if any module imports something its row in the table does not allow.
 
 ## 5. Engineering: the map
@@ -662,7 +662,7 @@ Forecast length: 14 days, with uncertainty shown growing along the timeline. Wat
 
 - Inside a reach's solid forecast, certainty is 1.
 - Past it, certainty falls steadily to a floor at day 14. The rate and floor are set per reach; to start, every reach falls to 0.2.
-- Once the river and Bay skill records (sections 9.1 and 9.2) are long enough, the rates are set from how far past forecasts actually drifted at each lead time, rather than by hand.
+- The rates and floors are fixed settings, adjusted by hand if the forecasts turn out better or worse than they suggest.
 - Each parcel carries its own certainty: the lowest value it has passed through. A parcel moved by assumed flow stays uncertain, even if it later enters a reach that is still inside its solid forecast.
 - The colour of a stretch of channel or patch of Bay is faded by the certainty of the parcels in it, weighted by their mass.
 
@@ -743,7 +743,7 @@ The river model has three sets of parameters, each calibrated from a different k
 - **Natural tracers.** Specific conductance and water temperature, where gauges record them, carry signals that move with the water: a pulse of tributary or drainage water, or a step in release temperature from Shasta's temperature control. When a signal passes two gauges, the lag between them gives the reach-average water travel time, which corrects the gauge-site velocity toward the reach average. The change in the signal's shape gives dispersion. Conductance is the better tracer; temperature is not conserved, since the river warms and cools along the way, so it is used for timing only.
 - **Published studies.** Look for past time-of-travel or dye studies on the Sacramento below Keswick, and use any found as a one-off check on velocity and dispersion.
 - **Schedule.** Recalibration runs nightly. Parameters change slowly and are logged, so a bad night's data cannot swing the model.
-- **Skill scores.** Two, kept separate and published: predicted against observed arrival of flow changes, which scores the wave; and predicted against observed lag of tracer signals, which scores pollutant travel.
+- **Skill scores.** Two, kept separate and logged for us, not shown in the app: predicted against observed arrival of flow changes, which scores the wave; and predicted against observed lag of tracer signals, which scores pollutant travel.
 
 ### 9.2 Validation
 
@@ -756,7 +756,6 @@ The river model has three sets of parameters, each calibrated from a different k
 | Our tracer engine overall | Measured conductivity, which is a natural tracer of seawater |
 | Bay extension, tides and outflow drift | Later NOAA forecasts for the same hours |
 | Delta to Bay handoff | DSM2 against NOAA flows across the Chipps Island line, and through the overlap to Martinez, every cycle |
-| Certainty fade rates | How far past forecasts drifted from the past window that replaced them |
 | River temperature | USGS gauge temperatures |
 | Delta and Bay temperature and salinity | Measured temperature and conductance at CDEC and USGS stations |
 | Net flow | Tidally filtered flows that USGS publishes at Delta stations |
@@ -797,8 +796,8 @@ The build runs in six phases, each ending in something that can be seen working;
 2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
-5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; the what-if menu of dam releases and levee breaches; phone layout; and the Utilities page on tripofisch.com.
-6. **Phase 5, hardening.** Native Linux DSM2, validation report, monitoring, and license and credits review. Launch follows this phase.
+5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; the what-if menu of dam releases and levee breaches; a simple text History page; phone layout; and the Utilities page on tripofisch.com.
+6. **Phase 5, hardening.** Native Linux DSM2, validation checks as automated tests, a notice when a run fails, and license and credits review. Launch follows this phase.
 
 ### Decisions log, 24 November 2026
 
@@ -806,13 +805,13 @@ The build runs in six phases, each ending in something that can be seen working;
 - The model runner is its own Proxmox guest; the web guest only serves. See section 9.3.
 - Movie length is 14 days, with growing uncertainty shown. See sections 3.4 and 8.2.
 - The app does not depend on the original code or on any claim to it.
-- No history section or historic layers: this is a visualization project. See section 2.
+- History is a simple text page the owner writes and adds to later, with no outside sources and no historic layers: this is a visualization project. See section 2.
 - The San Joaquin side of the Delta is in scope as a release location, up to DSM2's boundary at Vernalis. The river above Vernalis stays out.
 - This document is kept in the repository's docs folder.
 - River calibration keeps wave speed and water speed apart. Release changes calibrate flow routing only; pollutant travel and spreading come from USGS field measurements and natural tracers. See sections 7.1 and 9.1.
 - One timeline: the last 14 days, now, and the next 14 days. The past window rolls forward and is kept up to date. "Now" is the opening view. See section 3.4.
 - Moving particles show the flow everywhere, always. Particles carrying a pollutant take its colour, and the colour fades as certainty fades. See sections 3.4, 8.2 and 8.4.
-- Model kinds and math components are plug-ins behind versioned interfaces, with conformance tests. The published format and the parcels carry a depth axis from version 1, so 3D mixing models can be added later without a rewrite. See section 4.1.
+- Model kinds and math components are plug-ins behind fixed interfaces, with conformance tests; only the published format carries a version number. The published format and the parcels carry a depth axis from version 1, so 3D mixing models can be added later without a rewrite. See section 4.1.
 - The engine is built to serve any geography. Its math is a shared library written once; each region's package picks a model kind for each reach (river routing, 1D tidal network, 2D field, pool, ocean boundary) and its data feeds. Launch ships Shasta Dam to the Golden Gate; other estuaries and rivers follow. See section 4.1.
 - The Delta hands off to the Bay at Chipps Island rather than Martinez. Martinez is the fallback if Phase 0 finds NOAA's mesh cannot support the handoff at Chipps. See section 7.4.
 - A pollutant can be released at any time in the last 14 days as well as now or in the forecast; it plays forward through now into the forecast. See section 3.3.
