@@ -37,7 +37,7 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 
 **Not yet verified.** Each item below is a Phase 0 task in section 10.
 
-- DSM2 building and running on Debian. DWR supports Linux builds, but one library must be requested from them.
+- DSM2 running on Debian. DWR supports Linux builds, but one library, HEClib v6 (the DSS file library), is not public and must be requested from them. Until then, DWR's public Windows release may run under Wine (section 9.3).
 - The exact live feed for every DSM2 boundary input.
 - NOAA's Bay forecast: horizon, file sizes, how far back its archive goes, and whether its mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
 - A public copy of DSM2's map geometry. DWR's documentation points to internal network drives.
@@ -796,7 +796,12 @@ The river model has three sets of parameters, each calibrated from a different k
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
 - **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. What-ifs run when asked for, one at a time, and in spare time when the whole host has been quiet for a sustained stretch (section 7.6).
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
-- **DSM2 on Linux first.** Phase 0 asks DWR for the Linux library and tries the Linux build in the model runner. A Windows VM for DWR's prebuilt release costs memory the host has little of to spare. It is used only if the Linux build stalls, kept small, and removed as soon as Linux works.
+- **Running DSM2, in order of preference.** DSM2's Linux build needs HEClib v6, which DWR does not publish (its build guide says to contact them), plus Intel's Fortran compilers.
+  1. The Linux build, once DWR sends HEClib v6.
+  2. Until then, DWR's public Windows release (8.5.1, which ships with its Intel runtime) under Wine in the model runner. DSM2 is a command-line program, so this needs no Windows licence and little memory. Phase 0 checks that its results match the Windows release run natively.
+  3. Only if Wine fails: a small, temporary Windows VM, removed as soon as either of the above works.
+
+  Porting DSM2 to the open-source DSS 7 library is not an option: it would mean modifying DSM2, which this app does not do (section 9.4).
 
 ### 9.4 Licensing and credit
 

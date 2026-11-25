@@ -31,8 +31,8 @@ You do these. Only one letter is needed for the build, and it starts now because
 
 | Task | Why | Needed by |
 | --- | --- | --- |
-| Email DWR's Delta Modeling Section for two things: the Linux library DSM2 needs, and the channel geometry files. If they have it, a note on how they represent levee breaches | DSM2 on Debian, the Delta map layer, the breach what-ifs | Phase 0 answers; Phase 2 at the latest |
-| Approve the model runner container on the `webserver` host, the only machine this app may use | Phase 0 needs somewhere to run DSM2 | Phase 0 |
+| Email DWR's Delta Modeling Section for two things: HEClib v6, the DSS file library DSM2 needs to build on Linux (DWR's build guide says it is not public and to contact them), and the channel geometry files. If they have it, a note on how they represent levee breaches | DSM2 on Debian, the Delta map layer, the breach what-ifs | Phase 0 answers; Phase 2 at the latest |
+| Approve the model runner container on the `webserver` host, the only machine this app may use | Phase 0 needs somewhere to run DSM2 | Done 24 Nov 2026: container 705 `fdmr-runner`, 192.168.5.231, efficiency cores 12-19, 8 GB, CPU weight 25, 1 TB data disk at `/srv/fdmr-data` |
 | A Windows license, only if the Linux build of DSM2 stalls and a temporary Windows VM is needed | DWR's prebuilt DSM2 is a Windows release | Phase 0, if at all |
 | Explain how tripofisch.com is deployed, and set up access for the push | Publishing to the web guest | Phase 1 |
 
@@ -48,7 +48,7 @@ Answers every open question in specification section 10, before any map is drawn
 
 | Workstream | What gets done |
 | --- | --- |
-| DSM2 | Install DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's Windows release in a small temporary VM. Run a sample, then forecast mode with today's inputs, with QUAL salinity. Time one full run, and one with a breach reservoir added. |
+| DSM2 | Run DSM2 in the model runner: the Linux build if DWR has sent HEClib v6; otherwise DWR's public Windows release (8.5.1) under Wine, checked against a native Windows run; a small temporary Windows VM only if Wine fails. Run a sample, then forecast mode with today's inputs, with QUAL salinity. Time one full run, and one with a breach reservoir added. |
 | Data feeds | Fetch every one of the twelve feeds in specification section 6 by hand. For each, record the format, how often it updates, how late it arrives, the station or product IDs, and the license terms. |
 | NOAA Bay forecast | Download a cycle. Check the horizon, the file sizes, the temperature and salinity variables and depths, and how finely the mesh covers Suisun Bay up to Chipps Island. Check how far back the public archive goes. |
 | Bay archive | Start saving every NOAA Bay forecast cycle, from day one. The Bay extension needs at least a month of it, and a year to do well. |
@@ -125,7 +125,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | Accessibility | Colour-blind checks on every scale. |
 | Review | License and credits review. |
 
-**Done when:** it has run unattended for two weeks without a gap, then launch.
+**Done when:** it has run unattended for two weeks without a gap. Then launch: the San Francisco Bay, Delta and river region, Shasta Dam to the Golden Gate, online at `tripofisch.com/fischer-delta/` with its models running.
 
 ### After launch
 
@@ -173,5 +173,5 @@ flowchart LR
 1. Decisions 3 to 5 in section 2: keep as recommended? Decision 6 needs a description of how tripofisch.com is hosted today.
 2. Answered: you send the one DWR letter in section 3.
 3. Answered: Phase 1 starts alongside Phase 0.
-4. What counts as launch: a public link on tripofisch.com, or a quiet period with invited users first?
+4. Answered: launch is the San Francisco Bay, Delta and river region, Shasta Dam to the Golden Gate, online with its models running.
 5. Where should the development address live while we build: on your hardware, or somewhere private?
