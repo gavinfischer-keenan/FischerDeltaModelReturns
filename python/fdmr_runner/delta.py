@@ -42,7 +42,7 @@ from .forecast import extend, fit_tide, on_grid, shifted
 
 STEP = 900
 DAY = 86_400
-TO_DSS = {"CFS": 1 / 0.3048**3, "FEET": 1 / 0.3048}  # from the store's SI units
+TO_DSS = {"CFS": 1 / 0.3048**3, "FEET": 1 / 0.3048, "UMHOS/CM": 1.0}  # from the store's units
 DSM2_ROOT = Path("/srv/fdmr-data/dsm2")
 BLEND = 96  # forecasts join the measured series over a day
 
@@ -55,7 +55,7 @@ def load(region_dir: Path) -> dict | None:
 def feeds(region_dir: Path) -> list[dict]:
     """Every series the Delta's DSM2 run reads or is checked against, for fetching."""
     cfg = load(region_dir) or {}
-    return [*cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", [])]
+    return [*cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", []), *cfg.get("ec_checks", [])]
 
 
 def forecasts(region_dir: Path) -> list[dict]:
@@ -109,11 +109,30 @@ def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forec
         if fv:
             g, last = extend(g, on_grid([(v.t, v.value) for v in fv], t0, STEP, n), i_now, n, BLEND)
             how = f"forecast {fc['point']} to {dss.label(t0 + last * STEP)[0] if last else 'now'}"
-    if how == "held":
+    if how == "held" and f.get("hold") == "mean_25h":
+        # A tidal signal held at one moment would freeze half a tide: hold its
+        # mean over the last 25 hours instead.
+        last = [v for v in g[max(0, i_now - 99) : i_now + 1] if v is not None]
+        g = g[: i_now + 1] + [sum(last) / len(last)] * (n - i_now - 1)
+        how = "held at its 25 h mean"
+    elif how == "held":
         g = g[: i_now + 1] + [None] * (n - i_now - 1)
     if f.get("average_h"):
         g = running_mean(g, int(f["average_h"] * 3600 / STEP))
     return filled(g), how
+
+
+def resample(series: list[float], step: int) -> list[float]:
+    """A 15-minute series from t0 at a DSS path's interval: every 4th value for
+    hourly, and for daily the mean of each day, stamped at its end (DSS's way),
+    the first stamp taking the first day's mean."""
+    if step == STEP:
+        return series
+    if step == 3600:
+        return series[::4]
+    per = step // STEP
+    days = [sum(series[k * per : (k + 1) * per]) / len(series[k * per : (k + 1) * per]) for k in range(len(series) // per)]
+    return [days[0], *days] if days else []
 
 
 def gate_states(readings: list[tuple[int, float]], open_above: float, confirm: int = 2) -> list[tuple[int, bool]]:
@@ -156,15 +175,22 @@ def pst_midnight(t: int) -> int:
     return (t - dss.PST) // DAY * DAY + dss.PST
 
 
-def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int) -> dict:
-    """DSM2's flow at a check station against the measured one over [start, end):
-    means, the moment-to-moment and the tidally averaged (25 h) differences, m3/s."""
+def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int, salinity: bool = False) -> dict:
+    """DSM2 at a check station against the measured value over [start, end):
+    means, the moment-to-moment and the tidally averaged (25 h) differences.
+    Flow (m3/s) from HYDRO, or with `salinity` EC (uS/cm) from QUAL."""
     modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
-    out = run_dir / "output" / f"{modifier}_hydro.dss"
     n = (end - start) // STEP
-    path = f"/{cfg['output_a']}/{c['output']}/FLOW//15MIN/{modifier.upper()}/"
+    if salinity:
+        out = run_dir / "output" / f"{modifier}_qual.dss"
+        path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{c['output']}/EC//15MIN/{modifier.upper()}+FROM-ALL/"
+        scale = 1.0
+    else:
+        out = run_dir / "output" / f"{modifier}_hydro.dss"
+        path = f"/{cfg['output_a']}/{c['output']}/FLOW//15MIN/{modifier.upper()}/"
+        scale = 1 / TO_DSS["CFS"]
     vals, _, _ = dss.Dss(str(DSM2_ROOT / "bin" / "dsstool")).read(str(out), path, start + STEP, n)
-    model = [None if v is None else v / TO_DSS["CFS"] for v in vals]
+    model = [None if v is None else v * scale for v in vals]
     meas = grid(store, c, start + STEP, n)
     w = 100  # 25 hours
     tm, tmeas = running_mean(model, w), running_mean(meas, w)
@@ -208,8 +234,13 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     geo = grid.add_extras(grid.geometry(reach, channels, nodes), extras, nodes, exports)
     (pub / "geometry" / f"{reach}.json").write_text(json.dumps(geo, separators=(",", ":")), encoding="utf-8")
     start = (now - 14 * DAY) // DAY * DAY
+    qual_file = run_dir / "output" / "qual_ec.h5"
+    fp_file = run_dir / "output" / "qual_fp.h5"
     days = fields.write_days(tidefile, reach, pub / reach, start, end,
-                             node_ids=[n["id"] for n in geo["nodes"]], extras=extras, exports=set(exports))
+                             node_ids=[n["id"] for n in geo["nodes"]], extras=extras, exports=set(exports),
+                             qual_file=qual_file if qual_file.exists() else None,
+                             sources_file=fp_file if fp_file.exists() else None)
+    sources = [f"source:{g}" for g in cfg.get("fingerprint", {})] if fp_file.exists() else []
     rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {}).get("certainty", {})
     solid, floor = rc.get("solid_days", 5) * DAY, rc.get("floor", 0.2)
     import fdmr_py
@@ -219,6 +250,8 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     entry = {
         "id": reach, "kind": "1d-tidal-network", "dims": 1, "network": True,
         "elements": len(channels), "layers": 1, "fields": fields.FIELDS,
+        # In <day>.quality.fdf, loaded only to show them (docs/format.md).
+        "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + sources,
         "time": {"start": utc(start), "step_s": STEP, "days": days},
         "now": utc(now),
         "certainty": [round(fdmr_py.certainty_at(start + i * STEP - now, solid, end - now, floor), 4) for i in range(steps)],
@@ -253,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("region")
     ap.add_argument("store")
     ap.add_argument("work")
-    ap.add_argument("--days", type=int, default=28, help="days before today: warm-up plus the past window")
+    ap.add_argument("--days", type=int, help="days before today: warm-up plus the past window (default: days_back in dsm2.toml)")
     ap.add_argument("--ahead", type=int, default=14, help="days of forecast")
     ap.add_argument("--as-of", help="pretend it is this UTC time, to check the forecast against what happened")
     ap.add_argument("--publish", help="publish the run as a reach into this folder (its `latest` link)")
@@ -267,30 +300,44 @@ def main(argv: list[str] | None = None) -> int:
     hindcast = args.as_of is not None
     now = int(datetime.fromisoformat(args.as_of).replace(tzinfo=timezone.utc).timestamp()) if hindcast else int(time.time())
     today = pst_midnight(now)
+    if args.days is None:
+        args.days = cfg.get("days_back", 28)
     start, end = today - args.days * DAY, today + args.ahead * DAY
     t0 = start - DAY
     n = (end + DAY - t0) // STEP + 1
     live: list[study.LiveSeries | study.LiveSetting] = []
     for f in cfg["live"]:
         series, how = carried_on(store, f, t0, n, now, use_river_forecasts=not hindcast)
-        live.append(study.LiveSeries(f["path"], f["units"], t0, [v * TO_DSS[f["units"]] for v in series]))
+        values = resample([v * TO_DSS[f["units"]] for v in series], dss.interval(f["path"]))
+        live.append(study.LiveSeries(f["path"], f["units"], t0, values))
         print(f"{f['path']:44s} {f['source']} {f['site']:9s} {how}")
     live += [gate_setting(store, g, t0, now) for g in cfg.get("live_gate", [])]
+    live += [study.LiveSetting(f["path"], f.get("units", "UNSPECIF"), [(t0, f["value"])]) for f in cfg.get("fixed", [])]
     root = DSM2_ROOT
     settings = study.RunSettings(
         study=root / "inputs" / cfg["inputs"] / cfg["study"],
         replace=cfg["replace"], version=cfg["version"], version_settings=cfg["version_settings"],
         reference_year=cfg["reference_year"], tool=str(root / "bin" / "dsstool"), hydro=str(root / "bin" / "hydro"),
+        qual=str(root / "bin" / "qual"), mains=cfg.get("mains", ["hydro.inp"]),
     )
     run_dir = Path(args.work) / (datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ") + ("-asof" if hindcast else ""))
     summary = study.build(settings, run_dir, start, end, live)
     print(f"run folder {run_dir}: {len(summary['live'])} live inputs, {summary['reference_year']} from {cfg['reference_year']}")
     secs = study.run_hydro(settings, run_dir)
     print(f"hydro: {args.days + args.ahead} days in {secs:.0f} s")
-    for c in cfg.get("checks", []):
-        print("past    ", json.dumps(check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP)))
+    for main in settings.mains[1:]:
+        secs = study.run_qual(settings, run_dir, main)
+        print(f"qual ({main}): {secs:.0f} s")
+    if cfg.get("fingerprint") and len(settings.mains) > 1:
+        from fdmr_plugins.dsm2 import fingerprint
+
+        counts = fingerprint.write_study(run_dir, settings.mains[1], summary["env"], cfg["fingerprint"])
+        secs = study.run_qual(settings, run_dir, fingerprint.MAIN)
+        print(f"qual (water sources: {', '.join(f'{g} {n} inflows' for g, n in counts.items())}): {secs:.0f} s")
+    for c, sal in [*((c, False) for c in cfg.get("checks", [])), *((c, True) for c in cfg.get("ec_checks", []) if len(settings.mains) > 1)]:
+        print("past    ", json.dumps(check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP, sal)))
         if hindcast:
-            print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP)))
+            print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP, sal)))
     store.close()
     if args.publish and not hindcast:
         pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish))

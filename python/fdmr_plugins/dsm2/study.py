@@ -50,6 +50,8 @@ class RunSettings:
     reference_year: int
     tool: str  # dsstool
     hydro: str  # the hydro program
+    qual: str = ""  # the qual program
+    mains: Sequence[str] = ("hydro.inp",)  # the study's main files, run in order
 
 
 def same_day_in(year: int, t: int) -> int:
@@ -75,6 +77,44 @@ def reference_days(points: Sequence[tuple[int, float]], year: int, t0: int, days
             if ref < t < ref + 86_400 or (k > 0 and t == ref):
                 if not out or out[-1][1] != v:
                     out.append((day + (t - ref), v))
+    return out
+
+
+def replaced_name(file_token: str, env: dict[str, str], replace: Sequence[str]) -> str | None:
+    """The replaced setting a FILE column names, following settings that are
+    only another name for one (DWR's QUALBNDINP is just ${BNDRYINPUT})."""
+    seen = set()
+    while (m := inp.VAR.fullmatch(file_token.strip())) and m.group(1) not in seen:
+        name = m.group(1)
+        if name in replace:
+            return name
+        seen.add(name)
+        file_token = env.get(name, "")
+    return None
+
+
+def monthly(points: Sequence[tuple[int, float]], end: int) -> list[tuple[int, float]]:
+    """An irregular series with the value in force repeated at the start of
+    every month (PST) to `end`. DSM2 reads irregular series in blocks, a month
+    for most settings, and looks only at the current and previous block: a
+    value set further back is not found (seen on a 120-day run, 25 Nov 2026)."""
+    pts = sorted(points)
+    if not pts:
+        return pts
+    out, i = [], 0
+    d = datetime.fromtimestamp(pts[0][0] - dss.PST, timezone.utc)
+    m = datetime(d.year + (d.month == 12), d.month % 12 + 1, 1, tzinfo=timezone.utc)
+    while True:
+        tm = int(m.timestamp()) + dss.PST
+        if tm > end:
+            break
+        while i < len(pts) and pts[i][0] < tm:
+            out.append(pts[i])
+            i += 1
+        if not (i < len(pts) and pts[i][0] == tm):
+            out.append((tm, out[-1][1]))
+        m = datetime(m.year + (m.month == 12), m.month % 12 + 1, 1, tzinfo=timezone.utc)
+    out.extend(pts[i:])
     return out
 
 
@@ -108,16 +148,21 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
         **{name: settings.version for name in settings.version_settings},
     }
     (run_dir / "config.inp").write_text(inp.set_envvars(config_text, new), encoding="utf-8")
-    shutil.copy(settings.study / "hydro.inp", run_dir / "hydro.inp")
+    for main in settings.mains:
+        text = (settings.study / main).read_text(encoding="utf-8", errors="replace")
+        if main.startswith("qual"):
+            text = with_hdf5_output(text, f"${{DSM2OUTPUTDIR}}/{Path(main).stem}.h5")
+        (run_dir / main).write_text(text, encoding="utf-8")
     env_run = {**env_dwr, **{k: v for k, v in inp.envvars((run_dir / "config.inp").read_text(encoding="utf-8")).items()}}
 
     # Every series the run reads from a replaced file.
     refs = []
-    for f in inp.included(run_dir / "hydro.inp", env_dwr):
+    included = [f for main in settings.mains for f in inp.included(run_dir / main, env_dwr)]
+    for f in dict.fromkeys(included):
         for file_token, path in inp.series(f.read_text(encoding="utf-8", errors="replace")):
-            m = inp.VAR.fullmatch(file_token)
-            if m and m.group(1) in settings.replace:
-                refs.append((m.group(1), inp.expand(path, env_dwr), inp.expand(path, env_run)))
+            name = replaced_name(file_token, env_dwr, settings.replace)
+            if name:
+                refs.append((name, inp.expand(path, env_dwr), inp.expand(path, env_run)))
 
     d = dss.Dss(settings.tool)
     by_ae = {ae(s.path): s for s in live}
@@ -133,7 +178,7 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
         src = inp.expand(f"${{{name}}}", env_dwr)
         live_setting = by_ae.get(ae(run_path))
         if isinstance(live_setting, LiveSetting):
-            d.write_irregular(out_file, run_path, list(live_setting.points), live_setting.units, "INST-VAL")
+            d.write_irregular(out_file, run_path, monthly(list(live_setting.points), t1), live_setting.units, "INST-VAL")
             used.add(ae(run_path))
             continue
         if dss.is_irregular(run_path):
@@ -153,7 +198,7 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
             out_pts = reference_days(pts, settings.reference_year, t0, (t1 - t0) // 86_400 + 1)
             if not out_pts:
                 raise ValueError(f"{dwr_path} in {src} has no value in force in {settings.reference_year}")
-            d.write_irregular(out_file, run_path, out_pts, units or "UNDEF", kind or "INST-VAL")
+            d.write_irregular(out_file, run_path, monthly(out_pts, t1), units or "UNDEF", kind or "INST-VAL")
             filled.append(run_path)
             continue
         step = dss.interval(run_path)
@@ -183,14 +228,43 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
     missing = sorted(set(by_ae) - used)
     if missing:
         raise ValueError(f"live series not used by the study: {missing}")
-    return {"live": sorted(used), "reference_year": len(filled), "files": {k: new[k] for k in settings.replace}}
+    return {"live": sorted(used), "reference_year": len(filled), "files": {k: new[k] for k in settings.replace}, "env": env_dwr}
 
 
-def run_hydro(settings: RunSettings, run_dir: Path, log: Path | None = None) -> float:
-    """Run HYDRO in the run folder; returns the seconds it took. Raises on failure."""
+def with_hdf5_output(text: str, path: str, interval: str = "15min") -> str:
+    """A QUAL main file that also writes every channel's concentrations to HDF5.
+    DWR's salinity study writes only station output; the map needs every
+    channel. Only the run's own copy is changed."""
+    out, inside, done = [], False, False
+    for line in text.splitlines():
+        s = inp.strip_comment(line).strip()
+        if s.upper() == "IO_FILE":
+            inside = True
+        elif inside and s.split()[:2] == ["qual", "hdf5"]:
+            done = True
+        elif inside and s.upper() == "END":
+            if not done:
+                out.append(f"qual       hdf5     out              {interval}    {path}")
+            inside = False
+        out.append(line)
+    return "\n".join(out) + "\n"
+
+
+def run(program: str, main: str, run_dir: Path) -> float:
+    """Run a DSM2 program on one of the run's main files; returns the seconds it
+    took. Its screen output goes to <main>.log. Raises on failure."""
     t = time.time()
-    with open(log or run_dir / "hydro.log", "w", encoding="utf-8") as out:
-        r = subprocess.run([settings.hydro, "hydro.inp"], cwd=run_dir, stdout=out, stderr=subprocess.STDOUT)
+    log = run_dir / f"{Path(main).stem}.log"
+    with open(log, "w", encoding="utf-8") as out:
+        r = subprocess.run([program, main], cwd=run_dir, stdout=out, stderr=subprocess.STDOUT)
     if r.returncode != 0:
-        raise RuntimeError(f"hydro failed with status {r.returncode}; see {log or run_dir / 'hydro.log'}")
+        raise RuntimeError(f"{Path(program).name} failed with status {r.returncode}; see {log}")
     return time.time() - t
+
+
+def run_hydro(settings: RunSettings, run_dir: Path) -> float:
+    return run(settings.hydro, "hydro.inp", run_dir)
+
+
+def run_qual(settings: RunSettings, run_dir: Path, main: str) -> float:
+    return run(settings.qual, main, run_dir)

@@ -11,6 +11,7 @@ pub mod geometry;
 pub mod parcel;
 pub mod rng;
 pub mod routing;
+pub mod salinity;
 pub mod signal;
 
 /// Gravitational acceleration, m/s².

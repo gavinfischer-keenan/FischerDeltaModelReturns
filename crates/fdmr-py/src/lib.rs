@@ -12,7 +12,7 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
 use fdmr_format::{Encoding, Field, FieldFile};
-use fdmr_math::{certainty, decay, dispersion, geometry, routing, signal};
+use fdmr_math::{certainty, decay, dispersion, geometry, routing, salinity, signal};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
@@ -179,6 +179,15 @@ fn certainty_at(t: f64, solid_until: f64, forecast_end: f64, floor: f64) -> f64 
     .at(t)
 }
 
+/// Practical salinity (psu) for each specific conductance (µS/cm at 25 °C).
+#[pyfunction]
+fn practical_salinity(specific_conductance: Vec<f64>) -> Vec<f64> {
+    specific_conductance
+        .into_iter()
+        .map(salinity::practical_salinity)
+        .collect()
+}
+
 #[pymodule]
 fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(shear_velocity, m)?)?;
@@ -191,6 +200,7 @@ fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(route, m)?)?;
     m.add_function(wrap_pyfunction!(remaining_fraction, m)?)?;
     m.add_function(wrap_pyfunction!(certainty_at, m)?)?;
+    m.add_function(wrap_pyfunction!(practical_salinity, m)?)?;
     m.add_function(wrap_pyfunction!(write_field_file, m)?)?;
     m.add_function(wrap_pyfunction!(read_field_file, m)?)?;
     Ok(())

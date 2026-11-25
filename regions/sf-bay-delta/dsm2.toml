@@ -25,9 +25,15 @@ grid = "grid-2026-04-16/shapefiles/i12_DSM2_Grid_V2020-04-16_Hist_"
 reach = "delta"
 reference_year = 2024
 version = "FDMR-LIVE"                # F part of our live series' paths
-warmup_days = 14                     # before the 14-day past window
+# Days each run starts before today. QUAL starts every channel fresh (EC 0), and
+# salt takes months to work in from Martinez: a 28-day run read 22-76% low at the
+# five salinity stations, a 120-day run within -13% to +41%, and 0.5% at Jersey
+# Point (checked 25 Nov 2026). HYDRO and QUAL together take about 2.5 minutes.
+days_back = 120
 # Settings in DWR's config.inp whose files the model runner writes afresh.
-replace = ["BNDRYINPUT", "DICUFILE", "SSCDFILE", "POTWSINPUT", "EVENTSINPUT", "NULLZONEINPUT", "GATEFILE"]
+replace = ["BNDRYINPUT", "DICUFILE", "SSCDFILE", "POTWSINPUT", "EVENTSINPUT", "NULLZONEINPUT", "GATEFILE", "DICUFILE_ECE", "SMCDFILEEC"]
+# The study's main files, run in this order: HYDRO for flow, then QUAL for salinity (EC).
+mains = ["hydro.inp", "qual_ec.inp"]
 # Version settings that name the live series' F part.
 version_settings = ["HISTFLOWVERSION", "HISTSTAGEVERSION", "HISTQUALVERSION"]
 output_a = "HYDROV8.5.1"            # A part of HYDRO's output paths (the DSM2 version built)
@@ -150,6 +156,51 @@ open_above = 5.0
 open = 2.0      # DWR's value for both gates open (its rule halves it per direction)
 closed = 0.0
 
+# Salinity (electrical conductivity, uS/cm) where water enters: QUAL's boundaries.
+# Checked against DWR's own inputs for 1-15 October 2024 (25 Nov 2026):
+#   Martinez, CDEC MRZ hourly: 21,779 against DWR's 22,042
+#   Vernalis, CDEC VER daily (Reclamation): 385 against 380
+#   Sacramento: DWR uses Greene's Landing; USGS Freeport's conductance, a few km
+#     upstream, reads 118 against 103. A close stand-in.
+[[live]]
+path = "/FILL+CHAN/RSAC054/EC//1HOUR/"
+units = "UMHOS/CM"
+source = "cdec"
+site = "MRZ"
+duration = "H"
+parameter = "specific_conductance"
+hold = "mean_25h"   # past now: the mean of the last 25 hours, not one moment of the tide
+
+[[live]]
+path = "/FILL+CHAN/RSAC139/EC//1DAY/"
+units = "UMHOS/CM"
+source = "usgs"
+site = "11447650"
+parameter = "specific_conductance"
+
+[[live]]
+path = "/FILL+CHAN/RSAN112/EC//1DAY/"
+units = "UMHOS/CM"
+source = "cdec"
+site = "VER"
+duration = "D"
+parameter = "specific_conductance"
+
+# Settings held fixed for the whole run.
+# Clifton Court Forebay's gates open and close with the tide on a schedule set
+# against that year's tides and pumping. DWR's 2024 schedule, put against
+# 2026's pumping, let the forebay drain dry twice (25 Nov 2026). Held open
+# instead, at their most common open setting in 2024 (all 5 gates, height 7.02
+# ft), the forebay refills as the pumps draw it down. It exchanges more water
+# with Old River on each tide than the real schedule would.
+[[fixed]]
+path = "/HIST+GATE/CHWST000/NDUPLICATE//IR-MONTH/"
+value = 5.0
+
+[[fixed]]
+path = "/HIST+GATE/CHWST000/WEIRELEVATION//IR-MONTH/"
+value = 7.02
+
 # Measured flows to check DSM2's output against (specification 9.2).
 [[checks]]
 name = "Sacramento R at Rio Vista"
@@ -165,6 +216,47 @@ site = "11337190"
 parameter = "discharge"
 output = "RSAN018"   # its name in DSM2's output
 
+# Measured salinity (EC, uS/cm) to check QUAL against, from the Bay end inland.
+[[ec_checks]]
+name = "Sacramento R at Port Chicago"
+output = "RSAC064"
+source = "cdec"
+site = "PCT"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "Sacramento R at Collinsville"
+output = "RSAC081"
+source = "cdec"
+site = "CSE"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "Sacramento R at Emmaton"
+output = "RSAC092"
+source = "cdec"
+site = "EMM"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "San Joaquin R at Antioch"
+output = "RSAN007"
+source = "cdec"
+site = "ANH"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "San Joaquin R at Jersey Point"
+output = "RSAN018"
+source = "cdec"
+site = "JER"
+duration = "E"
+parameter = "specific_conductance"
+
 # DSM2's external flows that are exports: water pumped out of the Delta, which a
 # release can be carried into (Phase 2's "toward the pumps"). Name in DSM2, and
 # the words shown for it. Every other withdrawal (farm intakes, small
@@ -176,3 +268,14 @@ ccc = "Contra Costa Water District, Rock Slough"
 cccoldr = "Contra Costa Water District, Old River"
 ccw = "Contra Costa Water District, Victoria Canal"
 north_bay = "North Bay Aqueduct"
+
+# Water sources (specification 7.5): each group's inflows, by DSM2's own names
+# (regular expressions allowed). QUAL tracks each group as a tracer held at 100
+# where it enters, giving the share of every channel's water from it. Treatment
+# plant discharges belong to no group.
+[fingerprint]
+sac = ["sac", "yolo", "yolo_toe"]
+sjr = ["vernalis"]
+east = ["calaveras", "cosumnes", "moke"]
+sea = ["mtz"]
+ag = ["dicu_drain_.*", "bc_150", "bc_151"]

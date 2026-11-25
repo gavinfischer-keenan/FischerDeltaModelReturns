@@ -96,3 +96,49 @@ def test_gate_states_need_two_readings_to_change():
     got = gate_states([(i * H, v) for i, v in enumerate(q)], 5.0)
     # The lone 40 at hour 2 is noise; open from hour 4; shut from hour 7.
     assert got == [(0, False), (4 * H, True), (7 * H, False)]
+
+
+def test_resample_to_hourly_and_daily():
+    from fdmr_runner.delta import resample
+
+    s = [float(i) for i in range(96 * 2 + 1)]  # two days and a step, 15-minute
+    assert resample(s, 3600)[:3] == [0.0, 4.0, 8.0]
+    d = resample(s, 86_400)
+    assert d[0] == d[1] == sum(range(96)) / 96 and d[2] == sum(range(96, 192)) / 96
+
+
+def test_qual_main_gains_hdf5_output_once():
+    text = "IO_FILE\nMODEL TYPE IO INTERVAL FILE\nqual restart out 1mon x.qrf\nEND\n"
+    out = study.with_hdf5_output(text, "${DSM2OUTPUTDIR}/q.h5")
+    assert "qual       hdf5     out              15min    ${DSM2OUTPUTDIR}/q.h5" in out
+    assert study.with_hdf5_output(out, "other.h5").count("hdf5") == 1
+
+
+def test_aliases_of_replaced_files_are_followed():
+    env = {"BNDRYINPUT": "../hist.dss", "QUALBNDINP": "${BNDRYINPUT}", "OTHER": "x.dss"}
+    assert study.replaced_name("${QUALBNDINP}", env, ["BNDRYINPUT"]) == "BNDRYINPUT"
+    assert study.replaced_name("${OTHER}", env, ["BNDRYINPUT"]) is None
+    assert study.replaced_name("constant", env, ["BNDRYINPUT"]) is None
+
+
+def test_irregular_settings_repeat_each_month():
+    pst = dss.PST
+    t0 = timegm((2026, 7, 27, 0, 0, 0)) + pst
+    end = timegm((2026, 10, 15, 0, 0, 0)) + pst
+    out = study.monthly([(t0, 5.0), (timegm((2026, 9, 10, 0, 0, 0)) + pst, 3.0)], end)
+    months = [timegm((2026, m, 1, 0, 0, 0)) + pst for m in (8, 9, 10)]
+    assert [t for t, _ in out] == [t0, months[0], months[1], timegm((2026, 9, 10, 0, 0, 0)) + pst, months[2]]
+    assert [v for _, v in out] == [5.0, 5.0, 5.0, 3.0, 3.0]
+
+
+def test_fingerprint_groups_take_inflows_by_name():
+    from fdmr_plugins.dsm2 import fingerprint
+
+    flows = [("sac", "node", "330"), ("yolo", "node", "316"), ("mtz", "node", "361"),
+             ("dicu_drain_1", "node", "1"), ("dicu_drain_bbid", "reservoir", "clifton_court"), ("reg_san", "node", "335")]
+    main, conc, out, counts = fingerprint.study_text({"sac": ["sac", "yolo"], "sea": ["mtz"], "ag": ["dicu_drain_.*"]}, flows)
+    assert counts == {"sac": 2, "sea": 1, "ag": 2}
+    assert "sac" in conc and "reg_san" not in conc
+    assert "RESERVOIR_CONCENTRATION" in conc and "clifton_court" in conc
+    # QUAL simulates only what an output asks for: one per group.
+    assert out.count("fp_") == 3 and "qual_fp.h5" in main
