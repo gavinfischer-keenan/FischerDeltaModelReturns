@@ -69,3 +69,10 @@ path = "python/fdmr_plugins"
 package = "fdmr_plugins"
 engine = true
 may_use = ["bindings", "store"]
+
+[modules.compute]
+kind = "rust"
+path = "crates/fdmr-compute"
+crate = "fdmr-compute"
+engine = true
+may_use = ["math", "format"]

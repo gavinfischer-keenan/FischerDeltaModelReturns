@@ -1,0 +1,15 @@
+[package]
+name = "fdmr-compute"
+description = "The compute engine: moves parcels and flow particles through a published flow field and works out the answers (specification section 4.2). No drawing, no files, no network."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+
+[dependencies]
+fdmr-format = { path = "../fdmr-format" }
+fdmr-math = { path = "../fdmr-math" }
+
+[lints]
+workspace = true
