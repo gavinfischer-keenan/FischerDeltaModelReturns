@@ -6,7 +6,7 @@ Version 1.0 · 24 November 2026
 
 Fischer Delta Model Returns is a free web app that shows how water is moving between Shasta Dam and the Golden Gate, now, over the last 14 days and over the next 14. It shows the water's temperature and salinity, where a pollutant or a new outfall released anywhere in it will travel, and what a levee breach or a change in dam release would do. Everything plays as a movie of moving particles on a zoomable map.
 
-It will live under Utilities on tripofisch.com, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
+It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-delta/), listed under Utilities, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
 
 **Key decisions**
 
@@ -781,7 +781,7 @@ The river model has three sets of parameters, each calibrated from a different k
   - it runs at lower CPU and disk priority than every Electric Eel container;
   - it is pinned to the processor's efficiency cores, leaving the performance cores to Electric Eel.
 - **Model runner**: its own Debian container on that host, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Starting size: 8 efficiency cores, 8 GB of memory (12 at most), and its own 1 TB disk from the host's storage. Modelling and serving stay separate: the web edge only serves pages and files, and no model code is installed on it.
-- **Web**: served at a path on tripofisch.com (name to choose), from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
+- **Web**: served at `tripofisch.com/fischer-delta/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
   - The model runner pushes each finished set of files over rsync and SSH, with a key that can write only into that folder. Each cycle goes into a new folder, and one link switch makes it live. The web edge never reaches into the model runner.
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
 - **Scale**: version 1 is sized for up to about 100 visitors a day, which the home connection and the shared tunnel carry easily. Past days never change, so they are sent with long-lived cache headers, which costs nothing. A Cloudflare cache rule is optional.
@@ -837,6 +837,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - The Eureka dye study, the oysters turned red at the Humboldt Bay outfall, is a story in the History section. See section 2.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
+- Address: `tripofisch.com/fischer-delta/`, listed under Utilities. See section 9.3.
 - Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. Sized for up to about 100 visitors a day; if it takes off, it moves to a cloud server. See section 9.3.
 - Languages: Rust for the math library and compute engine; Python for the model runner, data adapters and publisher, calling the Rust math. See section 4.2 and build-plan.md.
 - Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
