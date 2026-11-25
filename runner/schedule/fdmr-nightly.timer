@@ -1,0 +1,11 @@
+# Channel measurements, and later recalibration, once a night (02:40 in California).
+[Unit]
+Description=FDMR nightly cycle
+
+[Timer]
+OnCalendar=*-*-* 10:40:00 UTC
+Persistent=true
+Unit=fdmr-cycle@nightly.service
+
+[Install]
+WantedBy=timers.target

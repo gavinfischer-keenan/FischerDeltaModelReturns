@@ -1,0 +1,103 @@
+# The module seams (specification section 4.3). tools/check_seams.py fails the
+# build if any module depends on something its `may_use` does not list, or if
+# engine code names a place listed in a region's guard words.
+#
+# kind: rust  -> a crate; dependencies read from its Cargo.toml
+#       python -> a package; dependencies read from its imports
+#       ts    -> a folder of TypeScript; dependencies read from its imports
+#       data  -> files only; may contain no code
+# engine: true for modules that must contain nothing place-specific
+
+[modules.math]
+kind = "rust"
+path = "crates/fdmr-math"
+crate = "fdmr-math"
+engine = true
+may_use = []
+
+[modules.format]
+kind = "rust"
+path = "crates/fdmr-format"
+crate = "fdmr-format"
+engine = true
+may_use = []
+
+[modules.store]
+kind = "python"
+path = "python/fdmr_store"
+package = "fdmr_store"
+engine = true
+may_use = []
+
+[modules.adapters]
+kind = "python"
+path = "python/fdmr_adapters"
+package = "fdmr_adapters"
+engine = true
+may_use = ["store"]
+
+[modules.regions]
+kind = "data"
+path = "regions"
+engine = false
+may_use = []
+
+[modules.text]
+kind = "data"
+path = "text"
+engine = false
+may_use = []
+
+[modules.runner]
+kind = "python"
+path = "python/fdmr_runner"
+package = "fdmr_runner"
+engine = true
+may_use = ["store", "adapters", "bindings", "plugins"]
+
+[modules.bindings]
+kind = "rust"
+path = "crates/fdmr-py"
+crate = "fdmr-py"
+package = "fdmr_py"   # its Python import name
+engine = true
+may_use = ["math", "format"]
+
+[modules.plugins]
+kind = "python"
+path = "python/fdmr_plugins"
+package = "fdmr_plugins"
+engine = true
+may_use = ["bindings", "store"]
+
+[modules.compute]
+kind = "rust"
+path = "crates/fdmr-compute"
+crate = "fdmr-compute"
+engine = true
+may_use = ["math", "format"]
+
+[modules.wasm]
+kind = "rust"
+path = "crates/fdmr-wasm"
+crate = "fdmr-wasm"
+engine = true
+may_use = ["compute"]
+
+[modules.compute_interface]
+kind = "ts"
+path = "ui/src/compute-interface"
+engine = true
+may_use = []
+
+[modules.compute_host]
+kind = "ts"
+path = "ui/src/compute"
+engine = true
+may_use = ["compute_interface"]
+
+[modules.ui]
+kind = "ts"
+path = "ui/src/ui"
+engine = true
+may_use = ["compute_interface", "text"]

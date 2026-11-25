@@ -1,0 +1,499 @@
+# DSM2 for the Delta reach (specification 7.2): DWR's own historical study, run
+# on live inputs. Data only.
+#
+# DWR's input files name every series by a DSS path whose last part (F) comes
+# from a version setting in config.inp. The model runner writes our live series
+# under the same paths with its own version, so DWR's input files are used
+# unchanged. Every series in a replaced file that has no live feed is filled
+# with DWR's values for the same calendar day in `reference_year` (such as
+# Delta island water use, which DWR itself takes from average values).
+#
+# Each live feed was checked against DWR's boundary data for 1-15 October 2024
+# (25 Nov 2026), in m3/s unless noted:
+#   Martinez stage, CDEC MRZ: same datum, median difference 1 cm
+#   Sacramento at Freeport: DWR uses a tidal average; our 25 h mean is within 3
+#   Vernalis, Cosumnes, toe drain, Jones, North Bay, Rock Slough: identical
+#   Banks: CDEC daily pumping, 146.4 against DWR's 146.7
+#   Mokelumne (Camanche release) and Calaveras (New Hogan release): no gauge at
+#     the Delta; the dam release is 10 and 3.5 higher than DWR's in October, as
+#     water is diverted on the way. A rough stand-in.
+
+inputs = "input-2026-04-16"          # under the DSM2 folder's inputs/
+study = "dsm2_studies/studies/historical"
+# DWR's grid shapefiles (channel centrelines and junctions, UTM zone 10), for the map.
+grid = "grid-2026-04-16/shapefiles/i12_DSM2_Grid_V2020-04-16_Hist_"
+reach = "delta"
+reference_year = 2024
+version = "FDMR-LIVE"                # F part of our live series' paths
+# Days each run starts before today. QUAL starts every channel fresh (EC 0), and
+# salt takes months to work in from Martinez: a 28-day run read 22-76% low at the
+# five salinity stations, a 120-day run within -13% to +41%, and 0.5% at Jersey
+# Point (checked 25 Nov 2026). HYDRO and QUAL together take about 2.5 minutes.
+days_back = 120
+# Settings in DWR's config.inp whose files the model runner writes afresh.
+replace = ["BNDRYINPUT", "DICUFILE", "SSCDFILE", "POTWSINPUT", "EVENTSINPUT", "NULLZONEINPUT", "GATEFILE", "DICUFILE_ECE", "SMCDFILEEC"]
+# The study's main files, run in this order: HYDRO for flow, then QUAL for salinity (EC).
+mains = ["hydro.inp", "qual_ec.inp"]
+# Version settings that name the live series' F part.
+version_settings = ["HISTFLOWVERSION", "HISTSTAGEVERSION", "HISTQUALVERSION"]
+output_a = "HYDROV8.5.1"            # A part of HYDRO's output paths (the DSM2 version built)
+
+# Live inputs: a DSS path (A to E parts, F added), and the store series feeding it.
+# Past now, an input with a `forecast` follows it (River Forecast Center flows,
+# or NOAA tide predictions fitted to the gauge); the rest are held at their last
+# value (specification 8.2). The Cosumnes and Mokelumne have no hourly River
+# Forecast Center forecast, and its Fremont Weir point is the river's flow, not
+# the spill into the Yolo Bypass (checked 25 Nov 2026), so those are held.
+# CDEC duration: E for event (15-minute) readings, H hourly, D daily.
+[[live]]
+path = "/FILL+CHAN/RSAC155/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11447650"
+forecast = { source = "cnrfc", group = "LowerSacramento", point = "FPOC1" }
+parameter = "discharge"
+average_h = 25
+
+[[live]]
+path = "/FILL+CHAN/RSAN112/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11303500"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "VNSC1" }
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/BYOLO040/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11453000"
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/YOLO_TOEDRAIN/FLOW//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "LIS"
+duration = "E"
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/RCSM075/FLOW//15MIN/"
+units = "CFS"
+source = "usgs"
+site = "11335000"
+parameter = "discharge"
+
+[[live]]
+path = "/FILL+CHAN/RMKL070/FLOW//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "CMN"
+duration = "D"
+parameter = "reservoir_outflow"
+
+[[live]]
+path = "/FILL+CHAN/RCAL009/FLOW//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "NHG"
+duration = "H"
+parameter = "reservoir_outflow"
+
+[[live]]
+path = "/FILL+CHAN/CHSWP003/FLOW-EXPORT//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "HRO"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/CHDMC004/FLOW-EXPORT//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "TRP"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/SLBAR002/FLOW-EXPORT//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "BKS"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/CHCCC006/FLOW-DIVERSION//15MIN/"
+units = "CFS"
+source = "cdec"
+site = "INB"
+duration = "D"
+parameter = "pumping"
+
+[[live]]
+path = "/FILL+CHAN/RSAC054/STAGE//15MIN/"
+units = "FEET"
+source = "cdec"
+site = "MRZ"
+forecast = { source = "noaa-tides", station = "9415102" }   # Martinez-Amorco Pier
+duration = "E"
+parameter = "gage_height"
+
+# Live gate positions, inferred from measured flow through the gate: open while
+# the hourly flow is at least `open_above` m3/s. The Delta Cross Channel's gates
+# open and close on their own schedule; DWR's 2024 schedule, checked 25 Nov
+# 2026, was open on days the gauge showed them shut, and shut on days it
+# showed them open.
+[[live_gate]]
+path = "/HIST+GATE/RSAC128/POS//IR-YEAR/"
+source = "cdec"
+site = "DLC"
+duration = "H"
+parameter = "discharge"
+open_above = 5.0
+open = 2.0      # DWR's value for both gates open (its rule halves it per direction)
+closed = 0.0
+
+# Salinity (electrical conductivity, uS/cm) where water enters: QUAL's boundaries.
+# Checked against DWR's own inputs for 1-15 October 2024 (25 Nov 2026):
+#   Martinez, CDEC MRZ hourly: 21,779 against DWR's 22,042
+#   Vernalis, CDEC VER daily (Reclamation): 385 against 380
+#   Sacramento: DWR uses Greene's Landing; USGS Freeport's conductance, a few km
+#     upstream, reads 118 against 103. A close stand-in.
+[[live]]
+path = "/FILL+CHAN/RSAC054/EC//1HOUR/"
+units = "UMHOS/CM"
+source = "cdec"
+site = "MRZ"
+duration = "H"
+parameter = "specific_conductance"
+hold = "mean_25h"   # past now: the mean of the last 25 hours, not one moment of the tide
+
+[[live]]
+path = "/FILL+CHAN/RSAC139/EC//1DAY/"
+units = "UMHOS/CM"
+source = "usgs"
+site = "11447650"
+parameter = "specific_conductance"
+
+[[live]]
+path = "/FILL+CHAN/RSAN112/EC//1DAY/"
+units = "UMHOS/CM"
+source = "cdec"
+site = "VER"
+duration = "D"
+parameter = "specific_conductance"
+
+# Settings held fixed for the whole run.
+# Clifton Court Forebay's gates open and close with the tide on a schedule set
+# against that year's tides and pumping. DWR's 2024 schedule, put against
+# 2026's pumping, let the forebay drain dry twice (25 Nov 2026). Held open
+# instead, at their most common open setting in 2024 (all 5 gates, height 7.02
+# ft), the forebay refills as the pumps draw it down. It exchanges more water
+# with Old River on each tide than the real schedule would.
+[[fixed]]
+path = "/HIST+GATE/CHWST000/NDUPLICATE//IR-MONTH/"
+value = 5.0
+
+[[fixed]]
+path = "/HIST+GATE/CHWST000/WEIRELEVATION//IR-MONTH/"
+value = 7.02
+
+# Measured flows to check DSM2's output against (specification 9.2).
+#
+# Rio Vista's measured net flow does not balance with the gauges upstream
+# (checked 25 Nov 2026, means for 4 Aug to 24 Nov): what reaches it, the
+# Sacramento below Georgiana Slough plus Steamboat and Sutter Sloughs plus the
+# Yolo Bypass, is about 280 m3/s, but it reads 336. A net flow is a few per
+# cent of a tidal flow swinging thousands of m3/s each way, so a small bias in
+# the gauge's velocity makes a large one in its net flow. DSM2 reads 247. Of
+# its 33 m3/s under the upstream balance, 16 is how it splits the river (10
+# less down Steamboat Slough, 5 less down Sutter, than they measure) and 17 is
+# taken on the way, between those gauges and Rio Vista (island water use, on
+# DWR's 2024 values, and the North Bay Aqueduct), which the gauges upstream do
+# not see either. If that use is right, the river at Rio Vista carries about
+# 265 m3/s: DSM2 about 7% low, the gauge about 25% high. The side channels are
+# checked below, by channel (HYDRO's tidefile).
+[[checks]]
+name = "Sacramento R at Rio Vista"
+source = "usgs"
+site = "11455420"
+parameter = "discharge"
+output = "RSAC101"   # its name in DSM2's output
+
+[[checks]]
+name = "San Joaquin R at Jersey Point"
+source = "usgs"
+site = "11337190"
+parameter = "discharge"
+output = "RSAN018"   # its name in DSM2's output
+
+[[checks]]
+name = "Sacramento R above the Delta Cross Channel"
+source = "cdec"
+site = "SDC"
+duration = "E"
+parameter = "discharge"
+channel = 421
+
+[[checks]]
+name = "Delta Cross Channel"
+source = "cdec"
+site = "DLC"
+duration = "H"
+parameter = "discharge"
+channel = 365
+
+[[checks]]
+name = "Georgiana Slough"
+source = "cdec"
+site = "GSS"
+duration = "E"
+parameter = "discharge"
+channel = 366
+
+[[checks]]
+name = "Sacramento R below Georgiana Slough"
+source = "cdec"
+site = "GES"
+duration = "E"
+parameter = "discharge"
+channel = 423
+
+[[checks]]
+name = "Sutter Slough"
+source = "cdec"
+site = "SUT"
+duration = "E"
+parameter = "discharge"
+channel = 379
+
+[[checks]]
+name = "Steamboat Slough"
+source = "cdec"
+site = "SSS"
+duration = "E"
+parameter = "discharge"
+channel = 383
+
+# Measured salinity (EC, uS/cm) to check QUAL against, from the Bay end inland.
+[[ec_checks]]
+name = "Sacramento R at Port Chicago"
+output = "RSAC064"
+source = "cdec"
+site = "PCT"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "Sacramento R at Collinsville"
+output = "RSAC081"
+source = "cdec"
+site = "CSE"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "Sacramento R at Emmaton"
+output = "RSAC092"
+source = "cdec"
+site = "EMM"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "San Joaquin R at Antioch"
+output = "RSAN007"
+source = "cdec"
+site = "ANH"
+duration = "E"
+parameter = "specific_conductance"
+
+[[ec_checks]]
+name = "San Joaquin R at Jersey Point"
+output = "RSAN018"
+source = "cdec"
+site = "JER"
+duration = "E"
+parameter = "specific_conductance"
+
+# DSM2's external flows that are exports: water pumped out of the Delta, which a
+# release can be carried into (Phase 2's "toward the pumps"). Name in DSM2, and
+# the words shown for it. Every other withdrawal (farm intakes, small
+# diversions) is counted together as "taken by other diversions".
+[exports]
+swp = "State Water Project pumps (Banks)"
+cvp = "Central Valley Project pumps (Jones)"
+ccc = "Contra Costa Water District, Rock Slough"
+cccoldr = "Contra Costa Water District, Old River"
+ccw = "Contra Costa Water District, Victoria Canal"
+north_bay = "North Bay Aqueduct"
+
+# Water sources (specification 7.5): each group's inflows, by DSM2's own names
+# (regular expressions allowed). QUAL tracks each group as a tracer held at 100
+# where it enters, giving the share of every channel's water from it. Treatment
+# plant discharges belong to no group.
+[fingerprint]
+sac = ["sac", "yolo", "yolo_toe"]
+sjr = ["vernalis"]
+east = ["calaveras", "cosumnes", "moke"]
+sea = ["mtz"]
+ag = ["dicu_drain_.*", "bc_150", "bc_151"]
+
+# Water temperature (specification 7.5): QUAL's heat budget, on live weather.
+# DWR's temperature study reads a weather file its public release leaves out
+# (25 Nov 2026), so the study is written afresh (fdmr_plugins.dsm2.temperature).
+# QUAL takes one weather for the whole Delta: the mean of these airports,
+# around it to the north, east and west. NOAA's hourly archive (GHCNh) covers
+# the past and runs about four days behind; the Weather Service's observations
+# of the same airports cover the last week.
+[temperature]
+stations = [
+  { ghcnh = "USW00023232", nws = "KSAC", name = "Sacramento Executive Airport" },
+  { ghcnh = "USW00023237", nws = "KSCK", name = "Stockton Metropolitan Airport" },
+  { ghcnh = "USW00023202", nws = "KSUU", name = "Travis Air Force Base" },
+]
+# Past now, the Weather Service's forecast for the grid cell at 38.1 N 121.6 W
+# (the central Delta), about 7 days; then its last day over again.
+forecast = { office = "MTR", x = 116, y = 114 }
+
+# Each inflow's water temperature: a series, and the inflows that take it (by
+# DSM2's own names, regular expressions allowed); "*" takes the rest, such as
+# treatment plant discharges. "drainage" is a stand-in: the air's daily mean
+# temperature for water run off fields (DWR uses a monthly pattern it does not
+# publish).
+[temperature.inflows]
+sac = ["sac", "*"]
+yolo = ["yolo", "yolo_toe"]
+sjr = ["vernalis"]
+sea = ["mtz"]
+east = ["moke", "cosumnes"]
+calaveras = ["calaveras"]
+drainage = ["dicu_drain_.*", "bc_150", "bc_151"]
+
+# QUAL's heat-budget constants: the Delta's place (degrees, west positive, and
+# the Pacific time zone's meridian), elevation (ft), and QUAL2E's textbook
+# values for dust in the air and evaporation (ft/hr/inHg, and per mph of wind).
+[temperature.scalars]
+lat = 38.05
+long = 121.6
+long_std_merid = 120.0
+elev = 5.0
+dust_attcoeff = 0.06
+evapcoeff_a = 0.00068
+evapcoeff_b = 0.00027
+
+# Water temperature where each inflow enters (CDEC, degC), as DWR's own study
+# takes it. The eastside rivers share the Mokelumne's; the Calaveras, which has
+# no station near its mouth, takes the San Joaquin's at Stockton.
+[[temperature.water]]
+name = "sac"
+source = "cdec"
+site = "FPT"         # Sacramento R at Freeport
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "yolo"
+source = "cdec"
+site = "LIS"         # Yolo Bypass toe drain at Lisbon
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "sjr"
+source = "cdec"
+site = "VER"         # San Joaquin R at Vernalis
+duration = "H"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "sea"
+source = "cdec"
+site = "MRZ"         # Carquinez Strait at Martinez
+duration = "H"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "east"
+source = "cdec"
+site = "MOK"         # Mokelumne R
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+[[temperature.water]]
+name = "calaveras"
+source = "cdec"
+site = "RRI"         # San Joaquin R at Rough and Ready Island, Stockton
+duration = "E"
+parameter = "water_temperature"
+hold = "mean_25h"
+
+# Measured water temperature to check QUAL against, across the Delta, at DWR's
+# own output points for each station (channel, distance in ft).
+[[temp_checks]]
+name = "Sacramento R at Mallard Island"
+output = "MAL"
+channel = 437
+distance = 9033
+source = "cdec"
+site = "MAL"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Sacramento R at Rio Vista"
+output = "RVB"
+channel = 430
+distance = 12521
+source = "cdec"
+site = "RVB"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Montezuma Slough at Beldon Landing"
+output = "BDL"
+channel = 517
+distance = 7876
+source = "cdec"
+site = "BDL"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Holland Cut near Bethel Island"
+output = "HOL"
+channel = 117
+distance = 3584
+source = "cdec"
+site = "HOL"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Old River at Highway 4"
+output = "OH4"
+channel = 90
+distance = 2081
+source = "cdec"
+site = "OH4"
+duration = "E"
+parameter = "water_temperature"
+
+[[temp_checks]]
+name = "Turner Cut near Holt"
+output = "TRN"
+channel = 172
+distance = 1571
+source = "cdec"
+site = "TRN"
+duration = "E"
+parameter = "water_temperature"

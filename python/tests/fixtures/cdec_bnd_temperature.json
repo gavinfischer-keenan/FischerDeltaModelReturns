@@ -1,0 +1,138 @@
+[
+[
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 0:00",
+"obsDate": "2026-11-20 0:00",
+"value": 53.6,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 1:00",
+"obsDate": "2026-11-20 1:00",
+"value": 53.6,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 2:00",
+"obsDate": "2026-11-20 2:00",
+"value": 53.6,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 3:00",
+"obsDate": "2026-11-20 3:00",
+"value": 0.0,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 4:00",
+"obsDate": "2026-11-20 4:00",
+"value": 53.7,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 5:00",
+"obsDate": "2026-11-20 5:00",
+"value": 73.7,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 6:00",
+"obsDate": "2026-11-20 6:00",
+"value": 53.7,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 7:00",
+"obsDate": "2026-11-20 7:00",
+"value": 53.8,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 8:00",
+"obsDate": "2026-11-20 7:00",
+"value": -9999,
+"dataFlag": " ",
+"units": "DEG F"
+}
+],
+[
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 6:00",
+"obsDate": "2026-11-20 6:00",
+"value": 53.7,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 7:00",
+"obsDate": "2026-11-20 7:00",
+"value": 53.8,
+"dataFlag": " ",
+"units": "DEG F"
+},
+{
+"stationId": "BND",
+"durCode": "H",
+"SENSOR_NUM": 25,
+"sensorType": "TEMP W",
+"date": "2026-11-20 8:00",
+"obsDate": "2026-11-20 7:00",
+"value": -9999,
+"dataFlag": " ",
+"units": "DEG F"
+}
+]
+]

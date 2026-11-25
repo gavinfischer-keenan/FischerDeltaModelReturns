@@ -1,0 +1,2 @@
+# Scripts and model sources run on Linux: keep LF line endings everywhere.
+* text=auto eol=lf

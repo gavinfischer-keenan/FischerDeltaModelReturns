@@ -6,7 +6,7 @@ Version 1.0 · 24 November 2026
 
 Fischer Delta Model Returns is a free web app that shows how water is moving between Shasta Dam and the Golden Gate, now, over the last 14 days and over the next 14. It shows the water's temperature and salinity, where a pollutant or a new outfall released anywhere in it will travel, and what a levee breach or a change in dam release would do. Everything plays as a movie of moving particles on a zoomable map.
 
-It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-delta/), listed under Utilities, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
+On tripofisch.com it is called **Sturgeon**. It will live at [tripofisch.com/sturgeon/](https://tripofisch.com/sturgeon/), listed under Utilities, run entirely on hardware we own, and carry a non-commercial license. The code lives in the FischerDeltaModelReturns repository.
 
 **Key decisions**
 
@@ -37,10 +37,9 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 
 **Not yet verified.** Each item below is a Phase 0 task in section 10.
 
-- DSM2 building and running on Debian. DWR supports Linux builds, but one library must be requested from them.
+- DSM2's forecast mode, driven by our live inputs. The native build already runs DWR's historical study: HYDRO does 14 days in 13 seconds and QUAL in 4 (section 9.3).
 - The exact live feed for every DSM2 boundary input.
-- NOAA's Bay forecast: horizon, file sizes, how far back its archive goes, and whether its mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
-- A public copy of DSM2's map geometry. DWR's documentation points to internal network drives.
+- Whether NOAA's Bay mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
 - Enough USGS field measurements and conductance records on the river to calibrate water velocity and dispersion.
 - How long one DSM2 run takes, which sets how long a visitor waits for a what-if.
 - A public source for levee locations and island floor elevations in the Delta.
@@ -187,7 +186,7 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 
 ### 3.9 Out of scope for version 1
 
-- Oil and other floating spills; sediment-bound or sinking material.
+- Oil and other floating spills; sediment-bound or sinking material. Floating spills in floods are planned in section 3.11, and sediment in section 3.12.
 - Chemical reactions other than a steady half-life.
 - The heat or salt a release itself carries: a release does not change the water's temperature or salinity.
 - Wind effects on the Bay beyond NOAA's own forecast.
@@ -195,6 +194,7 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 - The San Joaquin River above Vernalis.
 - Any replay older than the rolling 14-day window.
 - Bioaccumulation, planned for after launch (section 3.10).
+- River levels against flood stage, flood zones and water out of the channel, planned after launch (section 3.11).
 
 ### 3.10 Planned after launch: bioaccumulation
 
@@ -214,6 +214,97 @@ Filter feeders such as oysters, mussels and clams concentrate some pollutants fa
 - Each parcel carries the identity of its substance and a phase field. In version 1 the phase is always "dissolved"; the field is there for particle-bound pollutants later.
 - A receptor, such as a shellfish bed, is a plug-in kind (section 4.1). It reads concentration histories and writes its own results, without touching the tracer engine.
 - The substance and species rates are a data file shared by every region, with a source recorded for each rate.
+
+### 3.11 Planned after launch: river levels and floods
+
+Version 1 shows where the water goes while it stays in its channels. This module adds how high it is, where it would leave them, and what that does to everything downstream. It covers:
+
+- spring snowmelt floods;
+- extreme rain, such as an atmospheric river;
+- a very large dam release, when Shasta, Oroville or Folsom has to let go;
+- a dam or spillway failure;
+- levee breaches large enough to flood land, not only Delta islands.
+
+The winters of 2017 and 2023 are the kind of events it is for. In 2017 Oroville's spillway failed. In 2023 snowmelt and rain refilled Tulare Lake, a "bonus lake" on long-dry farmland.
+
+**What the user sees.**
+
+- *River level and flood stage.* The water level at each gauge, past, now and forecast, drawn against that point's flood categories (action, minor, moderate and major flood). Along the river the level is shaded by how close it is to flood stage.
+- *Where the water would go.* On the map, the land the water would cover at the forecast level, or in a what-if, and how deep. Shading is faded by certainty in the same way as the rest of the app.
+- *What it does elsewhere.* Water leaving the river is taken out of the flow downstream, and water returning from the bypasses enters the Delta. A big outflow pushes salt back toward the Bay; when the flood recedes, the salt returns. A pollutant released during a flood follows the water onto the floodplain.
+- *How much the land holds.* When a levee breaks, the land behind it fills to a volume set by the terrain: area times depth, read from the land surface height. Water spread on a floodplain is held back and let go slowly. This is floodplain storage: the flood peak downstream arrives lower and later. Some water also soaks into the ground (infiltration) or stays in low spots until pumped out. The user sees how much water left the river, how much the land is holding, and how much has returned.
+- *What the flood carries.* A spill during a flood, such as a fuel or oil tank struck by floodwater, is followed across the flooded land and back into the river, the Delta and the Bay. Oil floats and spreads on the surface, unlike the dissolved pollutants of version 1 (section 3.9). So this needs a floating-spill kind of release: it moves with the surface water and the wind, spreads into a thin film, evaporates in part, and strands on banks and fields.
+- *New what-ifs.* Big releases from Shasta, Oroville or Folsom; a dam or spillway failure; a storm or snowmelt made larger than forecast; a river levee breach. Each runs on request, like the version 1 what-ifs (section 3.7).
+
+**How it would be built, in steps.** Each step is useful on its own.
+
+1. *Levels at gauges.* Stage from routed flow through each gauge's rating curve (already in section 7.1), with the River Forecast Center's stage forecasts and flood categories for its forecast points. This costs almost nothing.
+2. *A rough flood map.* The forecast water surface is carried across the land surface from the river, and connected land below it is marked as wet. Levees count as walls until overtopped. It is quick, and labelled as a rough guide.
+3. *Water moving on the floodplain.* A two-dimensional floodplain model is added as a model kind (section 4.1). It is joined to the river and the Delta through the same weir and pool connections used for breaches (section 7.6), so flow spills out, travels across the land and comes back. This also models the Sutter and Yolo bypasses, which version 1 only warns about (section 7.1).
+4. *Storage and loss on the land.* Volume on the floodplain from the terrain, with soaking into the ground taken from published soil rates, so the water returned to the river and the Delta is right.
+5. *Floating spills.* Oil and fuel as a release kind that rides the surface water, built on the tracer engine with a surface layer (the depth axis already allows it).
+6. *Upstream of the dams.* For snowmelt and storm scenarios, the River Forecast Center's longer-range and ensemble forecasts, and the snowpack, set how much water the reservoirs must pass.
+
+The flood map and the floodplain model are checked against FEMA flood zones, the state's dam inundation maps, and the 2017 and 2023 floods.
+
+**Data it needs** (*to confirm* each one when the module starts):
+
+| Need | Likely public source |
+|---|---|
+| Land surface height (the key input: it sets where water goes and how much the land holds) | USGS 3D Elevation Program lidar; DWR's Central Valley floodplain lidar |
+| Soil soaking rates | USDA soil survey (SSURGO) |
+| Fuel and oil storage sites | State and federal facility listings for oil and hazardous material storage |
+| Channel and Delta bottom | DWR's Bay–Delta bathymetry surface; USGS San Francisco Bay elevation model |
+| Levees, crest heights | USACE National Levee Database; DWR levee data |
+| Flood categories, stage forecasts | National Weather Service and CNRFC forecast points |
+| Official flood zones, as a check | FEMA National Flood Hazard Layer |
+| Dam failure inundation, as a check | California Division of Safety of Dams inundation maps |
+| Snowpack and reservoir state | CDEC snow sensors and reservoir data; NOAA's national snow analysis |
+| Rain and longer-range flow | CNRFC precipitation and ensemble forecasts |
+
+**Open questions for later.** Which two-dimensional floodplain model to use: an open-source one, USACE's free HEC-RAS (which has a Linux compute engine, *to confirm*), or our own in the math library. How fine the land grid can be on the webserver. Tulare Lake lies south of the launch region, in a separate basin, so modelling it means a new region (section 4.1), not this one.
+
+**Planned for now, built later.** Version 1 leaves room for it:
+
+- The published format already has a water level field slot (section 8.3) and a depth axis.
+- Weir connections, pools and what-ifs exist from version 1 (section 7.6), so floodplain spills reuse them.
+- The floodplain is a model kind, like any other, so the tracer engine and display need no changes to draw water on land.
+
+### 3.12 Planned after launch: sediment transport
+
+*A placeholder, to be filled in much more.* Rivers move sand, silt and clay as well as water. Sediment clouds the water, settles in quiet places, is scoured out again in floods, and builds or starves the Delta's marshes and the Bay's mudflats. Much of a pollutant can ride on it instead of dissolving.
+
+**What the user might see.**
+
+- Where sediment is carried, settles and is scoured out along the river, through the Delta and into the Bay.
+- How cloudy the water is, compared with measured turbidity.
+- A pollutant that sticks to particles, such as some metals and organic chemicals, carried and settled with the sediment rather than with the water.
+- In a flood (section 3.11), the large loads a storm carries, and where they settle as the water spreads and slows.
+
+**People.** Catherine Vaningen (*spelling to confirm*) was a professor at UC Berkeley, a colleague of the owner's father, and worked in this area. Her published work is to be found and, where it fits, built in and credited, as with Fischer's (section 2).
+
+**Likely data** (*to confirm*): USGS suspended sediment concentration and turbidity at river and Delta gauges; CDEC turbidity stations; USGS sediment studies of the Delta and the Bay.
+
+**Planned for now, built later.** Version 1 leaves room for it:
+
+- Each parcel already carries a phase field (section 3.10), always "dissolved" in version 1. Particle-bound pollutants use it.
+- The river model already computes shear velocity for every element (section 7.1), which is what sets whether a bed is scoured or settled on.
+- Measured turbidity is already a station overlay in version 1 (section 3.5).
+- Sediment would be a plug-in, like the other model kinds (section 4.1).
+
+### 3.13 Planned after launch: the Feather and the American from their dams
+
+At launch the river reach runs from Keswick, below Shasta, to Freeport. The Feather and the American join it only as measured inflows at their gauges. After launch, each becomes a river reach of its own, starting at its dam's release, the same way the Sacramento starts at Keswick:
+
+- **The Feather River from Oroville Dam:** Lake Oroville's release, through the Thermalito afterbay, down the Feather to where it joins the Sacramento above Verona. The Yuba joins on the way.
+- **The American River from Folsom Dam:** Folsom Lake's release, through Lake Natoma below Nimbus Dam, down the American to where it joins the Sacramento in Sacramento.
+
+What this adds for the user:
+
+- A pollutant or outfall placed anywhere on either river is tracked down it, into the Sacramento, and on through the Delta.
+- A changed release from Oroville or Folsom becomes a what-if, as Keswick's is (section 3.7). The big-release and dam-failure what-ifs of section 3.11 can start there too.
+
+**Planned for now, built later.** These use the river-routing model kind as it is (section 7.1), with their own gauges, channel measurements and forecast points. The handoff where each joins the Sacramento is the kind already built from the river into the Delta (section 7.4). It runs from one reach into another at a junction, not only into a network. The dams' releases, and the River Forecast Center's forecasts below them, come from feeds the app already uses.
 
 ## 4. Engineering: architecture
 
@@ -470,7 +561,7 @@ The modelled waterways are drawn as our own layer, because the plume must follow
 | Reach | Geometry source | Status |
 | --- | --- | --- |
 | Shasta to Sacramento | USGS national hydrography river centreline, measured in river miles | Source to confirm |
-| Delta | DSM2 channel centrelines and nodes. [DWR's documentation](https://github.com/CADWRDeltaModeling/dsm2) describes shapefiles of these, but on internal drives | Ask DWR, or rebuild from the published channel inputs |
+| Delta | DSM2 channel centrelines, nodes, reservoirs, gates and stations, from DWR's public georeferenced grid shapefiles (DSM2 Grid 2026-04-16) | In hand |
 | Bay | The NOAA Bay model's mesh, about 54,000 nodes, for placing currents; OpenStreetMap shoreline for drawing | To confirm |
 
 Each Delta channel on the map carries its DSM2 channel number, so a click maps directly to a model location.
@@ -488,14 +579,14 @@ Every input comes from a free public source; three of the twelve have been check
 | River flow and stage at gauges, Keswick to Freeport | [USGS Water Data APIs](https://api.waterdata.usgs.gov/docs/ogcapi/migration/) | River model, calibration | Checked. Build on the new API only: the old WaterServices shuts down in February 2027 |
 | Field measurements at river gauges: area, width, mean velocity | USGS Water Data APIs | River velocity and channel shape (section 9.1) | To confirm the new API serves them, and how often each gauge is measured |
 | Specific conductance and water temperature at river gauges | USGS Water Data APIs | River tracer calibration (section 9.1) | To confirm which gauges record them continuously |
-| Keswick and Shasta releases, Delta exports, gate positions | California Data Exchange Center (DWR) | River model, DSM2 | To confirm station by station |
+| Keswick and Shasta releases, Delta exports, gate positions | California Data Exchange Center (DWR) | River model, DSM2 | Delta checked 25 Nov 2026 against DWR's own DSM2 inputs for October 2024. Exports: Banks (HRO), Jones (TRP), North Bay (BKS) and Rock Slough (INB) daily pumping all match. The Delta Cross Channel's position is inferred from its measured flow (DLC). The Mokelumne and Calaveras have no gauge at the Delta, so the Camanche (CMN) and New Hogan (NHG) dam releases stand in, roughly. Contra Costa's Old River and Victoria intakes, Clifton Court's gate schedule and island water use take DWR's values for the same calendar days of 2024. See `regions/sf-bay-delta/dsm2.toml` |
 | River flow forecasts | [River Forecast Center hourly CSV files](https://www.cnrfc.noaa.gov/deterministicHourlyProductCSV.php), by forecast group | River model, DSM2 inflows | Checked. Upper and Lower Sacramento groups are published; about 5 days ahead |
-| Tide at Martinez, observed and predicted | NOAA tide stations | DSM2 seaward boundary | To confirm station and format |
-| Bay currents, nowcast and forecast | [NOAA San Francisco Bay Operational Forecast System](https://tidesandcurrents.noaa.gov/ofs/sfbofs/sfbofs_info.html), NetCDF files | Bay reach | Checked. Four runs a day; grid covers Suisun Bay to the ocean. Horizon believed to be about 48 hours, to confirm |
+| Tide at Martinez, observed and predicted | CDEC (MRZ) observed; NOAA tide predictions at Martinez-Amorco Pier (9415102) for the forecast | DSM2 seaward boundary | Checked 25 Nov 2026. CDEC's Martinez stage is on DWR's datum, within 1 cm. NOAA's 15-minute predictions are fitted each run to the last week at MRZ for timing, size and level (first fit: 8 minutes, x1.038, +0.615 m) |
+| Bay currents, nowcast and forecast | [NOAA San Francisco Bay Operational Forecast System](https://tidesandcurrents.noaa.gov/ofs/sfbofs/sfbofs_info.html), NetCDF files on AWS | Bay reach | Checked 25 Nov 2026: four cycles a day (03, 09, 15 and 21 UTC); forecast 48 hours ahead, every 2 hours; nowcasts hourly; about 57 MB per field file; the public archive is continuous since at least August 2024 |
 | Bay temperature and salinity | The same NOAA files as the currents | Bay layers | To confirm the variables are included |
-| Temperature, conductance, dissolved oxygen and turbidity at river, Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay | To confirm station by station |
+| Temperature, conductance, dissolved oxygen and turbidity at river, Delta and Bay stations | CDEC and USGS | Checking temperature and salinity; station overlay; river tracer calibration | River checked 25 Nov 2026: hourly water temperature for the past year at five CDEC stations from Keswick to Red Bluff (KWK, CCR, BSF, BND, RDB), and USGS temperature at Wilkins Slough and Freeport. CDEC times are Pacific Standard Time all year. Delta and Bay still to confirm |
 | Keswick release temperature | CDEC or Reclamation | River temperature model | To confirm |
-| Weather forecast: air temperature, sunshine, humidity, wind | National Weather Service | River and Delta temperature models | To confirm product and format |
+| Weather: air temperature, humidity, wind, cloud and air pressure | Past: [NOAA's hourly airport archive (GHCNh)](https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly), a file per station and year. Recent: the [Weather Service's station observations](https://www.weather.gov/documentation/services-web-api). Ahead: the Weather Service's gridded forecast for one 2.5 km cell | Delta temperature (QUAL); river temperature later | Checked 25 Nov 2026. GHCNh runs about four days behind (NOAA's older ISD archive stops in 2025); the Weather Service keeps about a week of observations, so the two overlap. The forecast reaches about 7 days and has no air pressure. Airport sky reports reach about 3.7 km up, so higher cloud is missed. The Delta takes the mean of Sacramento Executive, Stockton and Travis airports |
 | Levee locations and island floor elevations | DWR Delta levee and island data | Breach what-ifs | To confirm a public source |
 
 ### 6.1 What DSM2 needs
@@ -560,7 +651,7 @@ The wave is faster than the water. In a wide channel, theory puts it at about on
 
 **Known complications.**
 
-- In floods the river spills over weirs into the Sutter and Yolo bypasses. Version 1 detects this from gauges and warns that the forecast is unreliable. After launch, the spill is modelled with the weir and pool components built for levee breaches (section 7.6).
+- In floods the river spills over weirs into the Sutter and Yolo bypasses. Version 1 detects this from gauges and warns that the forecast is unreliable. After launch, the spill is modelled with the weir and pool components built for levee breaches (section 7.6), as part of the river levels and floods module (section 3.11).
 - Large diversions remove water and pollutant in irrigation season. They are represented where gauged.
 - Pools, eddies and backwaters hold some water back and let it go slowly, which gives a real plume a longer tail than the dispersion model produces. Version 1 does not model this; the tracer checks in section 9.1 show how large the error is.
 
@@ -580,7 +671,7 @@ NOAA's forecast gives currents on a triangular mesh at hourly steps. The server 
 
 Beyond the end of NOAA's forecast, the server extends the currents with a fit made from the archive of past NOAA fields. At each mesh point the fit has two parts: the tides, and a net seaward drift that grows with Delta outflow. The extension uses DSM2's forecast outflow at Chipps Island, so the Bay and the Delta agree on how much river water is leaving. In Suisun Bay that drift matters as much as the tide, which is why a tides-only extension is not enough. The extension is our own calculation and does not include wind.
 
-A tidal fit needs at least a month of past fields to separate the main tides, and a year to do it well. The archive must be in hand before Phase 3: either NOAA's public archive goes back far enough, or we start saving the forecasts ourselves now.
+A tidal fit needs at least a month of past fields to separate the main tides, and a year to do it well. NOAA's public archive on AWS has kept every cycle continuously since at least August 2024, so Phase 3 draws the fit's year from it directly. Nothing is saved ahead of time.
 
 ### 7.4 Joining the reaches
 
@@ -791,12 +882,15 @@ The river model has three sets of parameters, each calibrated from a different k
   - it runs at lower CPU and disk priority than every Electric Eel container;
   - it is pinned to the processor's efficiency cores, leaving the performance cores to Electric Eel.
 - **Model runner**: its own Debian container on that host, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Starting size: 8 efficiency cores, 8 GB of memory (12 at most), and its own 1 TB disk from the host's storage. Modelling and serving stay separate: the web edge serves pages and files and passes what-if requests through to the model runner, and no model code is installed on it.
-- **Web**: served at `tripofisch.com/fischer-delta/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
+- **Web**: served at `tripofisch.com/sturgeon/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
   - The model runner pushes each finished set of files over rsync and SSH, with a key that can write only into that folder. Each cycle goes into a new folder, and one link switch makes it live. The web edge never reaches into the model runner.
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
 - **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. What-ifs run when asked for, one at a time, and in spare time when the whole host has been quiet for a sustained stretch (section 7.6).
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
-- **DSM2 on Linux first.** Phase 0 asks DWR for the Linux library and tries the Linux build in the model runner. A Windows VM for DWR's prebuilt release costs memory the host has little of to spare. It is used only if the Linux build stalls, kept small, and removed as soon as Linux works.
+- **DSM2 is built natively on Linux** in the model runner, by `runner/dsm2/build_dsm2.sh`. There is no Windows and no emulation.
+  - DSM2's Linux build needs HEClib v6, its DSS file library, which DWR does not publish on its own. Its source is, however, in DWR's public DSM2 8.1.2 source package, in a Windows edition.
+  - That edition compiles on Linux once its Windows file layer and seven Windows-only routines are replaced by standard POSIX and Fortran versions (`runner/dsm2/heclib-linux/`).
+  - DSM2 itself is built unmodified, from DWR's GitHub release, with Intel's oneAPI 2023.2 compilers.
 
 ### 9.4 Licensing and credit
 
@@ -813,7 +907,7 @@ This section is not legal advice; the license choice deserves a second look befo
 
 The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn. The detailed plan, with workstreams, exit tests and risks, is in [build-plan.md](build-plan.md).
 
-1. **Phase 0, proof.** Run DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's prebuilt Windows release in a small, temporary VM. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to set the wait quoted for a what-if, and confirm the model runner can read the whole host's load from inside its container. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
+1. **Phase 0, proof.** Build DSM2 natively in the model runner (section 9.3). Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to set the wait quoted for a what-if, and confirm the model runner can read the whole host's load from inside its container. Confirm every data feed in section 6.
 2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
@@ -842,10 +936,15 @@ The build runs in six phases, each ending in something that can be seen working;
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
 - What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. When the whole server has been quiet for a sustained stretch, the model runner also works through the menu in spare time; visitors always come first. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
+- The Feather River from Oroville Dam and the American River from Folsom Dam are planned as river reaches of their own after launch. Each starts at its dam's release and is handed on into the Sacramento. See section 3.13.
+- Sediment transport is planned for after launch: carried, settled and scoured sediment, turbidity, and particle-bound pollutants. It is to include Catherine Vaningen's work, as described in section 3.12.
+- River levels and floods are planned for after launch, not version 1. That means level against flood stage, flood maps, and water on the floodplain, for snowmelt, extreme rain, big dam releases and dam or levee failures, and their effect on flow and Delta salinity. See section 3.11.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
-- Address: `tripofisch.com/fischer-delta/`, listed under Utilities. See section 9.3.
+- Address: `tripofisch.com/sturgeon/`, the model's launch page, listed under Utilities (changed from `/fischer-delta/` on 25 Nov 2026). See section 9.3.
+- Public name on tripofisch.com: **Sturgeon**, with the sturgeon logo (a sturgeon in a ring marked salinity, flow rate, temperature and depth). Fischer Delta Model Returns stays the project and repository name.
 - Hardware: the `webserver` host only. No other machine is touched by this app, for any reason; they run Electric Eel. On that host the app gives way to Electric Eel: capped, lower priority, pinned to the efficiency cores. See section 9.3.
+- DSM2 is built natively on Linux, with HEClib v6 compiled from the source in DWR's public DSM2 8.1.2 package. No Windows, no Wine, no request to DWR. NOAA's public Bay archive is continuous since August 2024, so nothing is saved ahead. See sections 7.3 and 9.3.
 - Languages: Rust for the math library and compute engine; Python for the model runner, data adapters and publisher, calling the Rust math. See section 4.2 and build-plan.md.
 - Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
 - Swept all remaining proposals into decisions:
@@ -861,12 +960,10 @@ The build runs in six phases, each ending in something that can be seen working;
 
 ### Open technical questions, answered in Phase 0
 
-- Does DSM2's forecast mode run cleanly from a script, and how long does one run take?
+- Does DSM2's forecast mode run cleanly from a script on our live inputs? (A historical run already takes 13 seconds for 14 days.)
 - What is the real forecast horizon and file size of NOAA's Bay product?
-- Is DSM2's channel geometry available outside DWR's network?
 - Which stations give each export, gate and inflow value in near real time?
 - Which river gauges have field measurements, conductance and temperature records long enough to calibrate water velocity and dispersion? Are there published time-of-travel or dye studies on the Sacramento?
-- How far back does NOAA's public archive of Bay forecasts go? If it is short, start saving them ourselves at once, for the Bay extension's fit.
 - Do NOAA's Bay files carry temperature and salinity, and at what depths?
 - How does DSM2's forecast mode set salinity at Martinez, and what weather inputs does QUAL need for temperature?
 - Where are public levee locations and island floor elevations for the Delta, and how has DSM2 represented past breaches?
@@ -884,6 +981,8 @@ The build runs in six phases, each ending in something that can be seen working;
 - [NOAA forecast system data on AWS](https://docs.opendata.aws/noaa-ofs-pds/readme.html)
 - [USGS Water Data APIs migration guide](https://api.waterdata.usgs.gov/docs/ogcapi/migration/)
 - [California Nevada River Forecast Center hourly forecast files](https://www.cnrfc.noaa.gov/deterministicHourlyProductCSV.php)
+- [NOAA Global Historical Climatology Network hourly (GHCNh)](https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly)
+- [National Weather Service API](https://www.weather.gov/documentation/services-web-api)
 - [Protomaps](https://protomaps.com/)
 - [Fischer, Longitudinal Dispersion in Laboratory and Natural Streams, Caltech 1966](https://thesis.library.caltech.edu/9180)
 - Fischer, List, Koh, Imberger and Brooks, *Mixing in Inland and Coastal Waters*, Academic Press 1979: the source of the dispersion estimate in section 7.1. Citation from memory, to check against the book.
