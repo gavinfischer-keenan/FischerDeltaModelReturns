@@ -27,6 +27,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 | Temperature and salinity | Computed on the server for every reach and shown as layers in version 1 |
 | Releases | All at once, continuous for a set time, or an ongoing outfall such as a sewage plant discharge; optional steady breakdown by half-life |
 | What-if scenarios | Changed dam releases and levee breaches, from a menu computed in advance on the server |
+| UI and compute | The UI only displays; the compute only computes. They talk through one interface and could run on separate machines. In version 1 the compute engine runs on the visitor's device |
 | Plug-ins | Model kinds and math components are plug-ins behind versioned interfaces; the format and parcels carry a depth axis from the start, so 3D mixing models can be added later |
 | Release locations | Anywhere in the modelled network, including the San Joaquin side of the Delta up to Vernalis |
 | Historic layers | After launch |
@@ -44,7 +45,7 @@ It will live under Utilities on tripofisch.com, run entirely on hardware we own,
 - How long one DSM2 run takes, which sets how many what-if scenarios can be computed each cycle.
 - A public source for levee locations and island floor elevations in the Delta.
 
-This is a first draft. Items marked *proposed* are suggestions, not decisions.
+This is a working draft. Everything in it is decided unless marked *to confirm*; the decisions log in section 10 records what was decided and when.
 
 ## 2. Heritage
 
@@ -93,7 +94,7 @@ The user presses "Add pollutant" and clicks or taps the water. The point snaps t
 | When? | Now, a chosen time in the forecast, or a chosen time in the last 14 days | Now |
 | Does it break down? | No, or a half-life | No |
 
-Version 1 treats the pollutant as dissolved: it moves with the water and does not float or sink. It can break down at a steady rate, given as a half-life, which covers, for example, the die-off of bacteria from sewage. More than one release can be on the map at once (*proposed*).
+Version 1 treats the pollutant as dissolved: it moves with the water and does not float or sink. It can break down at a steady rate, given as a half-life, which covers, for example, the die-off of bacteria from sewage. Up to five releases and outfalls can be on the map at once. The contaminant layer shows them combined, or one at a time if the user picks one.
 
 **Outfalls.** An outfall is a new continuous discharge, such as a new or enlarged sewage treatment plant outfall. It runs from its start time to the end of the timeline. Started at the beginning of the past window, it shows the steady plume the outfall settles into, and how each tide works it back and forth. The outfall's own flow is not added to the channel's flow; where it is more than a few percent of the channel's flow, the app says so.
 
@@ -117,7 +118,7 @@ There is one timeline, from 14 days ago through now to 14 days ahead, and three 
 - The plume is drawn as the particles carrying it: the same moving particles that show the flow, coloured by concentration, with a legend. Zoomed out to the whole system, where particles are too small to see, the channels and Bay are coloured instead (section 8.4).
 - The leading edge and the peak are marked.
 - The forecast runs 14 days. The further ahead, the less certain, and the display shows that: as certainty fades, so does the plume's colour, until a plume far into the forecast is a pale wash over the map. The time slider is shaded the same way, so the user can see where each reach passes from solid forecast into assumption. Section 8 gives the limits for each reach and how certainty is worked out.
-- Read-off answers carry the same certainty, in words: an arrival time on day 2 is "forecast", one on day 12 is "rough guide" (*proposed wording*).
+- Read-off answers carry the same certainty, in words, in three tiers: "measured" in the past window, "forecast" at full certainty, and "rough guide" once certainty falls below one half.
 
 ### 3.5 What the map shows: layers and toggles
 
@@ -178,7 +179,7 @@ Some questions change the water itself, not only what is in it. Each what-if cha
 
 This is what happened when Jones Tract flooded in 2004. A breach on the river's levees above Sacramento instead spills flow onto the floodplain. A pollutant or outfall can be added on top of a breach, to see how the breach changes where it goes.
 
-**How they are offered.** Each cycle, the server computes a menu of what-ifs in advance: a few release levels, and a set of breach sites, each with a standard breach opening now. Picking one loads its files like any other, so nothing the user enters leaves their device. Custom what-ifs, with any release, any levee, any breach width and any time, would need a model run on request. That would send the scenario's settings to our server, so it comes after launch (*proposed*), with section 3.8 changed to match.
+**How they are offered.** Each cycle, the server computes a menu of what-ifs in advance: a few release levels, and a set of breach sites, each with a standard breach opening now. Picking one loads its files like any other, so nothing the user enters leaves their device. Custom what-ifs, with any release, any levee, any breach width and any time, would need a model run on request. That would send the scenario's settings to our server, so it comes after launch, with section 3.8 changed to match.
 
 ### 3.8 Privacy and operation
 
@@ -205,7 +206,7 @@ Filter feeders such as oysters, mussels and clams concentrate some pollutants fa
 - The user places a virtual shellfish bed: clicks the water, picks a species, and picks a substance from a short menu.
 - The app shows the tissue concentration over time beside the water concentration at that spot. It rises while the plume passes and falls slowly afterwards.
 - Substances come from a menu of real ones with published uptake and loss rates for each species, such as common metals and some organic chemicals in mussels, oysters and clams. A made-up pollutant has no such rates, so it cannot be used.
-- It runs in the browser on the concentration history the tracer engine already produces at that spot. It costs almost nothing, and nothing the user enters leaves their device.
+- It runs in the compute engine on the concentration history the tracer already produces at that spot. It costs almost nothing, and nothing the user enters leaves their device.
 - Like the rest of the app, it is illustrative, not a seafood-safety tool, and every screen showing it says so.
 
 **Later steps.** Many pollutants are taken in with food rather than straight from the water. One famous case in this region is selenium in Suisun Bay clams, passed on to the sturgeon and diving ducks that eat them. Modelling that needs the dissolved pollutant to move onto particles first, which version 1 does not do (section 3.9). Food-web models that carry a chemical from plankton up through shellfish, fish and birds have been applied to San Francisco Bay for PCBs and mercury, and could follow after that.
@@ -219,9 +220,9 @@ Filter feeders such as oysters, mussels and clams concentrate some pollutants fa
 
 ## 4. Engineering: architecture
 
-The server computes where the water is going and what it is like; the visitor's browser computes where the pollutant goes in that water.
+The model runner computes where the water is going and what it is like. The compute engine works out where a pollutant goes in that water. The UI only shows the results.
 
-That split is what makes the app interactive and private. The flow field, the temperature and salinity, and the menu of what-ifs are the same for every visitor, so the server computes them once per cycle and publishes them as static files. A pollutant release is different for every visitor, so it is computed on their device from those files.
+The flow field, the temperature and salinity, and the menu of what-ifs are the same for every visitor, so the model runner computes them once per cycle and publishes them as static files. A pollutant release is different for every visitor, so the compute engine works it out from those files. In version 1 the compute engine runs on the visitor's own device, which keeps the app interactive and private. Section 4.2 explains how the UI and the compute engine are kept apart.
 
 ```mermaid
 flowchart TB
@@ -248,18 +249,23 @@ flowchart TB
   subgraph WEB["Web guest: serves static files only"]
     C1["Pages, map tiles, flow-field files"]
   end
-  subgraph BRW["Visitor's browser: tracking and display"]
-    D1["Map: self-hosted tiles, release point"]
-    D2["Tracer engine: Fischer parcel method"]
-    D3["Movie and answers: arrival, peak, graphs"]
-    D1 --> D2 --> D3
+  subgraph CMP["Compute engine: browser background thread in v1, or its own box"]
+    D2["Tracer: Fischer parcel method"]
+    D3["Answers: arrival, peak, histories"]
+    D2 --> D3
+  end
+  subgraph UI["UI: display only"]
+    D1["Map, particles, layers, controls"]
   end
   SRC --> B1
   B5 --> C1
-  C1 --> D1
+  C1 -- "flow-field files" --> D2
+  C1 -- "pages, map tiles" --> D1
+  D1 -. "requests" .-> D2
+  D3 -- "snapshots, answers" --> D1
 ```
 
-Data flows one way, top to bottom. The only thing that crosses from server to browser is a set of static files.
+Data flows one way, from the sources down to the UI. The only thing that crosses from the server to a visitor is a set of static files. The UI sends the compute engine requests, and the compute engine sends back results.
 
 **Server side, on a schedule**
 
@@ -270,14 +276,14 @@ Data flows one way, top to bottom. The only thing that crosses from server to br
 5. Convert all three reaches, and each what-if, to one compact published format.
 6. Publish the files and a small status file to the web server, and roll the 14-day past window forward.
 
-**Browser side, on demand**
+**Compute engine and UI, on demand**
 
-1. Load the map and the flow-field files for the time being shown, starting with now.
-2. Take the user's releases, outfalls and choice of layers.
-3. Track parcels through the flow field in a background thread.
-4. Draw the movie and the read-off answers.
+1. The UI loads the map. The compute engine loads the flow-field files for the time being shown, starting with now.
+2. The UI passes on the user's releases, outfalls and choices.
+3. The compute engine moves the parcels and flow particles and works out the answers.
+4. The UI draws what the compute engine sends: particles, colours, graphs and answers.
 
-Nothing the browser does requires a call back to the server beyond fetching static files, and no third-party server is contacted at all.
+In version 1, nothing a visitor does requires a call back to the server beyond fetching static files, and no third-party server is contacted at all.
 
 ### 4.1 One engine, many geographies
 
@@ -390,11 +396,56 @@ The rows below are sketches to show that the same kinds recur. They are not rese
 - **Units:** SI inside. Each region sets display units: cubic feet per second and miles in the US, cubic metres per second and kilometres elsewhere. The user can switch.
 - **Coordinates:** longitude and latitude in published files. Each region names a local projection for its own geometry work.
 - **Tides:** tide datums and the names of tide states differ by country; each region supplies its own.
-- **Language** (*proposed*): interface text is kept apart from code, so a region can be translated later.
+- **Language:** interface text is kept apart from code, so a region can be translated later (section 4.2).
 
-**Keeping it honest** (*proposed*). Nothing place-specific may appear in the engine's code: no station numbers, channel numbers, place names or coordinates. To test this, a second, small region is built alongside the first: a single gauged river somewhere else, using only the river model and national adapters. It runs in the test suite from Phase 1. If the engine needs changing to run it, something regional leaked into the engine.
+**Keeping it honest.** Nothing place-specific may appear in the engine's code: no station numbers, channel numbers, place names or coordinates. To test this, a second, small region is built alongside the first: a single gauged river outside California, with no tide, using only the river model and national adapters. It runs in the test suite from Phase 1. If the engine needs changing to run it, something regional leaked into the engine. This is why it matters: with only one region, Delta assumptions creep into the engine unnoticed, and the Mississippi or the Thames would later mean a rewrite. A second, deliberately plain region catches that on the day it happens, while it is cheap to fix. The river is chosen at the start of Phase 1.
 
 **Serving several regions** (*after version 1*). Each region publishes its own flow-field set. The browser loads a short list of regions and opens the one chosen. A region can run on its own model runner, so adding one does not slow another.
+
+### 4.2 UI and compute kept apart
+
+The UI only displays, and the compute only computes. They talk through one defined interface, so they can run on different machines. In version 1 they share the visitor's device, but nothing in either assumes that.
+
+| Part | Does | Never does |
+| --- | --- | --- |
+| Model runner, on the server | Flow, temperature, salinity and what-ifs; publishes files | Draw anything |
+| Compute engine | Moves parcels and flow particles; works out concentrations, arrival times, peaks, histories, certainty and, later, bioaccumulation | Draw anything or know about the screen |
+| UI | Map, particles, colours, legend, controls, words on screen | Any modelling or calculation of results |
+
+- **The interface.** The UI sends requests: load this stretch of time, add this release, show this layer, give the history at this point. The compute engine replies with snapshots of particle positions and values at each time step, and with answers. The UI only smooths between snapshots so the motion looks continuous; that is drawing, not modelling.
+- **Where the compute engine runs.** In version 1 it runs in a background thread of the visitor's browser: instant, free to scale and private. The same engine can instead run on its own machine and serve a UI over the network. A visitor's releases would then travel to that machine, and section 3.8 would change to say so.
+- **One compute codebase.** The compute engine is written once and runs in both places, so moving it is a deployment change, not a rewrite. The language is chosen at the start of the build; one option is a language that compiles both to WebAssembly for the browser and to a native program for a server.
+- **Words on screen.** All text the UI shows is kept in separate files, not in code. Version 1 is in English only; another language is a new set of files.
+- **Testing apart.** The compute engine is tested without any UI. The UI is tested against a recorded stream of compute results.
+
+### 4.3 Code structure and standards
+
+The code is built from small, separate modules, with every seam between them explicit. Compute and UI are never mixed.
+
+**The seams.** Each of these is its own module, or set of modules, with its own interface:
+
+| Module | Depends only on |
+| --- | --- |
+| Math library | Nothing else in the project |
+| Published format: reading and writing | Nothing else in the project |
+| Model-kind plug-ins | Math library, published format, plug-in interface |
+| Data adapters | Local data store interface |
+| Model runner: scheduling and publishing | Plug-in and adapter interfaces |
+| Region packages | Data only; no code beyond what the plug-ins already provide |
+| Compute engine | Math library, published format |
+| UI | The compute engine's interface, and text and style files |
+| Text and style files | Nothing; data only |
+
+**Rules**
+
+- Modules talk only through their published interfaces: typed messages, defined file formats or declared function signatures. No module reaches into another's internals.
+- Dependencies run one way, as in the table. Nothing depends on the UI, and the math library depends on nothing.
+- No state is shared across a seam except through its interface.
+- The UI holds no modelling or calculation of results; the compute engine and model runner hold no drawing code. Section 4.2 sets this out.
+- Nothing place-specific in the engine (section 4.1); nothing language-specific in code (section 4.2).
+- Every module builds and is tested on its own, against its interface, with stand-ins for its neighbours.
+- Interfaces carry version numbers. A change that breaks one is a new version, not a quiet edit.
+- The build checks these rules automatically: a dependency check fails the build if any module imports something its row in the table does not allow.
 
 ## 5. Engineering: the map
 
@@ -402,7 +453,7 @@ The map is OpenStreetMap data served from our own server as a single file, drawn
 
 ### 5.1 Base map
 
-| Piece | Choice (*proposed*) | Why |
+| Piece | Choice | Why |
 | --- | --- | --- |
 | Renderer | [MapLibre GL JS](https://maplibre.org/) | Open source, smooth zoom, runs entirely in the browser |
 | Map data | [Protomaps](https://protomaps.com/) basemap built from OpenStreetMap | Free, and one file with no tile server to run |
@@ -510,7 +561,7 @@ The wave is faster than the water. In a wide channel, theory puts it at about on
 
 **Known complications.**
 
-- In floods the river spills over weirs into the Sutter and Yolo bypasses. Version 1 detects this from gauges and warns that the forecast is unreliable (*proposed*).
+- In floods the river spills over weirs into the Sutter and Yolo bypasses. Version 1 detects this from gauges and warns that the forecast is unreliable. After launch, the spill is modelled with the weir and pool components built for levee breaches (section 7.6).
 - Large diversions remove water and pollutant in irrigation season. They are represented where gauged.
 - Pools, eddies and backwaters hold some water back and let it go slowly, which gives a real plume a longer tail than the dispersion model produces. Version 1 does not model this; the tracer checks in section 9.1 show how large the error is.
 
@@ -587,9 +638,9 @@ Each what-if is a full model run with one thing changed, published as its own se
 
 **Levee breaches on the river.** A breach on the river above Sacramento takes flow out onto the floodplain. In the river routing model it is a sink using the same weir equation, with the floodplain as a pool. The routing model is not a flood model, so river breaches are marked as a rough guide.
 
-**Menu size.** Every what-if is a full run every cycle. How many fit is set once Phase 0 has measured a DSM2 run. To start, aim for six Delta breach sites, two river breach sites and four release levels (*proposed*), chosen with an eye to the islands most often discussed.
+**Menu size.** Every what-if is a full run every cycle. How many fit is set once Phase 0 has measured a DSM2 run. The starting target is six Delta breach sites, two river breach sites and four release levels, chosen with an eye to the islands most often discussed. The final numbers are set after Phase 0.
 
-**Later** (*proposed, after launch*): custom what-ifs on request (section 3.7), more breach sites, and changed gate or pumping operations, which use the same machinery.
+**After launch:** custom what-ifs on request (section 3.7), more breach sites, changed gate or pumping operations, and flood spills into the bypasses, all using the same machinery.
 
 ## 8. Engineering: tracer engine, forecast and display
 
@@ -605,7 +656,7 @@ The pollutant is carried as thousands of parcels, each holding a share of the re
 - **Concentration.** Mass in the parcels within a stretch of channel, divided by the water volume of that stretch.
 - **Mass balance.** Released mass equals mass in the water plus mass exported plus mass past the Golden Gate plus mass decayed, checked every step.
 
-The engine runs in a background thread so the map stays responsive. Parcel count is set by device capability (*proposed*: about 20,000 on a phone, more on a desktop).
+In version 1 the engine runs in a background thread of the visitor's browser, apart from the UI (section 4.2), so the map stays responsive. Parcel count is set by device capability: about 20,000 on a phone to start, more on a desktop. The parcel count and the number of flow particles are tuned in Phase 4 by measured frame rate.
 
 ### 8.2 Forecast horizon
 
@@ -629,7 +680,7 @@ Temperature and salinity in the forecast fade by the same certainty as the flow 
 
 This is certainty about the flow, not a statistical confidence. It does not cover errors in the models themselves inside the solid forecast, or in what the user entered.
 
-**Later: real spread** (*proposed, after launch*). The River Forecast Center also publishes ensemble flow forecasts, many possible futures rather than one. Running the river and DSM2 once per ensemble member would give real spread: a plume drawn from all of them, faded where they disagree. That multiplies the server's work and the published files, so it waits until the single forecast works.
+**After launch: real spread.** The River Forecast Center also publishes ensemble flow forecasts, many possible futures rather than one. Running the river and DSM2 once per ensemble member would give real spread: a plume drawn from all of them, faded where they disagree. That multiplies the server's work and the published files, so it waits until the single forecast works.
 
 ### 8.3 Published flow-field format
 
@@ -678,7 +729,7 @@ The water is always shown moving: particles drift along every river, channel and
 
 **Rendering and other details.**
 
-- Particle positions are computed in the background thread with the tracer engine. They are drawn by the graphics hardware through a custom map layer, so tens of thousands of particles stay smooth on a phone.
+- Particle positions come from the compute engine, as snapshots at each time step (section 4.2). The UI smooths between snapshots and draws the particles with the graphics hardware through a custom map layer, so tens of thousands of particles stay smooth on a phone.
 - The number of flow particles drawn is set by device capability, like the parcel count.
 - The time slider drives the particles, the plume and the tide indicator together.
 - Colours are chosen to work for colour-blind users and in both light and dark map styles.
@@ -726,7 +777,7 @@ The river model has three sets of parameters, each calibrated from a different k
 
 - **Model runner**: its own Debian guest on Proxmox, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Compute and serving stay separate: the web guest only serves pages and files, and no model code is installed on it.
 - **Web**: static files under Utilities on tripofisch.com. The model runner pushes each finished set of files to the web guest; the web guest never reaches into the model runner. The push method is to be chosen to fit how the site is deployed today.
-- **Cadence** (*proposed*): gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. The what-if menu reruns with each DSM2 cycle; if it does not fit in 6 hours, once a day.
+- **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. The what-if menu reruns with each DSM2 cycle; if it does not fit in 6 hours, once a day.
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
 - **Interim**: until the Linux build of DSM2 works, DWR's prebuilt Windows release runs in a Windows guest.
 
@@ -775,6 +826,18 @@ The build runs in six phases, each ending in something that can be seen working;
 - What-ifs, changed dam releases and levee breaches, come from a menu computed in advance on the server, so user input still never leaves the device. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
 - The Eureka dye study, the oysters turned red at the Humboldt Bay outfall, is a story in the History section. See section 2.
+- The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
+- Code is built from small modules with explicit seams; compute and UI are never mixed, and the build enforces the allowed dependencies. See section 4.3.
+- Swept all remaining proposals into decisions:
+  - up to five releases at once;
+  - certainty in words in three tiers;
+  - a second, plain test region outside California from Phase 1;
+  - the self-hosted map stack;
+  - a flood-spill warning in version 1, with modelling after launch;
+  - a starting what-if menu of six Delta breaches, two river breaches and four release levels;
+  - about 20,000 parcels on a phone to start;
+  - the update cadence;
+  - custom what-ifs and ensemble spread after launch.
 
 ### Open technical questions, answered in Phase 0
 
