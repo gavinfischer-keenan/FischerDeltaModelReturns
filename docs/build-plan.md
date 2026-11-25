@@ -55,7 +55,7 @@ Answers every open question in specification section 10, before any map is drawn
 | Geometry | Find the river centreline, the DSM2 channel geometry and the Delta levee and island data, or how to rebuild each. |
 | River data | List which gauges have field measurements and continuous conductance and temperature. Search for past dye and time-of-travel studies on the Sacramento. |
 
-**Done when:** a written Phase 0 report answers each open question. It confirms or rejects the Chipps Island handoff, sets the size of the what-if menu, and fills in the feed register.
+**Done when:** a written Phase 0 report answers each open question. It confirms or rejects the Chipps Island handoff, sets the wait quoted for a what-if, and fills in the feed register.
 
 ### Phase 1: foundations and the river (size XL)
 
@@ -108,7 +108,7 @@ The biggest phase, because it builds the skeleton everything else hangs on.
 | River temperature | The 1D heat model and the weather adapter. |
 | Releases | Outfalls, decay, up to five releases at once. |
 | Answers | Read-off answers, landmarks and certainty in words. |
-| What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. |
+| What-ifs | The menu of dam releases and levee breaches, with the weir and pool pieces. A small request service on the model runner, behind a route on the web edge, runs a what-if when asked: menu choices only, one at a time, kept until the next cycle. The UI says it takes a few minutes and shows progress. |
 | History | A simple text History page, with the words from you. |
 | Finish | Phone layout, and the Utilities page on tripofisch.com. |
 
@@ -158,7 +158,7 @@ flowchart LR
 | Risk | What happens if it bites | What we do |
 | --- | --- | --- |
 | DSM2 channel geometry is not available outside DWR | No Delta map layer | Rebuild it from DSM2's published channel inputs and the river centrelines. That is slower, but possible. |
-| A DSM2 run is too slow | Smaller what-if menu, or once a day | Phase 0 measures it. The menu shrinks, or the runner gets more cores. |
+| A DSM2 run is too slow | Visitors wait longer for a what-if | The app quotes the real wait, measured in Phase 0. |
 | NOAA's mesh is too coarse at Chipps Island | The handoff moves to Martinez | Fallback already in specification 7.4. |
 | A feed is late, sparse or changes format | Gaps in the past window, or a weaker forecast | The local store, data age shown on screen, and an adapter per source so one break stays contained. |
 | The Linux build of DSM2 stalls | A temporary Windows VM is needed, and it costs memory | Keep it small, run it only while needed, and remove it once Linux works. |

@@ -26,7 +26,7 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 | Map layers | Toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level, water source), whether flow is shown moment by moment or net over the tides, and which overlays are drawn, including the X2 line and measured station readings |
 | Temperature and salinity | Computed on the server for every reach and shown as layers in version 1 |
 | Releases | All at once, continuous for a set time, or an ongoing outfall such as a sewage plant discharge; optional steady breakdown by half-life |
-| What-if scenarios | Changed dam releases and levee breaches, from a menu computed in advance on the server |
+| What-if scenarios | Changed dam releases and levee breaches, picked from a menu and run on the server when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle, so the next person gets it at once. Nothing is computed ahead for nobody |
 | UI and compute | The UI only displays; the compute only computes. They talk through one interface and could run on separate machines. In version 1 the compute engine runs on the visitor's device |
 | Plug-ins | Model kinds and math components are plug-ins behind fixed interfaces; the format and parcels carry a depth axis from the start, so 3D mixing models can be added later |
 | Release locations | Anywhere in the modelled network, including the San Joaquin side of the Delta up to Vernalis |
@@ -42,7 +42,7 @@ It will live at [tripofisch.com/fischer-delta/](https://tripofisch.com/fischer-d
 - NOAA's Bay forecast: horizon, file sizes, how far back its archive goes, and whether its mesh resolves Suisun Bay up to Chipps Island well enough for the handoff there (section 7.4).
 - A public copy of DSM2's map geometry. DWR's documentation points to internal network drives.
 - Enough USGS field measurements and conductance records on the river to calibrate water velocity and dispersion.
-- How long one DSM2 run takes, which sets how many what-if scenarios can be computed each cycle.
+- How long one DSM2 run takes, which sets how long a visitor waits for a what-if.
 - A public source for levee locations and island floor elevations in the Delta.
 
 This is version 1.0, the agreed specification for the build. Everything in it is decided unless marked *to confirm*; those items are checked in Phase 0. The decisions log in section 10 records what was decided and when. The build plan is in [build-plan.md](build-plan.md).
@@ -170,11 +170,17 @@ Some questions change the water itself, not only what is in it. Each what-if cha
 
 This is what happened when Jones Tract flooded in 2004. A breach on the river's levees above Sacramento instead spills flow onto the floodplain. A pollutant or outfall can be added on top of a breach, to see how the breach changes where it goes.
 
-**How they are offered.** Each cycle, the server computes a menu of what-ifs in advance: a few release levels, and a set of breach sites, each with a standard breach opening now. Picking one loads its files like any other, so nothing the user enters leaves their device. Custom what-ifs, with any release, any levee, any breach width and any time, would need a model run on request. That would send the scenario's settings to our server, so it comes after launch, with section 3.8 changed to match.
+**How they are offered.** The user picks from a menu: a few release levels, and a set of breach sites, each with a standard breach opening now.
+
+- Nothing is computed in advance. When a user picks a what-if, the server runs it then.
+- The app says plainly that a what-if takes a few minutes, shows that it is running, and loads it when it is done. What-ifs are never instant, and the app does not pretend otherwise.
+- A finished what-if is kept until the next 6-hourly cycle. Anyone who picks the same one before then gets it at once.
+- If two people pick the same what-if, they share one run.
+- Custom what-ifs, with any release, any levee, any breach width and any time, come after launch.
 
 ### 3.8 Privacy and operation
 
-- No account and no tracking. What the user enters never leaves their device. What-ifs come from a menu computed in advance, so they keep to this rule.
+- No account and no tracking. What the user enters never leaves their device, with one exception: asking for a what-if sends the menu choice, such as "Jones Tract breach", to our server. Nothing else is sent, and nothing that identifies the visitor is kept.
 - Works on a phone, tablet or desktop browser.
 - If the live data is stale, the app says how old it is and still runs.
 
@@ -184,7 +190,7 @@ This is what happened when Jones Tract flooded in 2004. A breach on the river's 
 - Chemical reactions other than a steady half-life.
 - The heat or salt a release itself carries: a release does not change the water's temperature or salinity.
 - Wind effects on the Bay beyond NOAA's own forecast.
-- Custom what-if runs on request.
+- Custom what-ifs: any release, levee, breach width or time.
 - The San Joaquin River above Vernalis.
 - Any replay older than the rolling 14-day window.
 - Bioaccumulation, planned for after launch (section 3.10).
@@ -212,7 +218,7 @@ Filter feeders such as oysters, mussels and clams concentrate some pollutants fa
 
 The model runner computes where the water is going and what it is like. The compute engine works out where a pollutant goes in that water. The UI only shows the results.
 
-The flow field, the temperature and salinity, and the menu of what-ifs are the same for every visitor, so the model runner computes them once per cycle and publishes them as static files. A pollutant release is different for every visitor, so the compute engine works it out from those files. In version 1 the compute engine runs on the visitor's own device, which keeps the app interactive and private. Section 4.2 explains how the UI and the compute engine are kept apart.
+The flow field and the temperature and salinity are the same for every visitor, so the model runner computes them once per cycle and publishes them as static files. A what-if is run only when a visitor asks for one. A pollutant release is different for every visitor, so the compute engine works it out from those files. In version 1 the compute engine runs on the visitor's own device, which keeps the app interactive and private. Section 4.2 explains how the UI and the compute engine are kept apart.
 
 ```mermaid
 flowchart TB
@@ -227,13 +233,11 @@ flowchart TB
     B2["River model: ours, Fischer dispersion"]
     B3["Delta: DSM2 flow, salinity, temperature"]
     B4["Bay: NOAA currents, temperature, salinity"]
-    B6["What-if menu: reruns with one change"]
+    B6["What-ifs: run on request, kept until next cycle"]
     B5["Publish flow-field files and status"]
     B1 --> B2 --> B5
     B1 --> B3 --> B5
     B1 --> B4 --> B5
-    B2 --> B6
-    B3 --> B6
     B6 --> B5
   end
   subgraph WEB["Web guest: serves static files only"]
@@ -252,6 +256,7 @@ flowchart TB
   C1 -- "flow-field files" --> D2
   C1 -- "pages, map tiles" --> D1
   D1 -. "requests" .-> D2
+  D1 -. "what-if request" .-> B6
   D3 -- "snapshots, answers" --> D1
 ```
 
@@ -262,9 +267,8 @@ Data flows one way, from the sources down to the UI. The only thing that crosses
 1. Fetch public measurements and forecasts.
 2. Build model inputs for the forecast window, and refresh the recent past from the latest measurements.
 3. Run the river model and DSM2, for flow, temperature and salinity; read in the NOAA Bay forecast.
-4. Run the what-if menu: each scenario is a rerun with one thing changed.
-5. Convert all three reaches, and each what-if, to one compact published format.
-6. Publish the files and a small status file to the web server, and roll the 14-day past window forward.
+4. Convert all three reaches to one compact published format.
+5. Publish the files and a small status file to the web server, and roll the 14-day past window forward.
 
 **Compute engine and UI, on demand**
 
@@ -273,7 +277,11 @@ Data flows one way, from the sources down to the UI. The only thing that crosses
 3. The compute engine moves the parcels and flow particles and works out the answers.
 4. The UI draws what the compute engine sends: particles, colours, graphs and answers.
 
-In version 1, nothing a visitor does requires a call back to the server beyond fetching static files, and no third-party server is contacted at all.
+**On request**
+
+- A what-if: the UI sends the menu choice; the model runner reruns the models with that one change and publishes the result like any other files; the UI then loads it. The web edge passes the request through to the model runner and does nothing else.
+
+Apart from what-if requests, nothing a visitor does requires a call back to the server beyond fetching static files, and no third-party server is contacted at all.
 
 ### 4.1 One engine, many geographies
 
@@ -398,7 +406,7 @@ The UI only displays, and the compute only computes. They talk through one defin
 
 | Part | Does | Never does |
 | --- | --- | --- |
-| Model runner, on the server | Flow, temperature, salinity and what-ifs; publishes files | Draw anything |
+| Model runner, on the server | Flow, temperature and salinity every cycle; what-ifs on request; publishes files | Draw anything |
 | Compute engine | Moves parcels and flow particles; works out concentrations, arrival times, peaks, histories, certainty and, later, bioaccumulation | Draw anything or know about the screen |
 | UI | Map, particles, colours, legend, controls, words on screen | Any modelling or calculation of results |
 
@@ -423,7 +431,7 @@ The code is built from small, separate modules, with every seam between them exp
 | Model runner: scheduling and publishing | Plug-in and adapter interfaces |
 | Region packages | Data only; no code beyond what the plug-ins already provide |
 | Compute engine | Math library, published format |
-| UI | The compute engine's interface, and text and style files |
+| UI | The compute engine's interface, the what-if request interface, and text and style files |
 | Text and style files | Nothing; data only |
 
 **Rules**
@@ -616,7 +624,7 @@ Temperature and salinity are the same for every visitor, so the server computes 
 
 ### 7.6 What-if scenarios
 
-Each what-if is a full model run with one thing changed, published as its own set of files (section 8.3). It starts at now and runs to the end of the forecast; the past is shared with the main run. Temperature and salinity are rerun with it, so a breach shows salinity moving inland.
+Each what-if is a full model run with one thing changed, run when a visitor asks for it and published as its own set of files (section 8.3). It starts at now and runs to the end of the forecast; the past is shared with the main run. Temperature and salinity are rerun with it, so a breach shows salinity moving inland.
 
 **Dam releases.** The river model reruns with a changed Keswick release. For a few release levels, DSM2 reruns too, so the change reaches the Delta.
 
@@ -628,9 +636,14 @@ Each what-if is a full model run with one thing changed, published as its own se
 
 **Levee breaches on the river.** A breach on the river above Sacramento takes flow out onto the floodplain. In the river routing model it is a sink using the same weir equation, with the floodplain as a pool. The routing model is not a flood model, so river breaches are marked as a rough guide.
 
-**Menu size.** Every what-if is a full run every cycle. How many fit is set once Phase 0 has measured a DSM2 run. The starting target is six Delta breach sites, two river breach sites and four release levels, chosen with an eye to the islands most often discussed. The final numbers are set after Phase 0.
+**Running on request.**
 
-**After launch:** custom what-ifs on request (section 3.7), more breach sites, changed gate or pumping operations, and flood spills into the bypasses, all using the same machinery.
+- A small request service on the model runner accepts only menu choices, never free input.
+- It runs one what-if at a time, at the same low priority as the rest of the model runner. Further requests wait their turn, and the app shows their place in the queue.
+- A finished what-if is kept until the next 6-hourly cycle, then discarded, because the forecast it was built on has moved on.
+- The menu starts with six Delta breach sites, two river breach sites and four release levels, chosen with an eye to the islands most often discussed. Phase 0's timing of a DSM2 run tells the app what wait to quote.
+
+**After launch:** custom what-ifs (section 3.7), more breach sites, changed gate or pumping operations, and flood spills into the bypasses, all using the same machinery.
 
 ## 8. Engineering: tracer engine, forecast and display
 
@@ -678,7 +691,7 @@ This is certainty about the flow, not a statistical confidence. It does not cove
 - Binary files per reach per day, holding velocity and water volume per channel segment or mesh node per time step, quantised to keep them small. The compute engine fetches only the days it is about to play, so opening on "Now" loads one day, not 28.
 - Optional fields per reach per day, beside velocity and volume: water level, temperature, salinity and water-source shares.
 - A tidally averaged velocity per reach for the net-flow display. Averaging over the tides needs data on both sides, so the first and last half-day of the timeline use a shorter average.
-- **What-ifs.** Each what-if on the menu is a full set of forecast days under its own name, sharing the main run's past days.
+- **What-ifs.** A what-if, once run, is a full set of forecast days under its own name, sharing the main run's past days, and is removed at the next cycle.
 - The timeline holds 28 days: 14 past, 14 forecast.
 - **Past days** are built from measured conditions: the river model driven by observed gauges, DSM2's warm-up period on observed inputs, and NOAA's nowcasts. Measurements arrive late and are revised, so the last two days of the past are rebuilt each cycle. Older past days are final and never change.
 - **Forecast days** are rebuilt every cycle.
@@ -769,11 +782,11 @@ The river model has three sets of parameters, each calibrated from a different k
   - the model runner has a fixed cap on cores and memory;
   - it runs at lower CPU and disk priority than every Electric Eel container;
   - it is pinned to the processor's efficiency cores, leaving the performance cores to Electric Eel.
-- **Model runner**: its own Debian container on that host, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Starting size: 8 efficiency cores, 8 GB of memory (12 at most), and its own 1 TB disk from the host's storage. Modelling and serving stay separate: the web edge only serves pages and files, and no model code is installed on it.
+- **Model runner**: its own Debian container on that host, holding the data fetchers, DSM2, the compilers and the scheduled jobs. Starting size: 8 efficiency cores, 8 GB of memory (12 at most), and its own 1 TB disk from the host's storage. Modelling and serving stay separate: the web edge serves pages and files and passes what-if requests through to the model runner, and no model code is installed on it.
 - **Web**: served at `tripofisch.com/fischer-delta/`, from the app's own folder, `/srv/fdmr`, on the existing web edge (container 703). It is reached through a Caddy route, the way Lux is served at `/play/`, so no new hostname or Cloudflare tunnel change is needed.
   - The model runner pushes each finished set of files over rsync and SSH, with a key that can write only into that folder. Each cycle goes into a new folder, and one link switch makes it live. The web edge never reaches into the model runner.
   - The web edge also carries Electric Eel's traffic. Any change to it is checked before Caddy reloads, made through the Caddyfile's master copy, and made only with the owner's OK.
-- **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. The what-if menu reruns with each DSM2 cycle; if it does not fit in 6 hours, once a day.
+- **Cadence**: gauges hourly; river model hourly; DSM2 every 6 hours, matching NOAA's four Bay cycles a day. What-ifs run only when asked for, one at a time.
 - **Failure behaviour**: if a run fails, the last good flow field stays published and the status file says how old it is.
 - **DSM2 on Linux first.** Phase 0 asks DWR for the Linux library and tries the Linux build in the model runner. A Windows VM for DWR's prebuilt release costs memory the host has little of to spare. It is used only if the Linux build stalls, kept small, and removed as soon as Linux works.
 
@@ -792,11 +805,11 @@ This section is not legal advice; the license choice deserves a second look befo
 
 The build runs in six phases, each ending in something that can be seen working; Phase 0 retires the risks before any map is drawn. The detailed plan, with workstreams, exit tests and risks, is in [build-plan.md](build-plan.md).
 
-1. **Phase 0, proof.** Run DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's prebuilt Windows release in a small, temporary VM. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to size the what-if menu. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
+1. **Phase 0, proof.** Run DSM2 in the model runner: the Linux build if DWR's library is in hand, otherwise DWR's prebuilt Windows release in a small, temporary VM. Feed it today's conditions and get a forecast flow field out, with QUAL salinity. Time one run, to set the wait quoted for a what-if. Confirm every data feed in section 6. Email DWR for the Linux library and the grid geometry.
 2. **Phase 1, foundations and the river.** The module structure and its build checks (section 4.3); the published format, with its depth axis; the compute engine and UI kept apart from the first line (section 4.2). River routing model with automated calibration of both speeds, wave and water, shown on the map from Shasta Dam to Sacramento. First working pollutant movie. This phase is entirely our own code and Fischer's method. The math library, the model kinds and the region package (section 4.1) are set up here, with the small test region beside the real one.
 3. **Phase 2, the Delta.** DSM2 on a schedule, with QUAL salinity, temperature and water-source fingerprinting; flow-field publishing; parcel tracking through the channel network. River and Delta joined.
 4. **Phase 3, the Bay.** NOAA currents, temperature and salinity; two-dimensional tracking; the extension with outflow drift; the handoff at Chipps Island.
-5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; the what-if menu of dam releases and levee breaches; a simple text History page; phone layout; and the Utilities page on tripofisch.com.
+5. **Phase 4, product.** Layers and toggles; the river temperature model; outfalls and decay; read-off answers and landmarks; what-ifs of dam releases and levee breaches, run on request; a simple text History page; phone layout; and the Utilities page on tripofisch.com.
 6. **Phase 5, hardening.** Native Linux DSM2, validation checks as automated tests, a notice when a run fails, and license and credits review. Launch follows this phase.
 
 ### Decisions log, 24 November 2026
@@ -819,7 +832,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Map layers: toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level, water source), whether the flow is shown moment by moment or net over the tides, and which overlays are drawn, including the X2 line and measured readings such as dissolved oxygen and turbidity. All four are in version 1. See section 3.5.
 - Temperature and salinity are in version 1, computed on the server for every reach. See section 7.5.
 - Releases include ongoing outfalls, such as a new sewage plant discharge, and an optional half-life. See section 3.3.
-- What-ifs, changed dam releases and levee breaches, come from a menu computed in advance on the server, so user input still never leaves the device. See sections 3.7 and 7.6.
+- What-ifs, changed dam releases and levee breaches, are picked from a menu and run on the server only when a visitor asks. The visitor is told it takes a few minutes; the result is kept until the next cycle. Nothing is computed ahead. Only the menu choice is sent to the server. See sections 3.7 and 7.6.
 - Bioaccumulation in shellfish is planned for after launch: a virtual shellfish bed, with a menu of real substances and species. See section 3.10.
 - The UI only displays and the compute only computes, through one interface, so they can run on separate machines. In version 1 the compute engine runs in the visitor's browser. All on-screen text is kept out of code; English only at launch. See section 4.2.
 - The specification is agreed as version 1.0. The build follows the plan in build-plan.md.
@@ -833,7 +846,7 @@ The build runs in six phases, each ending in something that can be seen working;
   - a second, plain test region outside California from Phase 1;
   - the self-hosted map stack;
   - a flood-spill warning in version 1, with modelling after launch;
-  - a starting what-if menu of six Delta breaches, two river breaches and four release levels;
+  - a what-if menu of six Delta breaches, two river breaches and four release levels;
   - about 20,000 parcels on a phone to start;
   - the update cadence;
   - custom what-ifs and ensemble spread after launch.
