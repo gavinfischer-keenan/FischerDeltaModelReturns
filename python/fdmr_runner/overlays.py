@@ -257,6 +257,7 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
 
 
 RESIDUAL_DAYS = 7
+SLOW_DAYS = 30  # the residual's slow part: the ocean's state, river set-up and the datum's age
 
 
 def tide_residual(cfg: dict, store: Store, now: int) -> list[dict]:
@@ -270,7 +271,7 @@ def tide_residual(cfg: dict, store: Store, now: int) -> list[dict]:
     from fdmr_adapters.noaa_tides import SOURCE as TIDES
 
     out = []
-    t0 = now - RESIDUAL_DAYS * 86_400
+    t0 = now - SLOW_DAYS * 86_400
     for s in cfg.get("stations", []):
         if s.get("source") != TIDES or "water_level" not in s.get("products", []):
             continue
@@ -284,12 +285,18 @@ def tide_residual(cfg: dict, store: Store, now: int) -> list[dict]:
         res = ov[inside] - np.interp(ot[inside], pt, pv)
         hours = (ot[inside] // 3600).astype(int)
         hs, idx = np.unique(hours, return_inverse=True)
-        hourly = np.bincount(idx, weights=res) / np.bincount(idx)
+        all_hours = np.bincount(idx, weights=res) / np.bincount(idx)
+        week = hs * 3600 >= now - RESIDUAL_DAYS * 86_400
+        hourly, hw = all_hours[week], hs[week]
         if not len(hourly):
             continue
-        out.append({"site": s["site"], "name": s["name"], "latest_hour": int(hs[-1] * 3600), "latest_m": round(float(hourly[-1]), 3),
-                    "mean_m": round(float(hourly.mean()), 3), "highest_m": round(float(hourly.max()), 3),
-                    "highest_at": int(hs[int(hourly.argmax())] * 3600), "lowest_m": round(float(hourly.min()), 3), "hours": int(len(hourly))})
+        row = {"site": s["site"], "name": s["name"], "latest_hour": int(hw[-1] * 3600), "latest_m": round(float(hourly[-1]), 3),
+               "mean_m": round(float(hourly.mean()), 3), "highest_m": round(float(hourly.max()), 3),
+               "highest_at": int(hw[int(hourly.argmax())] * 3600), "lowest_m": round(float(hourly.min()), 3), "hours": int(len(hourly))}
+        if len(all_hours) >= 20 * 24:  # enough for the slow part
+            slow = float(all_hours.mean())
+            row.update({"mean_30d_m": round(slow, 3), "hours_30d": int(len(all_hours)), "latest_less_30d_m": round(float(hourly[-1]) - slow, 3)})
+        out.append(row)
     return out
 
 
@@ -538,7 +545,15 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
         lc = levels.level_checks(cfg, cdir, index, store, now)
     except Exception as e:
         print(f"level checks FAILED {e}", flush=True)
+    oc = None
+    try:  # a record; the overlays are published whatever it says
+        from . import ocean
+
+        oc = ocean.summary(cfg, store, now)
+    except Exception as e:
+        print(f"ocean state FAILED {e}", flush=True)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
+            **({"ocean_state": oc} if oc else {}),
             **({"tide_residual": tr} if tr else {}),
             **({"level_checks": lc} if lc else {}),
             **({"satellite_temperature": sat} if sat else {}),

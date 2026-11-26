@@ -6,6 +6,9 @@ units, then one row per time. Stored under source `erddap:<server host>`,
 site the datasetID, in this app's parameter names: water_temperature (degC,
 from sea_water_temperature) and salinity (psu, from
 sea_water_practical_salinity).
+
+A griddap dataset can also be averaged over a box each time step
+(`fetch_grid_mean`), such as satellite sea level anomaly offshore.
 """
 
 from __future__ import annotations
@@ -76,3 +79,28 @@ class ErddapAdapter:
             raise
         src = source(self.server)
         return sum(self.store.put_values(src, dataset, p, VARIABLES[p][1], vs) for p, vs in data.items() if vs)
+
+    def fetch_grid_mean(self, dataset: str, variable: str, box: tuple[float, float, float, float], since_iso: str,
+                        site: str, parameter: str, unit: str, until_iso: str | None = None) -> int:
+        """Store a griddap variable's mean over a box (west, south, east, north)
+        at each time from `since_iso` to `until_iso` (or the latest), under
+        `site` and `parameter`."""
+        w, s, e, n = box
+        sel = f"[({since_iso}):1:({until_iso or 'last'})][({s}):1:({n})][({w}):1:({e})]"
+        url = f"{self.server}/griddap/{dataset}.csv?{variable}{quote(sel, safe='():,')}"
+        try:
+            text = self.get_text(url)
+        except urllib.error.HTTPError as err:
+            if err.code == 404:
+                return 0
+            raise
+        rows = list(csv.reader(io.StringIO(text)))
+        col = rows[0].index(variable)
+        sums: dict[int, list[float]] = {}
+        for r in rows[2:]:
+            if len(r) > col and r[col] not in ("", "NaN"):
+                t = timegm(strptime(r[0][:19], "%Y-%m-%dT%H:%M:%S"))
+                sums.setdefault(t, []).append(float(r[col]))
+        vals = [Value(t, sum(v) / len(v), None) for t, v in sorted(sums.items())]
+        return self.store.put_values(source(self.server), site, parameter, unit, vals) if vals else 0
+

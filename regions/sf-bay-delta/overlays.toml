@@ -888,3 +888,19 @@ show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
 daily = ["reservoir_outflow", "reservoir_inflow"]
 storage_report = true
 snow = ["SAN JOAQUIN RIVER"]
+
+# The ocean's state at the model's edge (issue #18; fdmr_runner.ocean): NOAA
+# CPC's El Nino indices (weekly Nino regions, the Oceanic Nino Index), and
+# satellite altimetry's sea level anomaly (NOAA CoastWatch's blended daily
+# product, 0.25 degree, one day behind: checked 26 Nov 2026) averaged over a
+# box 15 to 100 km off the Golden Gate (altimetry is unreliable right at the
+# coast). With the tide residual's 30-day mean at the coast's gauges.
+[ocean_state]
+enso = true
+
+[ocean_state.sea_level]
+server = "https://coastwatch.noaa.gov/erddap"
+dataset = "noaacwBLENDEDsshDaily"
+variable = "sla"
+box = [-123.75, 37.25, -122.75, 38.25]
+site = "offshore-golden-gate"

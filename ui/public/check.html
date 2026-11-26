@@ -107,7 +107,18 @@ async function get(name) {
     h += "<p>Both above the station's MLLW datum; hourly means over the last 7 days, m. The mean is the slow set-up (river flow, wind, pressure); the highest and lowest hours are surges and drawdowns.</p>";
     const iso = (s) => s ? new Date(s * 1000).toISOString().slice(0, 16) + "Z" : "";
     h += table((ov.tide_residual || []).map((r) => ({ station: r.name, site: r.site, "latest hour": iso(r.latest_hour), latest: r.latest_m, "7-day mean": r.mean_m,
-      highest: r.highest_m, "highest at": iso(r.highest_at), lowest: r.lowest_m, hours: r.hours })));
+      highest: r.highest_m, "highest at": iso(r.highest_at), lowest: r.lowest_m, hours: r.hours,
+      "30-day mean (slow part)": r.mean_30d_m, "latest less 30-day mean (weather)": r.latest_less_30d_m })));
+    const oc = ov.ocean_state;
+    h += "<h3>The ocean at the model's edge (overlays.json ocean_state)</h3>";
+    if (oc) {
+      if (oc.enso) {
+        h += `<p>${esc(oc.enso.source)}. CPC's El Nino and La Nina threshold: plus or minus ${oc.enso.threshold_c} degC (Oceanic Nino Index, five overlapping seasons).${oc.enso.oni ? ` Oceanic Nino Index, season centred on ${iso(oc.enso.oni.season_middle).slice(0, 7)}: <b>${oc.enso.oni.anomaly_c} degC</b>.` : ""}</p>`;
+        h += table(Object.entries(oc.enso.weekly).map(([r, w]) => ({ region: r, week: iso(w.week).slice(0, 10), "anomaly, degC": w.anomaly_c, "change over 4 weeks, degC": w.change_4w_c })));
+      }
+      if (oc.sea_level) h += table([{ "sea level offshore": oc.sea_level.source, box: oc.sea_level.box.join(", "), day: iso(oc.sea_level.day).slice(0, 10),
+        "anomaly, m": oc.sea_level.anomaly_m, "30-day mean, m": oc.sea_level.mean_30d_m, days: oc.sea_level.days }]);
+    } else h += "<p class='note'>(none in this cycle)</p>";
     h += "<h3>Water level: the models' tide against the stations' (overlays.json level_checks)</h3>";
     h += "<p>Last 7 days, each series less its own mean (gauges and models rarely share a datum): RMS of the difference, m; the model's tidal range against the station's (5th to 95th percentile); how late the model's tide runs, minutes; and the mean offset, meaningful only where both share a datum.</p>";
     h += table((ov.level_checks || []).map((r) => ({ station: r.name, site: r.site, model: r.model_reach, "km to model": r.model_km, steps: r.steps,

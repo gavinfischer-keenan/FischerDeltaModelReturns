@@ -173,13 +173,14 @@ def main(argv: list[str] | None = None) -> int:
             from fdmr_adapters.noaa_tides import OBSERVED as _OBS
 
             for prod in s.get("products", ["water_temperature"]):
+                back = (35 if prod == "water_level" else 21) * 86_400  # 30 days of tide residual
                 cov = store.coverage(src, s["site"], _OBS[prod][0][1])
-                f0 = max(now - 21 * 86_400, cov[1] + 1) if cov else now - 21 * 86_400
+                f0 = max(now - back, cov[1] + 1) if cov and cov[0] <= now - back + 86_400 else now - back
                 attempt(f"noaa {s['site']} {prod}", lambda s=s, f0=f0, prod=prod: _Tides(store).fetch_observed(s["site"], prod, int(f0), int(now)))
             if "water_level" in s.get("products", []):  # its predictions, for the tide residual
                 cov = store.coverage(src, s["site"], TIDE)
-                if not (cov and cov[0] <= now - 21 * 86_400 and cov[1] >= now + 86_400):
-                    f0 = now - 22 * 86_400 if not cov or cov[0] > now - 21 * 86_400 else cov[1] - 86_400
+                if not (cov and cov[0] <= now - 35 * 86_400 and cov[1] >= now + 86_400):
+                    f0 = now - 36 * 86_400 if not cov or cov[0] > now - 35 * 86_400 else cov[1] - 86_400
                     attempt(f"noaa {s['site']} {TIDE}", lambda s=s, f0=f0: _Tides(store).fetch_predictions(s["site"], int(f0), int(now + 3 * 86_400)))
         elif src == SOURCE:
             for p in s.get("measures", ["water_temperature", "specific_conductance"]):
@@ -228,6 +229,22 @@ def main(argv: list[str] | None = None) -> int:
 
         attempt("nws precipitation", lambda: NwsPrecipAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
         attempt("snodas snowmelt", lambda: SnodasAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
+    # The ocean's state at the model's edge (overlays.toml [ocean_state]).
+    ostate = ocfg.get("ocean_state", {})
+    if ostate.get("enso"):
+        from fdmr_adapters.cpc import CpcAdapter
+
+        attempt("cpc enso indices", lambda: CpcAdapter(store).fetch())
+    if ostate.get("sea_level"):
+        sl = ostate["sea_level"]
+        cov = store.coverage(_erddap.source(sl["server"]), sl["site"], "sea_level_anomaly")
+        f0 = cov[1] + 1 if cov else now - 40 * 86_400
+        # Asked ten days at a time: the server refuses a longer window over a box.
+        attempt("sea level anomaly", lambda: _erddap.ErddapAdapter(store, sl["server"]).fetch_grid_mean(
+            sl["dataset"], sl["variable"], tuple(sl["box"]), iso(max(f0, now - 10 * 86_400)), sl["site"], "sea_level_anomaly", "m")
+            + (_erddap.ErddapAdapter(store, sl["server"]).fetch_grid_mean(
+                sl["dataset"], sl["variable"], tuple(sl["box"]), iso(f0), sl["site"], "sea_level_anomaly", "m", until_iso=iso(now - 10 * 86_400))
+               if f0 < now - 10 * 86_400 else 0))
     # DWR's daily reservoir and snow reports, for the dams that show them.
     res = [s["site"] for s in ocfg.get("structures", []) if s.get("storage_report")]
     if not args.forecast_only and (res or any(s.get("snow") for s in ocfg.get("structures", []))):
