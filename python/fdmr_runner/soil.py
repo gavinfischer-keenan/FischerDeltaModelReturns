@@ -10,9 +10,14 @@ islands, and round the Bay. So soil moisture is kept for:
 - `area:<name>`: each of [[soil_moisture.areas]], a box (west, south, east,
   north).
 
-Each cycle publishes every area's latest values, and how its root zone has
-changed over the last week: a record for the validation work (#9), to see
-whether storm misses follow wet ground, before any use as an input.
+With it, the water reaching the same ground: the National Weather Service's
+daily precipitation analysis (fdmr_adapters.nws_precip: radar adjusted to
+gauges, beside the PRISM normal) and SNODAS's daily snowmelt and snowpack
+(fdmr_adapters.snodas: modelled). Each cycle publishes every area's latest
+soil moisture and how its root zone has changed over the last week, its rain
+over the last day and week against normal, and its snowmelt over the week: a
+record for the validation work (#9), to see whether storm misses follow wet
+ground and heavy rain or melt, before any use as an input.
 """
 
 from __future__ import annotations
@@ -61,6 +66,34 @@ def _latest(store: Store, site: str, p: str, t0: int, t1: int):
     return vs[-1] if vs else None
 
 
+def _sum(store: Store, source: str, site: str, p: str, t0: int, t1: int) -> tuple[float, int]:
+    vs = [v.value for v in store.values(source, site, p, t0, t1) if v.value is not None]
+    return float(sum(vs)), len(vs)
+
+
+def water_in(store: Store, site: str, now: int) -> dict:
+    """An area's rain over its latest day and the 7 days to it, against the
+    normal for those days, and its snowmelt over the 7 days to the latest day
+    SNODAS gives, with its snowpack then (mm)."""
+    out: dict = {}
+    last = store.latest("nws-precip", site, "precipitation_24h")
+    if last and last[0] >= now - 4 * 86_400:
+        t = last[0]
+        day, _ = _sum(store, "nws-precip", site, "precipitation_24h", t, t + 1)
+        week, nw = _sum(store, "nws-precip", site, "precipitation_24h", t - 6 * 86_400, t + 1)
+        normal, nn = _sum(store, "nws-precip", site, "precipitation_normal_24h", t - 6 * 86_400, t + 1)
+        out.update({"rain_day_end": t, "rain_24h_mm": round(day, 1), "rain_7d_mm": round(week, 1), "rain_7d_days": nw})
+        if nn == nw and normal > 0:
+            out["rain_7d_percent_normal"] = round(100 * week / normal)
+    last = store.latest("snodas", site, "snow_water_equivalent")
+    if last and last[0] >= now - 4 * 86_400:
+        t = last[0]
+        melt, nm = _sum(store, "snodas", site, "snowmelt_24h", t - 6 * 86_400, t + 1)
+        swe, _ = _sum(store, "snodas", site, "snow_water_equivalent", t, t + 1)
+        out.update({"snow_day_end": t, "snowmelt_7d_mm": round(melt, 1), "snowmelt_7d_days": nm, "snow_water_mm": round(swe, 1)})
+    return out
+
+
 def summary(region_dir: Path, store: Store, now: int) -> dict | None:
     """Each area's latest soil moisture and its root zone's change over a week."""
     al = areas(region_dir)
@@ -80,6 +113,7 @@ def summary(region_dir: Path, store: Store, now: int) -> dict | None:
         week = _latest(store, a["site"], "soil_moisture_rootzone", rz.t - 7 * 86_400 - 3 * 3600, rz.t - 7 * 86_400 + 1)
         if week is not None:
             row["rootzone_change_7d"] = round(rz.value - week.value, 3)
+        row.update(water_in(store, a["site"], now))
         rows.append(row)
     return {"source": "NASA SMAP Level 4 SPL4SMGP v008 (NSIDC DAAC)", "corridor_m": float(load(region_dir).get("corridor_m", 10_000.0)),
             "areas": rows}

@@ -20,7 +20,6 @@ period's middle, as the mean over the area's land cells:
 from __future__ import annotations
 
 import io
-import math
 import time
 import urllib.error
 import urllib.parse
@@ -31,6 +30,7 @@ from urllib.parse import urlencode
 
 import numpy as np
 
+from .areas import members as _members
 from .http import USER_AGENT, HttpJsonClient, JsonClient
 
 SOURCE = "smap"
@@ -98,18 +98,9 @@ def read_nc4(data: bytes) -> dict[str, np.ndarray]:
 
 
 def members(lat: np.ndarray, lon: np.ndarray, area: dict) -> np.ndarray:
-    """The cells (rows by lat, columns by lon) inside an area: a `box` (west,
-    south, east, north), or within `radius_m` of any of its `points`."""
+    """The cells (rows by lat, columns by lon) inside an area (fdmr_adapters.areas)."""
     la, lo = np.meshgrid(lat, lon, indexing="ij")
-    if "box" in area:
-        w, s, e, n = area["box"]
-        return (lo >= w) & (lo <= e) & (la >= s) & (la <= n)
-    m = np.zeros(la.shape, bool)
-    for plo, pla in area["points"]:
-        dx = (lo - plo) * 111_320.0 * math.cos(math.radians(pla))
-        dy = (la - pla) * 110_574.0
-        m |= dx * dx + dy * dy <= area["radius_m"] ** 2
-    return m
+    return _members(la, lo, area)
 
 
 class SmapAdapter:

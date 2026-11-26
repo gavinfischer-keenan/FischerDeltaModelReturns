@@ -222,6 +222,12 @@ def main(argv: list[str] | None = None) -> int:
         from fdmr_adapters.smap import SmapAdapter
 
         attempt("smap soil moisture", lambda: SmapAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
+        # The water reaching the same ground: rain (radar and gauges) and snowmelt.
+        from fdmr_adapters.nws_precip import NwsPrecipAdapter
+        from fdmr_adapters.snodas import SnodasAdapter
+
+        attempt("nws precipitation", lambda: NwsPrecipAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
+        attempt("snodas snowmelt", lambda: SnodasAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
     # DWR's daily reservoir and snow reports, for the dams that show them.
     res = [s["site"] for s in ocfg.get("structures", []) if s.get("storage_report")]
     if not args.forecast_only and (res or any(s.get("snow") for s in ocfg.get("structures", []))):
