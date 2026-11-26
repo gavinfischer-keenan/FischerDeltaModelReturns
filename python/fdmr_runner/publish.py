@@ -103,6 +103,23 @@ def dispersion_field(field, records, slopes):
     return out
 
 
+def element_widths(field, records) -> list[float]:
+    """Each element's water-surface width, m, at its median flow over the
+    published steps: the channel shape fitted at the gauges either side
+    (USGS field measurements), taken between them as the routing does."""
+    chain = sorted(r.chainage for r in records)
+    shapes = [r.shape for r in sorted(records, key=lambda r: r.chainage)]
+    out = []
+    for e, el in enumerate(field.elements):
+        k = max(0, min(len(chain) - 2, sum(1 for c in chain[1:-1] if c <= el.mid)))
+        span = chain[k + 1] - chain[k]
+        f = 0.0 if span <= 0 else min(1.0, max(0.0, (el.mid - chain[k]) / span))
+        shape = channel.between(shapes[k], shapes[k + 1], f)
+        q = sorted(field.flow[i][e] for i in range(field.steps))[field.steps // 2]
+        out.append(round(shape.width(max(q, 1e-3)), 1))
+    return out
+
+
 def river_chain(region_dir: Path, reach: str):
     """The reach's release and main gauges, upstream to downstream, and their chainage (m)."""
     region = load_region(region_dir)
@@ -218,10 +235,11 @@ def publish(
     (cdir / "geometry").mkdir(exist_ok=True)
 
     els = field.elements
+    widths = element_widths(field, records)
     (cdir / "geometry" / f"{reach}.json").write_text(json.dumps({
         "reach": reach,
         "dims": 1,
-        "elements": [{"start_m": round(e.start, 1), "end_m": round(e.end, 1)} for e in els],
+        "elements": [{"start_m": round(e.start, 1), "end_m": round(e.end, 1), "width_m": w} for e, w in zip(els, widths)],
         "lines": element_lines(line, els),
     }, separators=(",", ":")), encoding="utf-8")
 

@@ -63,3 +63,13 @@ def test_geometry_carries_channel_widths_when_given():
     ch = [grid.Channel(1, 10, 11, 1000.0, [(0.0, 0.0), (0.01, 0.0)])]
     g = grid.geometry("net", ch, {10: (0.0, 0.0), 11: (0.01, 0.0)}, widths=[123.44])
     assert g["elements"][0]["width_m"] == 123.4
+
+
+def test_a_pool_carries_its_centre_when_given():
+    ex = grid.Extras(pools=[{"id": "fore", "area_m2": 1e6, "bottom_m": -2.0}], links=[{"pool": "fore", "node": 10}],
+                     stage_nodes=[], flow_nodes=[], external=[])
+    ch = [grid.Channel(1, 10, 11, 1000.0, [(0.0, 0.0), (0.01, 0.0)])]
+    nodes = {10: (0.0, 0.0), 11: (0.01, 0.0)}
+    g = grid.add_extras(grid.geometry("net", ch, nodes), ex, nodes, {}, centres={"fore": {"lon": 0.005, "lat": 0.002}})
+    assert g["pools"][0]["lon"] == 0.005 and g["pools"][0]["lat"] == 0.002
+    assert "lon" not in grid.add_extras(grid.geometry("net", ch, nodes), ex, nodes, {})["pools"][0]

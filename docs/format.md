@@ -72,7 +72,7 @@ Where each element lies, for the compute engine and for drawing. For a 1D reach:
 }
 ```
 
-`start_m` and `end_m` are distances along the reach (chainage). `lines` holds a short polyline per element, longitude and latitude, from its upstream end to its downstream end.
+`start_m` and `end_m` are distances along the reach (chainage). `width_m` (optional) is the element's water-surface width at its median flow over the published steps: a reader spreads flow particles across it, and seeds them evenly over the water's surface, as for a network. `lines` holds a short polyline per element, longitude and latitude, from its upstream end to its downstream end.
 
 ### Network geometry (1D, version 1.1)
 
@@ -106,6 +106,7 @@ A network may also have pools: well-mixed bodies of water, such as flooded islan
 "exports": [{ "name": "swp", "label": "State Water Project pumps (Banks)", "pool": "clifton_court" }]
 ```
 
+- A pool may carry `lon` and `lat`, where it lies, for drawing; without them a reader places it among the junctions it joins.
 - `links` lists every pool's connections to junctions. Their order is the order of the link field file below.
 - `exports` names the external flows that are exports: water pumped out of the network. Each sits at a `node` or in a `pool`.
 

@@ -58,7 +58,7 @@ interface Index {
   handoffs?: Handoff[];
 }
 interface LineGeometry {
-  elements: { start_m: number; end_m: number }[];
+  elements: { start_m: number; end_m: number; width_m?: number }[];
 }
 interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
@@ -102,7 +102,7 @@ interface NetRelease {
 }
 
 const PARCELS_PER_RELEASE = 20_000;
-// Flow particles per km² of water surface, the same in every network and mesh
+// Flow particles per km² of water surface, the same in every reach
 // reach, so that the water looks the same on both sides of a join: before 26
 // Nov 2026 the Delta's channels held about six times the Bay's density and its
 // particles ran into the Bay's sparse field in single file.
@@ -238,7 +238,10 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   starts = Float64Array.from(geometry.elements.map((e) => e.start_m));
   ends = Float64Array.from(geometry.elements.map((e) => e.end_m));
   days = present(await Promise.all(ix.time.days.map((d) => bytes(`${cycle}/${reach}/${d}.fdf`))));
-  particles = n;
+  // As dense over the water's surface as every other reach, where the river's widths are published.
+  particles = geometry.elements.every((x) => x.width_m !== undefined)
+    ? Math.round((PARTICLES_PER_KM2 * geometry.elements.reduce((s, x) => s + Math.max(x.width_m!, MIN_COUNTED_WIDTH_M) * (x.end_m - x.start_m), 0)) / 1e6)
+    : n;
   now = epoch(ix.now);
   start = epoch(ix.time.start);
   step = ix.time.step_s;

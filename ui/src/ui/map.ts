@@ -95,14 +95,7 @@ export function createMap(container: HTMLElement, reach: Reach, region: string):
   });
   map.once("load", () => loadedMaps.add(map));
   map.on("load", () => {
-    map.addSource("river", { type: "geojson", data: reach.asGeoJSON() });
-    map.addLayer({
-      id: "river",
-      type: "line",
-      source: "river",
-      paint: { "line-color": "#2b6cb0", "line-opacity": 0.75, "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2, 12, 10] },
-      layout: { "line-cap": "round", "line-join": "round" },
-    });
+    // No line for the river: its water shows as flow particles only, as every reach's does.
     const empty: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
     map.addSource("flow", { type: "geojson", data: empty });
     map.addLayer({
@@ -198,7 +191,7 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
     pts.push({
       type: "Feature",
       properties: { s: f.particleSpeed[i], col: riverCol(i) },
-      geometry: { type: "Point", coordinates: reach.place(f.particleX[i], f.particleLateral[i], 40) },
+      geometry: { type: "Point", coordinates: reach.place(f.particleX[i], f.particleLateral[i], reach.halfWidth(f.particleX[i])) },
     });
   }
   for (const nf of f.networks) {
@@ -237,7 +230,7 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
     ps.push({
       type: "Feature",
       properties: { c: Math.log10(Math.max(1e-9, f.parcelConcentration[i] * 1000)) }, // mg/L
-      geometry: { type: "Point", coordinates: reach.place(f.parcelX[i], lateral, 40) },
+      geometry: { type: "Point", coordinates: reach.place(f.parcelX[i], lateral, reach.halfWidth(f.parcelX[i])) },
     });
   }
   for (const nf of f.networks) {

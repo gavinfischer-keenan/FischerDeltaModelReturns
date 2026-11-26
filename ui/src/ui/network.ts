@@ -24,7 +24,8 @@ export interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
   nodes: { id: number; lon: number; lat: number; kind?: string }[];
   lines: [number, number][][];
-  pools?: { id: string; nodes: number[]; area_m2: number }[];
+  /** `lon`, `lat`: where the pool lies, if published. */
+  pools?: { id: string; nodes: number[]; area_m2: number; lon?: number; lat?: number }[];
 }
 
 export class NetworkPlace {
@@ -44,6 +45,7 @@ export class NetworkPlace {
     this.cum = geometry.lines.map(cumulative);
     const at = new Map(geometry.nodes.map((n) => [n.id, [n.lon, n.lat] as [number, number]]));
     this.poolCentre = (geometry.pools ?? []).map((p) => {
+      if (p.lon !== undefined && p.lat !== undefined) return [p.lon, p.lat];
       const pts = p.nodes.map((n) => at.get(n)).filter((x): x is [number, number] => !!x);
       if (!pts.length) return [0, 0];
       return [pts.reduce((s, q) => s + q[0], 0) / pts.length, pts.reduce((s, q) => s + q[1], 0) / pts.length];

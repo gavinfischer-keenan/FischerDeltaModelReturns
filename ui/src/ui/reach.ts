@@ -3,7 +3,8 @@
 // chainage into longitude and latitude using the published element lines.
 
 export interface ReachGeometry {
-  elements: { start_m: number; end_m: number }[];
+  /** `width_m`: the water's width there (docs/format.md). */
+  elements: { start_m: number; end_m: number; width_m?: number }[];
   lines: [number, number][][];
 }
 
@@ -43,6 +44,12 @@ export class Reach {
     return pointOnLine(this.geometry.lines[e], this.cum[e], f, lateral, halfWidthM);
   }
 
+  /** Half the river's width at chainage x, m, to spread its particles across. */
+  halfWidth(x: number): number {
+    const w = this.geometry.elements[this.element(x)]?.width_m;
+    return w && w > 0 ? w / 2 : 40;
+  }
+
   /** The chainage nearest a point, for snapping a click to the river. */
   nearest(lon: number, lat: number): { x: number; metres: number } {
     let best = { x: 0, metres: Infinity };
@@ -55,11 +62,6 @@ export class Reach {
       });
     });
     return best;
-  }
-
-  /** Every element line, for drawing the river. */
-  asGeoJSON(): GeoJSON.Feature<GeoJSON.MultiLineString> {
-    return { type: "Feature", properties: {}, geometry: { type: "MultiLineString", coordinates: this.geometry.lines } };
   }
 
   bounds(): [[number, number], [number, number]] {

@@ -456,6 +456,15 @@ site = "JER"
 duration = "E"
 parameter = "specific_conductance"
 
+# Where a pool lies, for drawing its water, where the junctions it joins do not
+# say: a pool joined at one point on its edge would otherwise be drawn about
+# that point, half off its water. Each is the centroid of the USGS National
+# Hydrography Dataset's waterbody outline (Waterbody - Large Scale, read 26 Nov
+# 2026).
+[pool_centres]
+clifton_court = { lon = -121.5754, lat = 37.8386 }   # "Clifton Court Forebay", 8.96 km2 (DSM2: 8.53)
+liberty = { lon = -121.6796, lat = 38.2788 }         # Liberty Island's flooded area, unnamed, 12.9 km2
+
 # DSM2's external flows that are exports: water pumped out of the Delta, which a
 # release can be carried into (Phase 2's "toward the pumps"). Name in DSM2, and
 # the words shown for it. Every other withdrawal (farm intakes, small
