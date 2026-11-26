@@ -27,6 +27,12 @@ kind = "2d-field"
 flow_source = "noaa-ofs:sfbofs"
 certainty = { solid_days = 2, floor = 0.2 }
 
+[[reaches]]
+id = "canals"
+name = "Export canals, from the Delta's pumps"
+kind = "canal-network"   # canals.toml; fdmr_runner.canals
+certainty = { solid_days = 5, floor = 0.2 }
+
 [[handoffs]]
 from = "river"
 to = "delta"
@@ -38,6 +44,11 @@ source = "sac"   # the water-source group (dsm2.toml [fingerprint]) the river's 
 from = "delta"
 to = "bay"
 at = "Chipps Island line"
+
+[[handoffs]]
+from = "delta"
+to = "canals"
+at = "the Delta model's exports that feed a canal (canals.toml)"
 
 # River gauges, upstream to downstream (USGS site numbers, confirmed 25 Nov 2026).
 # forecast: the River Forecast Center point whose flow forecast continues the gauge

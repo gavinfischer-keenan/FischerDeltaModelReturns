@@ -8,7 +8,8 @@
 // a few minutes of model time at a time, and pass parcels between them where
 // the index joins them (specification 7.4): from the river's end into a
 // network at a junction; between a network and a mesh both ways, where the
-// mesh covers some of the network's channels (index.json `handoffs`). Each
+// mesh covers some of the network's channels; and from a network's pumps into
+// the canals they feed, a network of their own (index.json `handoffs`). Each
 // parcel belongs to one reach at a time, with its mass, so the total balances.
 
 import init, { Engine, MeshEngine, NetworkEngine } from "./pkg/fdmr_wasm.js";
@@ -16,6 +17,7 @@ import type { Frame, Layer, MeshFrame, NetworkFrame, Reply, Request, Words } fro
 
 interface ReachEntry {
   id: string;
+  kind?: string;
   certainty: number[];
   network?: boolean;
   dims?: number;
@@ -39,6 +41,8 @@ interface Handoff {
   /** Where the join's line crosses a channel (docs/format.md, handoffs). */
   cuts?: Cut[];
   junctions?: Junction[];
+  /** A network's exports that carry on into the canals: each enters this junction of the `to` network. */
+  outlets?: { export: string; node: number }[];
 }
 interface Cut {
   element: number;
@@ -60,6 +64,7 @@ interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
   nodes: { id: number; kind?: string }[];
   pools?: { id: string }[];
+  exports?: { name: string; node?: number; pool?: string }[];
   links?: { pool: string; node: number }[];
 }
 interface MeshGeometry {
@@ -129,6 +134,8 @@ const MESH_DIFFUSIVITY = 1.1;
 // Reaches pass parcels to each other this often, s of model time. A parcel
 // handed back waits at most this long at the join.
 const EXCHANGE_S = 300;
+// How a network says where it passed something on (fdmr-wasm `take_handed`).
+const JUNCTION = 0, CUT = 1, OUTLET = 2;
 
 let engine: Engine | null = null;
 let days: Uint8Array[] = [];
@@ -178,6 +185,14 @@ interface Net {
   widths: Float64Array | null;
   /** How many flow particles it carries. */
   count: number;
+  /** Canals: what reaches it is pumped out of another network. */
+  canal: boolean;
+  /** Each named export's junction, or pool after the junctions (as the engine counts them). */
+  exportAt: Map<string, number>;
+  /** Each junction id's index. */
+  nodeIndex: Map<number, number>;
+  /** Where each of its outlets leads (set_outlets order): a network and its junction index. */
+  outlets: { to: string; node: number }[];
 }
 const nets: Net[] = [];
 
@@ -245,8 +260,11 @@ async function loadNetwork(cycle: string, id: string, netDays: string[]): Promis
   const poolIndex = new Map((g.pools ?? []).map((p, i) => [p.id, i]));
   const ix = (k: number) => nodeIndex.get(k) ?? 0;
   const [channels, nodeDays, linkDays] = await Promise.all(
+    // A network without pools (the canals) publishes no link files.
     ["", ".nodes", ".links"].map((suffix) =>
-      Promise.all(netDays.map((d) => bytes(`${cycle}/${id}/${d}${suffix}.fdf`))).then(present),
+      suffix === ".links" && !g.links?.length
+        ? Promise.resolve([])
+        : Promise.all(netDays.map((d) => bytes(`${cycle}/${id}/${d}${suffix}.fdf`))).then(present),
     ),
   );
   const entryNode = index?.handoffs?.find((h) => h.from === riverId && h.to === id)?.node;
@@ -272,6 +290,10 @@ async function loadNetwork(cycle: string, id: string, netDays: string[]): Promis
     days: netDays,
     quality: null,
     count: NETWORK_PARTICLES,
+    canal: index?.reaches.find((r) => r.id === id)?.kind === "canal-network",
+    exportAt: new Map((g.exports ?? []).map((e) => [e.name, e.node !== undefined ? ix(e.node) : g.nodes.length + (poolIndex.get(e.pool ?? "") ?? 0)])),
+    nodeIndex,
+    outlets: [],
     widths: g.elements.every((e) => e.width_m !== undefined) ? Float64Array.from(g.elements.map((e) => e.width_m!)) : null,
   });
   if (QUALITY_LAYERS.has(layer)) await loadQuality();
@@ -355,6 +377,21 @@ function build(t: number): void {
     ne.set_handoff(Uint32Array.from(owned));
     const cuts = index?.handoffs?.filter((h) => h.from === net.id && h.cuts && meshes.some((m) => m.id === h.to)).flatMap((h) => h.cuts!) ?? [];
     ne.set_cuts(Uint32Array.from(cuts.map((c) => c.element)), Float64Array.from(cuts.map((c) => c.at)), Uint8Array.from(cuts.map((c) => (c.inside === "down" ? 1 : 0))));
+    // Exports feeding a canal that is loaded carry on into it; the rest leave the model.
+    net.outlets = [];
+    const at: number[] = [];
+    for (const h of index?.handoffs ?? []) {
+      const to = nets.find((n) => n.id === h.to);
+      if (h.from !== net.id || !h.outlets || !to) continue;
+      for (const o of h.outlets) {
+        const i = net.exportAt.get(o.export);
+        const node = to.nodeIndex.get(o.node);
+        if (i === undefined || node === undefined) continue;
+        at.push(i);
+        net.outlets.push({ to: to.id, node });
+      }
+    }
+    ne.set_outlets(Uint32Array.from(at));
     if (netFlow) ne.set_net_flow(true);
     net.count = NETWORK_PARTICLES;
     if (net.widths) {
@@ -413,9 +450,18 @@ function run(to: number): void {
     // Networks on, then into the meshes that track some of their channels.
     for (const net of nets) {
       net.engine!.step_to(t);
-      const h = net.engine!.take_handed(); // (junction or -1, cut or -1, time, mass, half-life) ...
+      const h = net.engine!.take_handed(); // (kind, index, time, mass, half-life) ...
       for (let i = 0; i + 4 < h.length; i += 5) {
-        const at = crossingOut(net, h[i], h[i + 1]);
+        if (h[i] === OUTLET) {
+          const o = net.outlets[h[i + 1]];
+          const to = o && nets.find((n) => n.id === o.to);
+          if (to?.engine) {
+            to.engine.take_parcel(o.node, h[i + 3], h[i + 4]);
+            handedIn += h[i + 3];
+          }
+          continue;
+        }
+        const at = crossingOut(net, h[i] === JUNCTION ? h[i + 1] : -1, h[i] === CUT ? h[i + 1] : -1);
         if (at && at.mesh.engine!.take_parcel(at.x, at.y, h[i + 3], h[i + 2], h[i + 4])) handedIn += h[i + 3];
       }
     }
@@ -499,10 +545,15 @@ function crossingIn(m: Mesh, edge: number, x: number, y: number): { net: Net; cu
  * Delta carries on as a plume in the Bay, and the other way. */
 function exchangeParticles(): void {
   for (const net of nets) {
-    const h = net.engine?.take_handed_particles(); // (junction or -1, cut or -1) ...
+    const h = net.engine?.take_handed_particles(); // (kind, index) ...
     if (!h?.length) continue;
     for (let i = 0; i + 1 < h.length; i += 2) {
-      const at = crossingOut(net, h[i], h[i + 1]);
+      if (h[i] === OUTLET) {
+        const o = net.outlets[h[i + 1]];
+        nets.find((n) => n.id === o?.to)?.engine?.take_particle(o.node);
+        continue;
+      }
+      const at = crossingOut(net, h[i] === JUNCTION ? h[i + 1] : -1, h[i] === CUT ? h[i + 1] : -1);
       if (at) at.mesh.engine!.take_particle(at.x, at.y);
     }
   }
@@ -543,7 +594,7 @@ function words(c: number, t: number): Words {
 function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Float64Array {
   const [rReleased, rIn, rPast, rDecayed] = engine!.mass_balance();
   const taken = nets.some((n) => n.entry !== null && n.engine);
-  const out = new Float64Array(8);
+  const out = new Float64Array(10);
   out[0] = rReleased - handedIn;
   out[1] = rIn;
   out[2] = taken ? 0 : rPast; // handed on, it is counted in the network instead
@@ -551,9 +602,14 @@ function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Flo
   for (const n of networks) {
     const [released, inWater, exported, diverted, toSea, decayed] = n.massBalance;
     out[0] += released;
-    out[1] += inWater;
     out[3] += decayed;
-    out[4] += exported;
+    if (nets.find((x) => x.id === n.id)?.canal) {
+      out[8] += inWater; // in the canals, so far
+      out[9] += exported; // carried on down them, beyond the map
+    } else {
+      out[1] += inWater;
+      out[4] += exported;
+    }
     out[5] += diverted;
     out[6] += toSea;
   }

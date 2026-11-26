@@ -9,7 +9,7 @@
 #                      forecast for every region with a bay (regions/<id>/bay.toml),
 #                      every 6 hours
 #
-# Every publish includes the region's latest DSM2 run and Bay forecast as reaches
+# Every publish includes the region's latest DSM2 run, its export canals and Bay forecast as reaches
 # of their own. A
 # region's failure does not stop the next one. A cycle still running when the
 # next is due makes the next one wait its turn (flock).
@@ -46,6 +46,14 @@ for region in $REGIONS; do
     "$PY" -m fdmr_runner.delta "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$delta/runs" \
       --publish "$delta/published" || status=1
   fi
+  canals="$DATA/canals/$region"
+  if [ "$MODE" = delta ] && [ -f "$ROOT/regions/$region/canals.toml" ] && [ -e "$delta/published/latest" ]; then
+    echo "== $region: canals"
+    mkdir -p "$canals/published"
+    "$PY" -m fdmr_runner.canals publish "$ROOT/regions/$region" "$delta/published/latest" "$canals/published" || status=1
+  fi
+  with_canals=""
+  [ -e "$canals/published/latest" ] && with_canals="--with-reach $canals/published/latest"
   bay="$DATA/bay/$region"
   if [ "$MODE" = delta ] && [ -f "$ROOT/regions/$region/bay.toml" ]; then
     echo "== $region: Bay (NOAA)"
@@ -55,6 +63,6 @@ for region in $REGIONS; do
   fi
   echo "== $region: publish"
   "$PY" -m fdmr_runner.publish "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$DATA/publish/$region" \
-    --calibration "$DATA/calibration/$region.json" --with-reach "$delta/published/latest"     --with-reach "$bay/published/latest" || status=1
+    --calibration "$DATA/calibration/$region.json" --with-reach "$delta/published/latest"     --with-reach "$bay/published/latest" $with_canals || status=1
 done
 exit $status

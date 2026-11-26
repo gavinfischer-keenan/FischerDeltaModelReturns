@@ -84,7 +84,8 @@ export interface Frame {
   parcelConcentration: Float64Array;
   /** Every reach together, kg: [released so far, in the water, past the end of
    * the last reach, broken down, taken by the pumps, taken by other diversions,
-   * out of a network at its sea boundary, out of a mesh to the open ocean].
+   * out of a network at its sea boundary, out of a mesh to the open ocean,
+   * in the export canals so far, carried on down the canals beyond the map].
    * Mass handed from one reach to the next is counted once. */
   massBalance: Float64Array;
   /** Certainty of the flow at this moment, 1 down toward 0 (specification 8.2). */

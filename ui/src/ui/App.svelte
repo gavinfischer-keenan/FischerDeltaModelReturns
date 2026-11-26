@@ -35,7 +35,7 @@
   let playing = $state(false);
   let hoursPerSecond = $state(2);
   let t = $state(0);
-  let balance = $state<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  let balance = $state<number[]>([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
   const LAYERS: Layer[] = ["plain", "contaminant", "speed", "temperature", "salinity", "level", "source"];
   let layer = $state<Layer>("plain");
   let sources = $state<string[]>([]);
@@ -376,6 +376,8 @@
       {#if balance[0] > 0}
         <div class="balance">
           {text.mass_in_water}: {balance[1].toFixed(1)} kg
+          {#if balance[8] > 0} · {text.mass_in_canals}: {balance[8].toFixed(1)} kg{/if}
+          {#if balance[9] > 0} · {text.mass_down_canals}: {balance[9].toFixed(1)} kg{/if}
           {#if balance[4] > 0} · {text.mass_pumped}: {balance[4].toFixed(1)} kg{/if}
           {#if balance[5] > 0} · {text.mass_diverted}: {balance[5].toFixed(1)} kg{/if}
           {#if balance[6] > 0} · {text.mass_to_sea}: {balance[6].toFixed(1)} kg{/if}

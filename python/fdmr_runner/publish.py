@@ -280,6 +280,11 @@ def publish(
 
             geo = lambda r: json.loads((cdir / "geometry" / f"{r}.json").read_text(encoding="utf-8"))  # noqa: E731
             joins.append(network_to_mesh(h["from"], geo(h["from"]), h["to"], geo(h["to"])))
+        elif a and b and a.get("network") and b.get("kind") == "canal-network":
+            # A network's exports carrying on into the canals (fdmr_runner.canals):
+            # each named export enters its canal's first junction.
+            g = json.loads((cdir / "geometry" / f"{h['to']}.json").read_text(encoding="utf-8"))
+            joins.append({"from": h["from"], "to": h["to"], "outlets": [{"export": i["export"], "node": i["node"]} for i in g["inlets"]]})
     if joins:
         index["handoffs"] = joins  # format 1.1: where parcels leaving one reach enter the next
     # What is drawn over the water: X2, the stations' readings (fdmr_runner.overlays).

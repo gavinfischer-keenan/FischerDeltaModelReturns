@@ -31,6 +31,8 @@
   "updated": "Conditions updated",
   "error": "Something went wrong:",
   "mass_pumped": "Taken by the pumps",
+  "mass_in_canals": "In the export canals",
+  "mass_down_canals": "Carried on down the canals",
   "mass_diverted": "Taken by other diversions",
   "mass_to_sea": "Out to the Bay",
   "mass_to_ocean": "Out to the ocean",

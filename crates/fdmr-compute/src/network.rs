@@ -60,6 +60,31 @@ pub enum Fate {
     HandedOn(usize),
     /// Passed to another reach at this cut (see `set_cuts`).
     Crossed(usize),
+    /// Pumped out at this outlet into another reach, such as a canal (see `set_outlets`).
+    Outlet(usize),
+}
+
+/// Where something was passed to another reach.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Via {
+    /// At this junction (`set_handoff`).
+    Junction(usize),
+    /// At this cut (`set_cuts`).
+    Cut(usize),
+    /// Through this outlet (`set_outlets`).
+    Outlet(usize),
+}
+
+impl Fate {
+    /// Where it went on to another reach, if it did.
+    fn via(self) -> Option<Via> {
+        match self {
+            Fate::HandedOn(n) => Some(Via::Junction(n)),
+            Fate::Crossed(k) => Some(Via::Cut(k)),
+            Fate::Outlet(k) => Some(Via::Outlet(k)),
+            Fate::Exported | Fate::Diverted | Fate::ToSea => None,
+        }
+    }
 }
 
 /// A release into the network.
@@ -95,14 +120,11 @@ pub struct NetBalance {
     pub handed_on: f64,
 }
 
-/// A parcel passed to another reach: at junction `node`, at time `t` (s), with
+/// A parcel passed to another reach: where (`via`), at time `t` (s), with
 /// its mass (kg) and half-life (s, if it breaks down).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Handed {
-    /// The junction it was passed on at, or `usize::MAX` if at a cut.
-    pub node: usize,
-    /// The cut it was passed on at (`set_cuts`), if at one.
-    pub cut: Option<usize>,
+    pub via: Via,
     pub t: f64,
     pub mass: f64,
     pub half_life: Option<f64>,
@@ -147,7 +169,7 @@ pub struct NetworkTracer {
     ages: Vec<f64>,
     lives: Vec<f64>,
     /// Flow particles passed to another reach: the junction each reached.
-    handed_particles: Vec<(usize, Option<usize>)>,
+    handed_particles: Vec<Via>,
     balance: NetBalance,
     /// Channels another reach tracks (such as a bay's, where a mesh covers them).
     handed_channel: Vec<bool>,
@@ -160,6 +182,9 @@ pub struct NetworkTracer {
     /// Each channel's water-surface width, m, if given (`set_widths`): flow
     /// particles then start evenly over the water's surface, as on a mesh.
     widths: Vec<f64>,
+    /// Per junction then pool, the outlet its exports go through to another
+    /// reach, if any (`set_outlets`).
+    outlet: Vec<Option<usize>>,
     handed: Vec<Handed>,
 }
 
@@ -207,6 +232,7 @@ impl NetworkTracer {
             cut: Vec::new(),
             cuts: Vec::new(),
             widths: Vec::new(),
+            outlet: Vec::new(),
             handed: Vec::new(),
         }
     }
@@ -231,6 +257,28 @@ impl NetworkTracer {
     /// open water next to it. Without it they start by volume.
     pub fn set_widths(&mut self, widths: &[f64]) {
         self.widths = widths.to_vec();
+    }
+
+    /// Exports that carry on into another reach (the export canals): each a
+    /// junction, or a pool given as the number of junctions plus its index.
+    /// What its pumps take is passed on through that outlet (`take_handed`,
+    /// with the outlet's number, its index here) instead of leaving the
+    /// model. Other exports still take things out of the model.
+    pub fn set_outlets(&mut self, at: &[usize]) {
+        self.outlet = vec![None; self.topo.nodes + self.topo.pools];
+        for (k, &i) in at.iter().enumerate() {
+            if let Some(o) = self.outlet.get_mut(i) {
+                *o = Some(k);
+            }
+        }
+    }
+
+    /// What becomes of what the pumps take at junction or pool `i`.
+    fn exported(&self, i: usize) -> Fate {
+        match self.outlet.get(i).copied().flatten() {
+            Some(k) => Fate::Outlet(k),
+            None => Fate::Exported,
+        }
     }
 
     /// Places where another reach takes over part way along a channel (the
@@ -346,7 +394,7 @@ impl NetworkTracer {
     }
 
     /// Flow particles passed to another reach since the last call: the junction each reached.
-    pub fn take_handed_particles(&mut self) -> Vec<(usize, Option<usize>)> {
+    pub fn take_handed_particles(&mut self) -> Vec<Via> {
         std::mem::take(&mut self.handed_particles)
     }
 
@@ -642,7 +690,7 @@ impl NetworkTracer {
             }
         }
         if now.export[n] > 0.0 {
-            ways.push((Place::Gone(Fate::Exported), now.export[n]));
+            ways.push((Place::Gone(self.exported(n)), now.export[n]));
         }
         if now.withdrawal[n] > 0.0 {
             ways.push((Place::Gone(Fate::Diverted), now.withdrawal[n]));
@@ -679,7 +727,7 @@ impl NetworkTracer {
                     }
                     let i = self.topo.nodes + p;
                     if now.export[i] > 0.0 {
-                        ways.push((PoolExit::Gone(Fate::Exported), now.export[i]));
+                        ways.push((PoolExit::Gone(self.exported(i)), now.export[i]));
                     }
                     if now.withdrawal[i] > 0.0 {
                         ways.push((PoolExit::Gone(Fate::Diverted), now.withdrawal[i]));
@@ -782,25 +830,16 @@ impl NetworkTracer {
                         Fate::Exported => self.balance.exported += mass,
                         Fate::Diverted => self.balance.diverted += mass,
                         Fate::ToSea => self.balance.to_sea += mass,
-                        Fate::HandedOn(node) => {
+                        Fate::HandedOn(_) | Fate::Crossed(_) | Fate::Outlet(_) => {
                             self.balance.handed_on += mass;
-                            self.handed.push(Handed {
-                                node,
-                                cut: None,
-                                t: self.time + dt,
-                                mass,
-                                half_life: p.half_life,
-                            });
-                        }
-                        Fate::Crossed(k) => {
-                            self.balance.handed_on += mass;
-                            self.handed.push(Handed {
-                                node: usize::MAX,
-                                cut: Some(k),
-                                t: self.time + dt,
-                                mass,
-                                half_life: p.half_life,
-                            });
+                            if let Some(via) = fate.via() {
+                                self.handed.push(Handed {
+                                    via,
+                                    t: self.time + dt,
+                                    mass,
+                                    half_life: p.half_life,
+                                });
+                            }
                         }
                     }
                 }
@@ -840,15 +879,13 @@ impl NetworkTracer {
             // A particle that leaves, settles in a pool or has lived its life starts again elsewhere.
             let renew = match p {
                 Place::Channel(..) => self.ages[i] > self.lives[i],
-                Place::Gone(Fate::HandedOn(node)) => {
-                    self.handed_particles.push((node, None));
+                Place::Gone(fate) => {
+                    if let Some(via) = fate.via() {
+                        self.handed_particles.push(via);
+                    }
                     true
                 }
-                Place::Gone(Fate::Crossed(k)) => {
-                    self.handed_particles.push((usize::MAX, Some(k)));
-                    true
-                }
-                _ => true,
+                Place::Pool(_) => true,
             };
             if renew {
                 self.particles[i] = self.random_place(now);
@@ -1183,7 +1220,7 @@ mod tests {
         let junction = t.topo.down[0];
         assert!(handed
             .iter()
-            .all(|h| h.node == junction && h.t > 0.0 && h.t <= 600.0));
+            .all(|h| h.via == Via::Junction(junction) && h.t > 0.0 && h.t <= 600.0));
         assert!(t.take_handed().is_empty(), "each parcel is handed on once");
         assert!(t
             .parcels
@@ -1361,12 +1398,7 @@ mod tests {
             }
         }
         let handed = t.take_handed();
-        assert!(
-            !handed.is_empty()
-                && handed
-                    .iter()
-                    .all(|h| h.cut == Some(0) && h.node == usize::MAX)
-        );
+        assert!(!handed.is_empty() && handed.iter().all(|h| h.via == Via::Cut(0)));
         // Coming back: in at the cut, moving out of the other reach's part.
         t.take_parcel_at_cut(0, 1.0, None);
         assert!(
@@ -1380,6 +1412,63 @@ mod tests {
             }
         }
         assert!(t.take_particle_at_cut(0));
+    }
+
+    #[test]
+    fn an_export_with_an_outlet_passes_things_on_instead_of_removing_them() {
+        // Channel 0 from junction 0 to junction 1, where pumps take a quarter
+        // and carry it on into a canal (outlet 0); the rest goes on to sea.
+        let mut t = NetworkTracer::new(
+            Topology {
+                up: vec![0],
+                down: vec![1],
+                length: vec![1000.0],
+                nodes: 2,
+                sea: vec![1],
+                pools: 0,
+                link_pool: vec![],
+                link_node: vec![],
+            },
+            0.0,
+            3,
+            0.0,
+        );
+        t.load_channels(&channels(400, &[40.0])).unwrap();
+        let rep = |v: Vec<f32>| {
+            v.iter()
+                .copied()
+                .cycle()
+                .take(v.len() * 400)
+                .collect::<Vec<_>>()
+        };
+        t.load_nodes(&file(
+            0,
+            400,
+            2,
+            vec![
+                ("export", rep(vec![0.0, 10.0])),
+                ("withdrawal", rep(vec![0.0, 0.0])),
+                ("volume", rep(vec![f32::NAN; 2])),
+            ],
+        ))
+        .unwrap();
+        t.set_outlets(&[1]);
+        t.add_release(NetRelease {
+            at: Place::Channel(0, 0.0),
+            start: 0.0,
+            duration: 0.0,
+            mass: 1.0,
+            half_life: None,
+            parcels: 4000,
+        });
+        t.seed_flow_particles(500);
+        t.step_to(1200.0);
+        let b = t.balance();
+        assert_eq!(b.exported.to_bits(), 0.0_f64.to_bits(), "{b:?}");
+        assert!((b.handed_on - 0.25).abs() < 0.03, "{b:?}");
+        let handed = t.take_handed();
+        assert!(!handed.is_empty() && handed.iter().all(|h| h.via == Via::Outlet(0)));
+        assert!(t.take_handed_particles().contains(&Via::Outlet(0)));
     }
 
     #[test]

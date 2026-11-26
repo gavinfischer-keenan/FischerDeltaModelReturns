@@ -165,6 +165,14 @@ Where a network reach meets a mesh reach that covers some of its water (the Delt
 
 The model runner makes the mesh's flow through its edges by each cut equal the network's flow in that channel at the cut, hour by hour, and the mesh's water quality meet the network's there (specification 7.4; published as the mesh reach's `outflow_correction` and `quality_seam`).
 
+Where a network's pumps feed canals (a reach of kind `canal-network`), the join lists `outlets` instead:
+
+```json
+{ "from": "delta", "to": "canals", "outlets": [{ "export": "swp", "node": 1 }, "..."] }
+```
+
+Each names one of the giving network's `exports` and the junction of the canals reach its water enters. What that export's pumps take, parcels and flow particles, is passed on there instead of leaving the model; the network's other exports still take things out. The canals reach is itself a network (its geometry also lists `inlets`, the same pairs). Each canal is a chain of channels, its flow at every moment the giving network's export, the same along it. Its `exports` are each canal's last junction, where the water is carried on beyond the map. Its `quality_fields` are the intake's, carried down at the water's travel time (`fdmr_runner.canals`; regions/<id>/canals.toml gives each canal's route, its end and its sourced cross-sections).
+
 Each parcel belongs to one reach at a time, with its mass, so the reaches together conserve mass whatever their two flows do (specification 7.4).
 
 ## Field files (`.fdf`)

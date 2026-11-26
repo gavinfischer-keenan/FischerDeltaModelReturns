@@ -332,37 +332,36 @@ impl NetworkEngine {
     }
 
     /// Flow particles passed to another reach since the last call: flat
-    /// (junction or -1, cut or -1) for each.
+    /// (kind, index) for each, as in `take_handed`.
     pub fn take_handed_particles(&mut self) -> Vec<f64> {
-        #[allow(clippy::cast_precision_loss)]
         self.core
             .take_handed_particles()
             .into_iter()
-            .flat_map(|(n, k)| {
-                [
-                    if n == usize::MAX { -1.0 } else { n as f64 },
-                    k.map_or(-1.0, |k| k as f64),
-                ]
+            .flat_map(|v| {
+                let (kind, i) = via(v);
+                [kind, i]
             })
             .collect()
     }
 
-    /// Parcels handed on since the last call: flat (junction or -1, cut or
-    /// -1, time, mass, half-life or `NaN`) for each.
+    /// Exports that carry on into another reach: each a junction index, or a
+    /// pool as the number of junctions plus its index. Their outlets are
+    /// numbered in this order.
+    pub fn set_outlets(&mut self, at: &[u32]) {
+        let at: Vec<usize> = at.iter().map(|&i| i as usize).collect();
+        self.core.set_outlets(&at);
+    }
+
+    /// Parcels handed on since the last call: flat (kind, index, time, mass,
+    /// half-life or `NaN`) for each. Kind 0: at junction `index`; 1: at cut
+    /// `index`; 2: through outlet `index`.
     pub fn take_handed(&mut self) -> Vec<f64> {
         self.core
             .take_handed()
             .into_iter()
             .flat_map(|h| {
-                #[allow(clippy::cast_precision_loss)]
-                let node = if h.node == usize::MAX {
-                    -1.0
-                } else {
-                    h.node as f64
-                };
-                #[allow(clippy::cast_precision_loss)]
-                let cut = h.cut.map_or(-1.0, |k| k as f64);
-                [node, cut, h.t, h.mass, h.half_life.unwrap_or(f64::NAN)]
+                let (kind, i) = via(h.via);
+                [kind, i, h.t, h.mass, h.half_life.unwrap_or(f64::NAN)]
             })
             .collect()
     }
@@ -670,5 +669,17 @@ impl MeshEngine {
     pub fn mass_balance(&self) -> Vec<f64> {
         let b = self.core.balance();
         vec![b.released, b.in_water, b.to_sea, b.handed_on, b.decayed]
+    }
+}
+
+/// Where something was passed on, as (kind, index) for JavaScript: kind 0 a
+/// junction, 1 a cut, 2 an outlet.
+#[allow(clippy::cast_precision_loss)]
+fn via(v: fdmr_compute::network::Via) -> (f64, f64) {
+    use fdmr_compute::network::Via;
+    match v {
+        Via::Junction(n) => (0.0, n as f64),
+        Via::Cut(k) => (1.0, k as f64),
+        Via::Outlet(k) => (2.0, k as f64),
     }
 }
