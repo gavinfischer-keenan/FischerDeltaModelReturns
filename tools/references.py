@@ -44,9 +44,17 @@ def load(root: Path = ROOT) -> dict[str, dict]:
 def citations(root: Path = ROOT) -> dict[str, list[dict]]:
     """Every `ref:<key>` in the repository: key -> [{file, line, text}]."""
     out: dict[str, list[dict]] = {}
-    for p in sorted(root.rglob("*")):
-        rel = p.relative_to(root).as_posix()
-        if not p.is_file() or p.suffix not in SCAN or SKIP_DIRS & set(p.relative_to(root).parts) or rel in SKIP_FILES:
+    # The repository's own files (git's list), in plain text order, so the
+    # result is the same on every machine; every file where git is absent.
+    import subprocess
+
+    try:
+        rels = subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True, check=True).stdout.split("\n")
+    except (OSError, subprocess.CalledProcessError):
+        rels = [p.relative_to(root).as_posix() for p in root.rglob("*")]
+    for rel in sorted(r for r in rels if r):
+        p = root / rel
+        if not p.is_file() or p.suffix not in SCAN or SKIP_DIRS & set(Path(rel).parts) or rel in SKIP_FILES:
             continue
         for i, line in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
             for m in TOKEN.finditer(line):

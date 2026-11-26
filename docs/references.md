@@ -275,7 +275,7 @@ Used in:
 - `crates/fdmr-compute/src/series.rs:68`: A copy with every field tidally filtered (Godin's filter, ref:godin1972), element by
 - `crates/fdmr-math/src/signal.rs:138`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
 - `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press)."""
-- `python/fdmr_runner/delta.py:341`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
+- `python/fdmr_runner/delta.py:359`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
 - `python/fdmr_runner/isohaline.py:13`: Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
 - `regions/sf-bay-delta/dsm2.toml:324`: flow through the same channel filtered by Godin's filter (ref:godin1972; fdmr_runner.delta.
 
