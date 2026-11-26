@@ -1,0 +1,102 @@
+import numpy as np
+import pytest
+
+from fdmr_adapters import ecostress
+from fdmr_store import Store, Value
+
+
+def test_utm_matches_standard_values():
+    # On the central meridian the northing is 0.9996 times the meridian arc:
+    # 4,984,944.378 m from the equator to 45 degrees on WGS84.
+    e, n = ecostress.utm(-123.0, 45.0, 10)
+    assert float(e) == pytest.approx(500_000, abs=1e-6) and float(n) == pytest.approx(0.9996 * 4_984_944.378, abs=0.01)
+    # On the equator at the zone's edge, 3 degrees out: easting 833,978.56 m.
+    e, n = ecostress.utm(-120.0, 0.0, 10)
+    assert float(e) == pytest.approx(833_978.56, abs=0.01) and abs(float(n)) < 1e-6
+
+
+def test_quality_flags_keep_best_and_nominal_clear_water():
+    water = np.array([1, 1, 1, 1, 0])
+    cloud = np.array([0, 0, 0, 1, 0])
+    qc = np.array([35520, 35521, 35522, 35520, 35520])  # bits 0-1: best, nominal, cloud, best
+    wst = np.array([290.0, 291.0, 292.0, 293.0, 294.0])
+    assert ecostress.water_pixels(water, cloud, qc, wst, buffer=0).tolist() == [True, True, False, False, False]
+
+
+def test_water_beside_cloud_is_not_kept():
+    water = np.ones((1, 9), int)
+    cloud = np.zeros((1, 9), int)
+    cloud[0, 0] = 1
+    kept = ecostress.water_pixels(water, cloud, None, None, buffer=2)
+    assert kept[0].tolist() == [False, False, False, True, True, True, True, True, True]
+
+
+def make_tile(tmp_path, values: np.ndarray, t: int, x0: float, y0: float, name="a"):
+    ok = np.isfinite(values)
+    rows, cols = np.nonzero(ok)
+    p = tmp_path / f"{name}.npz"
+    np.savez_compressed(p, rows=rows.astype(np.uint16), cols=cols.astype(np.uint16), temperature=values[ok].astype(np.float32),
+                        shape=np.array(values.shape), t=t, x0=x0, y0=y0, dx=70.0, zone=10)
+    return ecostress.Tile(p)
+
+
+def lonlat_of(tile, row, col):
+    """A point at a pixel's centre, found by searching (the inverse of utm)."""
+    from scipy.optimize import minimize
+
+    target = (tile.x0 + (col + 0.5) * tile.dx, tile.y0 - (row + 0.5) * tile.dx)
+    f = lambda p: sum((np.array(ecostress.utm(p[0], p[1], 10)) - target) ** 2)
+    return minimize(f, [-122.0, 38.0], method="Nelder-Mead", options={"xatol": 1e-9, "fatol": 1e-6}).x
+
+
+def test_only_pixels_with_water_all_round_count(tmp_path):
+    e, n = ecostress.utm(-121.7, 38.05, 10)
+    v = np.full((7, 7), 15.0)
+    v[0, :] = np.nan  # land along the top row
+    tile = make_tile(tmp_path, v, 0, float(e) - 210, float(n) + 210)
+    lon, lat = lonlat_of(tile, 3, 3)
+    assert tile.pure([lon], [lat])[0] == pytest.approx(15.0)
+    lon1, lat1 = lonlat_of(tile, 1, 3)  # a neighbour is land
+    assert np.isnan(tile.pure([lon1], [lat1])[0])
+    assert tile.near(lon1, lat1) == pytest.approx(15.0)  # the bank sensor's nearest open-water pixel
+
+
+class Lookup:
+    reach = "net"
+    skip = frozenset()
+
+    def __init__(self, lines, model):
+        self.geo = {"lines": lines}
+        self.model = model
+
+    def at(self, field, k, t):
+        return self.model if field == "temperature" else None
+
+
+def test_check_scores_satellite_against_stations_and_models(tmp_path):
+    e, n = ecostress.utm(-121.7, 38.05, 10)
+    t = 1_800_000_000
+    tile = make_tile(tmp_path, np.full((9, 9), 15.0), t, float(e) - 300, float(n) + 300)
+    lon, lat = lonlat_of(tile, 4, 4)
+    store = Store()
+    store.put_values("cdec", "AAA", "water_temperature", "degC", [Value(t - 600, 14.5, None), Value(t + 3600, 9.0, None)])
+    cfg = {"satellite_temperature": {"days": 14}, "stations": [{"site": "AAA", "lon": lon, "lat": lat}]}
+    got = ecostress_check = __import__("fdmr_runner.overlays", fromlist=["x"]).satellite_temperature(
+        cfg, tmp_path, [Lookup([[[lon, lat]], [[-100.0, 10.0]]], 14.0)], store, t + 60, tiles=[tile])
+    assert got["passes"] == 1
+    assert got["stations"]["mean_difference"] == pytest.approx(0.5)
+    assert got["models"]["net"] == {"places": 1, "pairs": 1, "mean_difference": 1.0, "rms_difference": 1.0}
+    assert ecostress_check["stations"]["per_station"][0]["site"] == "AAA"
+
+
+def test_geotiff_tags_give_the_tile_position(tmp_path):
+    tifffile = pytest.importorskip("tifffile")
+    import io
+
+    buf = io.BytesIO()
+    keys = (1, 1, 0, 2, 1024, 0, 1, 1, 3072, 0, 1, 32610)
+    tifffile.imwrite(buf, np.zeros((4, 4), np.uint8), extratags=[
+        (33550, "d", 3, (70.0, 70.0, 0.0)), (33922, "d", 6, (0.0, 0.0, 0.0, 600000.0, 4300020.0, 0.0)),
+        (34735, "H", len(keys), keys)])
+    a, where = ecostress.read_tif(buf.getvalue())
+    assert a.shape == (4, 4) and where == {"x0": 600000.0, "y0": 4300020.0, "dx": 70.0, "zone": 10}

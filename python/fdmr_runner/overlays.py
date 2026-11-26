@@ -10,6 +10,9 @@ cycle: `overlays.json` beside the cycle's index.
 - Structures: dams, pumping plants and gates, with their latest readings.
 - Landmarks: named places on the water, each tied to the nearest piece of
   the model (a reach and an element), for arrival times.
+- Satellite checks (`satellite_temperature`): the water-surface temperature a
+  satellite saw against the stations' readings and against every model's
+  temperature at the moment of each pass.
 
 The region's `overlays.toml` says what each one is. Nothing here draws.
 """
@@ -186,20 +189,25 @@ def axis_km(axis: isohaline.Axis, lon: float, lat: float) -> float:
     return float(axis.line_km[int(np.argmin(np.hypot(*(xy - p).T)))])
 
 
-def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> tuple[list[dict], dict]:
+def model_lookups(cdir: Path, index: dict) -> list[NetworkValues]:
+    """Every reach that computes water quality, to look its values up."""
+    lookups = []
+    for r in index["reaches"]:
+        fields = sorted({f for f in SHOWN.values() if f and f in r.get("quality_fields", [])})
+        if fields:  # a reach without its own time block (a river) runs on the cycle's
+            lk = NetworkValues(cdir, {**r, "time": r.get("time", index["time"])}, fields)
+            lk.skip = frozenset(c for h in index.get("handoffs", []) if h.get("from") == r["id"] for c in h.get("owned", []))
+            lookups.append(lk)
+    return lookups
+
+
+def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups: list[NetworkValues] | None = None) -> tuple[list[dict], dict]:
     """Each station's latest readings, with the value of whichever model covers
     it beside (a network's channel, a river's element or a mesh's node within
     MODEL_NEAR_KM), and `checks`: its readings over the last CHECK_DAYS days
     against that model's at the same moments (mean and RMS of measured less
     modelled)."""
-    nets = [r for r in index["reaches"] if r.get("quality_fields")]
-    lookups = []
-    for r in nets:
-        fields = sorted({f for f in SHOWN.values() if f and f in r["quality_fields"]})
-        if fields:  # a reach without its own time block (a river) runs on the cycle's
-            lk = NetworkValues(cdir, {**r, "time": r.get("time", index["time"])}, fields)
-            lk.skip = frozenset(c for h in index.get("handoffs", []) if h.get("from") == r["id"] for c in h.get("owned", []))
-            lookups.append(lk)
+    lookups = model_lookups(cdir, index) if lookups is None else lookups
     units: dict[str, str] = {}
     out = []
     for st in cfg.get("stations", []):
@@ -239,6 +247,73 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> tupl
                     **({"model_reach": near[0].reach, "model_km": round(near[2], 2)} if near else {}),
                     **({"checks": checks} if checks else {})})
     return out, units
+
+
+def _summary(d: list[float]) -> dict:
+    a = np.array(d)
+    return {"pairs": int(a.size), "mean_difference": round(float(a.mean()), 2), "rms_difference": round(float(np.sqrt((a ** 2).mean())), 2)}
+
+
+def satellite_temperature(cfg: dict, cache: Path, lookups: list[NetworkValues], store: Store, now: int, tiles=None) -> dict | None:
+    """The water-surface temperature seen from orbit (overlays.toml
+    [satellite_temperature]; fdmr_adapters.ecostress) over the last `days`:
+
+    - against the stations: at each pass, each station's reading nearest in
+      time (within `reading_s`) against the satellite at the nearest pixel
+      within two pixels whose neighbours are all water, so the satellite's own
+      error is on record;
+    - against the models: at each pass inside a reach's time axis, each
+      channel, element or node whose points fall on such pixels, the mean of
+      those pixels against the model's temperature then, per reach.
+
+    Differences are the satellite less the station or the model. The
+    satellite sees the water's skin; the stations and the models, the water
+    below it."""
+    sc = cfg.get("satellite_temperature")
+    if not sc or (tiles is None and not cache.exists()):
+        return None
+    from fdmr_adapters import ecostress
+
+    tiles = tiles if tiles is not None else [ecostress.Tile(p) for p in sorted(cache.glob("*.npz"))]
+    tiles = [t for t in tiles if now - sc.get("days", 14) * 86_400 <= t.t <= now]
+    if not tiles:
+        return None
+    reading_s = sc.get("reading_s", 1800)
+    per_station: dict[str, list[float]] = {}
+    for st in cfg.get("stations", []):
+        src = st.get("source", "cdec")
+        for tl in tiles:
+            vs = [v for v in store.values(src, st["site"], "water_temperature", tl.t - reading_s, tl.t + reading_s) if v.value is not None]
+            if not vs:
+                continue
+            s = tl.near(st["lon"], st["lat"])
+            if s is not None:
+                v = min(vs, key=lambda v: abs(v.t - tl.t))
+                per_station.setdefault(st["site"], []).append(s - v.value)
+    per_reach: dict[str, dict] = {}
+    for lk in lookups:
+        seen: dict[tuple[int, int], float] = {}
+        for tl in tiles:
+            for k, line in enumerate(lk.geo["lines"]):
+                if k in lk.skip or (tl.t, k) in seen:
+                    continue
+                m = lk.at("temperature", k, tl.t)
+                if m is None:
+                    continue
+                a = np.asarray(line, dtype=float)
+                s = tl.pure(a[:, 0], a[:, 1])
+                if np.isfinite(s).any():
+                    seen[(tl.t, k)] = float(np.nanmean(s)) - m
+        if seen:
+            per_reach[lk.reach] = {"places": len({k for _, k in seen}), **_summary(list(seen.values()))}
+    out = {"source": sc.get("source", "ECOSTRESS"), "passes": len({t.t for t in tiles}),
+           "newest": datetime.fromtimestamp(max(t.t for t in tiles), timezone.utc).strftime("%Y-%m-%dT%H:%MZ")}
+    if per_station:
+        out["stations"] = {"stations": len(per_station), **_summary([x for d in per_station.values() for x in d]),
+                           "per_station": [{"site": s, **_summary(d)} for s, d in sorted(per_station.items())]}
+    if per_reach:
+        out["models"] = per_reach
+    return out
 
 
 def gate_state(store: Store, source: str, site: str, rule: dict, now: int) -> dict | None:
@@ -341,8 +416,16 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
     cfg = load(region_dir)
     if cfg is None:
         return None
-    st, units = stations(cfg, cdir, index, store, now)
+    lookups = model_lookups(cdir, index)
+    st, units = stations(cfg, cdir, index, store, now, lookups)
+    sat = None
+    if cfg.get("satellite_temperature") and store.path.name != ":memory:":
+        try:  # a check; the overlays are published whatever it says
+            sat = satellite_temperature(cfg, store.path.parent / cfg["satellite_temperature"]["cache"], lookups, store, now)
+        except Exception as e:
+            print(f"satellite temperature check FAILED {e}", flush=True)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
+            **({"satellite_temperature": sat} if sat else {}),
             "structures": structures(cfg, store, now, units, (delta.load(region_dir) or {}).get("live_gate", [])),
             "landmarks": landmarks(cfg, cdir, index), "units": units}
 

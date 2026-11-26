@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Fischer Delta Model Returns: model runner, model-kind plug-ins, data adapters and local data store"
 requires-python = ">=3.11"
 license = { text = "PolyForm-Noncommercial-1.0.0" }
-dependencies = ["h5py>=3.12", "pypdf>=5", "pyshp>=2.3", "scipy>=1.11"]  # DSM2 and NOAA output (HDF5), Reclamation's Delta Outflow Computation (PDF), DSM2 grid (shapefiles), mesh coarsening
+dependencies = ["h5py>=3.12", "pypdf>=5", "pyshp>=2.3", "scipy>=1.11", "tifffile>=2024.1"]  # DSM2 and NOAA output (HDF5), Reclamation's Delta Outflow Computation (PDF), DSM2 grid (shapefiles), mesh coarsening, satellite tiles (GeoTIFF)
 
 [project.optional-dependencies]
 test = ["pytest>=8"]

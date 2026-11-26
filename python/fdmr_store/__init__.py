@@ -66,6 +66,7 @@ class Store:
     """A local store of time series and channel measurements, in one SQLite file."""
 
     def __init__(self, path: str | Path = ":memory:") -> None:
+        self.path = Path(path)
         self._db = sqlite3.connect(str(path))
         self._db.executescript(SCHEMA)
 

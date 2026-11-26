@@ -151,6 +151,18 @@ def main(argv: list[str] | None = None) -> int:
             if last and last[1] >= now - 12 * 3600:
                 continue
             attempt(f"swot {r['id']}", lambda r=r: sw.fetch(r["id"], iso(now - 60 * 86_400), iso(now)))
+    # Water temperature seen from orbit (overlays.toml [satellite_temperature]):
+    # each new pass's water pixels, kept beside the store.
+    from . import overlays as _ov
+
+    ocfg = _ov.load(Path(args.region)) or {}
+    if not args.forecast_only and ocfg.get("satellite_temperature"):
+        from fdmr_adapters.ecostress import EcostressAdapter
+
+        sat = ocfg["satellite_temperature"]
+        keep = sat.get("days", 14) * 86_400
+        attempt("ecostress", lambda: EcostressAdapter(Path(args.store).parent / sat["cache"]).fetch(
+            tuple(sat["box"]), int(now - keep), int(now), keep))
     # The map's stations from other agencies than CDEC (overlays.toml `source`).
     from fdmr_adapters import erddap as _erddap
     from fdmr_adapters.ndbc import NdbcAdapter as _NdbcO
@@ -259,7 +271,10 @@ def main(argv: list[str] | None = None) -> int:
             attempt(f"erddap {st['site']}", lambda st=st, f0=f0: _erddap_q.ErddapAdapter(store, st["server"]).fetch(st["site"], iso(f0), ["water_temperature", "salinity"]))
             continue
         if st["source"] == NDBC:  # its file holds the last 45 days
-            attempt(f"ndbc {st['site']}", lambda s=st["site"]: NdbcAdapter(store).fetch(s))
+            if st.get("file") == "standard":  # a buoy: sea temperature in its standard file
+                attempt(f"ndbc {st['site']}", lambda s=st["site"]: NdbcAdapter(store).fetch_met(s))
+            else:
+                attempt(f"ndbc {st['site']}", lambda s=st["site"]: NdbcAdapter(store).fetch(s))
             continue
         if st["source"] == TIDES:
             cov = store.coverage(TIDES, st["site"], "water_temperature")

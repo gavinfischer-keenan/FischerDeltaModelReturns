@@ -8,7 +8,9 @@ another programme's sondes, such as the National Estuarine Research
 Reserves'; their values are provisional.
 
 Stored under source `ndbc`: water_temperature (degC, column OTMP) and
-salinity (psu, column SAL).
+salinity (psu, column SAL). A buoy without an ocean file gives its
+sea-surface temperature in the standard file (column WTMP), fetched with the
+weather (`fetch_met`).
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ MET_URL = "https://www.ndbc.noaa.gov/data/realtime2/{station}.txt"
 MET_COLUMNS = {
     "air_temperature": ("ATMP", "degC", (-40.0, 55.0)), "dew_point": ("DEWP", "degC", (-50.0, 40.0)),
     "wind_speed": ("WSPD", "m/s", (0.0, 60.0)), "air_pressure": ("PRES", "hPa", (850.0, 1090.0)),
+    "water_temperature": ("WTMP", "degC", (-2.0, 40.0)),  # a buoy's sea-surface temperature
 }
 
 

@@ -111,6 +111,19 @@ salinity = ["salinity"]
 temperature = ["water_temperature"]
 check_only = true
 
+# The San Francisco Bar buoy (NDBC 46237, Scripps CDIP Waverider), in the
+# ocean west of the Golden Gate and inside the mesh: sea-surface temperature
+# only, from its standard file. Position: NDBC's station page.
+[[quality.stations]]
+source = "ndbc"
+site = "46237"
+name = "San Francisco Bar buoy (NDBC 46237)"
+lon = -122.634
+lat = 37.786
+file = "standard"
+temperature = ["water_temperature"]
+check_only = true
+
 [[quality.stations]]
 source = "erddap:erddap.cencoos.org"
 server = "https://erddap.cencoos.org/erddap"

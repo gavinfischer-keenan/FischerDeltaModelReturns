@@ -672,3 +672,15 @@ id = "golden_gate"
 name = "Golden Gate"
 lat = 37.806305  # NOAA 9414290, San Francisco (the Presidio tide gauge)
 lon = -122.46589
+
+# Water temperature seen from orbit (issue #8): NASA's ECOSTRESS on the space
+# station, 70 m pixels, collection ECO_L2T_LSTE version 003 (layer WST) from
+# NASA LP DAAC, downloaded with an Earthdata login token. Passes found over the
+# box (west, south, east, north: the rivers from their dams, the Delta and the
+# Bay) and kept `days`; the water pixels are kept in `cache` beside the store.
+# Checked 26 Nov 2026: tiles over the Delta from the 20th and 21st.
+[satellite_temperature]
+source = "NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), water-surface temperature"
+box = [-123.0, 37.2, -120.3, 40.7]
+days = 14
+cache = "ecostress"
