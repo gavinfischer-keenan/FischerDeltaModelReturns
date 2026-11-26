@@ -1,10 +1,11 @@
 // Colouring the water (specification 3.5 and 8.4): drawing only. The compute
 // engine gives each flow particle the value of the chosen field where it is;
 // this turns values into colours and describes the legend. Every scale is
-// readable with the common colour-vision deficiencies: viridis, cividis and
-// inferno (sequential), purple-orange (diverging), and the Okabe-Ito palette
-// for water sources. The basemap is dark, so each scale starts above its
-// darkest colours, which would vanish against it.
+// readable with the common colour-vision deficiencies: the Okabe-Ito colours
+// in hue order for speed, temperature and salinity, changing hue at values
+// that mean something; purple-orange (diverging) for water level; and the
+// Okabe-Ito colours for water sources. The basemap is dark, so no scale uses
+// a colour dark enough to vanish against it.
 
 import type { Layer } from "../compute-interface/messages";
 
@@ -22,28 +23,52 @@ interface Scale {
   unit: string;
 }
 
-const VIRIDIS = ["#31688e", "#21918c", "#35b779", "#90d743", "#fde725"];
-const CIVIDIS = ["#4f6fa8", "#7f7c75", "#aaa073", "#dcc75e", "#fee838"];
-const INFERNO = ["#932667", "#bc3754", "#dd513a", "#fca50a", "#fcffa4"];
 const PUOR = ["#8073ac", "#b2abd2", "#f7f7f7", "#fdb863", "#e08214"];
+
+// The Okabe-Ito colours (Okabe and Ito 2008, Color Universal Design), chosen
+// to stay distinct from one another with the common colour-vision
+// deficiencies. The scales below run through them in hue order, so each
+// band of values gets its own hue and the middle of a scale stands out, not
+// only its ends.
+const OI = { blue: "#0072B2", sky: "#56B4E9", green: "#009E73", yellow: "#F0E442", orange: "#E69F00", vermillion: "#D55E00", purple: "#CC79A7" };
 
 const spread = (lo: number, hi: number, colours: string[]): Stops =>
   colours.map((c, i) => [lo + ((hi - lo) * i) / (colours.length - 1), c]);
 
+/** Stops at given values, placed on the scale by `at`. */
+const at = (f: (v: number) => number, pairs: [number, string][]): Stops => pairs.map(([v, c]) => [f(v), c]);
+
+const logSpeed = (v: number) => Math.log10(Math.max(Math.abs(v), 0.01));
+const rootSalinity = (v: number) => Math.sqrt(Math.max(v, 0));
+
 export const SCALES: Partial<Record<Layer, Scale>> = {
   speed: {
-    at: (v) => Math.log10(Math.max(Math.abs(v), 0.01)),
-    stops: spread(-2, Math.log10(2), VIRIDIS),
-    ticks: [[0.01, "0.01"], [0.1, "0.1"], [0.5, "0.5"], [2, "2"]],
+    at: logSpeed,
+    stops: at(logSpeed, [[0.01, OI.blue], [0.05, OI.sky], [0.2, OI.green], [0.5, OI.yellow], [1, OI.orange], [2, OI.vermillion]]),
+    ticks: [[0.01, "0.01"], [0.05, "0.05"], [0.2, "0.2"], [0.5, "0.5"], [1, "1"], [2, "2"]],
     unit: "m/s",
   },
-  temperature: { at: (v) => v, stops: spread(6, 24, INFERNO), ticks: [[6, "6"], [12, "12"], [18, "18"], [24, "24"]], unit: "°C" },
+  // Hue changes where water temperature matters to the river's salmon: 13.3 °C
+  // (56 °F), the daily limit set for winter-run Chinook below Keswick (State
+  // Water Board Order 90-5; NMFS's biological opinions), 16 °C, and 20 °C, the
+  // usual upper limit for migrating salmon (EPA Region 10, 2003, Temperature
+  // Water Quality Standards guidance).
+  temperature: {
+    at: (v) => v,
+    stops: [[6, OI.blue], [10, OI.sky], [13.3, OI.green], [16, OI.yellow], [20, OI.orange], [24, OI.vermillion]],
+    ticks: [[6, "6"], [10, "10"], [13.3, "13.3"], [16, "16"], [20, "20"], [24, "24"]],
+    unit: "°C",
+  },
+  // Fresh water to the sea on a square-root scale, so the low end, where the
+  // Delta's water is, is not squeezed into one colour. Hue changes at the
+  // Venice System's classes of brackish water (Symposium on the
+  // Classification of Brackish Waters, Venice, 1958): fresh below 0.5 psu,
+  // oligohaline to 5 (X2, 2 psu, inside it), mesohaline to 18, polyhaline to
+  // 30, then sea water; so where fresh and salt water mix stands out.
   salinity: {
-    // Fresh water to the sea on a square-root scale, so the low end, where the
-    // Delta's water is, is not squeezed into one colour.
-    at: (v) => Math.sqrt(Math.max(v, 0)),
-    stops: spread(0, Math.sqrt(34), CIVIDIS),
-    ticks: [[0.1, "0.1"], [2, "2"], [10, "10"], [34, "34"]],
+    at: rootSalinity,
+    stops: at(rootSalinity, [[0, OI.blue], [0.5, OI.sky], [2, OI.green], [5, OI.yellow], [18, OI.orange], [30, OI.vermillion], [34, OI.purple]]),
+    ticks: [[0.5, "0.5"], [2, "2"], [5, "5"], [18, "18"], [30, "30"]],
     unit: "psu",
   },
   level: { at: (v) => v, stops: spread(-1, 1, PUOR), ticks: [[-1, "−1"], [0, "mean"], [1, "+1"]], unit: "m from the reach's mean" },
