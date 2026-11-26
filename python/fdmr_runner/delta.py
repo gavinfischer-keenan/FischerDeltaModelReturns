@@ -378,7 +378,7 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     (pub / "geometry").mkdir(parents=True)
     extras = grid.read_extras(tidefile)
     exports = cfg.get("exports", {})
-    geo = grid.add_extras(grid.geometry(reach, channels, nodes), extras, nodes, exports)
+    geo = grid.add_extras(grid.geometry(reach, channels, nodes, widths=grid.read_widths(tidefile)), extras, nodes, exports)
     (pub / "geometry" / f"{reach}.json").write_text(json.dumps(geo, separators=(",", ":")), encoding="utf-8")
     start = (now - 14 * DAY) // DAY * DAY
     qual_file = run_dir / "output" / "qual_ec.h5"

@@ -19,17 +19,9 @@ export function ownPart(cut: ChannelCut | undefined): [number, number] {
   return cut.inside === "down" ? [0, cut.at] : [cut.at, 1];
 }
 
-/** A channel's line from fraction a to b along it. */
-export function slice(line: [number, number][], cum: Float64Array, a: number, b: number): [number, number][] {
-  if (a <= 0 && b >= 1) return line;
-  const out: [number, number][] = [pointOnLine(line, cum, a)];
-  for (let i = 0; i < line.length; i++) if (cum[i] > a && cum[i] < b) out.push(line[i]);
-  out.push(pointOnLine(line, cum, b));
-  return out;
-}
-
 export interface NetworkGeometry {
-  elements: { id: number; up: number; down: number; end_m: number }[];
+  /** `width_m`: the channel's mean water-surface width (docs/format.md). */
+  elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
   nodes: { id: number; lon: number; lat: number; kind?: string }[];
   lines: [number, number][][];
   pools?: { id: string; nodes: number[]; area_m2: number }[];
@@ -40,10 +32,10 @@ export class NetworkPlace {
   private poolCentre: [number, number][];
   private poolRadiusM: number[];
 
-  /** Channels another reach tracks (a mesh covers them): not drawn, not offered for releases. */
+  /** Channels another reach tracks (a mesh covers them): not shown, not offered for releases. */
   readonly hidden: Set<number>;
 
-  /** Channels cut by the join: drawn and offered only on the network's side. */
+  /** Channels cut by the join: shown and offered only on the network's side. */
   readonly cut: Map<number, ChannelCut>;
 
   constructor(readonly id: string, readonly geometry: NetworkGeometry, hidden: number[] = [], cuts: ChannelCut[] = []) {
@@ -58,6 +50,13 @@ export class NetworkPlace {
     });
     // Parcels in a pool are spread over a disc about the pool's size.
     this.poolRadiusM = (geometry.pools ?? []).map((p) => Math.sqrt(p.area_m2 / Math.PI) * 0.6);
+  }
+
+  /** Half a channel's width, m, to spread its particles across: the water's
+   * own width where the geometry gives it. */
+  halfWidth(e: number): number {
+    const w = this.geometry.elements[e]?.width_m;
+    return w && w > 0 ? w / 2 : 25;
   }
 
   get channels(): number {

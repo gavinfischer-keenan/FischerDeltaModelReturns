@@ -157,6 +157,9 @@ pub struct NetworkTracer {
     cut: Vec<Option<(f64, bool, usize)>>,
     /// The cuts by number: (channel, place along it, other reach downstream).
     cuts: Vec<(usize, f64, bool)>,
+    /// Each channel's water-surface width, m, if given (`set_widths`): flow
+    /// particles then start evenly over the water's surface, as on a mesh.
+    widths: Vec<f64>,
     handed: Vec<Handed>,
 }
 
@@ -203,6 +206,7 @@ impl NetworkTracer {
             handed_channel: Vec::new(),
             cut: Vec::new(),
             cuts: Vec::new(),
+            widths: Vec::new(),
             handed: Vec::new(),
         }
     }
@@ -219,6 +223,14 @@ impl NetworkTracer {
                 self.handed_channel[c] = true;
             }
         }
+    }
+
+    /// Each channel's water-surface width, m, in channel order. Flow particles
+    /// then start evenly over the water's surface (by width times length), as
+    /// they do on a mesh, so that particles look as dense in a channel as in
+    /// open water next to it. Without it they start by volume.
+    pub fn set_widths(&mut self, widths: &[f64]) {
+        self.widths = widths.to_vec();
     }
 
     /// Places where another reach takes over part way along a channel (the
@@ -848,8 +860,9 @@ impl NetworkTracer {
         }
     }
 
-    /// A place anywhere in the network's own water, more where there is more
-    /// water: not in a channel another reach tracks, nor past a cut.
+    /// A place anywhere in the network's own water, evenly over its surface
+    /// (`set_widths`), or else by volume: not in a channel another reach
+    /// tracks, nor past a cut.
     fn random_place(&mut self, now: &Now) -> Place {
         let own: Vec<f64> = (0..now.volume.len())
             .map(|c| {
@@ -857,7 +870,10 @@ impl NetworkTracer {
                     return 0.0;
                 }
                 let (a, b) = self.own_part(c);
-                now.volume[c] * (b - a) / self.topo.length[c].max(f64::EPSILON)
+                match self.widths.get(c) {
+                    Some(w) => w.max(0.0) * (b - a),
+                    None => now.volume[c] * (b - a) / self.topo.length[c].max(f64::EPSILON),
+                }
             })
             .collect();
         let total: f64 = own.iter().sum();
@@ -1364,6 +1380,23 @@ mod tests {
             }
         }
         assert!(t.take_particle_at_cut(0));
+    }
+
+    #[test]
+    fn with_widths_flow_particles_start_evenly_over_the_surface() {
+        // Three channels of the same length; channel 1 nine times as wide as the others.
+        let mut t = split();
+        t.set_widths(&[10.0, 90.0, 10.0]);
+        t.seed_flow_particles(4000);
+        let (el, _) = t.particles();
+        let n = |c: u32| el.iter().filter(|&&e| e == c).count() as f64;
+        let per_m = |c: u32| n(c) / (t.topo.length[c as usize] * [10.0, 90.0, 10.0][c as usize]);
+        assert!(
+            (per_m(1) / per_m(0) - 1.0).abs() < 0.2,
+            "{} {}",
+            per_m(0),
+            per_m(1)
+        );
     }
 
     #[test]

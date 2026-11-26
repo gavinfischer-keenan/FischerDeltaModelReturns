@@ -49,3 +49,17 @@ def test_add_reach_links_files_and_extends_the_index(tmp_path):
     add_reach(cdir, src, index)
     assert (cdir / "net" / "2026-11-25.fdf").read_bytes() == b"FDF1" and not (cdir / "reach.json").exists()
     assert [r["id"] for r in index["reaches"]] == ["river", "net"] and index["format_version"] == [1, 1]
+
+
+def test_width_at_a_wetted_area_is_read_between_the_tabulated_levels():
+    areas, widths = [0.0, 100.0, 300.0], [10.0, 20.0, 40.0]
+    assert grid.width_at(200.0, areas, widths) == pytest.approx(30.0)
+    assert grid.width_at(-5.0, areas, widths) == 10.0
+    assert grid.width_at(900.0, areas, widths) == 40.0
+    assert grid.width_at(100.0, list(reversed(areas)), list(reversed(widths))) == pytest.approx(20.0)
+
+
+def test_geometry_carries_channel_widths_when_given():
+    ch = [grid.Channel(1, 10, 11, 1000.0, [(0.0, 0.0), (0.01, 0.0)])]
+    g = grid.geometry("net", ch, {10: (0.0, 0.0), 11: (0.01, 0.0)}, widths=[123.44])
+    assert g["elements"][0]["width_m"] == 123.4

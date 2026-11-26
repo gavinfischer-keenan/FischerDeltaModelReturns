@@ -57,7 +57,7 @@ interface LineGeometry {
   elements: { start_m: number; end_m: number }[];
 }
 interface NetworkGeometry {
-  elements: { id: number; up: number; down: number; end_m: number }[];
+  elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
   nodes: { id: number; kind?: string }[];
   pools?: { id: string }[];
   links?: { pool: string; node: number }[];
@@ -97,6 +97,16 @@ interface NetRelease {
 }
 
 const PARCELS_PER_RELEASE = 20_000;
+// Flow particles per km² of water surface, the same in every network and mesh
+// reach, so that the water looks the same on both sides of a join: before 26
+// Nov 2026 the Delta's channels held about six times the Bay's density and its
+// particles ran into the Bay's sparse field in single file.
+const PARTICLES_PER_KM2 = 8;
+// In particle numbers, a channel counts as at least this wide, m, so that the
+// narrow sloughs still show their water moving (issue #3). Drawn, its
+// particles still sit within its own width.
+const MIN_COUNTED_WIDTH_M = 100;
+// A network without channel widths (an older publication) is seeded by volume, with this many.
 const NETWORK_PARTICLES = 6_000;
 // Spreading in the network's channels, m²/s. Checked 25 Nov 2026 against DSM2's
 // own transport (QUAL) with a pulse released at the network's main inflow
@@ -104,7 +114,6 @@ const NETWORK_PARTICLES = 6_000;
 // QUAL's arrival, spread and peak at five channels across the network; 10 and
 // 200 are clearly worse, 30 and 80 about as good.
 const NETWORK_DISPERSION = 50;
-const MESH_PARTICLES = 5_000;
 // Horizontal diffusivity on a mesh reach, m²/s. It stands for mixing the
 // depth-averaged mesh does not resolve, the sum of two parts, worked out on the
 // Bay's own mesh and currents (25 Nov 2026, the 14 days published, by water area):
@@ -165,6 +174,10 @@ interface Net {
   days: string[];
   /** Water-quality day files, fetched when a layer first needs them. */
   quality: Uint8Array[] | null;
+  /** Each channel's water-surface width, m, if published. */
+  widths: Float64Array | null;
+  /** How many flow particles it carries. */
+  count: number;
 }
 const nets: Net[] = [];
 
@@ -258,6 +271,8 @@ async function loadNetwork(cycle: string, id: string, netDays: string[]): Promis
     engine: null,
     days: netDays,
     quality: null,
+    count: NETWORK_PARTICLES,
+    widths: g.elements.every((e) => e.width_m !== undefined) ? Float64Array.from(g.elements.map((e) => e.width_m!)) : null,
   });
   if (QUALITY_LAYERS.has(layer)) await loadQuality();
   // Play the river's (and any other reach's) handoffs into it from the start.
@@ -341,6 +356,17 @@ function build(t: number): void {
     const cuts = index?.handoffs?.filter((h) => h.from === net.id && h.cuts && meshes.some((m) => m.id === h.to)).flatMap((h) => h.cuts!) ?? [];
     ne.set_cuts(Uint32Array.from(cuts.map((c) => c.element)), Float64Array.from(cuts.map((c) => c.at)), Uint8Array.from(cuts.map((c) => (c.inside === "down" ? 1 : 0))));
     if (netFlow) ne.set_net_flow(true);
+    net.count = NETWORK_PARTICLES;
+    if (net.widths) {
+      const w = net.widths.map((x) => Math.max(x, MIN_COUNTED_WIDTH_M));
+      ne.set_widths(w);
+      // The network's own water surface: not channels a mesh tracks, nor past a cut.
+      const ownedSet = new Set(owned);
+      const cutAt = new Map(cuts.map((c) => [c.element, c.inside === "down" ? c.at : 1 - c.at]));
+      let area = 0;
+      for (let c = 0; c < w.length; c++) if (!ownedSet.has(c)) area += w[c] * T.length[c] * (cutAt.get(c) ?? 1);
+      net.count = Math.round((PARTICLES_PER_KM2 * area) / 1e6);
+    }
     net.engine = ne;
   }
   for (const m of meshes) {
@@ -354,8 +380,19 @@ function build(t: number): void {
   handedIn = 0;
   run(t);
   e.seed_flow_particles(particles);
-  for (const net of nets) net.engine!.seed_flow_particles(NETWORK_PARTICLES);
-  for (const m of meshes) m.engine!.seed_flow_particles(MESH_PARTICLES);
+  for (const net of nets) net.engine!.seed_flow_particles(net.count);
+  for (const m of meshes) m.engine!.seed_flow_particles(Math.round((PARTICLES_PER_KM2 * meshArea(m)) / 1e6));
+}
+
+/** A mesh's water surface, m²: its triangles' area. */
+function meshArea(m: Mesh): number {
+  const { x, y, triangles: t } = m;
+  let a2 = 0;
+  for (let i = 0; i + 2 < t.length; i += 3) {
+    const [a, b, c] = [t[i], t[i + 1], t[i + 2]];
+    a2 += Math.abs((x[b] - x[a]) * (y[c] - y[a]) - (x[c] - x[a]) * (y[b] - y[a]));
+  }
+  return a2 / 2;
 }
 
 /** Run every reach on to `to` together, passing parcels across every join. */

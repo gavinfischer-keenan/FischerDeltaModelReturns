@@ -92,6 +92,7 @@ A channel network, such as a tidal delta, is many short channels meeting at junc
 - `id` is the flow source's own channel number.
 - `up` and `down` are junction ids. Flow is positive from `up` to `down`.
 - `start_m` is 0 and `end_m` is the channel's length.
+- `width_m` (optional) is the channel's mean water-surface width: for DSM2, each of its cross-sections' width at the channel's mean wetted area over the run's last week, averaged along it. A reader spreads the channel's flow particles across it, and seeds them evenly over the water's surface, as on a mesh, so that particles are as dense on both sides of a join.
 - `nodes` gives each junction's position. A junction may carry a `kind`:
   - `stage_boundary` is where the sea sets the level; water leaving there goes to sea;
   - `flow_boundary` is where a river or boundary flow enters or leaves.

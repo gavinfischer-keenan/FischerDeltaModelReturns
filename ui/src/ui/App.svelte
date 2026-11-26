@@ -7,7 +7,7 @@
   import type { Frame, Layer, Ready, Words } from "../compute-interface/messages";
   import text from "../../../text/en.json";
   import { Reach, type ReachGeometry } from "./reach";
-  import { addMesh, addNetwork, createMap, drawFrame, drawNetworks, widenView } from "./map";
+  import { addMesh, createMap, drawFrame, widenView } from "./map";
   import { MeshPlace, type MeshGeometry } from "./mesh";
   import { SOURCES, legend } from "./layers";
   import { NetworkPlace, type ChannelCut, type NetworkGeometry } from "./network";
@@ -140,7 +140,6 @@
     words = f.words;
     if (map && reach) drawFrame(map, reach, f, nets, meshes);
     if (map && showX2 && x2) drawIsohaline(map, x2, f.t, x2Label);
-    if (map) drawNetworks(map, f);
   }
 
   function tick(ms: number) {
@@ -255,7 +254,6 @@
           Promise.all([fetch(`${cycle}/geometry/${id}.json`).then((x) => x.json()), joins]).then(([g, hs]: [NetworkGeometry, Join[]]) => {
             const mine = hs.filter((h) => h.from === id && r.meshes.length);
             const place = new NetworkPlace(id, g, mine.flatMap((h) => h.owned ?? []), mine.flatMap((h) => h.cuts ?? []));
-            addNetwork(map, id, g, place.hidden, place.cut);
             nets.push(place);
           });
         }

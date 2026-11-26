@@ -102,8 +102,10 @@ def load(shapefile_prefix: str, channels: Sequence[tuple[int, int, int, float]],
     return out, nodes
 
 
-def geometry(reach: str, channels: Sequence[Channel], nodes: dict[int, tuple[float, float]], max_points: int = 24) -> dict:
-    """The published geometry of a network reach (docs/format.md)."""
+def geometry(reach: str, channels: Sequence[Channel], nodes: dict[int, tuple[float, float]], max_points: int = 24,
+             widths: Sequence[float] | None = None) -> dict:
+    """The published geometry of a network reach (docs/format.md). `widths`:
+    each channel's water-surface width, m, in `channels` order (`read_widths`)."""
     def thin(line):
         if len(line) <= max_points:
             return line
@@ -116,7 +118,9 @@ def geometry(reach: str, channels: Sequence[Channel], nodes: dict[int, tuple[flo
         "dims": 1,
         "network": True,
         "elements": [
-            {"id": c.number, "up": c.up, "down": c.down, "start_m": 0.0, "end_m": round(c.length_m, 1)} for c in channels
+            {"id": c.number, "up": c.up, "down": c.down, "start_m": 0.0, "end_m": round(c.length_m, 1),
+             **({"width_m": round(widths[i], 1)} if widths is not None else {})}
+            for i, c in enumerate(channels)
         ],
         "nodes": [{"id": n, "lon": nodes[n][0], "lat": nodes[n][1]} for n in used if n in nodes],
         "lines": [[list(p) for p in thin(c.line)] for c in channels],
@@ -174,6 +178,40 @@ def add_extras(geo: dict, extras: Extras, nodes: dict[int, tuple[float, float]],
         for e in extras.external if e["name"] in exports
     ]
     return geo
+
+
+def width_at(area: float, areas: Sequence[float], widths: Sequence[float]) -> float:
+    """A cross-section's water-surface width where its wetted area is `area`,
+    linear between the section's tabulated levels (DSM2's virtual
+    cross-sections give area and width at each level)."""
+    pairs = sorted(zip(areas, widths))
+    if area <= pairs[0][0]:
+        return pairs[0][1]
+    for (a0, w0), (a1, w1) in zip(pairs, pairs[1:]):
+        if area <= a1:
+            return w0 + (w1 - w0) * (area - a0) / (a1 - a0) if a1 > a0 else w1
+    return pairs[-1][1]
+
+
+def read_widths(tidefile: Path, steps: int = 2016) -> list[float]:
+    """Each channel's mean water-surface width, m, in HYDRO's order: the width
+    of each of its virtual cross-sections at the channel's mean wetted area
+    over the run's last `steps` (a week of 5-minute steps), averaged along it.
+    The map spreads a channel's flow particles across this width."""
+    import h5py
+    import numpy as np
+
+    with h5py.File(tidefile, "r") as f:
+        area = np.asarray(f["hydro/data/channel avg area"][-steps:]).mean(axis=0)  # ft2
+        xs = f["hydro/geometry/virtual_xsect"][:]
+    out = []
+    # The table numbers channels 1, 2, ... in HYDRO's order, not by DSM2's own numbers.
+    for i, a in enumerate(area):
+        rows = xs[xs["chan_no"] == i + 1]
+        ws = [width_at(float(a), rows["area"][rows["vsecno"] == s].tolist(), rows["width"][rows["vsecno"] == s].tolist())
+              for s in np.unique(rows["vsecno"])]
+        out.append(float(np.mean(ws)) * FT if ws else 0.0)
+    return out
 
 
 def read_channels(tidefile: Path) -> list[tuple[int, int, int, float]]:
