@@ -49,7 +49,7 @@ export const SCALES: Partial<Record<Layer, Scale>> = {
     unit: "m/s",
   },
   // Hue changes where water temperature matters to the river's salmon: 13.3 °C
-  // (56 °F), the daily limit set for winter-run Chinook below Keswick (State
+  // (56 °F), the daily limit set for winter-run Chinook below the dams (State
   // Water Board Order 90-5; NMFS's biological opinions), 16 °C, and 20 °C, the
   // usual upper limit for migrating salmon (EPA Region 10, 2003, Temperature
   // Water Quality Standards guidance).
