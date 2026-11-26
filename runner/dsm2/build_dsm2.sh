@@ -178,12 +178,13 @@ stage_dsm2() {
     .. > "$ROOT/build/dsm2-cmake.log" 2>&1 \
     || { tail -40 "$ROOT/build/dsm2-cmake.log"; return 1; }
 
-  # Only HYDRO and QUAL are used (specification section 7.2). The rpath above
+  # HYDRO and QUAL are used (specification section 7.2), and GTM for suspended
+  # sediment (issue #16). The rpath above
   # records where Intel's runtime libraries are, so the programs run without
   # oneAPI's environment. --disable-new-dtags makes it an RPATH rather than a
   # RUNPATH, so Intel's own libraries find each other too. (-static-intel would
   # force a fully static link, which the system's shared zlib does not allow.)
-  local targets="hydro qual" mlog=$ROOT/build/dsm2-make.log
+  local targets="hydro qual gtm" mlog=$ROOT/build/dsm2-make.log
   if ! cmake --build . --target $targets -j "$JOBS" > "$mlog" 2>&1; then
     # ifx 2023.2.4 crashes (an internal compiler error) on gtm/gtm_subs.f90 at every
     # optimisation level. The classic ifort compiler, in the same oneAPI release,
@@ -202,7 +203,7 @@ stage_dsm2() {
     cmake --build . --target $targets -j "$JOBS" > "$mlog" 2>&1 \
       || { grep -nE 'error|Error|undefined reference' "$mlog" | head -40; return 1; }
   fi
-  mkdir -p "$ROOT/bin" && cp dsm2/hydro dsm2/qual "$ROOT/bin/"
+  mkdir -p "$ROOT/bin" && cp dsm2/hydro dsm2/qual dsm2/gtm "$ROOT/bin/"
   # Check the programs start with an empty environment. `hydro -v` exits non-zero.
   env -i "$ROOT/bin/hydro" -v 2>&1 | head -1 || true
   env -i "$ROOT/bin/qual" -v 2>&1 | grep DSM2 || true

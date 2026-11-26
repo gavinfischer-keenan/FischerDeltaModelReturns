@@ -426,7 +426,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         f0 = now - 40 * 86_400 if not cov or cov[0] > now - 35 * 86_400 else cov[1] - 86_400
         attempt(f"noaa {fc['station']} {TIDE}", lambda st=fc["station"], f0=f0: tides.fetch_predictions(st, int(f0), int(now + 16 * 86_400)))
-    cnrfc = CnrfcAdapter(store)
+    cnrfc = CnrfcAdapter(store, archive=Path(args.store).parent / "cnrfc-issues")  # kept for hindcasts (#9)
     for group, points in groups.items():
         try:
             issue, n = cnrfc.fetch(group, points)

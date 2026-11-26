@@ -171,7 +171,9 @@ async function get(name) {
     h += "<p class='note'>Storage, inflow and release: each dam's CDEC sensors. Capacity and the average for the date: DWR's daily reservoir report. Snow: DWR's reviewed snow sensor values (Page 6), each basin group's mean, and its total against its April 1 averages' total.</p>";
   }
 
-  h += "<h2>5. Each reach's own checks (index.json)</h2>";
+  h += "<h2>5. The maths each reach ran (index.json reaches[].maths; fdmr_plugins.registry)</h2>";
+  h += table(index.reaches.flatMap((r) => Object.entries(r.maths || {}).map(([part, m]) => ({ reach: r.id, kind: r.kind, part, maths: m.name, source: m.source }))));
+  h += "<h2>6. Each reach's own checks (index.json)</h2>";
   for (const r of index.reaches) {
     const keys = Object.keys(r).filter((k) => /check|correction|seam|overlap/.test(k));
     if (!keys.length) continue;

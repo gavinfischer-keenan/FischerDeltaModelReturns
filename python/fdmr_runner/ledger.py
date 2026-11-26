@@ -233,12 +233,15 @@ def _summary(d: list[tuple[float, float | None]]) -> dict:
     """Pairs of (model misfit, persistence misfit), measured less predicted."""
     a = np.array([m for m, _ in d])
     out = {"pairs": int(a.size), "mean_misfit": round(float(a.mean()), 3), "rms_misfit": round(float(np.sqrt((a ** 2).mean())), 3)}
-    p = np.array([x for _, x in d if x is not None])
-    if p.size == a.size and p.size:
-        rp = float(np.sqrt((p ** 2).mean()))
+    both = [(m, x) for m, x in d if x is not None]  # persistence needs a reading at the cycle's time
+    if both:
+        am = np.array([m for m, _ in both])
+        ap = np.array([x for _, x in both])
+        rp = float(np.sqrt((ap ** 2).mean()))
+        out["persistence_pairs"] = len(both)
         out["rms_persistence"] = round(rp, 3)
-        if rp > 0:
-            out["skill_vs_persistence"] = round(1 - out["rms_misfit"] / rp, 3)
+        if rp > 0:  # model and persistence on the same pairs
+            out["skill_vs_persistence"] = round(1 - float(np.sqrt((am ** 2).mean())) / rp, 3)
     return out
 
 

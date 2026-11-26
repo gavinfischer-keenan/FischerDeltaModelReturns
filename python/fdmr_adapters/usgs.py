@@ -45,6 +45,11 @@ PARAMETERS: dict[str, tuple[str, str, dict[str, float]]] = {
     "specific_conductance": ("00095", "uS/cm", {"uS/cm": 1.0, "uS/cm @25C": 1.0}),
     # USGS's own tidally filtered flow at a tidal gauge (its net flow).
     "discharge_tidally_filtered": ("72137", "m3/s", {"ft^3/s": CFS}),
+    # Turbidity by the formazin nephelometric unit (ISO 7027 sensors), and the
+    # suspended-sediment concentration USGS estimates continuously at a few
+    # stations from its own turbidity-sediment relation there (code 80300).
+    "turbidity_fnu": ("63680", "FNU", {"_FNU": 1.0, "FNU": 1.0}),
+    "suspended_sediment": ("80300", "mg/L", {"mg/l": 1.0, "mg/L": 1.0}),
 }
 PST_TO_UTC = 8 * 3600
 

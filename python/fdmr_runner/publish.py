@@ -226,6 +226,13 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         if g.forecast and g.forecast.get("source") == cnrfc.SOURCE and not hindcast:
             fv = store.values(cnrfc.SOURCE, g.forecast["point"], "discharge", now - DAY, end + DAY)
             fc = forecast.on_grid([(v.t, v.value) for v in fv], t0, STEP, n) if fv else None
+        elif g.forecast and g.forecast.get("source") == cnrfc.SOURCE and store.path.name != ":memory:":
+            # A hindcast takes the forecast that was in force at its time, if it was kept.
+            zb = cnrfc.archived_issue(store.path.parent / "cnrfc-issues", g.forecast["group"], now)
+            if zb:
+                issue, got = cnrfc.parse(zb, [g.forecast["point"]])
+                fv = got.get(g.forecast["point"], [])
+                fc = forecast.on_grid([(v.t, v.value) for v in fv], t0, STEP, n) if fv else None
         rule_rec = None
         if fc is None and g.role == "release" and g.release_rule and not hindcast:
             from . import releases
@@ -548,9 +555,10 @@ def publish(
     as_of: int | None = None,
 ) -> Path:
     """Publish a cycle. With `as_of` (a hindcast), the cycle's "now" is that
-    time: nothing measured after it is read, no forecast is used (river
-    forecasts, release rules and weather forecasts all hold: past forecast
-    issues are not kept), and its overlays and ledger are left to the caller."""
+    time: nothing measured after it is read; river forecasts are the issue in
+    force then where it was kept (fdmr_adapters.cnrfc, archived from 26 Nov
+    2026), and release rules and weather forecasts hold; its overlays and
+    ledger are left to the caller."""
     region = load_region(region_dir)
     gauges, _ = river_chain(region_dir, reach)
     hindcast = as_of is not None
@@ -612,6 +620,13 @@ def publish(
     }
     for extra in extra_reaches or []:
         add_reach(cdir, extra, index)
+    # The maths each reach ran, from the register (fdmr_plugins.registry, #10):
+    # a region's unknown choice stops the cycle rather than being swapped.
+    from fdmr_plugins import registry
+
+    chosen = {r["id"]: r.get("maths") for r in region.reaches}
+    for r in index["reaches"]:
+        r["maths"] = registry.record(r["kind"], chosen.get(r["id"]))
     ids = {r["id"] for r in index["reaches"]}
     joins = [{k: h[k] for k in ("from", "to", "node", "source") if k in h} for h in region.handoffs if h["from"] in ids and h["to"] in ids and "node" in h]
     # A river reach ending on another (a tributary joining a river): where along it.
@@ -638,7 +653,7 @@ def publish(
     if joins:
         index["handoffs"] = joins  # format 1.1: where parcels leaving one reach enter the next
     if hindcast:
-        index["hindcast"] = {"as_of": utc(now), "forecasts": "held (past forecast issues are not kept)"}
+        index["hindcast"] = {"as_of": utc(now), "forecasts": "river forecasts: the River Forecast Center issue in force at the time where kept (kept from 26 Nov 2026), otherwise held; release rules and weather forecasts held"}
     # What is drawn over the water: X2, the stations' readings (fdmr_runner.overlays).
     try:
         if hindcast:

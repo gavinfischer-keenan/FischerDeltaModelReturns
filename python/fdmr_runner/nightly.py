@@ -8,8 +8,9 @@ Each night (00:00 Pacific Standard Time, runner/schedule):
 
 1. A hindcast as of `--hindcast-days` days ago (00:00 PST): the Delta (DSM2,
    `fdmr_runner.delta --as-of`) and every river (`fdmr_runner.publish --as-of`),
-   using only what was measured before that time and holding every forecast
-   input (past forecast issues are not kept). The Bay and the canals are not
+   using only what was measured before that time; river forecasts are the
+   River Forecast Center's issue in force then where it was kept (from
+   26 Nov 2026), and every other forecast input is held. The Bay and the canals are not
    hindcast yet. Its predictions go into the prediction ledger as `hindcast`.
 2. The ledger scored, live and hindcast apart, each against persistence.
 3. The night's log, DATA_ROOT/publish/<region>/nightly/<date>.json, and the
@@ -87,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         db = ledger.connect(Path(args.store).parent / "ledger" / f"{region.id}.sqlite")
         kept = ledger.record(db, region_dir, cdir, index, store, kind="hindcast")
         hindcast = {"as_of": index["now"], "cycle": index["cycle"], "kept": kept, "reaches": [r["id"] for r in index["reaches"]],
-                    "forecasts": "held (past forecast issues are not kept)", "not_hindcast": ["the Bay", "the export canals"]}
+                    "forecasts": index.get("hindcast", {}).get("forecasts", ""), "not_hindcast": ["the Bay", "the export canals"]}
         db.close()
     store = Store(args.store)
     db = ledger.connect(Path(args.store).parent / "ledger" / f"{region.id}.sqlite")

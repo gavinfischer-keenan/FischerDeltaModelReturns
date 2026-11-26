@@ -16,6 +16,7 @@ import io
 import re
 import urllib.request
 import zipfile
+from pathlib import Path
 from calendar import timegm
 from collections.abc import Iterable
 from time import strptime
@@ -68,9 +69,24 @@ def parse(zip_bytes: bytes, points: Iterable[str]) -> tuple[str, dict[str, list[
     return issue, out
 
 
+def archived_issue(archive: Path, group: str, at: int) -> bytes | None:
+    """The group's issue in force at time `at`: the latest archived issue
+    issued at or before it (`archive/<group>/<issue>.zip`), or None."""
+    d = Path(archive) / group
+    best = None
+    for f in d.glob("*.zip") if d.exists() else []:
+        if issue_time(f.stem) <= at and (best is None or f.stem > best.stem):
+            best = f
+    return best.read_bytes() if best else None
+
+
 class CnrfcAdapter:
-    def __init__(self, store: Store, get=_get) -> None:
+    def __init__(self, store: Store, get=_get, archive: Path | None = None, keep_days: int = 60) -> None:
+        """With `archive`, every issue fetched is kept there as it came
+        (`<group>/<issue>.zip`, `keep_days` days), so a hindcast can use the
+        forecast that was in force at its time."""
         self.store, self.get = store, get
+        self.archive, self.keep_days = archive, keep_days
 
     def held(self, issue: str, points: Iterable[str]) -> bool:
         """Whether every point already holds this issue (checked at its issue hour)."""
@@ -91,6 +107,16 @@ class CnrfcAdapter:
             raise ValueError(f"no CNRFC file listed for group {group}")
         if self.held(name.split("_", 1)[0], points):
             return name.split("_", 1)[0], 0
-        issue, flows = parse(self.get(f"{BASE}/csv/{name}"), points)
+        data = self.get(f"{BASE}/csv/{name}")
+        if self.archive is not None:
+            import time as _time
+
+            d = Path(self.archive) / group
+            d.mkdir(parents=True, exist_ok=True)
+            (d / f"{name.split('_', 1)[0]}.zip").write_bytes(data)
+            for old in d.glob("*.zip"):
+                if issue_time(old.stem) < _time.time() - self.keep_days * 86_400:
+                    old.unlink()
+        issue, flows = parse(data, points)
         n = sum(self.store.put_values(SOURCE, p, "discharge", "m3/s", vs) for p, vs in flows.items())
         return issue, n

@@ -44,10 +44,22 @@ def test_scores_measured_less_predicted_by_lead_time():
     assert got["cycles"] == 1 and got["cycles_by_kind"] == {"live": 1}
     assert [(g["kind"], g["lead"], g["pairs"], g["mean_misfit"]) for g in got["groups"]] == [("live", "0-6 h", 1, 4.0), ("live", "1-2 days", 1, -5.0)]
     # Persistence held the 100 read just before the cycle: missed by 4 and 5.
-    assert got["points"][0]["leads"]["live 0-6 h"] == {"pairs": 1, "mean_misfit": 4.0, "rms_misfit": 4.0, "rms_persistence": 4.0, "skill_vs_persistence": 0.0}
+    assert got["points"][0]["leads"]["live 0-6 h"] == {"pairs": 1, "mean_misfit": 4.0, "rms_misfit": 4.0, "persistence_pairs": 1, "rms_persistence": 4.0, "skill_vs_persistence": 0.0}
     assert got["groups"][1]["skill_vs_persistence"] == 0.0
 
 
 def test_lead_bands_cover_every_kept_lead():
     assert all(ledger._band(lead) for lead in ledger.LEADS_S)
     assert ledger._band(0) == "0-6 h" and ledger._band(15 * 24 * HOUR) == "5-15 days"
+
+
+def test_archived_forecast_in_force_at_a_time(tmp_path):
+    from fdmr_adapters import cnrfc
+
+    d = tmp_path / "G"
+    d.mkdir()
+    for issue in ("2026112106", "2026112112", "2026112118"):
+        (d / f"{issue}.zip").write_bytes(issue.encode())
+    t = cnrfc.issue_time("2026112112") + 3600
+    assert cnrfc.archived_issue(tmp_path, "G", t) == b"2026112112"
+    assert cnrfc.archived_issue(tmp_path, "G", cnrfc.issue_time("2026112106") - 1) is None

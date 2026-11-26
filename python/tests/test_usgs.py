@@ -65,10 +65,11 @@ def test_live_keswick_last_day():
 
 
 def test_available_lists_only_continuous_standard_parameters():
-    # Freeport records much more (dissolved oxygen, turbidity, nitrate...), and
-    # daily-mean series; only continuous values of the standard parameters count.
+    # Freeport records much more (dissolved oxygen, nitrate...), and daily-mean
+    # series; only continuous values of the standard parameters count (turbidity
+    # among them since 26 Nov 2026, for the sediment work, issue #16).
     have = UsgsAdapter(Store(), RecordedClient("usgs_series_freeport.json")).available("11447650", active_within_days=3650)
-    assert have == {"discharge", "gage_height", "water_temperature", "specific_conductance"}
+    assert have == {"discharge", "gage_height", "water_temperature", "specific_conductance", "turbidity_fnu"}
 
 
 class TwoSensors:
