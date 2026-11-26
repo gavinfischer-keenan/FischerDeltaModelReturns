@@ -214,31 +214,104 @@ def refit(cfg: dict, work: Path, store_path: str, now: int) -> extend.Fit | None
     return f
 
 
-def dsm2_outflow(delta_dir: Path, join: dict, tidal: bool = False) -> tuple[np.ndarray, np.ndarray]:
-    """DSM2's flow from the Delta into the Bay across the join (m3/s; with
-    `tidal`, tidally filtered, fdmr_plugins.fvcom.correct.tidal_mean), at its published steps:
-    the flow in each of the Delta's own channels at a join junction, toward the
-    junction. Near the record's ends the nearest full-window mean is held."""
+def crossings(join: dict) -> list[dict]:
+    """Every place the network crosses into the mesh (fdmr_runner.handoff):
+    its cuts, and any junction serving as one (a junction is a cut at its
+    channel's end)."""
+    out = [dict(c) for c in join.get("cuts", [])]
+    for j in join.get("junctions", []):
+        out.append({"element": j["element"], "at": float(j["fraction"]), "inside": "down" if j["fraction"] == 1 else "up",
+                    "x": j["x"], "y": j["y"]})
+    return out
+
+
+def dsm2_cut_flows(delta_dir: Path, join: dict) -> tuple[np.ndarray, np.ndarray]:
+    """DSM2's flow into the mesh at each crossing (m3/s, Delta to Bay
+    positive), at its published steps: (times, flows[step, crossing]). A
+    channel's flow at a place along it is taken linear between its two ends."""
     import fdmr_py
 
+    cr = crossings(join)
     ts, qs = [], []
     for f in sorted((delta_dir / "delta").glob("*.fdf")):
         if f.name.count(".") > 1:  # .nodes, .links, .quality
             continue
         _, _, n, _, steps, t0, step, flds = fdmr_py.read_field_file(str(f))
         get = {name: np.asarray(v, dtype=float).reshape(steps, n) for name, _, v in flds}
-        q = np.zeros(steps)
-        for j in join["junctions"]:
-            c = j["element"]
-            q += get["flow_down"][:, c] if j["fraction"] == 1 else -get["flow_up"][:, c]
+        q = np.zeros((steps, len(cr)))
+        for k, c in enumerate(cr):
+            e, a = c["element"], c["at"]
+            along = get["flow_up"][:, e] * (1 - a) + get["flow_down"][:, e] * a  # positive downstream
+            q[:, k] = along if c["inside"] == "down" else -along
         ts.append(t0 + step * np.arange(steps))
         qs.append(q)
-    t, q = np.concatenate(ts), np.concatenate(qs)
+    return np.concatenate(ts), np.concatenate(qs)
+
+
+def dsm2_outflow(delta_dir: Path, join: dict, tidal: bool = False) -> tuple[np.ndarray, np.ndarray]:
+    """DSM2's flow from the Delta into the Bay across the join (m3/s; with
+    `tidal`, tidally filtered, fdmr_plugins.fvcom.correct.tidal_mean), at its
+    published steps: the sum over the crossings (dsm2_cut_flows). Near the
+    record's ends the nearest full-window mean is held."""
+    t, q = dsm2_cut_flows(delta_dir, join)
+    q = q.sum(axis=1)
     if not tidal or len(t) < 2:
         return t, q
     from fdmr_plugins.fvcom.correct import tidal_mean
 
     return t, tidal_mean(q, HOUR / (t[1] - t[0]))
+
+
+def join_of(delta_dir: Path, coarse: mesh.Coarse, reach: str, edges: dict) -> dict:
+    """The join between the network reach published in `delta_dir` and this mesh."""
+    from .handoff import network_to_mesh
+
+    net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
+    return network_to_mesh("delta", net, reach, mesh.geometry(coarse, reach, edges))
+
+
+def add_cut_edges(coarse: mesh.Coarse, edges: dict, join: dict, near_m: float) -> dict:
+    """The handoff edges, with every other boundary edge within `near_m` of a
+    crossing added: where a channel enters the mesh's water through what the
+    mesh takes for shore (a slough's mouth), water and what it carries must
+    pass both ways there too."""
+    taken = {tuple(sorted(e)) for es in edges.values() for e in es}
+    pts = np.array([[c["x"], c["y"]] for c in crossings(join)])
+    if not len(pts):
+        return edges
+    extra = []
+    for a, b in mesh.boundary_edges(coarse.tri).tolist():
+        if tuple(sorted((a, b))) in taken:
+            continue
+        m = np.array([(coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2])
+        if np.hypot(*(pts - m).T).min() <= near_m:
+            extra.append([a, b])
+    return {**edges, "delta": edges.get("delta", []) + extra}
+
+
+def edge_normals(coarse: mesh.Coarse, edges: list[list[int]]) -> np.ndarray:
+    """Each boundary edge's nodes and its length times its outward unit normal:
+    rows (a, b, nx, ny)."""
+    tri = coarse.tri
+    out = []
+    for a, b in edges:
+        k = next(i for i, tr in enumerate(tri) if a in tr and b in tr)
+        cx, cy = coarse.x[tri[k]].mean(), coarse.y[tri[k]].mean()
+        dx, dy = coarse.x[b] - coarse.x[a], coarse.y[b] - coarse.y[a]
+        nx, ny = dy, -dx
+        mx, my = (coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2
+        if nx * (mx - cx) + ny * (my - cy) < 0:
+            nx, ny = -nx, -ny
+        out.append((a, b, nx, ny))
+    return np.array(out, dtype=float).reshape(-1, 4)
+
+
+def edge_flux(coarse: mesh.Coarse, en: np.ndarray, u: np.ndarray, v: np.ndarray, level: np.ndarray) -> np.ndarray:
+    """The flow out of the mesh through each edge (m3/s): the depth-averaged
+    velocity across it times its length and the water's depth, both ends averaged."""
+    a, b = en[:, 0].astype(int), en[:, 1].astype(int)
+    h = np.maximum((coarse.depth[a] + level[a] + coarse.depth[b] + level[b]) / 2, 0.0)
+    return ((u[a] + u[b]) / 2 * en[:, 2] + (v[a] + v[b]) / 2 * en[:, 3]) * h
 
 
 def mesh_outflow(coarse: mesh.Coarse, edges: list[list[int]], hours: dict[int, Path]) -> tuple[np.ndarray, np.ndarray]:
@@ -271,10 +344,7 @@ def overlap(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path], delta_dir:
     """Where the two models meet (specification 7.4): their flows across the
     join over the past days both hold, Delta to Bay positive. `net` is the mean
     (m3/s), `tidal` the standard deviation about it (m3/s, the size of the tide)."""
-    from .handoff import network_to_mesh
-
-    net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
-    jn = network_to_mesh("delta", net, reach, mesh.geometry(coarse, reach, edges))
+    jn = join_of(delta_dir, coarse, reach, edges)
     td, qd = dsm2_outflow(delta_dir, jn)
     past = {t: p for t, p in hours.items() if t <= now}
     tm, qm = mesh_outflow(coarse, edges.get("delta", []), past)
@@ -354,52 +424,87 @@ def outflow_checks(cfg: dict, delta_dir: Path, jn: dict, store_path: str, now: i
 
 
 def correct_outflow(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path | dict], delta_dir: Path, reach: str) -> tuple[dict[int, dict], dict]:
-    """Every hour, with a flow added so that the mesh's flow across the join to
-    the Delta is DSM2's at that hour (fdmr_plugins.fvcom.correct): the same
-    water crosses the join from both sides, tide and net alike, so parcels and
-    flow particles pass it without piling up or thinning out. The added flow
-    runs from the join to the open sea; the mesh's tides elsewhere are its own.
-    Returns the hours and a summary for the reach: both models' net and tidal
-    flow across the join before the correction, and what was added."""
+    """Every hour, with flows added so that the mesh's flow through the join by
+    each crossing is the network's flow in that channel there, at that hour,
+    tide and net alike (specification 7.4): the same water crosses from both
+    sides, in the same direction, at every crossing, so parcels and flow
+    particles pass without piling up or thinning out, and no circulation
+    through the join (in by one channel, out by another) survives. Each
+    handoff edge counts toward its nearest crossing. Each crossing's added
+    flow runs from its edges to the open sea (fdmr_plugins.fvcom.correct); as
+    they touch a little at shared nodes, the hour's amounts are solved
+    together. The mesh's tides elsewhere are its own. Returns the hours and a
+    summary: per crossing and in total, both models' net and tidal flow before
+    the correction, how often they ran opposite ways, and what was added."""
     from fdmr_plugins.fvcom.correct import tidal_mean, unit_outflow
 
-    from .handoff import network_to_mesh
-
-    cu, cv = unit_outflow(coarse, edges["delta"], edges["open"])
+    jn = join_of(delta_dir, coarse, reach, edges)
+    cr = crossings(jn)
+    net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
+    e = edges["delta"]
+    en = edge_normals(coarse, e)
+    mid = np.array([[(coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2] for a, b in e])
+    cxy = np.array([[c["x"], c["y"]] for c in cr])
+    seg = np.array([int(np.argmin(np.hypot(*(cxy - m).T))) for m in mid])
+    active = sorted(set(seg.tolist()))
+    unit = {s: unit_outflow(coarse, [e[i] for i in np.flatnonzero(seg == s)], edges["open"]) for s in active}
     ts = np.array(sorted(hours))
     data = {tt: (hours[tt] if isinstance(hours[tt], dict) else dict(np.load(hours[tt]))) for tt in ts}
-    _, out = mesh_outflow(coarse, edges["delta"], data)
-    noaa = -out  # seaward
-    net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
-    jn = network_to_mesh("delta", net, reach, mesh.geometry(coarse, reach, edges))
-    td, qd = dsm2_outflow(delta_dir, jn)
-    target = np.interp(ts, td, qd)
-    # The unit flow's flux across the join at each hour's water level, so each
-    # hour's addition is exact.
-    unit = np.array([-mesh_outflow(coarse, edges["delta"], {tt: {"u": cu, "v": cv, "level": data[tt]["level"]}})[1][0] for tt in ts])
-    dq = (target - noaa) / unit
+    td, Q = dsm2_cut_flows(delta_dir, jn)
+    target = np.stack([np.interp(ts, td, Q[:, s]) for s in active], axis=1)  # Delta to Bay positive
+
+    def by_crossing(flux_out: np.ndarray) -> np.ndarray:
+        return np.array([-flux_out[seg == s].sum() for s in active])
+
+    noaa = np.zeros((len(ts), len(active)))
+    added_speed = 0.0
     for i, tt in enumerate(ts):
         d = dict(data[tt])
-        d["u"] = (d["u"] + dq[i] * cu).astype(np.float32)
-        d["v"] = (d["v"] + dq[i] * cv).astype(np.float32)
+        lev = d["level"]
+        noaa[i] = by_crossing(edge_flux(coarse, en, d["u"], d["v"], lev))
+        f = np.stack([by_crossing(edge_flux(coarse, en, unit[s][0], unit[s][1], lev)) for s in active], axis=1)
+        alpha = np.linalg.solve(f, target[i] - noaa[i])
+        du = sum(alpha[k] * unit[s][0] for k, s in enumerate(active))
+        dv = sum(alpha[k] * unit[s][1] for k, s in enumerate(active))
+        added_speed = max(added_speed, float(np.hypot(du, dv).max()))
+        d["u"] = (d["u"] + du).astype(np.float32)
+        d["v"] = (d["v"] + dv).astype(np.float32)
         data[tt] = d
-    after = -mesh_outflow(coarse, edges["delta"], data)[1]
-    added = target - noaa
+    after = np.array([by_crossing(edge_flux(coarse, en, data[tt]["u"], data[tt]["v"], data[tt]["level"])) for tt in ts])
     # Away from the record's ends, where the tidal filter holds its edge values.
     inner = slice(72, len(ts) - 72) if len(ts) > 200 else slice(None)
-    tn, tt_ = tidal_mean(noaa, 1.0), tidal_mean(target, 1.0)
-    a, b = (noaa - tn)[inner], (target - tt_)[inner]
+
+    def compare(a: np.ndarray, b: np.ndarray) -> dict:
+        na, nb = tidal_mean(a, 1.0), tidal_mean(b, 1.0)
+        ta, tb = (a - na)[inner], (b - nb)[inner]
+        big = (np.abs(a) > 0.1 * max(float(np.abs(b).max()), 1.0))[inner]
+        opposite = float(np.mean(np.sign(a[inner][big]) != np.sign(b[inner][big]))) if big.any() else 0.0
+        return {"noaa_net": round(float(na[inner].mean()), 1), "dsm2_net": round(float(nb[inner].mean()), 1),
+                "noaa_tidal": round(float(ta.std()), 1), "dsm2_tidal": round(float(tb.std()), 1),
+                "tidal_correlation": round(float(np.corrcoef(ta, tb)[0, 1]), 3) if ta.std() > 0 and tb.std() > 0 else None,
+                "opposite_share": round(opposite, 3)}
+
+    per = []
+    for k, s in enumerate(active):
+        c = cr[s]
+        per.append({"channel": net["elements"][c["element"]]["id"], "lon": c.get("lon"), "lat": c.get("lat"),
+                    "edges": int((seg == s).sum()), **compare(noaa[:, k], target[:, k]),
+                    "largest_miss": round(float(np.abs(after[:, k] - target[:, k]).max()), 2)})
+    unmatched = [net["elements"][cr[s]["element"]]["id"] for s in range(len(cr)) if s not in active]
+    total = compare(noaa.sum(axis=1), target.sum(axis=1))
+    added = target.sum(axis=1) - noaa.sum(axis=1)
     summary = {
-        "noaa_net": round(float(tn[inner].mean()), 1), "dsm2_net": round(float(tt_[inner].mean()), 1),
-        "noaa_tidal": round(float(a.std()), 1), "dsm2_tidal": round(float(b.std()), 1),
-        "tidal_correlation": round(float(np.corrcoef(a, b)[0, 1]), 3),
+        **total,
         "added_mean": round(float(added.mean()), 1), "added_range": [round(float(added.min()), 1), round(float(added.max()), 1)],
-        "largest_miss": round(float(np.abs(after - target).max()), 2),
+        "largest_miss": round(float(np.abs(after - target).max()), 2), "largest_added_speed": round(added_speed, 3),
+        "crossings": per, "crossings_without_edges": unmatched,
     }
-    print(f"outflow correction: across the join, net NOAA {summary['noaa_net']} m3/s seaward, DSM2 {summary['dsm2_net']}; "
-          f"tide NOAA {summary['noaa_tidal']}, DSM2 {summary['dsm2_tidal']} (correlation {summary['tidal_correlation']}); "
-          f"added {summary['added_mean']} on average ({summary['added_range'][0]} to {summary['added_range'][1]}); "
-          f"after, at most {summary['largest_miss']} from DSM2's at any hour", flush=True)
+    print(f"outflow correction: {len(active)} crossings matched hour by hour (largest miss {summary['largest_miss']} m3/s, "
+          f"largest current added {summary['largest_added_speed']} m/s); in total, net NOAA {total['noaa_net']} m3/s seaward, "
+          f"DSM2 {total['dsm2_net']}; tide NOAA {total['noaa_tidal']}, DSM2 {total['dsm2_tidal']}", flush=True)
+    for p in per:
+        print(f"  channel {p['channel']}: before, net NOAA {p['noaa_net']}, DSM2 {p['dsm2_net']}; tide {p['noaa_tidal']} against "
+              f"{p['dsm2_tidal']} (correlation {p['tidal_correlation']}); opposite ways {p['opposite_share']:.0%} of the time", flush=True)
     return data, summary
 
 
@@ -416,6 +521,65 @@ def station_daily(store, st: dict, params: list[str], to_value, days: list[int])
                 means.append(float(np.mean(to_value(np.array([v for _, v in vs])))))
         if means:
             out[i] = float(np.mean(means))
+    return out
+
+
+def network_quality(delta_dir: Path, join: dict, field: str) -> tuple[np.ndarray, np.ndarray] | None:
+    """The network's value of a water-quality field in each crossing's channel,
+    at its published steps: (times, values[step, crossing]); None without it."""
+    import fdmr_py
+
+    cr = crossings(join)
+    ts, vs = [], []
+    for f in sorted((delta_dir / "delta").glob("*.quality.fdf")):
+        _, _, n, _, steps, t0, step, flds = fdmr_py.read_field_file(str(f))
+        got = {name: np.asarray(v, dtype=float).reshape(steps, n) for name, _, v in flds}
+        if field not in got:
+            return None
+        ts.append(t0 + step * np.arange(steps))
+        vs.append(got[field][:, [c["element"] for c in cr]])
+    return (np.concatenate(ts), np.concatenate(vs)) if ts else None
+
+
+def seam_quality(data: dict[int, dict], coarse: mesh.Coarse, delta_dir: Path, join: dict, fields: tuple[str, ...], seam_m: float) -> dict:
+    """The mesh's water quality made to meet the network's at the join, hour by
+    hour: at each crossing's nearest node the mesh takes the network's value
+    in that channel, and the difference fades out along the water over
+    `seam_m` (weight (1 - d/seam_m)^2, the crossings' shares summed and kept
+    to at most 1). Returns, per field, the mean step across each crossing
+    before and after."""
+    from fdmr_plugins.fvcom.correct import water_distances
+
+    cr = crossings(join)
+    if not cr:
+        return {}
+    nodes = [int(np.argmin(np.hypot(coarse.x - c["x"], coarse.y - c["y"]))) for c in cr]
+    w = np.clip(1.0 - water_distances(coarse, nodes) / seam_m, 0.0, 1.0) ** 2  # (crossings, nodes)
+    scale = np.maximum(w.sum(axis=0), 1.0)
+    out = {}
+    for field in fields:
+        nq = network_quality(delta_dir, join, field)
+        have = [tt for tt in sorted(data) if field in data[tt]]
+        if nq is None or not have:
+            continue
+        tq, vq = nq
+        before, after = [], []
+        for tt in have:
+            m = data[tt][field].astype(float)
+            net_v = np.array([np.interp(tt, tq, vq[:, k]) for k in range(len(cr))])
+            step = net_v - m[nodes]
+            ok = np.isfinite(step)
+            before.append(np.where(ok, np.abs(step), np.nan))
+            m = m + (w[ok] * step[ok][:, None]).sum(axis=0) / scale
+            if field == "salinity":
+                m = np.maximum(m, 0.0)
+            data[tt] = {**data[tt], field: m.astype(np.float32)}
+            after.append(np.where(ok, np.abs(net_v - m[nodes]), np.nan))
+        b, a = np.nanmean(before, axis=0), np.nanmean(after, axis=0)
+        out[field] = {"step_before": [None if not np.isfinite(x) else round(float(x), 2) for x in b],
+                      "step_after": [None if not np.isfinite(x) else round(float(x), 2) for x in a]}
+        print(f"{field} seam at the join: mean step across the crossings {np.nanmean(b):.2f} before, {np.nanmean(a):.2f} after "
+              f"(largest {np.nanmax(b):.2f} before)", flush=True)
     return out
 
 
@@ -501,10 +665,7 @@ def extension_hours(cfg: dict, fit: extend.Fit, hours: dict[int, Path], latest: 
     q = np.full(len(t), q_week)
     how = f"held at the last week's measured mean, {q_week:.0f} m3/s"
     if delta_dir is not None and (delta_dir / "geometry" / "delta.json").exists():
-        from .handoff import network_to_mesh
-
-        net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
-        jn = network_to_mesh("delta", net, cfg["reach"], mesh.geometry(coarse, cfg["reach"], edges))
+        jn = join_of(delta_dir, coarse, cfg["reach"], edges)
         dt_, dq = dsm2_outflow(delta_dir, jn, tidal=True)
         in_week = (dt_ >= measured_to - 7 * DAY) & (dt_ < measured_to)
         if in_week.sum() > 96:
@@ -589,6 +750,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"latest cycle {stamp(latest)}", flush=True)
     layout, coarse, edges = prepare(cfg, work, latest)
+    delta_dir = Path(args.delta).resolve() if args.delta and (Path(args.delta) / "geometry" / "delta.json").exists() else None
+    if delta_dir is not None:
+        edges = add_cut_edges(coarse, edges, join_of(delta_dir, coarse, cfg["reach"], edges), cfg.get("join", {}).get("cut_edges_m", 400.0))
     print(f"mesh: {len(coarse.x)} nodes, {len(coarse.tri)} triangles; edges: "
           + ", ".join(f"{k} {len(v)}" for k, v in edges.items()), flush=True)
     if args.archive and "extension" in cfg:
@@ -606,10 +770,7 @@ def main(argv: list[str] | None = None) -> int:
             if ov:
                 extras["overlap"] = ov
             if args.store and cfg.get("outflow_checks"):
-                from .handoff import network_to_mesh
-
-                dnet = json.loads((Path(args.delta) / "geometry" / "delta.json").read_text(encoding="utf-8"))
-                jn = network_to_mesh("delta", dnet, cfg["reach"], mesh.geometry(coarse, cfg["reach"], edges))
+                jn = join_of(Path(args.delta).resolve(), coarse, cfg["reach"], edges)
                 extras["outflow_checks"] = outflow_checks(cfg, Path(args.delta).resolve(), jn, args.store, now)
         except Exception as e:
             print(f"overlap FAILED {e}", flush=True)
@@ -636,6 +797,13 @@ def main(argv: list[str] | None = None) -> int:
             hours, extras["quality_correction"] = correct_quality(cfg, coarse, hours, args.store)
         except Exception as e:  # uncorrected, the Bay keeps NOAA's own salinity and temperature
             print(f"quality correction FAILED {e}", flush=True)
+    if delta_dir is not None and hours:
+        try:
+            hours = {tt: (p if isinstance(p, dict) else dict(np.load(p))) for tt, p in hours.items()}
+            extras["quality_seam"] = seam_quality(hours, coarse, delta_dir, join_of(delta_dir, coarse, cfg["reach"], edges),
+                                                  ("salinity", "temperature"), cfg.get("join", {}).get("seam_m", 2000.0))
+        except Exception as e:  # the mesh keeps its own values at the join
+            print(f"quality seam FAILED {e}", flush=True)
     if args.publish:
         pub = publish(cfg, region_dir, coarse, edges, hours, now, latest, Path(args.publish), extras=extras)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())

@@ -54,8 +54,9 @@ A what-if is a full set of forecast days under `whatif/<name>/`, sharing the mai
 
 - `net_checks` (a network reach): for each gauge, the model's net flow (its flow through the gauge's channel, Godin-filtered) against the gauge's own tidally filtered flow, as daily means over the last 14 days. Each entry has `name`, `site`, `channel`, `days`, `measured_mean`, `model_mean`, `mean_difference` and `daily_mae`, in m³/s.
 - `overlap` (a mesh reach fed by a network): both models' flow across the join before correction. It gives `net` (the mean) and `tidal` (the standard deviation about it), in m³/s.
-- `outflow_correction` (the same): what was added to the mesh's currents so that its flow across the join matches the network's at every hour. It gives both models' net flow and tide size before the correction (`noaa_net`, `dsm2_net`, `noaa_tidal`, `dsm2_tidal`, `tidal_correlation`), the flow added (`added_mean`, `added_range`) and the largest hourly miss left (`largest_miss`), in m³/s.
+- `outflow_correction` (the same): what was added to the mesh's currents so that its flow through the join by each crossing matches the network's flow in that channel at every hour. `crossings` gives, per crossing, both models' net and tidal flow before the correction, their correlation and `opposite_share` (how often they ran opposite ways); the totals are as below. It gives both models' net flow and tide size before the correction (`noaa_net`, `dsm2_net`, `noaa_tidal`, `dsm2_tidal`, `tidal_correlation`), the flow added (`added_mean`, `added_range`) and the largest hourly miss left (`largest_miss`), in m³/s.
 - `outflow_checks` (a mesh reach fed by a network): the network's net outflow across the join, as daily means, against each measured outflow. Each has `name`, `site`, and `all`, `dry` and `wet`, each with `days`, `model_mean`, `measured_mean` and `difference` (m³/s). A dry day is one with no rain running off.
+- `quality_seam` (a mesh reach fed by a network): for `salinity` and `temperature`, the mean step across each crossing of the join (network less mesh, absolute) before and after the mesh's values are made to meet the network's there (`step_before`, `step_after`, one per crossing in the join's order).
 - `quality_correction` (a mesh reach): for `salinity` and `temperature`, each station's mean misfit before correction (measured less modelled) and `left_out`, the mean miss at that station when the correction is made from the other stations alone; plus `measured_to`, the last measured day.
 
 ## Reach geometry (`geometry/<reach>.json`)
@@ -149,15 +150,19 @@ Each day's `<day>.fdf` has one element per node, `u` and `v` (m/s, depth-average
 
 Here, parcels passing the end of the `river` reach enter the `delta` network at junction 330, in the channel that starts there, at the moment they arrived, with their mass. A handoff may also name the water-source group (`"source": "sac"`) the giving reach's water belongs to, for showing water sources upstream of the network.
 
-Where a network reach meets a mesh reach that covers some of its channels (the Delta and the Bay, both covering Suisun Bay), the join runs both ways:
+Where a network reach meets a mesh reach that covers some of its water (the Delta and the Bay), the join is a line, the mesh's edge, and runs both ways:
 
 ```json
 { "from": "delta", "to": "bay", "owned": [416, 417, ...],
-  "junctions": [{ "node": 355, "id": 356, "element": 287, "fraction": 1, "x": 2001234.5, "y": 650123.4 }, ...] }
+  "cuts": [{ "element": 51, "at": 0.809, "inside": "down", "x": 2009876.5, "y": 541234.4, "lon": -121.8003, "lat": 38.0191 }, ...],
+  "junctions": [] }
 ```
 
-- `owned`: the network's channels the mesh tracks (their middle lies on the mesh). The network still publishes their flow; nothing is tracked in them, and a reader need not draw them.
-- `junctions`: every junction where one of the network's own channels meets an owned one, once per own channel there. A parcel arriving at the junction to go the owned way passes to the mesh at `x`, `y` (the junction's place in the mesh's coordinates, inside it). A parcel crossing the mesh's handoff edge (named after the network, in its geometry's `edges`) comes back at the nearest junction listed, into one of the network's own channels there (`element`, entered at its upstream end for `fraction` 0, downstream for 1), in proportion to the flow leaving the junction each way.
+- `owned`: the network's channels lying in the mesh's water from end to end. The network still publishes their flow; nothing is tracked in them, and a reader does not draw them.
+- `cuts`: every channel with one end in the mesh's water, cut where it enters (`at`, 0 to 1 along the channel from its upstream end; `inside`, which end is the mesh's). The network draws and tracks only its own part. A parcel or flow particle carried past the cut toward the mesh passes to the mesh at `x`, `y` (the cut's place in the mesh's coordinates, just inside it). One crossing the mesh's handoff edges (named after the network, in its geometry's `edges`) comes back at the nearest cut, into that channel's own part, moving out. Cuts are numbered in the order listed, across all of a network's joins.
+- `junctions`: any junction inside the mesh where one of the network's own channels, wholly outside, meets an owned one: it serves as that channel's cut, at its end (`element`, entered at its upstream end for `fraction` 0, downstream for 1).
+
+The model runner makes the mesh's flow through its edges by each cut equal the network's flow in that channel at the cut, hour by hour, and the mesh's water quality meet the network's there (specification 7.4; published as the mesh reach's `outflow_correction` and `quality_seam`).
 
 Each parcel belongs to one reach at a time, with its mass, so the reaches together conserve mass whatever their two flows do (specification 7.4).
 

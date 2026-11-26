@@ -287,32 +287,76 @@ impl NetworkEngine {
         self.core.take_particle(node as usize)
     }
 
+    /// Where another reach takes over part way along channels: for each cut,
+    /// its channel, its place along it (0 to 1 from the upstream end) and
+    /// whether the other reach's part is downstream (1) or upstream (0).
+    pub fn set_cuts(&mut self, channels: &[u32], at: &[f64], down: &[u8]) {
+        let cuts: Vec<(usize, f64, bool)> = channels
+            .iter()
+            .zip(at)
+            .zip(down)
+            .map(|((&c, &a), &d)| (c as usize, a, d != 0))
+            .collect();
+        self.core.set_cuts(&cuts);
+    }
+
+    /// Take in a parcel coming back from another reach through cut `k`, now.
+    /// `half_life` in s, or `NaN` for none.
+    pub fn take_parcel_at_cut(&mut self, k: u32, mass: f64, half_life: f64) {
+        self.core.take_parcel_at_cut(
+            k as usize,
+            mass,
+            if half_life.is_finite() && half_life > 0.0 {
+                Some(half_life)
+            } else {
+                None
+            },
+        );
+    }
+
+    /// Take in a flow particle from another reach through cut `k`.
+    pub fn take_particle_at_cut(&mut self, k: u32) -> bool {
+        self.core.take_particle_at_cut(k as usize)
+    }
+
     /// The water in the channels now, m³.
     #[must_use]
     pub fn water_volume(&self) -> f64 {
         self.core.water_volume()
     }
 
-    /// Flow particles passed to another reach since the last call: the junction each reached.
-    pub fn take_handed_particles(&mut self) -> Vec<u32> {
-        #[allow(clippy::cast_possible_truncation)]
+    /// Flow particles passed to another reach since the last call: flat
+    /// (junction or -1, cut or -1) for each.
+    pub fn take_handed_particles(&mut self) -> Vec<f64> {
+        #[allow(clippy::cast_precision_loss)]
         self.core
             .take_handed_particles()
             .into_iter()
-            .map(|n| n as u32)
+            .flat_map(|(n, k)| {
+                [
+                    if n == usize::MAX { -1.0 } else { n as f64 },
+                    k.map_or(-1.0, |k| k as f64),
+                ]
+            })
             .collect()
     }
 
-    /// Parcels handed on since the last call: flat (junction, time, mass,
-    /// half-life or `NaN`) for each.
+    /// Parcels handed on since the last call: flat (junction or -1, cut or
+    /// -1, time, mass, half-life or `NaN`) for each.
     pub fn take_handed(&mut self) -> Vec<f64> {
         self.core
             .take_handed()
             .into_iter()
             .flat_map(|h| {
                 #[allow(clippy::cast_precision_loss)]
-                let node = h.node as f64;
-                [node, h.t, h.mass, h.half_life.unwrap_or(f64::NAN)]
+                let node = if h.node == usize::MAX {
+                    -1.0
+                } else {
+                    h.node as f64
+                };
+                #[allow(clippy::cast_precision_loss)]
+                let cut = h.cut.map_or(-1.0, |k| k as f64);
+                [node, cut, h.t, h.mass, h.half_life.unwrap_or(f64::NAN)]
             })
             .collect()
     }

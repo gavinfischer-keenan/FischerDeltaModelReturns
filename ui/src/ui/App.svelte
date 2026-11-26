@@ -10,8 +10,10 @@
   import { addMesh, addNetwork, createMap, drawFrame, drawNetworks, widenView } from "./map";
   import { MeshPlace, type MeshGeometry } from "./mesh";
   import { SOURCES, legend } from "./layers";
-  import { NetworkPlace, type NetworkGeometry } from "./network";
+  import { NetworkPlace, type ChannelCut, type NetworkGeometry } from "./network";
   import { addOverlays, drawIsohaline, isohalineAt, showOverlay, STRUCTURE_COLOUR, type Overlays, type Station, type Structure } from "./overlays";
+  /** A join between reaches, as index.json gives it (docs/format.md, handoffs). */
+  type Join = { from: string; to?: string; owned?: number[]; cuts?: ChannelCut[] };
 
   const params = new URLSearchParams(location.search);
   const region = params.get("region") ?? "sf-bay-delta";
@@ -233,7 +235,7 @@
       if (r.type === "ready") {
         // Channels a mesh reach tracks (index.json handoffs) are left to it.
         const ix = fetch(`${cycle}/index.json`).then((x) => x.json());
-        const joins = ix.then((x: { handoffs?: { from: string; owned?: number[] }[] }) => x.handoffs ?? []);
+        const joins = ix.then((x: { handoffs?: Join[] }) => x.handoffs ?? []);
         // What is drawn over the water: X2 and the stations (overlays.json).
         ix.then((x: { overlays?: string }) => (x.overlays ? fetch(`${cycle}/${x.overlays}`).then((o) => o.json()) : null))
           .then((o: Overlays | null) => {
@@ -250,10 +252,10 @@
           })
           .catch((e) => console.warn("overlays not shown:", e)); // the water is shown whether or not its overlays load
         for (const id of r.networks) {
-          Promise.all([fetch(`${cycle}/geometry/${id}.json`).then((x) => x.json()), joins]).then(([g, hs]: [NetworkGeometry, { from: string; owned?: number[] }[]]) => {
-            const hidden = hs.filter((h) => h.from === id && h.owned && r.meshes.length).flatMap((h) => h.owned!);
-            const place = new NetworkPlace(id, g, hidden);
-            addNetwork(map, id, g, place.hidden);
+          Promise.all([fetch(`${cycle}/geometry/${id}.json`).then((x) => x.json()), joins]).then(([g, hs]: [NetworkGeometry, Join[]]) => {
+            const mine = hs.filter((h) => h.from === id && r.meshes.length);
+            const place = new NetworkPlace(id, g, mine.flatMap((h) => h.owned ?? []), mine.flatMap((h) => h.cuts ?? []));
+            addNetwork(map, id, g, place.hidden, place.cut);
             nets.push(place);
           });
         }

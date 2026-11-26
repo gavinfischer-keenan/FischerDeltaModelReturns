@@ -120,7 +120,9 @@ class Locator:
         self.tree = cKDTree(np.c_[x[tri].mean(axis=1), y[tri].mean(axis=1)])
 
     def find(self, px: np.ndarray, py: np.ndarray, k: int = 12) -> np.ndarray:
+        k = min(k, len(self.tri))  # a small mesh has fewer triangles than that
         _, idx = self.tree.query(np.c_[px, py], k=k)
+        idx = np.asarray(idx).reshape(len(px), k)
         found = np.full(len(px), -1)
         x, y = self.x, self.y
         for j in range(idx.shape[1]):

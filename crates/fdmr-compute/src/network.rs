@@ -58,6 +58,8 @@ pub enum Fate {
     ToSea,
     /// Passed to another reach at this junction (see `set_handoff`).
     HandedOn(usize),
+    /// Passed to another reach at this cut (see `set_cuts`).
+    Crossed(usize),
 }
 
 /// A release into the network.
@@ -97,7 +99,10 @@ pub struct NetBalance {
 /// its mass (kg) and half-life (s, if it breaks down).
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Handed {
+    /// The junction it was passed on at, or `usize::MAX` if at a cut.
     pub node: usize,
+    /// The cut it was passed on at (`set_cuts`), if at one.
+    pub cut: Option<usize>,
     pub t: f64,
     pub mass: f64,
     pub half_life: Option<f64>,
@@ -142,10 +147,16 @@ pub struct NetworkTracer {
     ages: Vec<f64>,
     lives: Vec<f64>,
     /// Flow particles passed to another reach: the junction each reached.
-    handed_particles: Vec<usize>,
+    handed_particles: Vec<(usize, Option<usize>)>,
     balance: NetBalance,
     /// Channels another reach tracks (such as a bay's, where a mesh covers them).
     handed_channel: Vec<bool>,
+    /// Per channel, where another reach takes over along it: (place along it,
+    /// 0 to 1 from its upstream end; whether the other reach's part is
+    /// downstream of that place; the cut's number).
+    cut: Vec<Option<(f64, bool, usize)>>,
+    /// The cuts by number: (channel, place along it, other reach downstream).
+    cuts: Vec<(usize, f64, bool)>,
     handed: Vec<Handed>,
 }
 
@@ -190,6 +201,8 @@ impl NetworkTracer {
             handed_particles: Vec::new(),
             balance: NetBalance::default(),
             handed_channel: Vec::new(),
+            cut: Vec::new(),
+            cuts: Vec::new(),
             handed: Vec::new(),
         }
     }
@@ -206,6 +219,79 @@ impl NetworkTracer {
                 self.handed_channel[c] = true;
             }
         }
+    }
+
+    /// Places where another reach takes over part way along a channel (the
+    /// join's line crossing it): (channel, place along it from 0 at its
+    /// upstream end to 1, whether the other reach's part is the downstream
+    /// one). A parcel or flow particle carried past one toward the other
+    /// reach is passed on there (`take_handed`, with the cut's number, its
+    /// index here); one coming back enters there, moving out. The other
+    /// reach's part draws and holds nothing here.
+    pub fn set_cuts(&mut self, cuts: &[(usize, f64, bool)]) {
+        self.cut = vec![None; self.topo.up.len()];
+        self.cuts = Vec::new();
+        for &(c, at, down) in cuts {
+            if c < self.cut.len() {
+                self.cut[c] = Some((at.clamp(0.0, 1.0), down, self.cuts.len()));
+                self.cuts.push((c, at.clamp(0.0, 1.0), down));
+            }
+        }
+    }
+
+    /// The network's own part of a channel, m from its upstream end: (from, to).
+    fn own_part(&self, c: usize) -> (f64, f64) {
+        let len = self.topo.length[c];
+        match self.cut.get(c).copied().flatten() {
+            Some((at, true, _)) => (0.0, at * len),
+            Some((at, false, _)) => (at * len, len),
+            None => (0.0, len),
+        }
+    }
+
+    /// Where something coming back through cut `k` enters: just inside the
+    /// network's own part, at the cut.
+    fn at_cut(&self, k: usize) -> Option<Place> {
+        let &(c, at, down) = self.cuts.get(k)?;
+        let len = self.topo.length[c];
+        let s = at * len;
+        let in_by = (0.001 * len).min(1.0);
+        Some(Place::Channel(
+            c,
+            if down {
+                (s - in_by).max(0.0)
+            } else {
+                (s + in_by).min(len)
+            },
+        ))
+    }
+
+    /// Take in a parcel coming back from another reach through cut `k`, now.
+    pub fn take_parcel_at_cut(&mut self, k: usize, mass: f64, half_life: Option<f64>) {
+        if let Some(place) = self.at_cut(k) {
+            self.balance.released += mass;
+            self.parcels.push(Parcel {
+                place,
+                mass,
+                born: self.time - 1e-6,
+                half_life,
+            });
+        }
+    }
+
+    /// Take in a flow particle from another reach through cut `k`, in place of
+    /// the one furthest through its life.
+    pub fn take_particle_at_cut(&mut self, k: usize) -> bool {
+        let Some(place) = self.at_cut(k) else {
+            return false;
+        };
+        let Some(i) = crate::oldest(&self.ages, &self.lives) else {
+            return false;
+        };
+        self.particles[i] = place;
+        self.ages[i] = 0.0;
+        self.lives[i] = crate::particle_life(&mut self.rng);
+        true
     }
 
     /// Parcels passed to another reach since the last call.
@@ -248,7 +334,7 @@ impl NetworkTracer {
     }
 
     /// Flow particles passed to another reach since the last call: the junction each reached.
-    pub fn take_handed_particles(&mut self) -> Vec<usize> {
+    pub fn take_handed_particles(&mut self) -> Vec<(usize, Option<usize>)> {
         std::mem::take(&mut self.handed_particles)
     }
 
@@ -615,6 +701,19 @@ impl NetworkTracer {
                     let f = (x / len).clamp(0.0, 1.0);
                     let u = now.u_up[c] * (1.0 - f) + now.u_down[c] * f;
                     let nx = parcel::step_along_channel(x, u, k, left, &mut self.rng);
+                    if let Some((at, down, id)) = self.cut.get(c).copied().flatten() {
+                        let s = at * len;
+                        let past = |p: f64| if down { p >= s } else { p <= s };
+                        if !past(x) && past(nx) {
+                            // As at a junction, only the flow carries anything across:
+                            // a crossing made by the random spreading step alone is
+                            // turned back.
+                            if past(x + u * left) {
+                                return Place::Gone(Fate::Crossed(id));
+                            }
+                            return Place::Channel(c, (2.0 * s - nx).clamp(0.0, len));
+                        }
+                    }
                     if (0.0..=len).contains(&nx) {
                         return Place::Channel(c, nx);
                     }
@@ -675,6 +774,17 @@ impl NetworkTracer {
                             self.balance.handed_on += mass;
                             self.handed.push(Handed {
                                 node,
+                                cut: None,
+                                t: self.time + dt,
+                                mass,
+                                half_life: p.half_life,
+                            });
+                        }
+                        Fate::Crossed(k) => {
+                            self.balance.handed_on += mass;
+                            self.handed.push(Handed {
+                                node: usize::MAX,
+                                cut: Some(k),
                                 t: self.time + dt,
                                 mass,
                                 half_life: p.half_life,
@@ -719,7 +829,11 @@ impl NetworkTracer {
             let renew = match p {
                 Place::Channel(..) => self.ages[i] > self.lives[i],
                 Place::Gone(Fate::HandedOn(node)) => {
-                    self.handed_particles.push(node);
+                    self.handed_particles.push((node, None));
+                    true
+                }
+                Place::Gone(Fate::Crossed(k)) => {
+                    self.handed_particles.push((usize::MAX, Some(k)));
                     true
                 }
                 _ => true,
@@ -734,12 +848,24 @@ impl NetworkTracer {
         }
     }
 
+    /// A place anywhere in the network's own water, more where there is more
+    /// water: not in a channel another reach tracks, nor past a cut.
     fn random_place(&mut self, now: &Now) -> Place {
-        let total: f64 = now.volume.iter().sum();
+        let own: Vec<f64> = (0..now.volume.len())
+            .map(|c| {
+                if self.handed_channel.get(c).copied().unwrap_or(false) {
+                    return 0.0;
+                }
+                let (a, b) = self.own_part(c);
+                now.volume[c] * (b - a) / self.topo.length[c].max(f64::EPSILON)
+            })
+            .collect();
+        let total: f64 = own.iter().sum();
         let mut r = self.rng.uniform() * total;
-        for (c, v) in now.volume.iter().enumerate() {
+        for (c, v) in own.iter().enumerate() {
             if r < *v {
-                return Place::Channel(c, self.rng.uniform() * self.topo.length[c]);
+                let (a, b) = self.own_part(c);
+                return Place::Channel(c, a + self.rng.uniform() * (b - a));
             }
             r -= v;
         }
@@ -1196,6 +1322,48 @@ mod tests {
             t.ages.iter().copied().fold(0.0, f64::max)
         );
         assert_eq!(t.particles().0.len(), 300);
+    }
+
+    #[test]
+    fn a_cut_passes_things_on_where_the_other_reach_begins() {
+        // Channel 1 (1000 m) is the other reach's beyond its middle.
+        let mut t = split();
+        t.set_cuts(&[(1, 0.5, true)]);
+        t.add_release(NetRelease {
+            at: Place::Channel(0, 0.0),
+            start: 0.0,
+            duration: 0.0,
+            mass: 1.0,
+            half_life: None,
+            parcels: 2000,
+        });
+        t.step_to(600.0);
+        // Nothing in channel 1 past its cut; what went that way was passed on there.
+        for p in &t.parcels {
+            if let Place::Channel(1, x) = p.place {
+                assert!(x < 500.0, "{x}");
+            }
+        }
+        let handed = t.take_handed();
+        assert!(
+            !handed.is_empty()
+                && handed
+                    .iter()
+                    .all(|h| h.cut == Some(0) && h.node == usize::MAX)
+        );
+        // Coming back: in at the cut, moving out of the other reach's part.
+        t.take_parcel_at_cut(0, 1.0, None);
+        assert!(
+            matches!(t.parcels.last().unwrap().place, Place::Channel(1, x) if x < 500.0 && x > 498.0)
+        );
+        // Flow particles start only in the network's own water.
+        t.seed_flow_particles(500);
+        for p in &t.particles {
+            if let Place::Channel(1, x) = *p {
+                assert!(x <= 500.0);
+            }
+        }
+        assert!(t.take_particle_at_cut(0));
     }
 
     #[test]

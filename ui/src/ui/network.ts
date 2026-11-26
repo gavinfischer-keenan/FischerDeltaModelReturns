@@ -5,6 +5,29 @@
 
 import { cumulative, metres, pointOnLine } from "./reach";
 
+/** Where the join's line crosses a channel: the part beyond `at` on the
+ * `inside` side is another reach's (docs/format.md, handoffs). */
+export interface ChannelCut {
+  element: number;
+  at: number;
+  inside: "up" | "down";
+}
+
+/** The network's own part of a channel: (from, to) as fractions along it. */
+export function ownPart(cut: ChannelCut | undefined): [number, number] {
+  if (!cut) return [0, 1];
+  return cut.inside === "down" ? [0, cut.at] : [cut.at, 1];
+}
+
+/** A channel's line from fraction a to b along it. */
+export function slice(line: [number, number][], cum: Float64Array, a: number, b: number): [number, number][] {
+  if (a <= 0 && b >= 1) return line;
+  const out: [number, number][] = [pointOnLine(line, cum, a)];
+  for (let i = 0; i < line.length; i++) if (cum[i] > a && cum[i] < b) out.push(line[i]);
+  out.push(pointOnLine(line, cum, b));
+  return out;
+}
+
 export interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number }[];
   nodes: { id: number; lon: number; lat: number; kind?: string }[];
@@ -20,8 +43,12 @@ export class NetworkPlace {
   /** Channels another reach tracks (a mesh covers them): not drawn, not offered for releases. */
   readonly hidden: Set<number>;
 
-  constructor(readonly id: string, readonly geometry: NetworkGeometry, hidden: number[] = []) {
+  /** Channels cut by the join: drawn and offered only on the network's side. */
+  readonly cut: Map<number, ChannelCut>;
+
+  constructor(readonly id: string, readonly geometry: NetworkGeometry, hidden: number[] = [], cuts: ChannelCut[] = []) {
     this.hidden = new Set(hidden);
+    this.cut = new Map(cuts.map((c) => [c.element, c]));
     this.cum = geometry.lines.map(cumulative);
     const at = new Map(geometry.nodes.map((n) => [n.id, [n.lon, n.lat] as [number, number]]));
     this.poolCentre = (geometry.pools ?? []).map((p) => {
@@ -55,7 +82,9 @@ export class NetworkPlace {
     this.geometry.lines.forEach((line, e) => {
       if (this.hidden.has(e)) return;
       const c = this.cum[e];
+      const [a, b] = ownPart(this.cut.get(e));
       line.forEach((p, i) => {
+        if (c[i] < a || c[i] > b) return;
         const d = metres(p, [lon, lat]);
         if (d < best.metres) best = { element: e, fraction: c[i], metres: d };
       });

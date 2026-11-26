@@ -23,8 +23,8 @@ addProtocol("pmtiles", new Protocol().tile);
 import type { Frame } from "../compute-interface/messages";
 import { blend, colour, fade } from "./layers";
 import type { MeshGeometry, MeshPlace } from "./mesh";
-import type { NetworkPlace } from "./network";
-import type { Reach } from "./reach";
+import { ownPart, slice, type ChannelCut, type NetworkPlace } from "./network";
+import { cumulative, type Reach } from "./reach";
 
 const MAX_DRAWN_PARCELS = 4000;
 
@@ -138,7 +138,7 @@ interface NetworkGeometry {
 
 /** Draw a channel network's channels (docs/format.md, network reaches), each
  * coloured later by its current speed (drawNetworks). */
-export function addNetwork(map: Map, id: string, g: NetworkGeometry, hidden: Set<number> = new Set()): void {
+export function addNetwork(map: Map, id: string, g: NetworkGeometry, hidden: Set<number> = new Set(), cuts: ReadonlyMap<number, ChannelCut> = new globalThis.Map()): void {
   const add = () => {
     const src = `net-${id}`;
     if (map.getSource(src)) return;
@@ -153,7 +153,7 @@ export function addNetwork(map: Map, id: string, g: NetworkGeometry, hidden: Set
                 type: "Feature" as const,
                 id: k,
                 properties: { channel: g.elements[k]?.id },
-                geometry: { type: "LineString" as const, coordinates: line },
+                geometry: { type: "LineString" as const, coordinates: cuts.has(k) ? slice(line, cumulative(line), ...ownPart(cuts.get(k))) : line },
               }],
         ),
       },

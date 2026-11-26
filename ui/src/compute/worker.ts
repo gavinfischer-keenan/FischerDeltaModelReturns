@@ -36,7 +36,16 @@ interface Handoff {
   /** The water-source group the giving reach's water belongs to. */
   source?: string;
   owned?: number[];
+  /** Where the join's line crosses a channel (docs/format.md, handoffs). */
+  cuts?: Cut[];
   junctions?: Junction[];
+}
+interface Cut {
+  element: number;
+  at: number;
+  inside: "up" | "down";
+  x: number;
+  y: number;
 }
 interface Index {
   time: { start: string; step_s: number; days: string[] };
@@ -300,7 +309,7 @@ async function loadQuality(): Promise<void> {
 
 /** The join between a network and a mesh, when both are loaded. */
 function join(net: Net, mesh: Mesh): Handoff | undefined {
-  return index?.handoffs?.find((h) => h.from === net.id && h.to === mesh.id && h.junctions);
+  return index?.handoffs?.find((h) => h.from === net.id && h.to === mesh.id && (h.cuts || h.junctions));
 }
 
 /** Fresh engines at time t: every release replayed from its start, the reaches
@@ -329,6 +338,8 @@ function build(t: number): void {
     for (const b of net.quality ?? []) ne.load_quality(b);
     const owned = index?.handoffs?.filter((h) => h.from === net.id && h.owned && meshes.some((m) => m.id === h.to)).flatMap((h) => h.owned!) ?? [];
     ne.set_handoff(Uint32Array.from(owned));
+    const cuts = index?.handoffs?.filter((h) => h.from === net.id && h.cuts && meshes.some((m) => m.id === h.to)).flatMap((h) => h.cuts!) ?? [];
+    ne.set_cuts(Uint32Array.from(cuts.map((c) => c.element)), Float64Array.from(cuts.map((c) => c.at)), Uint8Array.from(cuts.map((c) => (c.inside === "down" ? 1 : 0))));
     if (netFlow) ne.set_net_flow(true);
     net.engine = ne;
   }
@@ -365,34 +376,21 @@ function run(to: number): void {
     // Networks on, then into the meshes that track some of their channels.
     for (const net of nets) {
       net.engine!.step_to(t);
-      const h = net.engine!.take_handed(); // (junction, time, mass, half-life) ...
-      for (const m of meshes) {
-        const j = join(net, m);
-        if (!j) continue;
-        for (let i = 0; i + 3 < h.length; i += 4) {
-          const at = j.junctions!.find((x) => x.node === h[i]);
-          if (at && m.engine!.take_parcel(at.x, at.y, h[i + 2], h[i + 1], h[i + 3])) handedIn += h[i + 2];
-        }
+      const h = net.engine!.take_handed(); // (junction or -1, cut or -1, time, mass, half-life) ...
+      for (let i = 0; i + 4 < h.length; i += 5) {
+        const at = crossingOut(net, h[i], h[i + 1]);
+        if (at && at.mesh.engine!.take_parcel(at.x, at.y, h[i + 3], h[i + 2], h[i + 4])) handedIn += h[i + 3];
       }
     }
-    // Meshes on, then back into the networks at the nearest junction of the join.
+    // Meshes on, then back into the networks at the nearest crossing of the join.
     for (const m of meshes) {
       m.engine!.step_to(t);
       const h = m.engine!.take_handed(); // (handoff id, x, y, time, mass, half-life) ...
       for (let i = 0; i + 5 < h.length; i += 6) {
-        const net = nets.find((n) => n.id === m.handoffTo[h[i]]);
-        const j = net && join(net, m);
-        if (!net || !j || !j.junctions!.length) continue;
-        let best = j.junctions![0];
-        let d = Infinity;
-        for (const x of j.junctions!) {
-          const dd = (x.x - h[i + 1]) ** 2 + (x.y - h[i + 2]) ** 2;
-          if (dd < d) {
-            d = dd;
-            best = x;
-          }
-        }
-        net.engine!.take_parcel(best.node, h[i + 4], h[i + 5]);
+        const back = crossingIn(m, h[i], h[i + 1], h[i + 2]);
+        if (!back) continue;
+        if (back.cut !== null) back.net.engine!.take_parcel_at_cut(back.cut, h[i + 4], h[i + 5]);
+        else back.net.engine!.take_parcel(back.node!, h[i + 4], h[i + 5]);
         handedIn += h[i + 4];
       }
     }
@@ -400,47 +398,85 @@ function run(to: number): void {
   }
 }
 
-/** Flow particles that crossed a join carry on in the other reach (each
- * engine gives up its oldest to take one in, so its number stays the same).
- * The two reaches hold different numbers of particles per m³ of water, so a
- * particle is taken in with the chance that keeps the receiving reach's
- * density: always from the sparser reach, from the denser one in proportion.
- * Otherwise the denser reach's particles stream into the other in trains. */
-function exchangeParticles(): void {
-  const density = (count: number, volume: number) => (volume > 0 ? count / volume : 0);
-  for (const net of nets) {
-    const h = net.engine?.take_handed_particles();
-    if (!h?.length) continue;
-    const dn = density(NETWORK_PARTICLES, net.engine!.water_volume());
-    for (const m of meshes) {
-      const j = join(net, m);
-      if (!j?.junctions) continue;
-      const take = dn > 0 ? Math.min(1, density(MESH_PARTICLES, m.engine!.water_volume()) / dn) : 0;
-      for (const node of h) {
-        const at = j.junctions.find((x) => x.node === node);
-        if (at && Math.random() < take) m.engine!.take_particle(at.x, at.y);
+/** Where something leaving network `net` at junction `node` or cut `cut`
+ * (-1 for neither) enters the mesh that joins it there. */
+function crossingOut(net: Net, node: number, cut: number): { mesh: Mesh; x: number; y: number } | null {
+  for (const m of meshes) {
+    const j = join(net, m);
+    if (!j) continue;
+    // The cuts are numbered across all of a network's joins, in order (build).
+    if (cut >= 0) {
+      let k = cut;
+      for (const h of index?.handoffs ?? []) {
+        if (h.from !== net.id || !h.cuts || !meshes.some((x) => x.id === h.to)) continue;
+        if (k < h.cuts.length) {
+          const mm = meshes.find((x) => x.id === h.to)!;
+          return { mesh: mm, x: h.cuts[k].x, y: h.cuts[k].y };
+        }
+        k -= h.cuts.length;
       }
+      return null;
+    }
+    const at = j.junctions?.find((x) => x.node === node);
+    if (at) return { mesh: m, x: at.x, y: at.y };
+  }
+  return null;
+}
+
+/** The crossing nearest where something left mesh `m` by handoff edge
+ * `edge` at (x, y): a cut (its number) or a junction, of the network the
+ * edge hands to. */
+function crossingIn(m: Mesh, edge: number, x: number, y: number): { net: Net; cut: number | null; node: number | null } | null {
+  const net = nets.find((n) => n.id === m.handoffTo[edge]);
+  if (!net) return null;
+  let best: { net: Net; cut: number | null; node: number | null } | null = null;
+  let d = Infinity;
+  let base = 0;
+  for (const h of index?.handoffs ?? []) {
+    if (h.from !== net.id || !meshes.some((mm) => mm.id === h.to)) continue;
+    const cuts = h.cuts ?? [];
+    if (h.to === m.id) {
+      cuts.forEach((c, k) => {
+        const dd = (c.x - x) ** 2 + (c.y - y) ** 2;
+        if (dd < d) {
+          d = dd;
+          best = { net, cut: base + k, node: null };
+        }
+      });
+      for (const jx of h.junctions ?? []) {
+        const dd = (jx.x - x) ** 2 + (jx.y - y) ** 2;
+        if (dd < d) {
+          d = dd;
+          best = { net, cut: null, node: jx.node };
+        }
+      }
+    }
+    base += cuts.length;
+  }
+  return best;
+}
+
+/** Flow particles that crossed a join carry on in the other reach, one for
+ * one, through the same crossing as water does (each engine gives up its
+ * oldest to take one in, so its number stays the same): what leaves the
+ * Delta carries on as a plume in the Bay, and the other way. */
+function exchangeParticles(): void {
+  for (const net of nets) {
+    const h = net.engine?.take_handed_particles(); // (junction or -1, cut or -1) ...
+    if (!h?.length) continue;
+    for (let i = 0; i + 1 < h.length; i += 2) {
+      const at = crossingOut(net, h[i], h[i + 1]);
+      if (at) at.mesh.engine!.take_particle(at.x, at.y);
     }
   }
   for (const m of meshes) {
     const h = m.engine?.take_handed_particles(); // (handoff id, x, y) ...
     if (!h?.length) continue;
-    const dm = density(MESH_PARTICLES, m.engine!.water_volume());
     for (let i = 0; i + 2 < h.length; i += 3) {
-      const net = nets.find((n) => n.id === m.handoffTo[h[i]]);
-      const j = net && join(net, m);
-      if (!net || !j?.junctions?.length) continue;
-      if (!(dm > 0 && Math.random() < Math.min(1, density(NETWORK_PARTICLES, net.engine!.water_volume()) / dm))) continue;
-      let best = j.junctions[0];
-      let d = Infinity;
-      for (const x of j.junctions) {
-        const dd = (x.x - h[i + 1]) ** 2 + (x.y - h[i + 2]) ** 2;
-        if (dd < d) {
-          d = dd;
-          best = x;
-        }
-      }
-      net.engine!.take_particle(best.node);
+      const back = crossingIn(m, h[i], h[i + 1], h[i + 2]);
+      if (!back) continue;
+      if (back.cut !== null) back.net.engine!.take_particle_at_cut(back.cut);
+      else back.net.engine!.take_particle(back.node!);
     }
   }
 }
