@@ -234,6 +234,14 @@ def main(argv: list[str] | None = None) -> int:
 
         attempt("nws precipitation", lambda: NwsPrecipAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
         attempt("snodas snowmelt", lambda: SnodasAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
+        # The water the land gives back to the air, measured (OpenET), where
+        # the region asks for it ([soil_moisture] openet).
+        from fdmr_adapters.openet import KEY_FILE, OpenEtAdapter
+
+        for name in (_soil.load(Path(args.region)) or {}).get("openet", []) if KEY_FILE.exists() else []:
+            area = next((a for a in sareas if a["site"] == f"area:{name}"), None)
+            for sample in _soil.openet_samples(area) if area else []:
+                attempt(f"openet {sample['site']}", lambda sample=sample: OpenEtAdapter(store).fetch(sample, int(now - 60 * 86_400), int(now)))
     # The ocean's state at the model's edge (overlays.toml [ocean_state]).
     ostate = ocfg.get("ocean_state", {})
     if ostate.get("enso"):

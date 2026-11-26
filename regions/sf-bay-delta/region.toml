@@ -825,6 +825,9 @@ measures = ["water_temperature"]
 # work (#9) before any use as an input.
 [soil_moisture]
 corridor_m = 10000.0
+# OpenET's measured evapotranspiration for these areas (needs its key): the
+# Delta's lowlands, whose island water use DSM2 takes from DWR's averages.
+openet = ["delta"]
 
 [[soil_moisture.areas]]
 name = "delta"

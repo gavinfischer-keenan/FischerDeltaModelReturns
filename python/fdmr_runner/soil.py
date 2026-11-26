@@ -61,6 +61,25 @@ def areas(region_dir: Path) -> list[dict]:
     return out
 
 
+SAMPLE_GRID = (3, 2)  # OpenET samples across an area: columns, rows
+SAMPLE_SIZE = (0.10, 0.08)  # degrees of longitude, latitude: about 8.8 by 8.9 km, 19,000 acres (OpenET allows 50,000 a query)
+
+
+def openet_samples(area: dict) -> list[dict]:
+    """An area too large for one OpenET query, sampled by a regular grid of
+    small boxes spread evenly across it (not chosen by hand): `site/sN`."""
+    w, s, e, n = area["box"]
+    cols, rows = SAMPLE_GRID
+    dx, dy = SAMPLE_SIZE
+    out = []
+    for j in range(rows):
+        for i in range(cols):
+            cx = w + (i + 0.5) * (e - w) / cols
+            cy = s + (j + 0.5) * (n - s) / rows
+            out.append({"site": f"{area['site']}/s{len(out) + 1}", "box": [round(cx - dx / 2, 4), round(cy - dy / 2, 4), round(cx + dx / 2, 4), round(cy + dy / 2, 4)]})
+    return out
+
+
 def _latest(store: Store, site: str, p: str, t0: int, t1: int):
     vs = [v for v in store.values(SOURCE, site, p, t0, t1) if v.value is not None]
     return vs[-1] if vs else None
@@ -85,6 +104,14 @@ def water_in(store: Store, site: str, now: int) -> dict:
         out.update({"rain_day_end": t, "rain_24h_mm": round(day, 1), "rain_7d_mm": round(week, 1), "rain_7d_days": nw})
         if nn == nw and normal > 0:
             out["rain_7d_percent_normal"] = round(100 * week / normal)
+    samples = [f"{site}/s{k}" for k in range(1, SAMPLE_GRID[0] * SAMPLE_GRID[1] + 1)]
+    lasts = [x[0] for x in (store.latest("openet", s, "evapotranspiration") for s in samples) if x]
+    if lasts and min(lasts) >= now - 45 * 86_400:  # OpenET runs days to weeks behind
+        t = min(lasts)  # the last day every sample has
+        weeks = [_sum(store, "openet", s, "evapotranspiration", t - 6 * 86_400, t + 1) for s in samples]
+        weeks = [w for w, n in weeks if n == 7]
+        if weeks:
+            out.update({"et_day_end": t + 86_400, "et_7d_mm": round(sum(weeks) / len(weeks), 1), "et_samples": len(weeks)})
     last = store.latest("snodas", site, "snow_water_equivalent")
     if last and last[0] >= now - 4 * 86_400:
         t = last[0]

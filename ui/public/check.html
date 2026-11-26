@@ -104,7 +104,8 @@ async function get(name) {
       h += table(sm.areas.map((a) => ({ area: a.site, at: new Date(a.t * 1000).toISOString().slice(0, 16) + "Z", "root zone": a.rootzone, surface: a.surface, wetness: a.wetness,
         percentile: a.percentile, "root zone, 7-day change": a.rootzone_change_7d,
         "rain, day to": a.rain_day_end ? new Date(a.rain_day_end * 1000).toISOString().slice(0, 13) + "Z" : "", "rain 24 h, mm": a.rain_24h_mm, "rain 7 days, mm": a.rain_7d_mm,
-        "rain 7 days, % of normal": a.rain_7d_percent_normal, "snowmelt 7 days, mm": a.snowmelt_7d_mm, "snow water, mm": a.snow_water_mm })));
+        "rain 7 days, % of normal": a.rain_7d_percent_normal, "snowmelt 7 days, mm": a.snowmelt_7d_mm, "snow water, mm": a.snow_water_mm,
+        "evapotranspiration 7 days, mm (OpenET, mean of samples)": a.et_7d_mm, "ET samples": a.et_samples, "ET to": a.et_day_end ? new Date(a.et_day_end * 1000).toISOString().slice(0, 10) : "" })));
       h += "<p class='note'>Rain: the National Weather Service's daily analysis (radar adjusted to gauges, 24 hours to 12:00 UTC), against PRISM's 1991-2020 normal. Snowmelt and snow water: SNODAS, the Weather Service's snow model nudged to observations (24 hours to 06:00 UTC).</p>";
     } else h += "<p class='note'>(none yet)</p>";
 
