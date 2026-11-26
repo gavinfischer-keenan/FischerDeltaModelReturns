@@ -815,6 +815,25 @@ measures = ["water_temperature"]
 # for the airport's 2.5 km grid cell (api.weather.gov/points). Clear-sky
 # sunlight is reckoned at sea level: Redding's 150 m would add 0.3 %.
 
+# How wet the land is where rain runs off into the water unmeasured (issue
+# #12; fdmr_runner.soil): NASA SMAP Level 4 soil moisture (9 km, three-hourly)
+# over the land within `corridor_m` of each river below its dam, and over two
+# boxes (west, south, east, north): the Delta's lowlands, drawn round the
+# DSM2 grid's islands from Freeport and Vernalis to Chipps Island, and the land
+# draining straight to the Bay, from the Golden Gate's headlands to Suisun
+# Bay's shores. Boxes, not catchment boundaries: a record for the validation
+# work (#9) before any use as an input.
+[soil_moisture]
+corridor_m = 10000.0
+
+[[soil_moisture.areas]]
+name = "delta"
+box = [-121.95, 37.65, -121.20, 38.55]  # Freeport 38.46 N, Vernalis 37.68 N 121.27 W, Chipps Island 121.92 W
+
+[[soil_moisture.areas]]
+name = "bay"
+box = [-122.75, 37.30, -121.80, 38.35]
+
 # The land along each river against the land at its weather zone's airport,
 # seen from orbit (issue #11; fdmr_runner.land): ECOSTRESS land surface
 # temperature over the land within `band_m` of the river and within

@@ -92,6 +92,14 @@ async function get(name) {
         "night passes": s.night?.passes, "night contrast": s.night?.contrast, "night river land": s.night?.band_mean, "night airport land": s.night?.airport_mean })));
     } else h += "<p class='note'>(none yet)</p>";
 
+    h += "<h3>Soil moisture where rain runs off into the water (overlays.json soil_moisture)</h3>";
+    const sm = ov.soil_moisture;
+    if (sm) {
+      h += `<p>${esc(sm.source)}: each area's mean over its land cells (9 km), latest three-hour period. Root zone and surface: water by volume, m³/m³; wetness: fraction of what the soil holds; percentile: against that place's own climate for the time of year. River corridors: land within ${sm.corridor_m} m of the river.</p>`;
+      h += table(sm.areas.map((a) => ({ area: a.site, at: new Date(a.t * 1000).toISOString().slice(0, 16) + "Z", "root zone": a.rootzone, surface: a.surface, wetness: a.wetness,
+        percentile: a.percentile, "root zone, 7-day change": a.rootzone_change_7d })));
+    } else h += "<p class='note'>(none yet)</p>";
+
     h += "<h2>4. Reservoirs and snowpack (overlays.json structures)</h2>";
     const res = ov.structures.filter((s) => s.storage || (s.snow && s.snow.length)).map((s) => ({
       dam: s.name, site: s.site,

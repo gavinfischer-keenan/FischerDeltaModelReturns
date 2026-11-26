@@ -477,9 +477,17 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
         lt = land.contrast(region_dir, store, now)
     except Exception as e:
         print(f"land temperature check FAILED {e}", flush=True)
+    sm = None
+    try:  # a record; the overlays are published whatever it says
+        from . import soil
+
+        sm = soil.summary(region_dir, store, now)
+    except Exception as e:
+        print(f"soil moisture FAILED {e}", flush=True)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
             **({"satellite_temperature": sat} if sat else {}),
             **({"land_temperature": lt} if lt and lt["stretches"] else {}),
+            **({"soil_moisture": sm} if sm and sm["areas"] else {}),
             "structures": structures(cfg, store, now, units, (delta.load(region_dir) or {}).get("live_gate", [])),
             "landmarks": landmarks(cfg, cdir, index), "units": units}
 

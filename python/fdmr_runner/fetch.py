@@ -205,6 +205,15 @@ def main(argv: list[str] | None = None) -> int:
         lkeep = int(_land.load(Path(args.region))[0].get("days", 14)) * 86_400
         attempt("ecostress land", lambda: fetch_land(EcostressAdapter(Path(args.store).parent / "ecostress"), store, lplaces,
                                                      _land.box(lplaces), int(now - lkeep), int(now)))
+    # How wet the land is where rain runs off into the water (region.toml
+    # [soil_moisture]), from NASA SMAP.
+    from . import soil as _soil
+
+    sareas = [] if args.forecast_only else _soil.areas(Path(args.region))
+    if sareas:
+        from fdmr_adapters.smap import SmapAdapter
+
+        attempt("smap soil moisture", lambda: SmapAdapter(store).fetch(sareas, int(now - 14 * 86_400), int(now)))
     # DWR's daily reservoir and snow reports, for the dams that show them.
     res = [s["site"] for s in ocfg.get("structures", []) if s.get("storage_report")]
     if not args.forecast_only and (res or any(s.get("snow") for s in ocfg.get("structures", []))):
