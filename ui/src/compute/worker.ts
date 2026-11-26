@@ -271,6 +271,19 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   for (const r of meshReaches) void loadMesh(cycle, r.id, r.time?.days ?? ix.time.days);
 }
 
+/** Rebuild the engines once the reaches loading in the background have come
+ * in: each arriving reach would otherwise rebuild and replay every engine,
+ * a dozen times over on opening. */
+let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
+function rebuildSoon(): void {
+  if (rebuildTimer !== null) clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(() => {
+    rebuildTimer = null;
+    build(engine ? engine.time() : now);
+    frame();
+  }, 250);
+}
+
 /** Flow particles for a line reach: as dense over its water as every reach, or `n` without widths. */
 function lineCount(g: LineGeometry, n: number): number {
   return g.elements.every((x) => x.width_m !== undefined)
@@ -295,8 +308,7 @@ async function loadLine(cycle: string, id: string): Promise<void> {
     return h && seen < 10 ? 1 + hops(h.to, seen + 1) : 0;
   };
   lines.sort((a, b) => hops(b.id) - hops(a.id));
-  build(engine ? engine.time() : now);
-  frame();
+  rebuildSoon();
 }
 
 /** Hand what passed the end of river reach `from` on to where it joins: a
@@ -379,8 +391,7 @@ async function loadNetwork(cycle: string, id: string, netDays: string[]): Promis
   });
   if (QUALITY_LAYERS.has(layer)) await loadQuality();
   // Play the river's (and any other reach's) handoffs into it from the start.
-  build(engine ? engine.time() : now);
-  frame();
+  rebuildSoon();
 }
 
 async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<void> {
@@ -403,8 +414,7 @@ async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<
     quality: null,
   });
   if (QUALITY_LAYERS.has(layer)) await loadQuality();
-  build(engine ? engine.time() : now);
-  frame();
+  rebuildSoon();
 }
 
 /** Layers that need the water-quality files. */
