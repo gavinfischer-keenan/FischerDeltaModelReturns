@@ -59,7 +59,7 @@ flowchart TD
   h --> q1["QUAL: salinity (EC)"] --> q2["QUAL: water sources (fingerprints)"] --> q3["QUAL: water temperature on live weather"] --> gt["GTM: suspended sediment<br/>fdmr_plugins.dsm2.sediment"]
   gt --> cn["export canals<br/>fdmr_runner.canals"] --> by["Bay: NOAA SFBOFS, net flow made the Delta's,<br/>carried past 48 h by tides plus outflow, quality corrected<br/>fdmr_runner.bay"]
   d1 -- no --> pu
-  by --> pu["publish<br/>rivers routed with their heat budget; every reach joined;<br/>overlays; assumptions; the maths each reach ran"]
+  by --> pu["publish<br/>rivers routed with their heat budget; every reach joined;<br/>overlays; assumptions; the maths each reach ran;<br/>the sturgeon forecast (fdmr_runner.fishing)"]
   pu --> le["ledger: this cycle's predictions kept"]
   le --> n2{nightly?}
   n2 -- yes --> ni["nightly regime<br/>fdmr_runner.nightly (section 3)"]

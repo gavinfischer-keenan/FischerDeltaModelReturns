@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturgeon: the sturgeon forecast</title>
+<!--
+  The sturgeon forecast (issue #19; fdmr_runner.fishing), as published with the
+  current cycle (data/<region>/current/fishing.json). Plain, for checking.
+  Computes nothing. ?region=
+-->
+<style>
+  body { font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; margin: 12px; color: #111; background: #fff; }
+  h1 { font-size: 16px; } h2 { font-size: 14px; margin-top: 24px; border-top: 2px solid #000; padding-top: 6px; }
+  table { border-collapse: collapse; margin: 4px 0 10px; } td, th { border: 1px solid #999; padding: 2px 6px; text-align: right; vertical-align: top; }
+  th { background: #eee; } td.l, th.l { text-align: left; } p { max-width: 980px; } .note { color: #555; } .warn { background: #fdd; }
+</style>
+</head>
+<body>
+<h1>Sturgeon: the sturgeon forecast</h1>
+<p class="note">Where, day by day over the forecast, the water the model predicts suits the estuary's sturgeon, from published evidence only: each number in the rules comes from a paper or agency report, cited in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/regions/sf-bay-delta/fishing.toml">the region's rules</a> and listed on the <a href="references.html">references</a> page. <b>Unvalidated</b>: no daily catch or survey data are published to check it against yet. Not used, for lack of any quantified relation: turbidity, tide and current. See also <a href="check.html">every check</a> and <a href="assumptions.html">every assumption</a>.</p>
+<div id="out">Loading…</div>
+<script>
+const q = new URLSearchParams(location.search);
+const region = q.get("region") || "sf-bay-delta";
+const base = new URL(`data/${region}/current/`, location.href).href;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const refs = (s) => esc(s).replace(/ref:([a-z][a-z0-9_]*)/g, '<a href="references.html#$1">$1</a>');
+(async () => {
+  const index = await (await fetch(base + "index.json", { cache: "no-store" })).json();
+  if (!index.fishing) { document.getElementById("out").textContent = "This cycle has no sturgeon forecast."; return; }
+  const fx = await (await fetch(base + index.fishing, { cache: "no-store" })).json();
+  let h = `<p>Cycle <b>${esc(fx.generated_for_cycle)}</b>, now ${esc(fx.now)}.</p>`;
+  const w = fx.species.white_sturgeon;
+  if (w) {
+    h += `<h2>${esc(w.name)}</h2><p>${refs(w.status)}</p><p class="note">Score 0-100 per channel or Bay node and day: the month's share of anglers' catch (CDFW Report Card) times the day's salinity band (0 in a closed month). Places whose water is outside the temperatures fish were caught in are counted, not scored down. A river's flow rising by ${esc(fx.rules.white_sturgeon.migration_rise_m3s)} m³/s over a day in the migration months is flagged.</p>`;
+    h += "<table><tr><th class='l'>day</th><th>season</th><th>best score</th><th class='l'>places at best</th><th class='l'>outside caught temperature</th><th class='l'>migration cue</th><th class='l'>some of the best places (reach element: salinity psu, °C, lon, lat)</th></tr>";
+    for (const d of w.days) {
+      const pl = (d.best || []).slice(0, 4).map((b) => `${esc(b.reach)} ${b.element}: ${b.salinity}, ${b.temperature ?? ""}, ${b.lon ?? ""}, ${b.lat ?? ""}`).join("<br>");
+      h += `<tr class="${d.closed ? "warn" : ""}"><td class="l">${esc(d.date)}${d.closed ? " (closed)" : ""}</td><td>${d.season}</td><td>${d.best_score ?? ""}</td>` +
+        `<td class="l">${esc(Object.entries(d.places_at_best || {}).map(([r, n]) => `${r} ${n}`).join(", "))}</td>` +
+        `<td class="l">${esc(Object.entries(d.outside_caught_temperature || {}).map(([r, n]) => `${r} ${n}`).join(", "))}</td>` +
+        `<td class="l">${esc((d.migration || []).map((m) => `${m.reach} +${m.rise_m3s} to ${m.flow_m3s} m³/s`).join("; "))}</td><td class="l">${pl}</td></tr>`;
+    }
+    h += "</table>";
+  }
+  const g = fx.species.green_sturgeon;
+  if (g) {
+    h += `<h2>${esc(g.name)}: to avoid</h2><p>${refs(g.status)}</p><p class="note">Places, by day, in the months and the temperature and salinity ranges green sturgeon have been tracked in the estuary (ranges observed, not preferences).</p><table><tr><th class='l'>day</th><th class='l'>in its months</th><th class='l'>places flagged</th></tr>`;
+    for (const d of g.days) h += `<tr><td class="l">${esc(d.date)}</td><td class="l">${d.in_season ? "yes" : "no"}</td><td class="l">${esc(Object.entries(d.reaches).map(([r, v]) => `${r} ${v.length}`).join(", "))}</td></tr>`;
+    h += "</table>";
+  }
+  document.getElementById("out").innerHTML = h;
+})().catch((e) => { document.getElementById("out").textContent = "Failed: " + e; });
+</script>
+</body>
+</html>

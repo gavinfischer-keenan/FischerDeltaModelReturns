@@ -101,6 +101,24 @@
    ]
   },
   {
+   "key": "cdfw_sturgeon_regs",
+   "authors": "California Department of Fish and Wildlife",
+   "year": 2026,
+   "title": "White Sturgeon and Sturgeon Fishing Report Card: regulations and season",
+   "kind": "web",
+   "url": "https://wildlife.ca.gov/Conservation/Fishes/Sturgeon/report-card",
+   "note": "Read 26 Nov 2026: white sturgeon catch and release only, season closed 1 July to 30 September, under the Fish and Game Commission's rules for a candidate species. Regulations change: check before fishing.",
+   "checked": "CDFW's pages read, 26 Nov 2026",
+   "citation": "California Department of Fish and Wildlife (2026). White Sturgeon and Sturgeon Fishing Report Card: regulations and season. https://wildlife.ca.gov/Conservation/Fishes/Sturgeon/report-card",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 18,
+     "text": "status = \"catch and release only; season closed 1 July to 30 September (California Fish and Game Commission rules for a CESA candidate species, ref:cdfw_sturgeon_regs)\""
+    }
+   ]
+  },
+  {
    "key": "dwr1974b200v2",
    "authors": "California Department of Water Resources",
    "year": 1974,
@@ -265,6 +283,23 @@
    ]
   },
   {
+   "key": "ccr14_581",
+   "authors": "California Fish and Game Commission",
+   "year": 2026,
+   "title": "California Code of Regulations, Title 14, section 5.81: Green Sturgeon",
+   "kind": "standard",
+   "url": "https://www.law.cornell.edu/regulations/california/14-CCR-5.81",
+   "checked": "Text of the section read, 26 Nov 2026",
+   "citation": "California Fish and Game Commission (2026). California Code of Regulations, Title 14, section 5.81: Green Sturgeon. https://www.law.cornell.edu/regulations/california/14-CCR-5.81",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 57,
+     "text": "status = \"federally threatened (ref:fr2006_green_sturgeon); in California it may not be taken or possessed, nor removed from the water, and is to be released at once (14 CCR 5.81, ref:ccr14_581). Show"
+    }
+   ]
+  },
+  {
    "key": "ccwd2014",
    "authors": "Carollo Engineers",
    "year": 2014,
@@ -316,6 +351,24 @@
      "file": "regions/sf-bay-delta/canals.toml",
      "line": 105,
      "text": "ref:cvrwqcb_r5_2022_0006_009). The stretch"
+    }
+   ]
+  },
+  {
+   "key": "chapman2019",
+   "authors": "Chapman, E. D., Miller, E. A., Singer, G. P., Hearn, A. R., Thomas, M. J., Brostoff, W. N., LaCivita, P. E., and Klimley, A. P.",
+   "year": 2019,
+   "title": "Spatiotemporal occurrence of green sturgeon at dredging and placement sites in the San Francisco estuary",
+   "kind": "paper",
+   "in": "Environmental Biology of Fishes 102(1), 27-40",
+   "doi": "10.1007/s10641-018-0837-9",
+   "checked": "Crossref record of the DOI; abstract read, 26 Nov 2026",
+   "citation": "Chapman, E. D., Miller, E. A., Singer, G. P., Hearn, A. R., Thomas, M. J., Brostoff, W. N., LaCivita, P. E., and Klimley, A. P. (2019). Spatiotemporal occurrence of green sturgeon at dredging and placement sites in the San Francisco estuary. Environmental Biology of Fishes 102(1), 27-40. https://doi.org/10.1007/s10641-018-0837-9",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 61,
+     "text": "June-September, present all months (Chapman et al. 2019, ref:chapman2019)."
     }
    ]
   },
@@ -561,6 +614,44 @@
    ]
   },
   {
+   "key": "hause2024",
+   "authors": "Hause, C., Stompe, D., Kratville, D., and Kelly, J.",
+   "year": 2024,
+   "title": "Sturgeon Fishing Report Card: 2023 Summary Data Report",
+   "kind": "report",
+   "in": "California Department of Fish and Wildlife; 2 July 2024",
+   "url": "https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=223958",
+   "note": "Figure 12: the share of white sturgeon catch by month, 2007-2023; read from the figure.",
+   "checked": "CDFW's PDF read, 26 Nov 2026",
+   "citation": "Hause, C., Stompe, D., Kratville, D., and Kelly, J. (2024). Sturgeon Fishing Report Card: 2023 Summary Data Report. California Department of Fish and Wildlife; 2 July 2024. https://nrm.dfg.ca.gov/FileHandler.ashx?DocumentID=223958",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 21,
+     "text": "2007-2023 mean (Hause et al. 2024, ref:hause2024, figure 12, read from the"
+    }
+   ]
+  },
+  {
+   "key": "heublein2017",
+   "authors": "Heublein, J. C., Bellmer, R. J., Chase, R. D., Doukakis, P., Gingras, M., Hampton, D., Israel, J. A., Jackson, Z. J., Johnson, R. C., Langness, O. P., Luis, S., Mora, E., Moser, M. L., Rohrbach, L., Seesholtz, A. M., Sommer, T., and Stuart, J. S.",
+   "year": 2017,
+   "title": "Life history and current monitoring inventory of San Francisco Estuary sturgeon",
+   "kind": "report",
+   "in": "NOAA Technical Memorandum NMFS-SWFSC-589, National Marine Fisheries Service, Southwest Fisheries Science Center",
+   "doi": "10.7289/V5/TM-SWFSC-589",
+   "note": "A review; numbers taken from it are cited to it, with its page.",
+   "checked": "DataCite record of the DOI; full text read, 26 Nov 2026",
+   "citation": "Heublein, J. C., Bellmer, R. J., Chase, R. D., Doukakis, P., Gingras, M., Hampton, D., Israel, J. A., Jackson, Z. J., Johnson, R. C., Langness, O. P., Luis, S., Mora, E., Moser, M. L., Rohrbach, L., Seesholtz, A. M., Sommer, T., and Stuart, J. S. (2017). Life history and current monitoring inventory of San Francisco Estuary sturgeon. NOAA Technical Memorandum NMFS-SWFSC-589, National Marine Fisheries Service, Southwest Fisheries Science Center. https://doi.org/10.7289/V5/TM-SWFSC-589",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 41,
+     "text": "migration_months = [11, 12, 1, 2, 3, 4, 5]   # fresh water scores higher: the spawning run (Heublein et al. 2017, ref:heublein2017, pp. 12, 26)"
+    }
+   ]
+  },
+  {
    "key": "ecostress_lst",
    "authors": "Hook, S., and Hulley, G.",
    "year": 2026,
@@ -625,6 +716,24 @@
    ]
   },
   {
+   "key": "kelly2007",
+   "authors": "Kelly, J. T., Klimley, A. P., and Crocker, C. E.",
+   "year": 2007,
+   "title": "Movements of green sturgeon, Acipenser medirostris, in the San Francisco Bay estuary, California",
+   "kind": "paper",
+   "in": "Environmental Biology of Fishes 79(3-4), 281-295",
+   "doi": "10.1007/s10641-006-0036-y",
+   "checked": "Crossref record of the DOI; abstract read, 26 Nov 2026",
+   "citation": "Kelly, J. T., Klimley, A. P., and Crocker, C. E. (2007). Movements of green sturgeon, Acipenser medirostris, in the San Francisco Bay estuary, California. Environmental Biology of Fishes 79(3-4), 281-295. https://doi.org/10.1007/s10641-006-0036-y",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 60,
+     "text": "ref:kelly2007); in the lower estuary more often February-March and"
+    }
+   ]
+  },
+  {
    "key": "kundu1976",
    "authors": "Kundu, P. K.",
    "year": 1976,
@@ -663,6 +772,24 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 40,
      "text": "\"Leopold and Maddock 1953, USGS Professional Paper 252 (hydraulic geometry; ref:leopold1953)\","
+    }
+   ]
+  },
+  {
+   "key": "mcenroe1985",
+   "authors": "McEnroe, M., and Cech, J. J., Jr.",
+   "year": 1985,
+   "title": "Osmoregulation in juvenile and adult white sturgeon, Acipenser transmontanus",
+   "kind": "paper",
+   "in": "Environmental Biology of Fishes 14(1), 23-30",
+   "doi": "10.1007/BF00001573",
+   "checked": "Crossref record of the DOI; abstract read, 26 Nov 2026",
+   "citation": "McEnroe, M., and Cech, J. J., Jr. (1985). Osmoregulation in juvenile and adult white sturgeon, Acipenser transmontanus. Environmental Biology of Fishes 14(1), 23-30. https://doi.org/10.1007/BF00001573",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 32,
+     "text": "(McEnroe and Cech 1985, ref:mcenroe1985). Moderate to weak evidence: the"
     }
    ]
   },
@@ -720,6 +847,24 @@
      "file": "regions/sf-bay-delta/overlays.toml",
      "line": 16,
      "text": "records CDEC's CX2 method and these station distances. ref:muellersolger2012"
+    }
+   ]
+  },
+  {
+   "key": "fr2006_green_sturgeon",
+   "authors": "National Marine Fisheries Service",
+   "year": 2006,
+   "title": "Endangered and Threatened Wildlife and Plants: Threatened Status for Southern Distinct Population Segment of North American Green Sturgeon",
+   "kind": "standard",
+   "in": "Federal Register 71, 17757; 7 April 2006",
+   "url": "https://www.federalregister.gov/citation/71-FR-17757",
+   "checked": "Federal Register citation confirmed, 26 Nov 2026",
+   "citation": "National Marine Fisheries Service (2006). Endangered and Threatened Wildlife and Plants: Threatened Status for Southern Distinct Population Segment of North American Green Sturgeon. Federal Register 71, 17757; 7 April 2006. https://www.federalregister.gov/citation/71-FR-17757",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 57,
+     "text": "status = \"federally threatened (ref:fr2006_green_sturgeon); in California it may not be taken or possessed, nor removed from the water, and is to be released at once (14 CCR 5.81, ref:ccr14_581). Show"
     }
    ]
   },
@@ -991,6 +1136,24 @@
    ]
   },
   {
+   "key": "patton2020",
+   "authors": "Patton, O., Larwood, V., and Young, M.",
+   "year": 2020,
+   "title": "Estuarine habitat use by white sturgeon (Acipenser transmontanus)",
+   "kind": "paper",
+   "in": "San Francisco Estuary and Watershed Science 18(4), article 4",
+   "doi": "10.15447/sfews.2020v18iss4art4",
+   "checked": "Crossref record of the DOI; full text read, 26 Nov 2026",
+   "citation": "Patton, O., Larwood, V., and Young, M. (2020). Estuarine habitat use by white sturgeon (Acipenser transmontanus). San Francisco Estuary and Watershed Science 18(4), article 4. https://doi.org/10.15447/sfews.2020v18iss4art4",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 31,
+     "text": "et al. 2020, ref:patton2020, results p. 5) and adults tolerating 35 ppt"
+    }
+   ]
+  },
+  {
    "key": "pawlowicz2002",
    "authors": "Pawlowicz, R., Beardsley, B., and Lentz, S.",
    "year": 2002,
@@ -1027,6 +1190,25 @@
    ]
   },
   {
+   "key": "schaffter1997",
+   "authors": "Schaffter, R. G.",
+   "year": 1997,
+   "title": "White sturgeon spawning migrations and location of spawning habitat in the Sacramento River, California",
+   "kind": "paper",
+   "in": "California Fish and Game 83(1), 1-20",
+   "url": "https://consensus.app/papers/white-sturgeon-spawning-migrations-and-location-of-schaffter/w:e399478f-8ce6-4a12-a42b-6bd02d63facb/",
+   "note": "No DOI or publisher copy online; the link is a paper index's record of it, with its abstract. Abstract read.",
+   "checked": "Consensus's record (title, author, year, volume 83), 26 Nov 2026",
+   "citation": "Schaffter, R. G. (1997). White sturgeon spawning migrations and location of spawning habitat in the Sacramento River, California. California Fish and Game 83(1), 1-20. https://consensus.app/papers/white-sturgeon-spawning-migrations-and-location-of-schaffter/w:e399478f-8ce6-4a12-a42b-6bd02d63facb/",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 47,
+     "text": "river flow\" (Schaffter 1997, ref:schaffter1997), and spawning followed"
+    }
+   ]
+  },
+  {
    "key": "schureman1958",
    "authors": "Schureman, P.",
    "year": 1958,
@@ -1047,6 +1229,24 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 85,
      "text": "\"constituent speeds from Schureman 1958 (ref:schureman1958)\","
+    }
+   ]
+  },
+  {
+   "key": "sellheim2022",
+   "authors": "Sellheim, K., Willmes, M., Lewis, L. S., Sweeney, J., Merz, J., and Hobbs, J. A.",
+   "year": 2022,
+   "title": "Diversity in habitat use by white sturgeon revealed using fin ray geochemistry",
+   "kind": "paper",
+   "in": "Frontiers in Marine Science 9, 859038",
+   "doi": "10.3389/fmars.2022.859038",
+   "checked": "Crossref record of the DOI; full text read, 26 Nov 2026",
+   "citation": "Sellheim, K., Willmes, M., Lewis, L. S., Sweeney, J., Merz, J., and Hobbs, J. A. (2022). Diversity in habitat use by white sturgeon revealed using fin ray geochemistry. Frontiers in Marine Science 9, 859038. https://doi.org/10.3389/fmars.2022.859038",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/fishing.toml",
+     "line": 28,
+     "text": "Sellheim et al. 2022 (ref:sellheim2022; fresh < 0.5, low 0.5-2, medium 2-10,"
     }
    ]
   },

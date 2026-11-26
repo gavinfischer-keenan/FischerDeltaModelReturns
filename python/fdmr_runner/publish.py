@@ -668,6 +668,18 @@ def publish(
         pass
     except Exception as e:  # the water is published whatever happens to its overlays
         print(f"overlays FAILED {e}", flush=True)
+    # The sturgeon forecast (fdmr_runner.fishing, issue #19): the region's
+    # published-evidence rules applied to this cycle's water.
+    if not hindcast:
+        try:
+            from . import fishing
+
+            fx = fishing.forecast(region_dir, cdir, index)
+            if fx is not None:
+                (cdir / "fishing.json").write_text(json.dumps(fx, separators=(",", ":"), allow_nan=False), encoding="utf-8")
+                index["fishing"] = "fishing.json"
+        except Exception as e:  # the water is published whatever happens to its forecast
+            print(f"fishing FAILED {e}", flush=True)
     # The last fetch's own account of what it could not get (fdmr_runner.fetch).
     fs = store.path.parent / f"fetch-status-{index['region']}.json" if store.path.name != ":memory:" else None
     if fs and fs.exists():
