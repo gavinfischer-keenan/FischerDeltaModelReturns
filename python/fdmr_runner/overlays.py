@@ -54,6 +54,7 @@ SHOWN = {
     "wind_gust": None,
     "air_pressure": None,
     "water_level": None,
+    "gage_height": None,  # a CDEC station's level on its own datum (fdmr_runner.levels)
 }
 CHECK_DAYS = 14  # each station's readings against the model over this many days
 MODEL_NEAR_KM = 1.0  # a station further than this from every channel gets no model value
@@ -530,8 +531,16 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
         tr = tide_residual(cfg, store, now)
     except Exception as e:
         print(f"tide residual FAILED {e}", flush=True)
+    lc = None
+    try:  # a check; the overlays are published whatever it says
+        from . import levels
+
+        lc = levels.level_checks(cfg, cdir, index, store, now)
+    except Exception as e:
+        print(f"level checks FAILED {e}", flush=True)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
             **({"tide_residual": tr} if tr else {}),
+            **({"level_checks": lc} if lc else {}),
             **({"satellite_temperature": sat} if sat else {}),
             **({"land_temperature": lt} if lt and lt["stretches"] else {}),
             **({"soil_moisture": sm} if sm and sm["areas"] else {}),
