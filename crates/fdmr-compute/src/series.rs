@@ -65,7 +65,7 @@ impl Series {
         Some(d.t0 as f64 + f64::from(d.step_s) * f64::from(d.steps.saturating_sub(1)))
     }
 
-    /// A copy with every field tidally filtered (Godin's filter), element by
+    /// A copy with every field tidally filtered (Godin's filter, ref:godin1972), element by
     /// element, across all the days held taken as one series: the flow with
     /// the tides taken out, for showing net flow (specification 3.5). An
     /// element with a missing value anywhere is copied unfiltered.

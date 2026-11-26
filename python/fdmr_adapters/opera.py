@@ -11,6 +11,8 @@ the cache folder: `water` (1 where open or partial water, 0 not, 255 where
 nothing could be seen), the tile's UTM origin, pixel size and zone, the crop's
 offset, and the pass time. When a pass was processed more than once, only the
 latest processing is used.
+
+References: ref:opera_dswx_s1 (references.toml).
 """
 
 from __future__ import annotations

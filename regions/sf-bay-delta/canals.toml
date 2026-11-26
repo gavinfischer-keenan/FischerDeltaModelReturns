@@ -8,9 +8,9 @@
 #
 # Lines are built once by `python -m fdmr_runner.canals build` into
 # canals.json, from:
-#   - dwr-swp: DWR, "i17 StateWaterProject Centerline" (CC-BY 4.0; current
+#   - dwr-swp: DWR, "i17 StateWaterProject Centerline" (ref:dwr_i17_swp; Creative Commons Attribution; current
 #     20 May 2025), https://gis.data.cnra.ca.gov/datasets/0c1e0a5ca1ba488ea740fa0d654df4c8_0
-#   - nhd: USGS National Hydrography Dataset, flowlines (public domain),
+#   - nhd: USGS National Hydrography Dataset, flowlines (ref:nhd; public domain),
 #     https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6
 # Each line is the shortest path through the source's pieces from `start` to
 # `end` (lon, lat), cut at `length_km` from its start where given.
@@ -32,12 +32,12 @@ pieces = { Conveyance = "California Aqueduct" }
 start = [-121.5939, 37.8376]   # the intake channel's start, at Clifton Court Forebay
 end = [-121.0607, 37.1124]     # where it enters O'Neill Forebay
 end_label = "carried on into O'Neill Forebay and San Luis Reservoir"
-# DWR Bulletin 132-16 (2017), Table 1-5: 66.7 miles (107.3 km) from Clifton
+# DWR Bulletin 132-16 (2017, ref:dwr2017b132), Table 1-5: 66.7 miles (107.3 km) from Clifton
 # Court Forebay to O'Neill Forebay. The line built is 107.5 km.
 [[canal.section]]
 # The intake channel, 2.7 miles to Banks Pumping Plant: unlined, 30-35 ft deep,
 # bottom 80 narrowing to 60 ft, side slopes 3:1 (DWR Bulletin 200, Vol. II,
-# 1974, p. 117 and Table 7). Middle values taken.
+# 1974, ref:dwr1974b200v2, p. 117 and Table 7). Middle values taken.
 to_km = 4.3
 bottom_ft = 70
 depth_ft = 32.5
@@ -45,9 +45,9 @@ side = 3.0
 [[canal.section]]
 # Banks to O'Neill Forebay: concrete-lined, bottom 40 ft, water 30 ft deep,
 # side slopes 1.5:1, "constant throughout the North San Joaquin Division"
-# (Bulletin 200, Vol. II, p. 132). Twelve radial-gate checks keep each pool
+# (Bulletin 200, Vol. II, p. 132, ref:dwr1974b200v2). Twelve radial-gate checks keep each pool
 # "checked full", within a foot of design depth (DWR, California Aqueduct
-# Subsidence Study, 2017, p. 5-4), so speed is flow over this section: 4 ft/s
+# Subsidence Study, 2017, p. 5-4, ref:dwr2017cass), so speed is flow over this section: 4 ft/s
 # at the 10,000 cfs design flow, as the Bulletin says. Bethany Reservoir, 1.2
 # miles past Banks, is taken at this section; the South Bay Aqueduct's take
 # there (up to 300 cfs) is not published live and is not taken off.
@@ -65,14 +65,15 @@ start = [-121.5851, 37.79683]  # the Delta model's export, at Jones Pumping Plan
 end = [-121.0, 37.0]
 # Jones Pumping Plant stands at milepost 2.53 and the open channel to O'Neill
 # Forebay leaves at milepost 69.3: 66.77 miles, 107.5 km (DMC Subsidence
-# Correction Project, historic resources inventory, 2022, pp. 4 and 7).
+# Correction Project, historic resources inventory, 2022, pp. 4 and 7;
+# ref:jrp2022dmc).
 length_km = 107.5
 end_label = "carried on into O'Neill Forebay and San Luis Reservoir"
 [[canal.section]]
 # Concrete-lined, bottom 48 ft, side slopes 1.5:1 (same inventory, Table 2).
 # Its water depth is not published. 17 ft is the depth at which Manning's
 # equation, with n = 0.014, inside Chow's range for concrete linings (Chow
-# 1959, Open-Channel Hydraulics, Table 5-6), and the canal's grade of 3 inches
+# 1959, Open-Channel Hydraulics, Table 5-6, ref:chow1959), and the canal's grade of 3 inches
 # per mile (JRP,
 # DMC Subsidence Correction historic resources report, 2022, pp. 26-27),
 # carries the 4,600 cfs design flow at the head; it sits just under the
@@ -92,23 +93,24 @@ via = [-121.702, 37.996]        # Pumping Plant No. 1 (CDEC INB)
 end = [-122.10, 38.0]
 # Water from Old River and Victoria Canal joins through Los Vaqueros at the
 # Neroly Blending Facility, milepost 7.05 (CCWD, Canal Rehabilitation
-# Feasibility Studies, 2014, p. ES-1); Pumping Plant No. 1 stands at milepost
-# 3.97 (DOE/USBR EA-1589, 2007, p. 1). The canal is drawn 4.96 km past the
+# Feasibility Studies, 2014, p. ES-1, ref:ccwd2014); Pumping Plant No. 1 stands at milepost
+# 3.97 (DOE/USBR EA-1589, 2007, p. 1, ref:usbr2007ea1589). The canal is drawn 4.96 km past the
 # plant, to Neroly.
 past_via_km = 4.96
 end_label = "carried on past the Neroly Blending Facility"
 [[canal.section]]
 # To Pumping Plant No. 1: Rock Slough's old open canal replaced by a pipe of
 # 10 ft inside diameter (EA-1589, p. 3); the last 200 ft were due to close in
-# autumn 2026 (Central Valley Water Board, R5-2022-0006-009, 2024). The stretch
+# autumn 2026 (Central Valley Water Board, R5-2022-0006-009, 2024,
+# ref:cvrwqcb_r5_2022_0006_009). The stretch
 # of Rock Slough from the model's node to the fish screen is taken at the
 # pipe's section too.
 to_via = true
 diameter_in = 120
 [[canal.section]]
 # Past the plant: USBR's typical section for the canal, bottom 24 ft, side
-# slopes 3:1, water 6.5 ft deep (USBR Project Data, Contra Costa Canal,
-# engineering data, 2008). The only published section.
+# slopes 3:1, water 6.5 ft deep (Reclamation Dataweb, "CVP - Delta Division
+# Engineering Data", archived 2009, ref:usbr_ccc_projectdata). The only published section.
 bottom_ft = 24
 depth_ft = 6.5
 side = 3.0
@@ -122,14 +124,14 @@ pieces = { Conveyance = "North Bay Aqueduct" }
 start = [-121.7957, 38.2738]  # Barker Slough Pumping Plant
 end = [-122.225, 38.2256]     # Napa Turnout Reservoir
 end_label = "carried on into Napa and Solano counties' supplies"
-# 27.6 miles of pipeline (DWR Bulletin 132-16, Table 1-5); the line built is 44.4 km.
+# 27.6 miles of pipeline (DWR Bulletin 132-16, Table 1-5, ref:dwr2017b132); the line built is 44.4 km.
 [[canal.section]]
 # Barker Slough to Cordelia Forebay: buried pipe, "72 inches at Barker Slough
 # to 54 inches at Cordelia Forebay" (Solano County Water Agency, North Bay
-# Aqueduct). Full, so speed is flow over its area.
+# Aqueduct, ref:scwa_nba). Full, so speed is flow over its area.
 to_km = 34.1
 diameter_in = [72, 54]
 [[canal.section]]
 # Cordelia to Napa: "a buried 4.2-mile, 36-inch, pretensioned-concrete
-# cylinder pipe" (DWR Bulletin 200, Vol. II, p. 24).
+# cylinder pipe" (DWR Bulletin 200, Vol. II, p. 24, ref:dwr1974b200v2).
 diameter_in = 36

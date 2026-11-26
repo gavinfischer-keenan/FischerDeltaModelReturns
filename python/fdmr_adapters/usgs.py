@@ -5,6 +5,8 @@ shuts down in February 2027 (specification section 6).
 Fetches continuous gauge values and channel measurements (the hand measurements
 of flow, area, width and velocity that river calibration uses, specification
 section 9.1), converts them to SI units and writes them to the local store.
+
+References: ref:usgs_waterdata (references.toml).
 """
 
 from __future__ import annotations

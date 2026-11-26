@@ -17,6 +17,7 @@ DEPS=$ROOT/build/deps          # becomes DSM2's deps/ folder
 DSM2_TAG=v8.5.1
 JOBS=${JOBS:-$(nproc)}
 OVERLAY=${FDMR_HECLIB_OVERLAY:-$(cd "$(dirname "$0")" && pwd)/heclib-linux}
+HERE=$(cd "$(dirname "$0")" && pwd)
 UA="fdmr-runner"
 
 DSM2_812_SRC_URL="https://data.cnra.ca.gov/dataset/039928f9-5b4c-47e9-9953-69aa7bf1fd66/resource/dbbffee8-7aa2-4795-a659-d3f20e16052a/download/dsm2_v8_1_2_src_revised.zip"
@@ -162,6 +163,14 @@ stage_dsm2() {
   local d=$SRC/dsm2
   rm -f "$d/deps/deps"   # left by an earlier version of this script
   cd "$d"
+  # GTM's suspended sediment set by settling velocity and critical shear stress,
+  # with a bed of settled sediment only (issue #16; the patch says what and why).
+  if git apply --check "$HERE/gtm-sediment.patch" 2>/dev/null; then
+    git apply "$HERE/gtm-sediment.patch" && log "applied gtm-sediment.patch"
+  else
+    git apply --reverse --check "$HERE/gtm-sediment.patch" 2>/dev/null && log "gtm-sediment.patch already applied" \
+      || { echo "gtm-sediment.patch does not apply to DSM2 $DSM2_TAG"; return 1; }
+  fi
   cmake -E remove_directory build && cmake -E make_directory build && cd build
   # DSM2's own deps/ folder holds DWR's scripts, so every library's location is
   # passed explicitly. CMake 3.27+ also ignores the upper-case BOOST_ROOT that

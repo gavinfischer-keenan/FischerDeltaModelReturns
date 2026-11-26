@@ -1,7 +1,7 @@
 //! Salinity from electrical conductivity (specification 7.5).
 //!
 //! Conductivity is how the Delta measures salt; the map shows salinity. This
-//! is the Practical Salinity Scale of 1978 (PSS-78; UNESCO 1981), applied to
+//! is the Practical Salinity Scale of 1978 (PSS-78; UNESCO 1981, ref:unesco1981), applied to
 //! specific conductance, which is conductivity already corrected to 25 °C.
 //! The scale is defined for 2 to 42; below 2, as in most of the Delta, it is
 //! used as it stands, which reads a little low but keeps fresh water near 0.

@@ -13,6 +13,8 @@ after it; hours after the latest cycle come from its forecast.
 
 Files are fetched as byte ranges (only the variables wanted), so the bytes
 never pass through the store: this adapter hands them to the FVCOM plug-in.
+
+References: ref:noaa_ofs (references.toml).
 """
 
 from __future__ import annotations

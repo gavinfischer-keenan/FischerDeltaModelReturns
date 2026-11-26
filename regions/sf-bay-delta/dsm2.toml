@@ -1,4 +1,4 @@
-# DSM2 for the Delta reach (specification 7.2): DWR's own historical study, run
+# DSM2 for the Delta reach (specification 7.2; ref:dsm2): DWR's own historical study, run
 # on live inputs. Data only.
 #
 # DWR's input files name every series by a DSS path whose last part (F) comes
@@ -198,7 +198,7 @@ parameter = "specific_conductance"
 # diversions, seepage, drainage) come from the reference year. Where 2026 uses
 # more than the reference day (drier), the total follows the net Delta
 # consumptive use (NDCU) in Reclamation's daily Delta Outflow Computation, the
-# water balance DWR and Reclamation keep under D-1641, each node keeping the
+# water balance DWR and Reclamation keep under D-1641 (ref:swrcb_d1641), each node keeping the
 # reference pattern (fdmr_plugins.dsm2.study.Depletion). Where 2026 is wetter
 # the reference is kept (`wetter = false`), on the gauges' evidence:
 # NDCU's rain term (runoff from rain on the Delta, estimated from rain gauges
@@ -321,7 +321,7 @@ channel = 383
 
 # Net flow to check HYDRO against: USGS's own tidally filtered flow at its tidal
 # gauges (parameter 72137), as daily means over the last 14 days, against DSM2's
-# flow through the same channel filtered by Godin's filter (fdmr_runner.delta.
+# flow through the same channel filtered by Godin's filter (ref:godin1972; fdmr_runner.delta.
 # net_check; published with the reach as `net_checks`). Each gauge's channel is
 # the nearest, within 0.42 km, and the way DSM2 counts its flow positive was
 # checked against the gauge's measured tidal flow (correlations 0.82 to 0.99,
@@ -460,7 +460,7 @@ parameter = "specific_conductance"
 # say: a pool joined at one point on its edge would otherwise be drawn about
 # that point, half off its water. Each is the centroid of the USGS National
 # Hydrography Dataset's waterbody outline (Waterbody - Large Scale, read 26 Nov
-# 2026).
+# 2026; ref:nhd).
 [pool_centres]
 clifton_court = { lon = -121.5754, lat = 37.8386 }   # "Clifton Court Forebay", 8.96 km2 (DSM2: 8.53)
 liberty = { lon = -121.6796, lat = 38.2788 }         # Liberty Island's flooded area, unnamed, 12.9 km2
@@ -525,7 +525,8 @@ drainage = ["dicu_drain_.*", "bc_150", "bc_151"]
 
 # QUAL's heat-budget constants: the Delta's place (degrees, west positive, and
 # the Pacific time zone's meridian), elevation (ft), and QUAL2E's textbook
-# values for dust in the air and evaporation (ft/hr/inHg, and per mph of wind).
+# values for dust in the air and evaporation (ft/hr/inHg, and per mph of wind;
+# ref:brown1987qual2e).
 [temperature.scalars]
 lat = 38.05
 long = 121.6
@@ -647,3 +648,132 @@ source = "cdec"
 site = "TRN"
 duration = "E"
 parameter = "water_temperature"
+
+# Suspended sediment (issue #16): DSM2's General Transport Model on HYDRO's
+# flows (fdmr_plugins.dsm2.sediment, runner/dsm2/gtm-sediment.patch). One class
+# of mud, with the calibrated values of Achete, van der Wegen, Roelvink and
+# Jaffe (2015, ref:achete2015, section 3.1 and table 1),
+# whose Delta model is the closest published to this one:
+#   settling velocity ws        0.25 mm/s   (their sensitivity range 0.15-0.38)
+#   critical shear for erosion  0.25 Pa     (range 0.125-0.5; the parameter
+#                                            their results were most sensitive to)
+#   erosion rate M              1e-4 kg/m2/s (range 2.5e-5 to 1e-2; least sensitive),
+#                               in Partheniades' form (ref:partheniades1965)
+#   deposition at any shear stress (their section 2.1), and a bed that starts
+#   bare (their section 3.4: mud laid everywhere at the start takes years to rework).
+# GTM's grain size only enters through its formulas the settings replace; it is
+# the Stokes diameter of that settling velocity in 10 degC water,
+# sqrt(18 nu ws / ((s - 1) g)) = 0.019 mm, so GTM's own sums agree.
+[sediment]
+diameter_mm = 0.019
+scalars = { ero_coef = 0.0001, sed_settling = 0.00025, sed_tau_erosion = 0.25, sed_deposit_always = true, sed_bed_initial = 0.0 }
+
+# Each inflow's sediment concentration, by DSM2's own names. The Sacramento
+# brings about 85% of the Delta's sediment and the San Joaquin 13% (Wright and
+# Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section
+# 2.2). The Yolo
+# Bypass takes the Sacramento's: its flood water is the Sacramento's, over the
+# Fremont and Sacramento weirs, and it has no live sediment gauge. The eastside
+# streams, farm drains and treatment plants, the rest, have none either and
+# bring none here ("none").
+[sediment.inflows]
+sac = ["sac", "yolo", "yolo_toe"]
+sjr = ["vernalis"]
+sea = ["mtz"]
+none = ["*"]
+
+# Where each series comes from. Turbidity becomes SSC through Achete et al.'s
+# relation for that part of the Delta (section 4.5), log10(SSC) =
+# a log10(T) + b: north a = 0.85, b = 0.35; southern a = 1.16, b = 0.27. The
+# relations are USGS's (personal communication to the authors, 2014) and the
+# paper does not say whether its turbidity was FNU or NTU; each gauge's own
+# unit is named below, and both are read as the paper's turbidity.
+# Of USGS's Delta gauges only Freeport reports turbidity live (checked 26 Nov
+# 2026: its "BGC PROJECT" sensor); the rest come from CDEC.
+# The sea end uses USGS's own continuous SSC at Benicia Bridge, 4 km up from
+# DSM2's Martinez boundary: the mean of its sensors 71 ft and 19 ft above the bed.
+[[sediment.water]]
+name = "sac"
+source = "usgs"
+site = "11447650"     # Sacramento R at Freeport, FNU
+parameter = "turbidity_fnu_bgc"
+relation = { a = 0.85, b = 0.35, area = "north" }
+hold = "mean_25h"
+
+[[sediment.water]]
+name = "sjr"
+source = "cdec"
+site = "MSD"          # San Joaquin R at Mossdale Bridge, 20 km below Vernalis, NTU
+duration = "E"
+parameter = "turbidity_ntu"
+relation = { a = 1.16, b = 0.27, area = "southern" }
+hold = "mean_25h"
+
+[[sediment.water]]
+name = "sea"
+source = "usgs"
+site = "11455780"     # Suisun Bay at Benicia Bridge
+parameter = "suspended_sediment_upper"
+mean_with = "suspended_sediment_lower"
+hold = "mean_25h"
+
+# Measured turbidity to check GTM's SSC against, through the same relations
+# for each station's part of the Delta (Achete et al. 2015, section 4.5:
+# central/western a = 0.91, b = 0.29; central/eastern a = 0.72, b = 0.26;
+# eastern a = 0.914, b = 0.29). Which part each station is in is FDMR's
+# reading of the paper's areas, not the paper's own list. Rio Vista and
+# Mallard Island are two of the paper's own three check stations.
+[[sediment_checks]]
+name = "Sacramento R at Rio Vista"
+output = "RVB"
+channel = 430
+distance = 8399
+source = "cdec"
+site = "RVB"          # NTU
+duration = "E"
+parameter = "turbidity_ntu"
+relation = { a = 0.85, b = 0.35, area = "north" }
+
+[[sediment_checks]]
+name = "Sacramento R at Mallard Island"
+output = "MAL"
+channel = 437
+distance = 9033
+source = "cdec"
+site = "MAL"          # NTU
+duration = "E"
+parameter = "turbidity_ntu"
+relation = { a = 0.91, b = 0.29, area = "central/western" }
+
+[[sediment_checks]]
+name = "Holland Cut near Bethel Island"
+output = "HOL"
+channel = 117
+distance = 3584
+source = "cdec"
+site = "HOL"          # FNU
+duration = "E"
+parameter = "turbidity_fnu"
+relation = { a = 0.72, b = 0.26, area = "central/eastern" }
+
+[[sediment_checks]]
+name = "Old River at Highway 4"
+output = "OH4"
+channel = 90
+distance = 2081
+source = "cdec"
+site = "OH4"          # FNU
+duration = "E"
+parameter = "turbidity_fnu"
+relation = { a = 1.16, b = 0.27, area = "southern" }
+
+[[sediment_checks]]
+name = "Turner Cut near Holt"
+output = "TRN"
+channel = 172
+distance = 1571
+source = "cdec"
+site = "TRN"          # FNU
+duration = "E"
+parameter = "turbidity_fnu"
+relation = { a = 0.914, b = 0.29, area = "eastern" }

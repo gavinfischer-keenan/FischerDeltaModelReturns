@@ -7,6 +7,8 @@ the air, from soil and crops) averaged over an area's outline, against
 gridMET's reference evapotranspiration. Stored under source `openet`, site
 the area's name, parameter `evapotranspiration` (mm per day), at each day's
 00:00 UTC.
+
+References: ref:openet, and the method: ref:melton2022openet (references.toml).
 """
 
 from __future__ import annotations

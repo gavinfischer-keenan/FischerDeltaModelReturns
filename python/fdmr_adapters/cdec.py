@@ -9,6 +9,8 @@ UTC, screens out readings no river could produce, and writes them to the store.
   July, when the two would differ: flows line up at UTC = CDEC + 8 h.
 - Screening: a reading outside the sensor's plausible range (a dropout reads
   0 °F) or a lone spike far from both its neighbours is dropped.
+
+References: ref:cdec (references.toml).
 """
 
 from __future__ import annotations

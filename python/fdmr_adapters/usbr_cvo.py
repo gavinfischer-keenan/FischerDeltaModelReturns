@@ -1,6 +1,6 @@
 """Reclamation's Central Valley Operations Office: the daily Delta Outflow
 Computation (www.usbr.gov/mp/cvo), the water balance DWR and Reclamation keep
-for the Delta under the State Water Board's D-1641 (Figure 3 there gives its
+for the Delta under the State Water Board's D-1641 (ref:swrcb_d1641; Figure 3 there gives its
 terms):
 
     outflow index (NDOI) = Delta inflow - net Delta consumptive use (NDCU) - exports
@@ -13,6 +13,8 @@ are preliminary and may change; each fetch replaces the month's values.
 
 Each day's values are stored at the day's start, Pacific Standard Time, as
 CDEC's daily values are, in m3/s.
+
+References: ref:usbr_cvo (references.toml).
 """
 
 from __future__ import annotations

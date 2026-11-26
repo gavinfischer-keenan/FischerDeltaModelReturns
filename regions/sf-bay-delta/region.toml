@@ -134,7 +134,9 @@ id = "cache"
 name = "Cache Creek, Clear Lake to Yolo"
 kind = "river-routing"
 # Ends past the Yolo gauge, above the Cache Creek Settling Basin: the Yolo
-# Bypass it drains into is not modelled yet, so its water stops there.
+# Bypass it drains into is not modelled yet, so its water stops there. The
+# bypass's flow reaches the Delta model as DSM2's measured inflows "yolo"
+# (USGS Yolo Bypass near Woodland) and "yolo_toe" (Lisbon) (issue #15).
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[handoffs]]

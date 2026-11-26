@@ -590,7 +590,7 @@ def currents_check(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict]
     `near_m`. The radar sees the top metre or so; the mesh's currents are
     averaged over the depth, so the radar's run faster in a typical profile.
     Gives the mean speeds, the RMS of the vector difference, and the complex
-    correlation (Kundu 1976: its magnitude, 0 to 1, and the angle the mesh's
+    correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
     currents turn from the radar's, degrees anticlockwise)."""
     cc = cfg.get("currents_check")
     if not cc:

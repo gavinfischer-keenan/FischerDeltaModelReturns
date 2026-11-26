@@ -7,6 +7,8 @@ normal for that day. A national adapter (US). No login.
 Stored under source `nws-precip`, site the area's name, at 12:00 UTC on the
 file's date (the end of its 24 hours), as the mean over the area's cells:
 `precipitation_24h` and `precipitation_normal_24h` (mm).
+
+References: ref:nws_precip (references.toml).
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ LON0, LAT_TS = -105.0, 60.0
 def lonlat(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """The grid's projected x, y (m) to longitude and latitude (degrees): the
     north polar stereographic projection on a sphere, true at 60 N, inverse
-    (Snyder 1987, Map Projections: A Working Manual, USGS Professional Paper
+    (Snyder 1987, ref:snyder1987, Map Projections: A Working Manual, USGS Professional Paper
     1395, the stereographic projection, polar aspect on the sphere). The
     grid's south-west cell comes out at 23.120 N, 119.024 W, within 0.003
     degrees (about 300 m, a fifteenth of a cell) of the HRAP grid's published

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturgeon: references</title>
+<!--
+  Every source the model draws on, in full, and every place it is used.
+  Reads references.json, written by tools/references.py from references.toml
+  and the ref:<key> citations in the repository. Plain, for reading.
+-->
+<style>
+  body { font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; margin: 12px; color: #111; background: #fff; }
+  h1 { font-size: 16px; } h2 { font-size: 13px; margin: 18px 0 2px; border-top: 1px solid #999; padding-top: 6px; }
+  p { max-width: 980px; margin: 4px 0; } .note { color: #555; } ul { margin: 2px 0 8px; padding-left: 20px; } li { max-width: 980px; }
+  code { background: #f3f3f3; } :target { background: #ffd; }
+</style>
+</head>
+<body>
+<h1>Sturgeon: references</h1>
+<p class="note">Every paper, book, report, data set and program the model draws on, cited in full, with every place in the code and settings that uses it. Each is cited there by its key (<code>ref:&lt;key&gt;</code>), so this list is built from the code itself and cannot fall behind it. See also <a href="check.html">every published check</a>, <a href="assumptions.html">every assumption</a> and <a href="nightly.html">the nightly log</a>.</p>
+<div id="out">Loading…</div>
+<script>
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const repo = "https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/";
+(async () => {
+  const d = await (await fetch("references.json", { cache: "no-store" })).json().catch(() => null);
+  if (!d) { document.getElementById("out").textContent = "Could not read references.json."; return; }
+  let h = `<p>${d.references.length} references.</p>`;
+  for (const r of d.references) {
+    const link = r.doi ? `https://doi.org/${r.doi}` : r.url;
+    h += `<h2 id="${esc(r.key)}">${esc(r.key)}</h2><p>${esc(r.authors)} (${esc(r.year)}). <b>${esc(r.title)}</b>.${r.in ? " " + esc(r.in) + "." : ""} <a href="${esc(link)}">${esc(link)}</a></p>`;
+    if (r.note) h += `<p class="note">${esc(r.note)}</p>`;
+    h += `<p class="note">Checked: ${esc(r.checked)}</p><ul>` +
+      r.used.map((u) => `<li><a href="${repo}${esc(u.file)}#L${u.line}"><code>${esc(u.file)}:${u.line}</code></a> ${esc(u.text)}</li>`).join("") + "</ul>";
+  }
+  document.getElementById("out").innerHTML = h;
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+})();
+</script>
+</body>
+</html>

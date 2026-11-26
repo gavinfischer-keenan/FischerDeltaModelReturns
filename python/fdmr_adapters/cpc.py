@@ -9,6 +9,8 @@ A global index, from a national agency. No login.
   overlapping months, stored at the middle month's 15th: site `oni`,
   parameter `sst_anomaly` (degC). CPC calls El Nino conditions when it is at
   or above +0.5 for five overlapping seasons, La Nina at or below -0.5.
+
+References: ref:cpc_enso (references.toml).
 """
 
 from __future__ import annotations

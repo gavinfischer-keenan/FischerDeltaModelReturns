@@ -13,6 +13,8 @@ Pacific Standard Time): `top_of_conservation` and `above_top_of_conservation`
 
 Folsom's top of conservation varies with upstream storage and forecast
 volumes, and the report gives it per forecast time; the latest is taken.
+
+References: ref:usace_fcr (references.toml).
 """
 
 from __future__ import annotations

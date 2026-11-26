@@ -125,11 +125,12 @@ const NETWORK_DISPERSION = 50;
 // depth-averaged mesh does not resolve, the sum of two parts, worked out on the
 // Bay's own mesh and currents (25 Nov 2026, the 14 days published, by water area):
 // - eddies smaller than a node's own patch of water (median 620 m across): Okubo's
-//   K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802);
+//   K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);
 // - the spreading of the vertical shear the depth average hides: Elder's
 //   K = 5.93 H u*, with u* = √Cd |u| and Cd = 0.0025, at every node's depth and
 //   current, averaged over the tides: median 0.74 m²/s (Elder 1959, J. Fluid
-//   Mech. 5: 544-560; Fischer et al. 1979, Mixing in Inland and Coastal Waters).
+//   Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal
+//   Waters, ref:fischer1979).
 // The sum's median by water area is 1.1 m²/s (mean 1.35). Elder's part acts
 // along the flow, so as an even spreading this errs toward too much across it.
 const MESH_DIFFUSIVITY = 1.1;

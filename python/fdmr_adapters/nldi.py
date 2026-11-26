@@ -1,6 +1,9 @@
 """USGS NLDI (Network-Linked Data Index): the national river network, NHDPlus.
 A national adapter. Used once per region to fetch a river's centreline
-downstream from a gauge, and where each gauge sits on it."""
+downstream from a gauge, and where each gauge sits on it.
+
+References: ref:nldi (references.toml).
+"""
 
 from __future__ import annotations
 

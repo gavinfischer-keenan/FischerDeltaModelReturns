@@ -11,9 +11,9 @@
 # (checked 25 Nov 2026), while NOAA's Bay salinity reads far too salty there
 # (issue #6). DSM2 begins at Martinez, so an X2 west of it is not placed.
 #   Jassby, A.D., et al. 1995. Isohaline position as a habitat indicator for
-#   estuarine populations. Ecological Applications 5(1): 272-289.
+#   estuarine populations. Ecological Applications 5(1): 272-289. ref:jassby1995
 #   Mueller-Solger, A. 2012. Notes on estimating X2 (draft, IEP), which
-#   records CDEC's CX2 method and these station distances.
+#   records CDEC's CX2 method and these station distances. ref:muellersolger2012
 [[isohalines]]
 id = "x2"
 reach = "delta"

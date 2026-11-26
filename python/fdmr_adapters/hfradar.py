@@ -5,6 +5,8 @@ Coast, 500 m, hourly). A national adapter.
 Returns gridded eastward and northward surface current, m/s, for a box and
 the last N hours: the radar measures the top metre or so of the water.
 Read from ERDDAP's NetCDF-3 file with scipy.
+
+References: ref:hfradar (references.toml).
 """
 
 from __future__ import annotations

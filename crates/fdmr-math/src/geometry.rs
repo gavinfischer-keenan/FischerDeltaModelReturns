@@ -2,7 +2,7 @@
 //!
 //! Fitted from field measurements of flow, area and width at a gauge
 //! (specification section 9.1), as power laws y = a·Qᵇ, the classic
-//! at-a-station hydraulic geometry of Leopold and Maddock.
+//! at-a-station hydraulic geometry of Leopold and Maddock (ref:leopold1953).
 
 /// y = a·Qᵇ
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -125,7 +125,7 @@ def tidal_mean(x: np.ndarray, per_hour: float) -> np.ndarray:
     """The subtidal part of a series sampled `per_hour` times an hour: Godin's
     filter, running means over 24, 24 and 25 hours in turn, which takes out the
     diurnal and semidiurnal tides far more cleanly than one long running mean
-    (Godin 1972, *The Analysis of Tides*, University of Toronto Press)."""
+    (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press)."""
     m = np.asarray(x, dtype=float)
     for h in (24, 24, 25):
         m = running_mean(m, int(round(h * per_hour)))

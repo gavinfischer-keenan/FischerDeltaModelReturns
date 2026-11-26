@@ -15,6 +15,8 @@ area's cells:
 
 Both are modelled, not measured: SNODAS is the National Weather Service's
 own snow model, nudged to what is observed.
+
+References: ref:snodas (references.toml).
 """
 
 from __future__ import annotations

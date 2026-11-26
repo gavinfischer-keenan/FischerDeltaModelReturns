@@ -58,6 +58,8 @@ def feeds(region_dir: Path) -> list[dict]:
     return [
         *cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", []), *cfg.get("ec_checks", []), *cfg.get("net_checks", []),
         *cfg.get("temperature", {}).get("water", []), *cfg.get("temp_checks", []),
+        *cfg.get("sediment", {}).get("water", []), *cfg.get("sediment_checks", []),
+        *[{**f, "parameter": f["mean_with"]} for f in cfg.get("sediment", {}).get("water", []) if f.get("mean_with")],
     ]
 
 
@@ -140,6 +142,25 @@ def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forec
     if f.get("average_h"):
         g = running_mean(g, int(f["average_h"] * 3600 / STEP))
     return filled(g), how
+
+
+def ssc_series(store: Store, f: dict, t0: int, n: int, now: int) -> tuple[list[float], str]:
+    """A sediment inflow's SSC (mg/L) from t0 for n steps (dsm2.toml
+    [[sediment.water]]): the gauge's SSC, or the mean of two of its sensors
+    (`mean_with`), or its turbidity through the region's relation, carried on
+    as any live input is."""
+    from fdmr_plugins.dsm2.sediment import ssc_from_turbidity
+
+    s, how = carried_on(store, f, t0, n, now, use_river_forecasts=False)
+    if f.get("mean_with"):
+        s2, _ = carried_on(store, {**f, "parameter": f["mean_with"]}, t0, n, now, use_river_forecasts=False)
+        s = [(a + b) / 2 for a, b in zip(s, s2)]
+        how += f"; the mean of {f['parameter']} and {f['mean_with']}"
+    r = f.get("relation")
+    if r:
+        s = [ssc_from_turbidity(v, r["a"], r["b"]) for v in s]
+        how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
+    return s, how
 
 
 WEATHER = ("air_temperature", "dew_point", "wind_speed", "cloud_cover", "air_pressure")
@@ -296,6 +317,24 @@ def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int,
             q = flow[i0 : i0 + 3 * n : 3, nums.index(c["channel"]), :].mean(axis=1) / TO_DSS["CFS"]
         model = [float(v) for v in q] + [None] * (n - len(q))
         return _compare(c, model, grid(store, c, start + STEP, n))
+    if kind == "ssc":
+        # GTM's SSC, the mean of the channel's two ends (gtm_sed.h5), against the
+        # station's turbidity through its part of the Delta's relation (dsm2.toml).
+        import h5py
+
+        from fdmr_plugins.dsm2.fields import tidefile_start
+        from fdmr_plugins.dsm2.sediment import H5, ssc_from_turbidity
+
+        with h5py.File(run_dir / "output" / H5, "r") as f:
+            conc = f["output/channel concentration"]
+            k = [x.decode().strip() for x in f["output/constituent_names"][:]].index("ssc")
+            i = list(f["output/channel_number"][:]).index(c["channel"])
+            i0 = (start + STEP - tidefile_start(conc.attrs["start_time"][0])) // STEP
+            m = conc[max(0, i0) : max(0, i0) + n, k, i, :].mean(axis=1)
+        model = [float(v) for v in m] + [None] * (n - len(m))
+        r = c["relation"]
+        meas = [None if v is None else ssc_from_turbidity(v, r["a"], r["b"]) for v in grid(store, c, start + STEP, n)]
+        return _compare(c, model, meas)
     if kind == "temp":
         out = run_dir / "output" / "qual_temp.dss"
         path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{c['output']}/TEMP//15MIN/{modifier.upper()}+FROM-ALL/"
@@ -317,7 +356,7 @@ def net_check(store: Store, run_dir: Path, c: dict, start: int, end: int) -> dic
     """DSM2's net flow in a channel against a gauge's tidally filtered flow,
     day by day over [start, end) (whole days, PST): DSM2's flow through the
     channel (the mean of its two ends, from HYDRO's tidefile), filtered by
-    Godin's filter, and the gauge's own tidally filtered flow, each as daily
+    Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
     means. A measured day needs 18 hours of values (one daily value, for a
     gauge that publishes only those)."""
     import h5py
@@ -374,7 +413,8 @@ def _compare(c: dict, model: list[float | None], meas: list[float | None]) -> di
 
 
 def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, out_root: Path, keep: int = 3,
-                net_checks: list[dict] | None = None, assumptions: list[dict] | None = None) -> Path:
+                net_checks: list[dict] | None = None, assumptions: list[dict] | None = None,
+                sediment_checks: list[dict] | None = None) -> Path:
     """Publish a finished run as a network reach (docs/format.md): geometry,
     daily field files from 14 days before now to the end of the forecast, and
     the reach's entry for index.json. Points out_root/latest at it."""
@@ -404,11 +444,13 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     qual_file = run_dir / "output" / "qual_ec.h5"
     fp_file = run_dir / "output" / "qual_fp.h5"
     temp_file = run_dir / "output" / "qual_temp.h5"
+    sed_file = run_dir / "output" / "gtm_sed.h5"
     days = fields.write_days(tidefile, reach, pub / reach, start, end,
                              node_ids=[n["id"] for n in geo["nodes"]], extras=extras, exports=set(exports),
                              qual_file=qual_file if qual_file.exists() else None,
                              sources_file=fp_file if fp_file.exists() else None,
-                             temp_file=temp_file if temp_file.exists() else None)
+                             temp_file=temp_file if temp_file.exists() else None,
+                             sediment_file=sed_file if sed_file.exists() else None)
     sources = [f"source:{g}" for g in cfg.get("fingerprint", {})] if fp_file.exists() else []
     rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {}).get("certainty", {})
     solid, floor = rc.get("solid_days", 5) * DAY, rc.get("floor", 0.2)
@@ -420,13 +462,16 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         "id": reach, "kind": "1d-tidal-network", "dims": 1, "network": True,
         "elements": len(channels), "layers": 1, "fields": fields.FIELDS,
         # In <day>.quality.fdf, loaded only to show them (docs/format.md).
-        "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + (["temperature"] if temp_file.exists() else []) + sources,
+        "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + (["temperature"] if temp_file.exists() else [])
+        + (["ssc"] if sed_file.exists() else []) + sources,
         "time": {"start": utc(start), "step_s": STEP, "days": days},
         "now": utc(now),
         "certainty": [round(fdmr_py.certainty_at(start + i * STEP - now, solid, end - now, floor), 4) for i in range(steps)],
         "flow_source": f"dsm2 run {run_dir.name}",
         # Net flow against the gauges' own tidally filtered flow, the last 14 days (net_check).
         **({"net_checks": net_checks} if net_checks else {}),
+        # GTM's SSC against station turbidity through the relations, the last 14 days (#16).
+        **({"sediment_checks": sediment_checks} if sediment_checks else {}),
         # How each input was carried past its last reading (#22).
         **({"assumptions": assumptions} if assumptions else {}),
     }
@@ -550,12 +595,47 @@ def main(argv: list[str] | None = None) -> int:
                                          tcfg["inflows"], tcfg.get("scalars", {}), outputs)
         secs = study.run_qual(settings, run_dir, temperature.MAIN)
         print(f"qual (temperature: {', '.join(f'{g} {k} inflows' for g, k in counts.items())}): {secs:.0f} s")
+    scfg = cfg.get("sediment")
+    gtm = root / "bin" / "gtm"
+    if scfg and len(settings.mains) > 1 and gtm.exists():
+        from fdmr_plugins.dsm2 import sediment
+
+        water = {}
+        for f in scfg["water"]:
+            try:
+                water[f["name"]], h = ssc_series(store, f, t0, n, now)
+            except ValueError as e:  # a gauge with nothing: that inflow brings none, and says so
+                water[f["name"]], h = [0.0] * n, f"no data ({e}); taken as 0 mg/L"
+            print(f"sediment {f['name']:10s} {f['source']} {f['site']:9s} {h}")
+            assumed.append({"input": f"inflow sediment {f['name']} ({f['source']} {f['site']})", "how": h, "last_reading": last_reading(f)})
+        outputs = [(c["output"], c["channel"], str(c["distance"])) for c in cfg.get("sediment_checks", [])]
+        counts = sediment.write_study(run_dir, settings.mains[1], summary["env"], settings.tool, t0, water,
+                                      scfg["inflows"], scfg["scalars"], scfg["diameter_mm"], outputs)
+        if counts.get("none"):
+            assumed.append({"input": "inflow sediment, other inflows",
+                            "how": f"{counts['none']} inflows (eastside streams, farm drains, treatment plants) bring no sediment: no live gauge"})
+        try:  # a failed sediment run leaves the rest of the run as it is
+            secs = study.run(str(gtm), sediment.MAIN, run_dir, unlimited_stack=True)
+            print(f"gtm (sediment: {', '.join(f'{g} {k} inflows' for g, k in counts.items())}): {secs:.0f} s")
+        except RuntimeError as e:
+            print(f"gtm (sediment) FAILED: {e}", flush=True)
     kinds = [(c, "flow") for c in cfg.get("checks", [])]
     if len(settings.mains) > 1:
         kinds += [(c, "ec") for c in cfg.get("ec_checks", [])]
         kinds += [(c, "temp") for c in cfg.get("temp_checks", []) if tcfg]
+        kinds += [(c, "ssc") for c in cfg.get("sediment_checks", []) if (run_dir / "output" / "gtm_sed.h5").exists()]
+    sediment_checks = []
     for c, kind in kinds:
-        print("past    ", json.dumps(check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP, kind)))
+        try:
+            r = check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP, kind)
+        except Exception as e:  # one check's failure does not stop the run
+            print(f"check {c['name']} ({kind}) FAILED {e}", flush=True)
+            continue
+        print("past    ", json.dumps(r))
+        if kind == "ssc":
+            r14 = check(store, run_dir, cfg, c, today - 14 * DAY, now // STEP * STEP, kind)
+            sediment_checks.append({**r14, "site": f"{c['source']} {c['site']}", "channel": c["channel"],
+                                    "relation": c["relation"]["area"], "unit": "mg/L"})
         if hindcast:
             print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP, kind)))
     nets = []
@@ -568,7 +648,8 @@ def main(argv: list[str] | None = None) -> int:
         print("net     ", json.dumps(r))
     store.close()
     if args.publish:  # a hindcast publishes too, wherever it is told (fdmr_runner.nightly)
-        pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish), net_checks=nets, assumptions=assumed)
+        pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish), net_checks=nets, assumptions=assumed,
+                          sediment_checks=sediment_checks)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())
         print(f"published {pub} ({size / 1e6:.1f} MB)")
         prune_runs(Path(args.work))

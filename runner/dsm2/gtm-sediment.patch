@@ -1,0 +1,192 @@
+FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
+sediment in the Delta (issue #16). Applied by build_dsm2.sh before building.
+
+GTM as released takes cohesive sediment's settling velocity from a grain size
+(Stokes/van Rijn, ref:vanrijn1984) and its critical shear stress from Brownlie's
+Shields curve (ref:brownlie1981),
+deposits only below that same stress, and needs DWR's sediment bed module
+(its zone files, which DWR's public inputs do not include). Without that
+module the sediment code reads an unset bed and requires a temperature input.
+
+This patch adds four GTM scalars and makes the module run without the bed:
+
+  sed_settling        settling velocity of every class, m/s
+  sed_tau_erosion     critical bed shear stress for erosion, Pa
+  sed_deposit_always  deposition = ws * c at any bed shear stress
+  sed_bed_initial     settled sediment on the bed at the start, kg/m2
+
+Without the bed module the bed holds only what has settled on it (kg per m2 of
+bed, per class), updated with Heun's two stages as the water is, and erosion
+(Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
+the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
+Hydrol. Earth Syst. Sci. 19, 2837-2857, doi:10.5194/hess-19-2837-2015,
+sections 2.1 and 3.4: one mud fraction, D = ws c, no bed sediment at the start. Unset, every
+scalar leaves GTM as DWR released it.
+
+diff --git a/dsm2/src/gtm/gtm.f90 b/dsm2/src/gtm/gtm.f90
+index a355eb8..4d5ebbd 100644
+--- a/dsm2/src/gtm/gtm.f90
++++ b/dsm2/src/gtm/gtm.f90
+@@ -320,8 +320,14 @@ subroutine gtm_prepare_loop()
+             diameter(:,i) = group_var_cell(ncc_ssc,sediment_coef_start+i-1,:)
+             call get_sediment_properties(fall_velocity(:,i), particle_reynolds(:,i), &
+                                      critical_shear(:,i), diameter(:,i), n_cell)
++            if (sed_settling_velocity .ne. LARGEREAL) fall_velocity(:,i) = sed_settling_velocity
++            if (sed_critical_shear .ne. LARGEREAL) critical_shear(:,i) = sed_critical_shear
+         end do
+-        call check_sediment_bed_ts_input
++        if (use_sediment_bed) then
++            call check_sediment_bed_ts_input
++        else
++            call allocate_settled_bed(n_cell, n_sediment, sed_bed_initial)
++        end if
+     end if
+     !> Assigning group variables for turbidity module
+     call allocate_turbidity_variables(n_cell)
+@@ -506,7 +512,7 @@ subroutine gtm_loop()
+         end do
+ 
+         ! set values to variables needed for sediment bed module
+-        if (run_sediment) call set_sediment_bed(input_time_series(code_to_ts_id(ts_var_temp),:), n_cell)
++        if (run_sediment .and. use_sediment_bed) call set_sediment_bed(input_time_series(code_to_ts_id(ts_var_temp),:), n_cell)
+ 
+         ! set values to variables needed for mercury module
+         if (run_mercury) then
+diff --git a/dsm2/src/gtm_core/common_variables.f90 b/dsm2/src/gtm_core/common_variables.f90
+index 3fa067d..08d7640 100644
+--- a/dsm2/src/gtm_core/common_variables.f90
++++ b/dsm2/src/gtm_core/common_variables.f90
+@@ -83,6 +83,12 @@ module common_variables
+      logical :: apply_diffusion = .false.              !< turn on/off dispersion
+      real(gtm_real) :: disp_coeff = LARGEREAL          !< constant dispersion coefficient (using this one will overwrite those from hydro tidefile)
+      real(gtm_real) :: ero_coeff = LARGEREAL           !< erosion coefficient for sediment module
++     ! fdmr (runner/dsm2/gtm-sediment.patch): cohesive sediment set by its settling velocity and
++     ! critical shear stress rather than a grain size, and a bed of settled sediment only.
++     real(gtm_real) :: sed_settling_velocity = LARGEREAL  !< settling velocity of every class, m/s
++     real(gtm_real) :: sed_critical_shear = LARGEREAL     !< critical bed shear stress for erosion, Pa
++     logical :: sed_deposit_always = .false.              !< deposition ws*c at any bed shear stress
++     real(gtm_real) :: sed_bed_initial = 0.d0             !< settled sediment on the bed at the start, kg/m2
+      logical :: calc_budget = .false.                  !< calculate budget if true
+      logical :: run_sediment = .false.                 !< run sediment module if true
+      logical :: run_mercury = .false.                  !< run mercury module if true
+diff --git a/dsm2/src/process_io/process_gtm_scalar.f90 b/dsm2/src/process_io/process_gtm_scalar.f90
+index 9898813..82986cf 100644
+--- a/dsm2/src/process_io/process_gtm_scalar.f90
++++ b/dsm2/src/process_io/process_gtm_scalar.f90
+@@ -114,6 +114,14 @@ module process_gtm_scalar
+          read(Val, '(f20.5)', err=810) disp_coeff
+       elseif (Param .eq. 'ero_coef') then
+          read(Val, '(f20.15)', err=810) ero_coeff
++      elseif (Param .eq. 'sed_settling') then
++         read(Val, '(f20.15)', err=810) sed_settling_velocity
++      elseif (Param .eq. 'sed_tau_erosion') then
++         read(Val, '(f20.15)', err=810) sed_critical_shear
++      elseif (Param .eq. 'sed_deposit_always') then
++         read(Val, '(l2)', err=810) sed_deposit_always
++      elseif (Param .eq. 'sed_bed_initial') then
++         read(Val, '(f20.15)', err=810) sed_bed_initial
+       elseif (Param .eq. 'calc_budget') then
+          read(Val, '(l2)', err=810) calc_budget
+       elseif (Param .eq. 'run_pdaf') then
+diff --git a/dsm2/src/sediment/suspended_sediment.f90 b/dsm2/src/sediment/suspended_sediment.f90
+index 5259a41..119e8aa 100644
+--- a/dsm2/src/sediment/suspended_sediment.f90
++++ b/dsm2/src/sediment/suspended_sediment.f90
+@@ -24,12 +24,16 @@
+ module suspended_sediment
+ 
+     use gtm_precision
+-    use common_variables, only: ero_coeff   !< unit kg/(m^2s)
++    use common_variables, only: ero_coeff, use_sediment_bed, sed_deposit_always   !< unit kg/(m^2s)
+ 
+     real(gtm_real), allocatable :: diameter(:,:)
+     real(gtm_real), allocatable :: fall_velocity(:,:)
+     real(gtm_real), allocatable :: critical_shear(:,:)
+     real(gtm_real), allocatable :: particle_reynolds(:,:)
++    ! fdmr: without the sediment bed module, the bed holds only what has settled on it
++    ! (kg/m2 of bed, per class); erosion takes no more than is there.
++    real(gtm_real), allocatable :: settled(:,:)
++    real(gtm_real), allocatable :: settled_net1(:,:)
+ 
+     contains
+ 
+@@ -90,6 +94,7 @@ module suspended_sediment
+         integer :: icell
+         logical ::  function_van_rijn
+         real(gtm_real) :: param_M
++        real(gtm_real) :: bed_frac
+ 
+         param_M = ero_coeff                        ! unit kg/(m^2s)
+ 
+@@ -123,13 +128,18 @@ module suspended_sediment
+                                         depth_si(icell),               &
+                                         bottom_shear_stress(icell),    &
+                                         conc_si(icell))
++            if (use_sediment_bed) then
++                bed_frac = bed(icell,1,1).mass_frac(isediment)
++            else
++                bed_frac = one
++            end if
+             if (method.eq.1) then !if (diameter_si(icell).lt.0.0000625d0) then
+                 ! Cohesive sediment
+                 call cohesive_erosion(erosion_flux(icell),             &
+                                       critical_shear_strs(icell),      &
+                                       bottom_shear_stress(icell),      &
+                                       param_M,                         &
+-                                      bed(icell,1,1).mass_frac(isediment))
++                                      bed_frac)
+                 call cohesive_deposition(deposition_flux(icell),       &
+                                          fall_vel(icell),              &
+                                          near_bed_c(icell),            &
+@@ -141,7 +151,7 @@ module suspended_sediment
+                                           shear_vel(icell),            &
+                                           exp_re_p(icell),             &
+                                           fall_vel(icell),             &
+-                                          bed(icell,1,1).mass_frac(isediment))
++                                          bed_frac)
+                 call non_cohesive_deposition(deposition_flux(icell),       &
+                                              shear_vel(icell),             &
+                                              fall_vel(icell),              &
+@@ -150,6 +160,8 @@ module suspended_sediment
+                                              bottom_shear_stress(icell))
+             end if
+ 
++            if (sed_deposit_always) deposition_flux(icell) = fall_vel(icell)*conc_si(icell)
++            if (.not. use_sediment_bed) erosion_flux(icell) = min(erosion_flux(icell), settled(icell,isediment)/dt)
+             if (erosion_flux(icell) .gt. available_bed(icell)) then
+                 erosion_flux(icell) = available_bed(icell)
+             end if
+@@ -163,6 +175,15 @@ module suspended_sediment
+             vertical_flux(icell) = erosion_flux(icell) - deposition_flux(icell)
+             source(icell) = vertical_flux(icell)/depth_si(icell)*si_to_english
+          end do
++         if (.not. use_sediment_bed) then
++             ! the bed changes as Heun's method changes the water: by the mean of its two stages
++             if (rkstep .eq. 1) then
++                 settled_net1(:,isediment) = deposition_flux - erosion_flux
++             else
++                 settled(:,isediment) = max(zero, settled(:,isediment) + &
++                     dt*half*(settled_net1(:,isediment) + deposition_flux - erosion_flux))
++             end if
++         end if
+          return
+     end subroutine
+ 
+@@ -180,6 +201,17 @@ module suspended_sediment
+     end subroutine
+ 
+     !> deallocate sediment variables
++    subroutine allocate_settled_bed(ncell, nsediment, initial)
++        implicit none
++        integer, intent(in) :: ncell
++        integer, intent(in) :: nsediment
++        real(gtm_real), intent(in) :: initial
++        allocate(settled(ncell,nsediment))
++        allocate(settled_net1(ncell,nsediment))
++        settled = initial
++        settled_net1 = zero
++    end subroutine
++
+     subroutine dealloacte_sediment_variables()
+         implicit none
+         deallocate(diameter)

@@ -16,7 +16,7 @@ from pathlib import Path
 
 FT = 0.3048
 
-# GRS 1980 (NAD83), Krüger's series for the transverse Mercator.
+# GRS 1980 (NAD83), Krüger's series for the transverse Mercator (ref:karney2011).
 _A, _F, _K0 = 6378137.0, 1 / 298.257222101, 0.9996
 _N = _F / (2 - _F)
 _AA = _A / (1 + _N) * (1 + _N**2 / 4 + _N**4 / 64)

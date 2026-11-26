@@ -15,6 +15,8 @@ period's middle, as the mean over the area's land cells:
 - `soil_moisture_rootzone_percentile`: the root zone's water against that
   cell's own climate, percent (SMAP's `sm_rootzone_pctl`): 90 is wetter than
   nine days in ten for the time of year there.
+
+References: ref:smap_l4 (references.toml).
 """
 
 from __future__ import annotations

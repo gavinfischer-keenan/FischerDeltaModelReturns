@@ -1,0 +1,614 @@
+# Every source the model draws on, once, in full. Cite one anywhere in the
+# repository by its key, as `ref:achete2015`; tools/references.py lists every
+# place each is cited (ui/public/references.json, docs/references.md) and fails
+# CI if a citation names no entry here or an entry is cited nowhere.
+#
+# Fields: authors, year, title, kind (paper, book, chapter, report, standard,
+# data, software, web), in (journal and volume(issue), pages; or publisher;
+# or series), doi or url (at least one), note (optional), and checked: how and
+# when the citation itself was confirmed. A DOI is checked against Crossref's
+# record of it (tools/references.py --crossref).
+
+[achete2015]
+authors = "Achete, F. M., van der Wegen, M., Roelvink, D., and Jaffe, B."
+year = 2015
+title = "A 2-D process-based model for suspended sediment dynamics: a first step towards ecological modeling"
+kind = "paper"
+in = "Hydrology and Earth System Sciences 19(6), 2837-2857"
+doi = "10.5194/hess-19-2837-2015"
+note = "The Delta's sediment model whose set-up and calibrated values the Delta's sediment run uses (sections 2.1, 2.2, 3.1, 3.4, 4.5; table 1)."
+checked = "Crossref record of the DOI, 26 Nov 2026; parameters read from the full text (HESS XML), 26 Nov 2026"
+
+[partheniades1965]
+authors = "Partheniades, E."
+year = 1965
+title = "Erosion and deposition of cohesive soils"
+kind = "paper"
+in = "Journal of the Hydraulics Division, ASCE 91(1), 105-139"
+doi = "10.1061/JYCEAJ.0001165"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[wright2005]
+authors = "Wright, S. A., and Schoellhamer, D. H."
+year = 2005
+title = "Estimating sediment budgets at the interface between rivers and estuaries with application to the Sacramento-San Joaquin River Delta"
+kind = "paper"
+in = "Water Resources Research 41(9), W09428"
+doi = "10.1029/2004WR003753"
+note = "Cited through Achete et al. (2015, section 2.2) for the Sacramento's and the San Joaquin's shares of the Delta's sediment supply."
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[dsm2]
+authors = "California Department of Water Resources"
+year = 2026
+title = "Delta Simulation Model II (DSM2), version 8.5.1: HYDRO, QUAL and the General Transport Model (GTM)"
+kind = "software"
+url = "https://github.com/CADWRDeltaModeling/dsm2/tree/v8.5.1"
+note = "Built from the v8.5.1 sources by runner/dsm2/build_dsm2.sh; GTM's sediment changed by runner/dsm2/gtm-sediment.patch."
+checked = "GitHub release DSM2 v8.5.1, published 2 Jun 2026; built from its tag 26 Nov 2026"
+
+# ---- Data: the services and products the model reads, live. A live service's
+# year is the year it was read; a data set with a DOI gives its DOI's year.
+
+[usgs_waterdata]
+authors = "U.S. Geological Survey"
+year = 2026
+title = "USGS Water Data APIs (OGC API): continuous values, daily values, channel measurements and time-series metadata"
+kind = "data"
+in = "U.S. Geological Survey, National Water Information System"
+url = "https://api.waterdata.usgs.gov/ogcapi/v0"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[cdec]
+authors = "California Department of Water Resources"
+year = 2026
+title = "California Data Exchange Center (CDEC): sensor data and daily reports"
+kind = "data"
+url = "https://cdec.water.ca.gov/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[cnrfc]
+authors = "NOAA National Weather Service, California Nevada River Forecast Center"
+year = 2026
+title = "Deterministic river forecasts (hourly, by forecast group)"
+kind = "data"
+url = "https://www.cnrfc.noaa.gov/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[usace_fcr]
+authors = "U.S. Army Corps of Engineers, Sacramento District, Water Management"
+year = 2026
+title = "Flood Control Requirements report (daily)"
+kind = "data"
+url = "https://www.spk-wc.usace.army.mil/fcgi-bin/midnight.py?days=0&report=FCR"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[usbr_cvo]
+authors = "U.S. Bureau of Reclamation, Central Valley Operations Office"
+year = 2026
+title = "Daily Delta outflow computation and Delta consumptive use"
+kind = "data"
+url = "https://www.usbr.gov/mp/cvo/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[noaa_coops]
+authors = "NOAA National Ocean Service, Center for Operational Oceanographic Products and Services (CO-OPS)"
+year = 2026
+title = "CO-OPS Data API: tide predictions, water levels, water temperature, wind and air pressure"
+kind = "data"
+url = "https://api.tidesandcurrents.noaa.gov/api/prod/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[noaa_ofs]
+authors = "NOAA National Ocean Service, Center for Operational Oceanographic Products and Services (CO-OPS)"
+year = 2026
+title = "San Francisco Bay Operational Forecast System (SFBOFS), FVCOM field files, on the NOAA Open Data Dissemination program (AWS)"
+kind = "data"
+url = "https://noaa-nos-ofs-pds.s3.amazonaws.com/index.html"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[ndbc]
+authors = "NOAA National Data Buoy Center"
+year = 2026
+title = "Real-time station data (standard meteorological files)"
+kind = "data"
+url = "https://www.ndbc.noaa.gov/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[nws_api]
+authors = "NOAA National Weather Service"
+year = 2026
+title = "National Weather Service API: station observations and gridded forecasts"
+kind = "data"
+url = "https://api.weather.gov/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[ghcnh]
+authors = "NOAA National Centers for Environmental Information"
+year = 2026
+title = "Global Historical Climatology Network hourly (GHCNh)"
+kind = "data"
+url = "https://www.ncei.noaa.gov/products/global-historical-climatology-network-hourly"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[nws_precip]
+authors = "NOAA National Weather Service"
+year = 2026
+title = "Daily precipitation analysis (radar estimates adjusted to gauges), with the PRISM 1991-2020 normal"
+kind = "data"
+url = "https://water.noaa.gov/resources/downloads/precip/stageIV/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[cpc_enso]
+authors = "NOAA Climate Prediction Center"
+year = 2026
+title = "El Nino-Southern Oscillation indices: the Oceanic Nino Index and weekly Nino-region sea surface temperature anomalies"
+kind = "data"
+url = "https://www.cpc.ncep.noaa.gov/data/indices/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[coastwatch_ssh]
+authors = "NOAA CoastWatch"
+year = 2026
+title = "Sea surface height anomaly, blended (daily), ERDDAP dataset noaacwBLENDEDsshDaily"
+kind = "data"
+url = "https://coastwatch.noaa.gov/erddap/griddap/noaacwBLENDEDsshDaily.html"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[hfradar]
+authors = "U.S. Integrated Ocean Observing System, High-Frequency Radar Network"
+year = 2026
+title = "Near-real-time surface ocean currents, U.S. West Coast, 500 m, hourly (ERDDAP dataset ucsdHfrW500)"
+kind = "data"
+url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ucsdHfrW500.html"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[cencoos]
+authors = "Central and Northern California Ocean Observing System (CeNCOOS)"
+year = 2026
+title = "CeNCOOS ERDDAP: Bay water-quality sondes"
+kind = "data"
+url = "https://erddap.cencoos.org/erddap/"
+checked = "Read live by the model runner, 26 Nov 2026"
+
+[ecostress_lst]
+authors = "Hook, S., and Hulley, G."
+year = 2026
+title = "ECOSTRESS Tiled Land Surface Temperature and Emissivity Instantaneous L2 Global 70 m V003"
+kind = "data"
+in = "NASA Land Processes Distributed Active Archive Center"
+doi = "10.5067/ECOSTRESS/ECO_L2T_LSTE.003"
+checked = "DataCite record of the DOI and NASA CMR collection ECO_L2T_LSTE version 003, 26 Nov 2026"
+
+[smap_l4]
+authors = "Reichle, R., De Lannoy, G., Koster, R., Crow, W., Kimball, J., Liu, Q., and Bechtold, M."
+year = 2025
+title = "SMAP L4 Global 3-hourly 9 km EASE-Grid Surface and Root Zone Soil Moisture Geophysical Data, Version 8"
+kind = "data"
+in = "NASA National Snow and Ice Data Center Distributed Active Archive Center"
+doi = "10.5067/T5RUATAQREF8"
+checked = "DataCite record of the DOI and NASA CMR collection SPL4SMGP version 008, 26 Nov 2026"
+
+[opera_dswx_s1]
+authors = "OPERA (Observational Products for End-Users from Remote Sensing Analysis), NASA Jet Propulsion Laboratory"
+year = 2024
+title = "OPERA Dynamic Surface Water Extent from Sentinel-1, Version 1"
+kind = "data"
+in = "NASA Physical Oceanography Distributed Active Archive Center"
+doi = "10.5067/OPDSWS1-L3V1"
+checked = "DataCite record of the DOI and NASA CMR collection OPERA_L3_DSWX-S1_V1, 26 Nov 2026"
+
+[swot_riversp]
+authors = "SWOT (Surface Water and Ocean Topography mission, NASA and CNES)"
+year = 2024
+title = "SWOT Level 2 River Single-Pass Vector Data Product"
+kind = "data"
+in = "Version C (2.0), NASA Physical Oceanography Distributed Active Archive Center; read through PO.DAAC's Hydrocron service"
+doi = "10.5067/SWOT-RIVERSP-2.0"
+checked = "DataCite record of the DOI and NASA CMR collection SWOT_L2_HR_RiverSP_2.0, 26 Nov 2026"
+
+[snodas]
+authors = "National Operational Hydrologic Remote Sensing Center"
+year = 2004
+title = "Snow Data Assimilation System (SNODAS) Data Products at NSIDC, Version 1"
+kind = "data"
+in = "National Snow and Ice Data Center (NSIDC), Boulder, Colorado"
+doi = "10.7265/N5TB14TC"
+checked = "DataCite record of the DOI, 26 Nov 2026"
+
+[openet]
+authors = "OpenET"
+year = 2026
+title = "OpenET API: evapotranspiration time series over a polygon (ensemble of satellite-based models)"
+kind = "data"
+url = "https://openetdata.org/"
+checked = "Read live by the model runner with the project's key, 26 Nov 2026"
+
+[nldi]
+authors = "U.S. Geological Survey"
+year = 2026
+title = "Network-Linked Data Index (NLDI) on the National Hydrography Dataset Plus (NHDPlus)"
+kind = "data"
+url = "https://api.water.usgs.gov/nldi/"
+checked = "Read by the model runner, 26 Nov 2026"
+
+[nhd]
+authors = "U.S. Geological Survey"
+year = 2026
+title = "National Hydrography Dataset (NHD), Waterbody - Large Scale, The National Map map service"
+kind = "data"
+url = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6"
+checked = "Read 26 Nov 2026 for the pool centres (dsm2.toml [pool_centres])"
+
+# ---- Papers, books and reports.
+
+[karney2011]
+authors = "Karney, C. F. F."
+year = 2011
+title = "Transverse Mercator with an accuracy of a few nanometers"
+kind = "paper"
+in = "Journal of Geodesy 85(8), 475-485"
+doi = "10.1007/s00190-011-0445-3"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[snyder1987]
+authors = "Snyder, J. P."
+year = 1987
+title = "Map Projections: A Working Manual"
+kind = "report"
+in = "U.S. Geological Survey Professional Paper 1395, U.S. Government Printing Office, Washington, D.C."
+doi = "10.3133/pp1395"
+url = "https://pubs.usgs.gov/publication/pp1395"
+checked = "Crossref record of the DOI; USGS Publications Warehouse page, 26 Nov 2026"
+
+[godin1972]
+authors = "Godin, G."
+year = 1972
+title = "The Analysis of Tides"
+kind = "book"
+in = "University of Toronto Press, Toronto and Buffalo; xxi + 264 pp."
+isbn = "0-8020-1747-9"
+url = "https://openlibrary.org/isbn/0802017479"
+checked = "Open Library ISBN record and library catalogue records, 26 Nov 2026"
+
+[schureman1958]
+authors = "Schureman, P."
+year = 1958
+title = "Manual of Harmonic Analysis and Prediction of Tides"
+kind = "report"
+in = "U.S. Coast and Geodetic Survey Special Publication No. 98, revised (1940) edition, reprinted 1958 with corrections; U.S. Government Printing Office, Washington"
+url = "https://tidesandcurrents.noaa.gov/publications/SpecialPubNo98.pdf"
+note = "NOAA's scan is of a June 2001 reprint."
+checked = "NOAA's PDF, title page read, 26 Nov 2026"
+
+[kundu1976]
+authors = "Kundu, P. K."
+year = 1976
+title = "Ekman veering observed near the ocean bottom"
+kind = "paper"
+in = "Journal of Physical Oceanography 6(2), 238-242"
+doi = "10.1175/1520-0485(1976)006<0238:EVONTO>2.0.CO;2"
+note = "The usual source of the complex vector correlation used for the HF radar check."
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[dimou1993]
+authors = "Dimou, K. N., and Adams, E. E."
+year = 1993
+title = "A random-walk, particle tracking model for well-mixed estuaries and coastal waters"
+kind = "paper"
+in = "Estuarine, Coastal and Shelf Science 37(1), 99-110"
+doi = "10.1006/ecss.1993.1044"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[visser1997]
+authors = "Visser, A. W."
+year = 1997
+title = "Using random walk models to simulate the vertical distribution of particles in a turbulent water column"
+kind = "paper"
+in = "Marine Ecology Progress Series 158, 275-281"
+doi = "10.3354/meps158275"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[chapra1997]
+authors = "Chapra, S. C."
+year = 1997
+title = "Surface Water-Quality Modeling"
+kind = "book"
+in = "McGraw-Hill, New York; 844 pp. Reissued by Waveland Press, Long Grove, Illinois (ISBN 978-1-57766-605-9)"
+isbn = "0-07-011364-5"
+url = "https://openlibrary.org/isbn/0070113645"
+checked = "Open Library ISBN records of both printings, 26 Nov 2026"
+
+[chapra2008qual2k]
+authors = "Chapra, S. C., Pelletier, G. J., and Tao, H."
+year = 2008
+title = "QUAL2K: A Modeling Framework for Simulating River and Stream Water Quality, Version 2.11: Documentation and Users Manual"
+kind = "software"
+in = "Civil and Environmental Engineering Department, Tufts University, Medford, Massachusetts; 16 December 2008"
+url = "https://csdms.colorado.edu/csdms_wiki/images/Q2KDocv2_11b8.pdf"
+note = "A copy of the manual kept by CSDMS; the citation is the manual's own title page."
+checked = "The manual's title page read, 26 Nov 2026"
+
+[tva1972]
+authors = "Tennessee Valley Authority"
+year = 1972
+title = "Heat and Mass Transfer between a Water Surface and the Atmosphere"
+kind = "report"
+in = "Water Resources Research Laboratory Report No. 14, Engineering Laboratory, Division of Water Control Planning, Tennessee Valley Authority, Norris, Tennessee"
+cited_via = "chapra2008qual2k"
+note = "Not read: cited as QUAL2K's manual cites it, for its cloud terms. Other literature gives W. O. Wunderlich as its author; no copy was found online to confirm it."
+checked = "QUAL2K v2.11 manual's reference list, 26 Nov 2026"
+
+[allen1998fao56]
+authors = "Allen, R. G., Pereira, L. S., Raes, D., and Smith, M."
+year = 1998
+title = "Crop Evapotranspiration: Guidelines for Computing Crop Water Requirements"
+kind = "report"
+in = "FAO Irrigation and Drainage Paper 56, Food and Agriculture Organization of the United Nations, Rome"
+isbn = "92-5-104219-5"
+url = "https://www.fao.org/4/x0490e/x0490e00.htm"
+checked = "FAO's page of the paper, 26 Nov 2026"
+
+[fischer1979]
+authors = "Fischer, H. B., List, E. J., Koh, R. C. Y., Imberger, J., and Brooks, N. H."
+year = 1979
+title = "Mixing in Inland and Coastal Waters"
+kind = "book"
+in = "Academic Press, New York"
+doi = "10.1016/C2009-0-22051-4"
+isbn = "0-12-258150-4"
+checked = "Crossref record of the DOI (title, 1979); Open Library ISBN record, 26 Nov 2026"
+
+[leopold1953]
+authors = "Leopold, L. B., and Maddock, T., Jr."
+year = 1953
+title = "The hydraulic geometry of stream channels and some physiographic implications"
+kind = "report"
+in = "U.S. Geological Survey Professional Paper 252, U.S. Government Printing Office, Washington, D.C."
+doi = "10.3133/pp252"
+checked = "Crossref record of the DOI; USGS Publications Warehouse page, 26 Nov 2026"
+
+[chow1988]
+authors = "Chow, V. T., Maidment, D. R., and Mays, L. W."
+year = 1988
+title = "Applied Hydrology"
+kind = "book"
+in = "McGraw-Hill, New York"
+isbn = "0-07-010810-2"
+url = "https://openlibrary.org/isbn/0070108102"
+checked = "Open Library ISBN record, 26 Nov 2026"
+
+[chow1959]
+authors = "Chow, V. T."
+year = 1959
+title = "Open-Channel Hydraulics"
+kind = "book"
+in = "McGraw-Hill, New York; reprinted by The Blackburn Press, Caldwell, New Jersey (ISBN 978-1-932846-18-8)"
+url = "https://blackburnpress.com/ophy.html"
+checked = "The reprint's publisher page, 26 Nov 2026"
+
+[chen2003fvcom]
+authors = "Chen, C., Liu, H., and Beardsley, R. C."
+year = 2003
+title = "An unstructured grid, finite-volume, three-dimensional, primitive equations ocean model: Application to coastal ocean and estuaries"
+kind = "paper"
+in = "Journal of Atmospheric and Oceanic Technology 20(1), 159-186"
+doi = "10.1175/1520-0426(2003)020<0159:AUGFVT>2.0.CO;2"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[pawlowicz2002]
+authors = "Pawlowicz, R., Beardsley, B., and Lentz, S."
+year = 2002
+title = "Classical tidal harmonic analysis including error estimates in MATLAB using T_TIDE"
+kind = "paper"
+in = "Computers & Geosciences 28(8), 929-937"
+doi = "10.1016/S0098-3004(02)00013-4"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[unesco1981]
+authors = "UNESCO"
+year = 1981
+title = "The Practical Salinity Scale 1978 and the International Equation of State of Seawater 1980: Tenth Report of the Joint Panel on Oceanographic Tables and Standards"
+kind = "standard"
+in = "UNESCO Technical Papers in Marine Science 36, UNESCO, Paris; 25 pp."
+url = "https://unesdoc.unesco.org/ark:/48223/pf0000046148"
+checked = "UNESDOC's record of the report (series 36, 1981), 26 Nov 2026; the full text could not be opened to read its cover"
+
+[jassby1995]
+authors = "Jassby, A. D., Kimmerer, W. J., Monismith, S. G., Armor, C., Cloern, J. E., Powell, T. M., Schubel, J. R., and Vendlinski, T. J."
+year = 1995
+title = "Isohaline position as a habitat indicator for estuarine populations"
+kind = "paper"
+in = "Ecological Applications 5(1), 272-289"
+doi = "10.2307/1942069"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[terrill2006]
+authors = "Terrill, E., Otero, M., Hazard, L., Conlee, D., Harlan, J., Kohut, J., Reuter, P., Cook, T., Harris, T., and Lindquist, K."
+year = 2006
+title = "Data management and real-time distribution in the HF-radar national network"
+kind = "paper"
+in = "OCEANS 2006 (MTS/IEEE), Boston, Massachusetts, 18-21 September 2006, pp. 1-6"
+doi = "10.1109/OCEANS.2006.306883"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[muellersolger2012]
+authors = "Mueller-Solger, A."
+year = 2012
+title = "Notes on estimating X2, the distance from the Golden Gate to 2 ppt salinity (km)"
+kind = "report"
+in = "Draft 1, February 2012; notes with a workbook of DAYFLOW and X2 data for the Interagency Ecological Program"
+url = "https://www.epa.gov/sites/default/files/documents/notes-on-estimating-x2-with-dayflow.pdf"
+note = "An unpublished draft; this is the copy EPA keeps."
+checked = "EPA's PDF, first page read, 26 Nov 2026"
+
+[dwr1974b200v2]
+authors = "California Department of Water Resources"
+year = 1974
+title = "California State Water Project, Volume II: Conveyance Facilities"
+kind = "report"
+in = "Bulletin No. 200, The Resources Agency, Department of Water Resources, Sacramento; November 1974"
+url = "https://archive.org/details/zh8californiastatew2002calirich"
+note = "The Internet Archive's scan of the University of California, Davis library's copy."
+checked = "The scan's title page and foreword, 26 Nov 2026"
+
+[dwr2017cass]
+authors = "California Department of Water Resources"
+year = 2017
+title = "California Aqueduct Subsidence Study: San Luis Field Division, San Joaquin Field Division"
+kind = "report"
+in = "Division of Engineering, California Department of Water Resources, Sacramento; June 2017"
+url = "https://water.ca.gov/-/media/DWR-Website/Web-Pages/Programs/Engineering-And-Construction/Files/Subsidence/Aqueduct_Subsidence_Study-Accessibility_Compatibility.pdf"
+checked = "DWR's PDF, cover and title pages read, 26 Nov 2026"
+
+[jrp2022dmc]
+authors = "McMorris, C., and Norby, H."
+year = 2022
+title = "Draft Historic Resources Inventory and Effects Analysis Report for the Delta-Mendota Canal Subsidence Correction Project"
+kind = "report"
+in = "JRP Historical Consulting, LLC, Davis, California, for the U.S. Bureau of Reclamation and the San Luis & Delta-Mendota Water Authority; August 2022"
+url = "https://ceqanet.lci.ca.gov/2023020323"
+note = "A draft, public as Appendix F of Appendix N to the project's draft environmental assessment (State Clearinghouse 2023020323)."
+checked = "The report's title page, in the CEQAnet attachment, 26 Nov 2026"
+
+[ccwd2014]
+authors = "Carollo Engineers"
+year = 2014
+title = "Canal Rehabilitation Feasibility Studies: Final Report"
+kind = "report"
+in = "Prepared for Contra Costa Water District; Carollo Engineers, Walnut Creek, California; June 2014"
+url = "https://www.energy.senate.gov/services/files/BD6E1711-8BFF-44BB-A3A3-EDE5A5B8AE56"
+note = "The copy filed with testimony to the U.S. Senate Committee on Energy and Natural Resources; none was found on the District's own site."
+checked = "The PDF's cover and executive summary, 26 Nov 2026"
+
+[usbr2007ea1589]
+authors = "U.S. Bureau of Reclamation"
+year = 2007
+title = "Final Environmental Assessment: Contra Costa Canal Replacement Project, Contra Costa County, California"
+kind = "report"
+in = "DOE/EA-1589; U.S. Department of the Interior, Bureau of Reclamation, Mid-Pacific Region; June 2007"
+url = "https://www.energy.gov/sites/default/files/2019/07/f65/final-ea-1589-contra-costa-canal-replacement-project-2007-06.pdf"
+checked = "The PDF's cover; DOE's NEPA page for DOE/EA-1589, 26 Nov 2026"
+
+[brownlie1981]
+authors = "Brownlie, W. R."
+year = 1981
+title = "Prediction of flow depth and sediment discharge in open channels"
+kind = "report"
+in = "Report No. KH-R-43A, W. M. Keck Laboratory of Hydraulics and Water Resources, California Institute of Technology, Pasadena; November 1981"
+doi = "10.7907/Z9KP803R"
+checked = "DataCite record of the DOI; CaltechAUTHORS record, 26 Nov 2026"
+
+[vanrijn1984]
+authors = "van Rijn, L. C."
+year = 1984
+title = "Sediment transport, Part II: Suspended load transport"
+kind = "paper"
+in = "Journal of Hydraulic Engineering 110(11), 1613-1641"
+doi = "10.1061/(ASCE)0733-9429(1984)110:11(1613)"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[melton2022openet]
+authors = "Melton, F. S., Huntington, J., Grimm, R., Herring, J., Hall, M., Rollison, D., Erickson, T., Allen, R., Anderson, M., Fisher, J. B., Kilic, A., Senay, G. B., Volk, J., Hain, C., Johnson, L., Ruhoff, A., Blankenau, P., Bromley, M., Carrara, W., Daudert, B., Doherty, C., Dunkerly, C., Friedrichs, M., Guzman, A., Halverson, G., Hansen, J., Harding, J., Kang, Y., Ketchum, D., Minor, B., Morton, C., Ortega-Salazar, S., Ott, T., Ozdogan, M., ReVelle, P. M., Schull, M., Wang, C., Yang, Y., and Anderson, R. G."
+year = 2022
+title = "OpenET: Filling a critical data gap in water management for the western United States"
+kind = "paper"
+in = "Journal of the American Water Resources Association 58(6), 971-994"
+doi = "10.1111/1752-1688.12956"
+note = "Published online in 2021; cited by its issue."
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[okubo1971]
+authors = "Okubo, A."
+year = 1971
+title = "Oceanic diffusion diagrams"
+kind = "paper"
+in = "Deep Sea Research and Oceanographic Abstracts 18(8), 789-802"
+doi = "10.1016/0011-7471(71)90046-5"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[elder1959]
+authors = "Elder, J. W."
+year = 1959
+title = "The dispersion of marked fluid in turbulent shear flow"
+kind = "paper"
+in = "Journal of Fluid Mechanics 5(4), 544-560"
+doi = "10.1017/S0022112059000374"
+checked = "Crossref record of the DOI, 26 Nov 2026"
+
+[dwr2017b132]
+authors = "California Department of Water Resources"
+year = 2017
+title = "Management of the California State Water Project"
+kind = "report"
+in = "Bulletin 132-16 (calendar year 2015), California Natural Resources Agency, Department of Water Resources, Sacramento; June 2017"
+url = "https://water.ca.gov/-/media/DWR-Website/Web-Pages/Programs/State-Water-Project/Management/Bulletin-132/Bulletin-132/Files/Bulletin-132-16-r.pdf"
+note = "Table 1-5, 'Total Miles of Aqueducts', p. 9."
+checked = "DWR's PDF, cover and title page read, Table 1-5 found, 26 Nov 2026"
+
+[swrcb_d1641]
+authors = "State Water Resources Control Board"
+year = 2000
+title = "Revised Water Right Decision 1641: In the Matter of Implementation of Water Quality Objectives for the San Francisco Bay/Sacramento-San Joaquin Delta Estuary; A Petition to Change Points of Diversion of the Central Valley Project and the State Water Project in the Southern Delta; and A Petition to Change Places of Use and Purposes of Use of the Central Valley Project"
+kind = "standard"
+in = "State Water Resources Control Board, California Environmental Protection Agency, Sacramento; adopted 29 December 1999, revised 15 March 2000 under Order WR 2000-02"
+url = "https://www.waterboards.ca.gov/waterrights/board_decisions/adopted_orders/decisions/d1600_d1649/wrd1641_1999dec29.pdf"
+checked = "The Board's PDF, cover and title page read, 26 Nov 2026"
+
+[cvrwqcb_r5_2022_0006_009]
+authors = "Central Valley Regional Water Quality Control Board"
+year = 2024
+title = "Amended Notice of Applicability; General Waste Discharge Requirements Order R5-2022-0006-03 for Limited Threat Discharges to Surface Water; Contra Costa Water District, Contra Costa Canal Replacement Project Segment 5, Contra Costa County"
+kind = "report"
+in = "Notice of Applicability R5-2022-0006-009 (amended), 28 October 2024"
+url = "https://www.waterboards.ca.gov/rwqcb5/board_decisions/adopted_orders/general_orders/r5-2016-0076-01/r5-2022-0006_noas/r5-2022-0006-009_amend.pdf"
+note = "Coverage for dewatering while the canal's Segment 5 (Rock Slough Fish Screen to East Cypress Road) is put into pipe; the source for the pipe's last stretch."
+checked = "The Board's PDF, first pages and signature read, 26 Nov 2026"
+
+[usbr_ccc_projectdata]
+authors = "U.S. Bureau of Reclamation"
+year = 2009
+title = "CVP - Delta Division Engineering Data"
+kind = "web"
+in = "Reclamation Dataweb, Central Valley Project, Delta Division: Contra Costa Canal, typical section of the initial reach"
+url = "http://web.archive.org/web/20090514214310/http://www.usbr.gov/dataweb/html/mpdelengdata.html"
+note = "The page is gone from usbr.gov; this is the Internet Archive's copy of 14 May 2009 (the page is undated). It gives the bottom width 24 ft, side slopes 3:1 and water depth 6.5 ft."
+checked = "The archived page read, 26 Nov 2026"
+
+[scwa_nba]
+authors = "Solano County Water Agency"
+year = 2026
+title = "North Bay Aqueduct"
+kind = "web"
+url = "https://www.scwa2.com/north-bay-aqueduct/"
+note = "Undated web page; the year is the year it was read. It gives the pipe as 72 inches at Barker Slough to 54 inches at Cordelia Forebay."
+checked = "The Agency's page read, 26 Nov 2026"
+
+[dwr_i17_swp]
+authors = "California Department of Water Resources"
+year = 2025
+title = "i17_StateWaterProject_Centerline"
+kind = "data"
+in = "California Natural Resources Agency Open Data portal; current as of 20 May 2025; licence Creative Commons Attribution"
+url = "https://gis.data.cnra.ca.gov/datasets/0c1e0a5ca1ba488ea740fa0d654df4c8_0"
+checked = "The portal's item metadata and record, 26 Nov 2026"
+
+[fischer1966]
+authors = "Fischer, H. B."
+year = 1966
+title = "Longitudinal dispersion in laboratory and natural streams"
+kind = "report"
+in = "Report No. KH-R-12, W. M. Keck Laboratory of Hydraulics and Water Resources, California Institute of Technology, Pasadena; June 1966"
+doi = "10.7907/Z9F769HC"
+note = "The same work is Fischer's Caltech PhD thesis (1966), doi:10.7907/8D5C-BV11."
+checked = "DataCite record of the DOI; CaltechAUTHORS record, 26 Nov 2026"
+
+[brown1987qual2e]
+authors = "Brown, L. C., and Barnwell, T. O., Jr."
+year = 1987
+title = "The Enhanced Stream Water Quality Models QUAL2E and QUAL2E-UNCAS: Documentation and User Manual"
+kind = "software"
+in = "EPA/600/3-87/007, Environmental Research Laboratory, U.S. Environmental Protection Agency, Athens, Georgia; May 1987"
+url = "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=30000KGT.TXT"
+note = "A scan is also kept with DWR's DSM2 documentation: https://cadwrdeltamodeling.github.io/dsm2/attachments/87229010/87229009.pdf"
+checked = "EPA NEPIS record and document; title page read, 26 Nov 2026"

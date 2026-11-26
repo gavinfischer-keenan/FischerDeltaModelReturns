@@ -352,13 +352,23 @@ def with_hdf5_output(text: str, path: str, interval: str = "15min") -> str:
     return "\n".join(out) + "\n"
 
 
-def run(program: str, main: str, run_dir: Path) -> float:
+def _unlimited_stack() -> None:
+    import resource
+
+    resource.setrlimit(resource.RLIMIT_STACK, (resource.RLIM_INFINITY, resource.RLIM_INFINITY))
+
+
+def run(program: str, main: str, run_dir: Path, unlimited_stack: bool = False) -> float:
     """Run a DSM2 program on one of the run's main files; returns the seconds it
-    took. Its screen output goes to <main>.log. Raises on failure."""
+    took. Its screen output goes to <main>.log. Raises on failure.
+    `unlimited_stack`: GTM keeps large arrays on the stack and crashes reading
+    HYDRO's cross-section tables under the usual 8 MB limit (checked 26 Nov
+    2026, a segmentation fault in hdf_util read_xsect_tbl)."""
     t = time.time()
     log = run_dir / f"{Path(main).stem}.log"
     with open(log, "w", encoding="utf-8") as out:
-        r = subprocess.run([program, main], cwd=run_dir, stdout=out, stderr=subprocess.STDOUT)
+        r = subprocess.run([program, main], cwd=run_dir, stdout=out, stderr=subprocess.STDOUT,
+                           preexec_fn=_unlimited_stack if unlimited_stack else None)
     if r.returncode != 0:
         raise RuntimeError(f"{Path(program).name} failed with status {r.returncode}; see {log}")
     return time.time() - t

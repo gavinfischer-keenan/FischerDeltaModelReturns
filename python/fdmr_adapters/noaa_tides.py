@@ -11,6 +11,8 @@ temperature (degC), water level (m above the station's MLLW datum, the same
 datum as the predictions, so measured less predicted is the weather's and the
 river's part of the water level: the tide residual, or storm surge), air
 pressure (hPa) and wind (speed and gust m/s, direction degrees true, from).
+
+References: ref:noaa_coops (references.toml).
 """
 
 from __future__ import annotations

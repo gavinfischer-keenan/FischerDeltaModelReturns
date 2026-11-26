@@ -7,6 +7,9 @@ Where water goes from Shasta Dam to the Golden Gate: now, over the last 14 days 
 - [Specification](docs/specification.md), version 1.0
 - [Build plan](docs/build-plan.md)
 - [Published flow-field format](docs/format.md)
+- [How it works](docs/how-it-works.md): block diagrams of the data flow, a cycle and the validation
+- [The maths](docs/maths.md), kind of water by kind, with sources
+- [References](docs/references.md): every source, in full, and where it is used
 
 ## Layout
 

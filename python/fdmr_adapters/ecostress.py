@@ -26,6 +26,8 @@ The temperature is the water's skin, its top fraction of a millimetre, at the
 moment of the pass. The station's orbit drifts, so passes come at any hour.
 The skin differs from a sensor's reading a metre or so down by a few tenths
 of a degree, more on calm, sunny afternoons.
+
+References: ref:ecostress_lst (references.toml).
 """
 
 from __future__ import annotations
@@ -56,7 +58,7 @@ KELVIN = 273.15
 def utm(lon, lat, zone: int) -> tuple[np.ndarray, np.ndarray]:
     """WGS84 longitude and latitude (degrees) to UTM easting and northing (m),
     northern hemisphere: the transverse Mercator projection by Krüger's series
-    to the third order in n (Karney 2011, J. Geodesy 85:475, equations 7-11),
+    to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 7-11),
     good to well under a metre within the zone."""
     a, f, k0 = 6378137.0, 1 / 298.257223563, 0.9996
     n = f / (2 - f)
@@ -76,7 +78,7 @@ def utm(lon, lat, zone: int) -> tuple[np.ndarray, np.ndarray]:
 def lonlat_from_utm(east, north, zone: int) -> tuple[np.ndarray, np.ndarray]:
     """UTM easting and northing (m, northern hemisphere) back to WGS84
     longitude and latitude (degrees): the inverse of `utm`, by Krüger's series
-    to the third order in n (Karney 2011, J. Geodesy 85:475, equations 15-21)."""
+    to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 15-21)."""
     a, f, k0 = 6378137.0, 1 / 298.257223563, 0.9996
     n = f / (2 - f)
     big_a = a / (1 + n) * (1 + n ** 2 / 4 + n ** 4 / 64)

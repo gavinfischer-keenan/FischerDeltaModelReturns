@@ -14,8 +14,8 @@
 //! where H is the total water depth. The K ∇H / H term is what keeps parcels
 //! from collecting in shallow water, where a plain random walk would leave
 //! them (the well-mixed condition: Dimou and Adams 1993, Estuarine, Coastal and
-//! Shelf Science 37:99-110; Visser 1997, Marine Ecology Progress Series
-//! 158:275-281). The flow part is taken with a midpoint (second-order
+//! Shelf Science 37:99-110, ref:dimou1993; Visser 1997, Marine Ecology Progress
+//! Series 158:275-281, ref:visser1997). The flow part is taken with a midpoint (second-order
 //! Runge-Kutta) step.
 //!
 //! A move is followed in a straight line through the triangles it crosses.

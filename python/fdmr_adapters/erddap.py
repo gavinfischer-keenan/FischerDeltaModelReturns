@@ -9,6 +9,8 @@ sea_water_practical_salinity).
 
 A griddap dataset can also be averaged over a box each time step
 (`fetch_grid_mean`), such as satellite sea level anomaly offshore.
+
+References: ref:cencoos, ref:coastwatch_ssh (references.toml).
 """
 
 from __future__ import annotations

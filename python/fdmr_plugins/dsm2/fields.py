@@ -15,7 +15,8 @@ parcels does not mean downloading it: with QUAL's output, ec (uS/cm, specific
 conductance as QUAL computes it) and salinity (psu, PSS-78 from the math
 library), each the channel's mean; with the fingerprint study's output,
 source:<group> for each water source, the share (0 to 1) of the channel's
-water that came from it.
+water that came from it; with the sediment run's (GTM), ssc, suspended
+sediment, mg/L, the mean of the channel's two ends.
 
 A reader works out velocity (flow / area) and volume (area x length) itself.
 """
@@ -47,6 +48,7 @@ def write_days(
     qual_file: Path | None = None,
     sources_file: Path | None = None,
     temp_file: Path | None = None,
+    sediment_file: Path | None = None,
 ) -> list[str]:
     """Field files for every UTC day overlapping [start, end); returns the day names.
 
@@ -79,6 +81,12 @@ def write_days(
         s_names = [x.decode().strip() for x in sh["output/constituent_names"][:]]
         s_chan = sh["output/channel avg concentration"]
         s_t0 = tidefile_start(s_chan.attrs["start_time"][0])
+    gh = h5py.File(sediment_file, "r") if sediment_file else None
+    if gh is not None:  # GTM: concentration at each channel's two ends
+        g_names = [x.decode().strip() for x in gh["output/constituent_names"][:]]
+        g_chan = gh["output/channel concentration"]
+        g_t0 = tidefile_start(g_chan.attrs["start_time"][0])
+        k_ssc = g_names.index("ssc")
     th = h5py.File(temp_file, "r") if temp_file else None
     if th is not None:
         t_names = [x.decode().strip() for x in th["output/constituent_names"][:]]
@@ -141,6 +149,13 @@ def write_days(
                     have = t_chan[j0 : j0 + steps, k_temp, :]
                     temp[: have.shape[0]] = have
                 quality.append(("temperature", "degC", True, temp.ravel().tolist()))
+            if gh is not None:
+                j0 = (a - g_t0) // 900
+                ssc = np.full((steps, n), np.nan)
+                if j0 >= 0:
+                    have = g_chan[j0 : j0 + steps, k_ssc, :, :].mean(axis=2)
+                    ssc[: have.shape[0]] = have
+                quality.append(("ssc", "mg/L", True, ssc.ravel().tolist()))
             if sh is not None:
                 j0 = (a - s_t0) // 900
                 for k, g in enumerate(s_names):
@@ -185,7 +200,7 @@ def write_days(
                     [("flow", "m3/s", False, links.ravel().tolist())],
                 )
             days.append(name)
-    for h in (qh, sh, th):
+    for h in (qh, sh, th, gh):
         if h is not None:
             h.close()
     return days

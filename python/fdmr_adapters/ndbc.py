@@ -11,6 +11,8 @@ Stored under source `ndbc`: water_temperature (degC, column OTMP) and
 salinity (psu, column SAL). A buoy without an ocean file gives its
 sea-surface temperature in the standard file (column WTMP), fetched with the
 weather (`fetch_met`).
+
+References: ref:ndbc (references.toml).
 """
 
 from __future__ import annotations

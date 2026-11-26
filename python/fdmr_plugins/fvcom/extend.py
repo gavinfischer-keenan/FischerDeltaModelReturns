@@ -11,7 +11,7 @@ term is the net drift that grows with outflow, which in an estuary's upper
 bays matters as much as the tide. Wind is not in it.
 
 Constituent speeds are the standard astronomical ones (degrees per mean solar
-hour; Schureman 1958, *Manual of Harmonic Analysis and Prediction of Tides*,
+hour; Schureman 1958, ref:schureman1958, *Manual of Harmonic Analysis and Prediction of Tides*,
 US Coast and Geodetic Survey Special Publication 98). The 18.6-year nodal
 modulation of each constituent is left out: fitted over the year just past and
 used for the two weeks after it, it changes by well under 1%. The record may be

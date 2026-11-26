@@ -7,6 +7,8 @@ forecast point, in thousands of cubic feet per second. Columns typed QINE are
 flow at the point, matching the USGS gauges there; others (local inflows, SQIN)
 are not used. Values are stored in m3/s, each tagged with the issue it came
 from, so a later issue replaces an earlier one hour by hour.
+
+References: ref:cnrfc (references.toml).
 """
 
 from __future__ import annotations

@@ -16,6 +16,8 @@ Parameters: air_temperature and dew_point (degC), wind_speed (m/s, at 10 m),
 cloud_cover (fraction of the sky, 0 to 1) and air_pressure (hPa; the forecast
 has none). Airport sky reports reach about 3.7 km (12,000 ft) up, so higher
 cloud is missed in the observations.
+
+References: ref:nws_api, ref:ghcnh (references.toml).
 """
 
 from __future__ import annotations

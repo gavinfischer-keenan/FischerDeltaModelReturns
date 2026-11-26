@@ -10,7 +10,7 @@ one km of channel is one km). Each channel's value is placed at its midpoint
 along the chain.
 
 The field (such as specific conductance) is tidally averaged per channel with
-Godin's filter, so the position is the tidally averaged one, as the isohaline's
+Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
 definition requires. Walking up the axis from the sea, the position is where
 the field first falls below the threshold, interpolated linearly between the
 two channels either side. Where even the seaward end is below the threshold,

@@ -289,7 +289,11 @@ def main(argv: list[str] | None = None) -> int:
         if src == SOURCE and f.get("duration") == "D":
             attempt(f"{site} {p} (daily)", lambda site=site, p=p, f0=from_t: usgs.fetch_daily(site, p, f"{iso(f0 - 86_400)}/{iso(now)}"))
         elif src == SOURCE:
-            attempt(f"{site} {p}", lambda site=site, p=p, f0=from_t: usgs.fetch_values(site, p, f"{iso(f0)}/{iso(now)}"))
+            # A parameter may name one of the gauge's sensors after it ("turbidity_fnu_median").
+            from fdmr_adapters.usgs import PARAMETERS as _UP
+
+            base, _, sensor = (p, "", "") if p in _UP else p.rpartition("_")
+            attempt(f"{site} {p}", lambda site=site, b=base, sn=sensor or None, f0=from_t: usgs.fetch_values(site, b, f"{iso(f0)}/{iso(now)}", sensor=sn))
         elif src == CDEC:
             dur = f.get("duration", "H")
             attempt(f"cdec {site} {p}", lambda site=site, p=p, f0=from_t, dur=dur: cdec.fetch_values(site, p, int(f0), int(now), duration=dur))

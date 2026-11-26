@@ -135,7 +135,7 @@ pub fn running_mean_held(x: &[f64], w: usize) -> Vec<f64> {
 /// The subtidal part of a series sampled `per_hour` times an hour: Godin's
 /// filter, running means over 24, 24 and 25 hours in turn, which takes out the
 /// diurnal and semidiurnal tides far more cleanly than one long running mean
-/// (Godin 1972, *The Analysis of Tides*, University of Toronto Press). The
+/// (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
 /// ends are held as [`running_mean_held`] holds them.
 #[must_use]
 pub fn godin(x: &[f64], per_hour: f64) -> Vec<f64> {

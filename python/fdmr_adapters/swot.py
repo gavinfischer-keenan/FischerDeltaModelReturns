@@ -6,6 +6,8 @@ weeks. Stored under source `swot`, site the reach id: width (m) and wse (water
 surface elevation, m), from passes Hydrocron flags good or suspect (reach_q
 0 or 1); degraded and bad ones are dropped. SWOT resolves rivers wider than
 about 100 m; narrower ones are noisy.
+
+References: ref:swot_riversp (references.toml).
 """
 
 from __future__ import annotations

@@ -19,6 +19,8 @@ state adapter (California).
   (site `snow-north` and so on): `snow_stations`, `snow_water_equivalent`
   (mm), `snow_percent_april1` and `snow_percent_normal` (% of normal for the
   date).
+
+References: ref:cdec (references.toml).
 """
 
 from __future__ import annotations

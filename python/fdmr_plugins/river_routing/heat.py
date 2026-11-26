@@ -2,12 +2,12 @@
 carried downstream, warming and cooling with the weather.
 
 The heat budget at the water's surface, W/m2, in the standard forms of Chapra
-(1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
+(1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
 
 - sunlight absorbed: (1 - 0.06) Rs, about 6 % reflected;
 - long-wave from the sky (Brunt): s (Ta + 273.15)^4 (0.6 + 0.031 sqrt(e_air)) (1 - 0.03),
   times (1 + 0.17 C^2) for cloud C (as in QUAL2K: Chapra, Pelletier and Tao
-  2008, QUAL2K documentation, after Wunderlich 1972);
+  2008, ref:chapra2008qual2k, QUAL2K documentation, after TVA 1972, ref:tva1972);
 - long-wave from the water: 0.97 s (Tw + 273.15)^4;
 - conduction to the air: c1 f(U) (Tw - Ta), c1 = 0.47 mmHg/degC (Bowen);
 - evaporation: f(U) (e_s(Tw) - e_air),
@@ -15,10 +15,10 @@ The heat budget at the water's surface, W/m2, in the standard forms of Chapra
 
 with s the Stefan-Boltzmann constant, vapour pressures in mmHg,
 e(T) = 4.596 exp(17.27 T / (237.3 + T)), e_air = e(dew point). Sunlight at
-the surface is FAO-56's clear-sky radiation (Allen et al. 1998, Crop
+the surface is FAO-56's clear-sky radiation (Allen et al. 1998, ref:allen1998fao56, Crop
 Evapotranspiration, eqs. 21-37: extraterrestrial radiation from the sun's
 angle, times 0.75 + 2e-5 z) reduced for cloud by (1 - 0.65 C^2) (as in Chapra
-1997, after TVA 1972). The water heats or cools at H / (rho c_p d), d its depth.
+1997, after TVA 1972, ref:tva1972). The water heats or cools at H / (rho c_p d), d its depth.
 
 Along the river the temperature moves with the water (upwind, in as many
 sub-steps as the flow needs), and inflowing water mixes in. The model runner
