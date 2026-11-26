@@ -9,11 +9,29 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Gauge:
+    """A flow gauge on a river reach. Most are USGS's; a CDEC station
+    (`source = "cdec"`, with its `parameter` and `duration`) serves where
+    USGS has none live, such as a dam's release reported by its operator.
+    `usgs_site` names the USGS site at the same place, if any: its position
+    on the river and its field measurements (for the channel's shape) are
+    used. A station with none gives `lon`, `lat`."""
+
     reach: str
     site: str
     name: str
     role: str  # "release", "main" or "tributary"
     forecast: dict | None = None  # {source, group, point}
+    source: str = "usgs"
+    parameter: str = "discharge"
+    duration: str | None = None  # CDEC: "E" event, "H" hourly, "D" daily
+    usgs_site: str | None = None
+    lon: float | None = None
+    lat: float | None = None
+
+    @property
+    def place_site(self) -> str | None:
+        """The USGS site that places this gauge and gives its channel shape."""
+        return self.site if self.source == "usgs" else self.usgs_site
 
 
 @dataclass(frozen=True)

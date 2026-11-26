@@ -73,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
     region = load_region(args.region)
     store = Store(args.store)
     usgs = UsgsAdapter(store)
+    cdec_gauge = CdecAdapter(store)
     now = time.time()
     start = now - args.days * 86_400
     failures = 0
@@ -86,7 +87,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{label:40s} FAILED {e}", flush=True)
         time.sleep(args.pause)
 
-    for g in [] if args.forecast_only else region.gauges:
+    cdec_gauges = [g for g in region.gauges if g.source == CDEC]
+    for g in [] if args.forecast_only else cdec_gauges:
+        cov = store.coverage(CDEC, g.site, g.parameter)
+        from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
+        attempt(f"cdec {g.site} {g.parameter}", lambda g=g, f0=from_t: cdec_gauge.fetch_values(g.site, g.parameter, int(f0), int(now), duration=g.duration or "H"))
+        if g.usgs_site and not args.no_measurements:
+            attempt(f"{g.usgs_site} channel_measurements", lambda g=g: usgs.fetch_channel_measurements(g.usgs_site))
+    for g in [] if args.forecast_only else [g for g in region.gauges if g.source == SOURCE]:
         try:
             have = usgs.available(g.site)
         except Exception as e:

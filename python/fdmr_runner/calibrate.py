@@ -54,7 +54,7 @@ def tracer_points(region_dir: Path, reach: str, gauges, chainage, store: Store) 
     with its chainage and the tracer series it holds."""
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
     line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
-    pts = [{"source": SOURCE, "id": g.site, "x": chainage[g.site]} for g in gauges]
+    pts = [{"source": g.source, "id": g.site, "x": chainage[g.site]} for g in gauges]
     for s in load_region(region_dir).stations:
         if s["reach"] != reach:
             continue
@@ -81,7 +81,7 @@ def calibrate_reach(region_dir: Path, store: Store, reach: str, days: int, previ
     n = (now - t0) // STEP
     shapes = fit_shapes(gauges, chainage, store)
     stations = [cal.Station(chainage[g.site], shapes[g.site]) for g in gauges]
-    flow = {g.site: regular([(v.t, v.value) for v in store.values(SOURCE, g.site, "discharge", t0, now)], t0, STEP, n) for g in gauges}
+    flow = {g.site: regular([(v.t, v.value) for v in store.values(g.source, g.site, g.parameter, t0, now)], t0, STEP, n) for g in gauges}
     prev = {(s["up"], s["down"]): s for s in previous.get("segments", [])}
     factors_before = [prev.get((a.site, b.site), {}).get("water_factor", 1.0) for a, b in zip(gauges, gauges[1:])]
     segs = []

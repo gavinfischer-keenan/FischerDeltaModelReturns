@@ -15,6 +15,8 @@ export type Request = { seq?: number } & (
   | {
       type: "release";
       x: number; // chainage, m, on the river
+      /** Release on another river reach (a tributary) instead: its id and chainage, m. */
+      line?: { id: string; x: number };
       /** Release into a network reach instead: a channel and how far along it (0..1). */
       network?: { id: string; element: number; fraction: number };
       /** Release into a mesh reach instead: a triangle and two barycentric weights (its second and third nodes). */
@@ -28,6 +30,19 @@ export type Request = { seq?: number } & (
   | { type: "layer"; layer: Layer }
   /** Show the flow particles on the flow net over the tides, or moment by moment (spec 3.5). */
   | { type: "flow"; net: boolean });
+
+/** Another river reach (a tributary, from its own dam) at one moment, laid
+ * out as the main river's fields in Frame. */
+export interface LineFrame {
+  id: string;
+  particleX: Float64Array;
+  particleLateral: Float32Array;
+  particleSpeed: Float64Array;
+  parcelX: Float64Array;
+  parcelConcentration: Float64Array;
+  particleValue?: Float32Array;
+  particleShares?: Float32Array;
+}
 
 /** A network reach at one moment. Positions are an element (a channel; pools
  * follow the channels, at `channels + pool`) and a fraction along it, 0 at its
@@ -93,6 +108,8 @@ export interface Frame {
   /** The same in words, for the timeline. */
   words: Words;
   /** Network reaches loaded so far. */
+  /** Other river reaches. */
+  lines: LineFrame[];
   networks: NetworkFrame[];
   /** Mesh reaches loaded so far. */
   meshes: MeshFrame[];
@@ -116,6 +133,8 @@ export interface Ready {
   certainty: number[];
   step: number;
   /** Network reaches (such as a tidal delta), by id: they arrive in later frames. */
+  /** Other river reaches (tributaries), loading in the background. */
+  lines: string[];
   networks: string[];
   /** Mesh reaches (such as a bay), by id: they arrive in later frames. */
   meshes: string[];

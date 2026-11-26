@@ -100,6 +100,8 @@
     engine.send({ type: "flow", net });
   }
   const nets: NetworkPlace[] = [];
+  /** Other river reaches (tributaries from their dams), by id. */
+  const lineReaches = new globalThis.Map<string, Reach>();
   const meshes: MeshPlace[] = [];
   let placing = $state(false);
   let draft = $state<{
@@ -108,6 +110,7 @@
     lat: number;
     network?: { id: string; element: number; fraction: number };
     mesh?: { id: string; triangle: number; w1: number; w2: number };
+    line?: { id: string; x: number };
   } | null>(null);
   let mass = $state(100);
   let continuousHours = $state(0);
@@ -138,7 +141,7 @@
     balance = Array.from(f.massBalance);
     sources = f.sources;
     words = f.words;
-    if (map && reach) drawFrame(map, reach, f, nets, meshes);
+    if (map && reach) drawFrame(map, reach, f, nets, meshes, lineReaches);
     if (map && showX2 && x2) drawIsohaline(map, x2, f.t, x2Label);
   }
 
@@ -215,6 +218,7 @@
       // A plain copy: a reactive proxy cannot be sent to the worker.
       network: draft.network ? $state.snapshot(draft.network) : undefined,
       mesh: draft.mesh ? $state.snapshot(draft.mesh) : undefined,
+      line: draft.line ? $state.snapshot(draft.line) : undefined,
       start,
       duration: Math.max(0, continuousHours) * 3600,
       mass,
@@ -250,6 +254,11 @@
             });
           })
           .catch((e) => console.warn("overlays not shown:", e)); // the water is shown whether or not its overlays load
+        for (const id of r.lines) {
+          fetch(`${cycle}/geometry/${id}.json`)
+            .then((x) => x.json())
+            .then((g: ReachGeometry) => lineReaches.set(id, new Reach(g)));
+        }
         for (const id of r.networks) {
           Promise.all([fetch(`${cycle}/geometry/${id}.json`).then((x) => x.json()), joins]).then(([g, hs]: [NetworkGeometry, Join[]]) => {
             const mine = hs.filter((h) => h.from === id && r.meshes.length);
@@ -292,6 +301,14 @@
         const [lon, lat] = reach.place(near.x);
         let best = near.metres;
         let pick: typeof draft = { x: near.x, lon, lat };
+        for (const [id, lr] of lineReaches) {
+          const n = lr.nearest(e.lngLat.lng, e.lngLat.lat);
+          if (n.metres < best) {
+            best = n.metres;
+            const [llon, llat] = lr.place(n.x);
+            pick = { x: 0, lon: llon, lat: llat, line: { id, x: n.x } };
+          }
+        }
         for (const net of nets) {
           const n = net.nearest(e.lngLat.lng, e.lngLat.lat);
           if (n.metres < best) {

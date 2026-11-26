@@ -84,18 +84,27 @@ def segment_slopes(gauges, chainage, store, datums, t0, now) -> list[float]:
     return s
 
 
+def shape_at(records, x: float):
+    """(segment, channel shape) at chainage x: the shapes fitted at the gauges
+    either side, taken between them; a reach with one gauge has its shape throughout."""
+    recs = sorted(records, key=lambda r: r.chainage)
+    if len(recs) == 1:
+        return 0, recs[0].shape
+    chain = [r.chainage for r in recs]
+    k = max(0, min(len(chain) - 2, sum(1 for c in chain[1:-1] if c <= x)))
+    span = chain[k + 1] - chain[k]
+    f = 0.0 if span <= 0 else min(1.0, max(0.0, (x - chain[k]) / span))
+    return k, channel.between(recs[k].shape, recs[k + 1].shape, f)
+
+
 def dispersion_field(field, records, slopes):
     """Fischer's longitudinal dispersion for every element and step, m2/s
-    (specification section 7.1): K = 0.011 U^2 W^2 / (d u*), u* = sqrt(g d S)."""
-    chain = sorted(r.chainage for r in records)
-    shapes = [r.shape for r in sorted(records, key=lambda r: r.chainage)]
+    (specification section 7.1): K = 0.011 U^2 W^2 / (d u*), u* = sqrt(g d S).
+    A reach with no gauge pair to give a slope takes the default."""
     out = [[0.0] * len(field.elements) for _ in range(field.steps)]
     for e, el in enumerate(field.elements):
-        k = max(0, min(len(chain) - 2, sum(1 for c in chain[1:-1] if c <= el.mid)))
-        span = chain[k + 1] - chain[k]
-        f = 0.0 if span <= 0 else min(1.0, max(0.0, (el.mid - chain[k]) / span))
-        shape = channel.between(shapes[k], shapes[k + 1], f)
-        slope = slopes[min(k, len(slopes) - 1)]
+        k, shape = shape_at(records, el.mid)
+        slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
         for i in range(field.steps):
             q = field.flow[i][e]
             d, w, u = shape.depth(q), shape.width(q), field.velocity[i][e]
@@ -107,14 +116,9 @@ def element_widths(field, records) -> list[float]:
     """Each element's water-surface width, m, at its median flow over the
     published steps: the channel shape fitted at the gauges either side
     (USGS field measurements), taken between them as the routing does."""
-    chain = sorted(r.chainage for r in records)
-    shapes = [r.shape for r in sorted(records, key=lambda r: r.chainage)]
     out = []
     for e, el in enumerate(field.elements):
-        k = max(0, min(len(chain) - 2, sum(1 for c in chain[1:-1] if c <= el.mid)))
-        span = chain[k + 1] - chain[k]
-        f = 0.0 if span <= 0 else min(1.0, max(0.0, (el.mid - chain[k]) / span))
-        shape = channel.between(shapes[k], shapes[k + 1], f)
+        _, shape = shape_at(records, el.mid)
         q = sorted(field.flow[i][e] for i in range(field.steps))[field.steps // 2]
         out.append(round(shape.width(max(q, 1e-3)), 1))
     return out
@@ -125,14 +129,24 @@ def river_chain(region_dir: Path, reach: str):
     region = load_region(region_dir)
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
     gauges = [g for g in region.gauges_for(reach) if g.role in ("release", "main")]
+    # The release gauge is at 0 unless the reach starts higher, at its dam.
     return gauges, {gauges[0].site: 0.0, **geo["gauges_m"]}
 
 
 def fit_shapes(gauges, chainage, store: Store) -> dict:
     """Channel shape at each gauge from its USGS field measurements of the last
-    ten years; a gauge with too few takes the nearest gauge's shape."""
+    ten years (for another agency's station, those of the USGS site at the
+    same place, of any age if none are recent); a gauge with too few takes
+    the nearest gauge's shape."""
     since = int(time.time()) - 10 * 365 * DAY
-    shapes = {g.site: channel.fit(store.channel_measurements(SOURCE, g.site), since=since) for g in gauges}
+
+    def fit(g):
+        if not g.place_site:
+            return None
+        ms = store.channel_measurements(SOURCE, g.place_site)
+        return channel.fit(ms, since=since) or (channel.fit(ms) if g.source != SOURCE else None)
+
+    shapes = {g.site: fit(g) for g in gauges}
     if not any(shapes.values()):
         raise ValueError("no gauge has enough channel measurements")
     return {
@@ -175,30 +189,24 @@ def add_reach(cdir: Path, src: Path, index: dict) -> None:
     index["format_version"] = [1, 1]
 
 
-def publish(
-    region_dir: Path,
-    store: Store,
-    out_dir: Path,
-    days: int,
-    reach: str = "river",
-    datums: dict[str, float | None] | None = None,
-    ahead: int = 14,
-    calibration: dict | None = None,
-    extra_reaches: list[Path] | None = None,
-) -> Path:
-    region = load_region(region_dir)
+def river_days(t0: int, end: int, n: int) -> list[tuple[str, int, int, int]]:
+    """(name, day start, first step, end step) of each UTC day the window touches."""
+    out = []
+    for d0 in range(t0, end + 1, DAY):
+        i0, i1 = (d0 - t0) // STEP, min(n, (d0 + DAY - t0) // STEP)
+        if i0 < i1:
+            out.append((utc(d0, "%Y-%m-%d"), d0, i0, i1))
+    return out
+
+
+def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str, t0: int, now: int, end: int,
+                  ahead: int, datums: dict | None, calibration: dict | None) -> tuple[dict, list[int]]:
+    """One river-routing reach's geometry and day files in `cdir`: its index entry,
+    and the issue times of the river forecasts it used."""
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
     line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
     gauges, chainage = river_chain(region_dir, reach)
-
-    # The model's "now": the latest time every main gauge has reported.
-    latest = [store.latest(SOURCE, g.site, "discharge") for g in gauges]
-    if any(x is None for x in latest):
-        raise ValueError("a main gauge has no discharge in the store")
-    now = min(t for t, _ in latest) // STEP * STEP
-    t0 = (now - days * DAY) // DAY * DAY
     i_now = (now - t0) // STEP
-    end = now + ahead * DAY
     n = (end - t0) // STEP + 1
 
     shapes = fit_shapes(gauges, chainage, store)
@@ -206,7 +214,9 @@ def publish(
     fc_ends: list[int | None] = []  # last forecast step at each gauge that has a forecast
     for g in gauges:
         shape = shapes[g.site]
-        vals = store.values(SOURCE, g.site, "discharge", t0, now + STEP)
+        vals = store.values(g.source, g.site, g.parameter, t0, now + STEP)
+        if not vals:
+            raise ValueError(f"gauge {g.site} has no discharge in the store")
         measured = regular([(v.t, v.value) for v in vals], t0, STEP, i_now + 1)
         fc = None
         if g.forecast and g.forecast.get("source") == cnrfc.SOURCE:
@@ -218,7 +228,8 @@ def publish(
         records.append(model.GaugeRecord(chainage[g.site], shape, flow))
 
     wave_scale, water_factor = corrections(calibration, reach, gauges)
-    field = model.build(max(chainage.values()), records, t0, STEP, wave_scale=wave_scale, water_factor=water_factor)
+    field = model.build(geo.get("model_length_m", max(chainage.values())), records, t0, STEP,
+                        wave_scale=wave_scale, water_factor=water_factor)
     slopes = segment_slopes(gauges, chainage, store, datums or {}, t0, now)
     dispersion = dispersion_field(field, records, slopes)
     # The solid forecast lasts the reach's set days, or as far as every gauge's
@@ -229,11 +240,7 @@ def publish(
     floor = rc.get("floor", 0.2)
     certainty = [round(fdmr_py.certainty_at((i - i_now) * STEP, solid, ahead * DAY, floor), 4) for i in range(n)]
 
-    cycle = utc(now, "%Y%m%dT%H%MZ")
-    cdir = out_dir / cycle
     (cdir / reach).mkdir(parents=True, exist_ok=True)
-    (cdir / "geometry").mkdir(exist_ok=True)
-
     els = field.elements
     widths = element_widths(field, records)
     (cdir / "geometry" / f"{reach}.json").write_text(json.dumps({
@@ -243,13 +250,7 @@ def publish(
         "lines": element_lines(line, els),
     }, separators=(",", ":")), encoding="utf-8")
 
-    day_names = []
-    for d0 in range(t0, end + 1, DAY):
-        i0, i1 = (d0 - t0) // STEP, min(n, (d0 + DAY - t0) // STEP)
-        if i0 >= i1:
-            continue
-        name = utc(d0, "%Y-%m-%d")
-        day_names.append(name)
+    for name, d0, i0, i1 in river_days(t0, end, n):
         rows = range(i0, i1)
         flat = lambda m: [float(m[i][e]) for i in rows for e in range(len(els))]  # noqa: E731
         fdmr_py.write_field_file(
@@ -262,10 +263,82 @@ def publish(
                 ("dispersion", "m2/s", True, flat(dispersion)),
             ],
         )
+    issues = [store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") for g in gauges if g.forecast]
+    entry = {
+        "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
+        "fields": ["flow", "area", "velocity", "volume", "dispersion"],
+        "certainty": certainty,
+    }
+    return entry, [f for _, f in (x for x in issues if x)]
+
+
+def join_at(cdir: Path, a: str, b: str) -> float:
+    """Where line reach `a` ends on line reach `b`: the chainage (m) of b's
+    nearest point to a's last point, from their published geometries."""
+    import math
+
+    ga = json.loads((cdir / "geometry" / f"{a}.json").read_text(encoding="utf-8"))
+    gb = json.loads((cdir / "geometry" / f"{b}.json").read_text(encoding="utf-8"))
+    end = ga["lines"][-1][-1]
+    k = math.cos(math.radians(end[1]))
+    best, at = math.inf, 0.0
+    for el, line in zip(gb["elements"], gb["lines"]):
+        seg = [0.0]
+        for p, q in zip(line, line[1:]):
+            seg.append(seg[-1] + math.hypot((q[0] - p[0]) * k, q[1] - p[1]))
+        total = seg[-1] or 1.0
+        for p, s in zip(line, seg):
+            d = math.hypot((p[0] - end[0]) * k, p[1] - end[1])
+            if d < best:
+                best, at = d, el["start_m"] + (el["end_m"] - el["start_m"]) * s / total
+    return round(at, 1)
+
+
+def publish(
+    region_dir: Path,
+    store: Store,
+    out_dir: Path,
+    days: int,
+    reach: str = "river",
+    datums: dict[str, float | None] | None = None,
+    ahead: int = 14,
+    calibration: dict | None = None,
+    extra_reaches: list[Path] | None = None,
+) -> Path:
+    region = load_region(region_dir)
+    gauges, _ = river_chain(region_dir, reach)
+
+    # The model's "now": the latest time every main gauge of the main river has reported.
+    latest = [store.latest(g.source, g.site, g.parameter) for g in gauges]
+    if any(x is None for x in latest):
+        raise ValueError("a main gauge has no discharge in the store")
+    now = min(t for t, _ in latest) // STEP * STEP
+    t0 = (now - days * DAY) // DAY * DAY
+    end = now + ahead * DAY
+    n = (end - t0) // STEP + 1
+
+    cycle = utc(now, "%Y%m%dT%H%MZ")
+    cdir = out_dir / cycle
+    (cdir / "geometry").mkdir(parents=True, exist_ok=True)
+
+    # Every river-routing reach, the main one first: each from its own dam's
+    # release (specification 3.13; issue #4). Another reach that cannot be
+    # built this cycle is left out rather than holding back the rest.
+    entries, fetched = [], []
+    others = [r["id"] for r in region.reaches if r.get("kind") == "river-routing" and r["id"] != reach]
+    for rid in [reach, *others]:
+        try:
+            entry, issued = publish_river(region_dir, region, store, cdir, rid, t0, now, end, ahead, datums, calibration)
+        except Exception as e:  # noqa: BLE001
+            if rid == reach:
+                raise
+            print(f"{rid}: FAILED {e}", flush=True)
+            continue
+        entries.append(entry)
+        fetched += issued
+    day_names = [d[0] for d in river_days(t0, end, n)]
 
     data_age = {SOURCE: int(time.time() - now)}
-    issues = [store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") for g in gauges if g.forecast]
-    fetched = [f for _, f in (x for x in issues if x)]
     if fetched:
         data_age[cnrfc.SOURCE] = int(time.time() - min(fetched))
     index = {
@@ -277,17 +350,19 @@ def publish(
         "time": {"start": utc(t0), "step_s": STEP, "days": day_names},
         "now": utc(now),
         "data_age_s": data_age,
-        "reaches": [{
-            "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
-            "fields": ["flow", "area", "velocity", "volume", "dispersion"],
-            "certainty": certainty,
-        }],
+        "reaches": entries,
         "status": "ok",
     }
     for extra in extra_reaches or []:
         add_reach(cdir, extra, index)
     ids = {r["id"] for r in index["reaches"]}
     joins = [{k: h[k] for k in ("from", "to", "node", "source") if k in h} for h in region.handoffs if h["from"] in ids and h["to"] in ids and "node" in h]
+    # A river reach ending on another (a tributary joining a river): where along it.
+    lines = {r["id"] for r in index["reaches"] if r.get("dims") == 1 and not r.get("network")}
+    for h in region.handoffs:
+        if h["from"] in lines and h["to"] in lines and "node" not in h:
+            joins.append({"from": h["from"], "to": h["to"], "at_m": join_at(cdir, h["from"], h["to"]),
+                          **({"source": h["source"]} if "source" in h else {})})
     # A network reach meeting a mesh reach (the Delta and the Bay): the join is
     # worked out from their two geometries (fdmr_runner.handoff).
     kinds = {r["id"]: r for r in index["reaches"]}
@@ -353,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     region = load_region(args.region)
     usgs = UsgsAdapter(Store(":memory:"))
-    datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main")}
+    datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main") and g.source == SOURCE}
     cal_path = Path(args.calibration) if args.calibration else None
     calibration = json.loads(cal_path.read_text(encoding="utf-8")) if cal_path and cal_path.exists() else None
     extra = [Path(p) for p in args.with_reach if (Path(p) / "reach.json").exists()]

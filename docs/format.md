@@ -152,6 +152,8 @@ Each day's `<day>.fdf` has one element per node, `u` and `v` (m/s, depth-average
 
 Here, parcels passing the end of the `river` reach enter the `delta` network at junction 330, in the channel that starts there, at the moment they arrived, with their mass. A handoff may also name the water-source group (`"source": "sac"`) the giving reach's water belongs to, for showing water sources upstream of the network.
 
+A river reach may also end on another, as a tributary joins a river: `{ "from": "feather", "to": "river", "at_m": 354012.3 }`. Parcels passing its end enter the other reach `at_m` metres along it. A reach with no `source` of its own has that of the reach it flows into.
+
 Where a network reach meets a mesh reach that covers some of its water (the Delta and the Bay), the join is a line, the mesh's edge, and runs both ways:
 
 ```json

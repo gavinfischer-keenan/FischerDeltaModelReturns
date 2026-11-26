@@ -15,12 +15,18 @@ def test_region_package_is_well_formed(path):
     for g in r.gauges:
         assert g.reach in reach_ids, f"gauge {g.site} names unknown reach {g.reach}"
         assert g.role in {"release", "main", "tributary"}
-        assert g.site.isdigit()
+        if g.source == "usgs":
+            assert g.site.isdigit()
+        else:  # another agency's station: placed by a USGS site beside it, or by its coordinates
+            assert g.source == "cdec" and g.site.isalpha() and g.site.isupper()
+            assert g.usgs_site or (g.lon is not None and g.lat is not None), g.site
     for reach in reach_ids:
         gs = r.gauges_for(reach)
         if gs:
+            # A reach starts at its release; one with no gauge below it is
+            # routed from the release alone (such as the American below Nimbus).
             assert gs[0].role == "release", f"{reach}: the first gauge must be the release"
-            assert any(g.role == "main" for g in gs)
+            assert sum(g.role == "release" for g in gs) == 1, reach
 
 
 def test_both_regions_are_present():

@@ -39,6 +39,32 @@ class NldiAdapter:
             if f["geometry"]["type"] == "LineString"
         ]
 
+    def downstream_from(self, comid: int, distance_km: float) -> list[Flowline]:
+        """Flowlines on the main stem downstream of a flowline, unordered."""
+        d = self.client.get_json(f"{BASE}/comid/{comid}/navigation/DM/flowlines?distance={distance_km:g}&f=json")
+        return [
+            Flowline(int(f["properties"]["nhdplus_comid"]), [tuple(c) for c in f["geometry"]["coordinates"]])
+            for f in d["features"]
+            if f["geometry"]["type"] == "LineString"
+        ]
+
+    def point_position(self, lon: float, lat: float, name: str = "") -> SitePosition:
+        """A point snapped to its nearest flowline: the flowline NLDI finds
+        there, and the point of it nearest, as a measure (percent from its
+        downstream end) and a position."""
+        import math
+
+        d = self.client.get_json(f"{BASE}/comid/position?coords=POINT({lon:.6f}%20{lat:.6f})&f=json")
+        f = d["features"][0]
+        line = [tuple(c[:2]) for c in f["geometry"]["coordinates"]]  # upstream to downstream
+        k = math.cos(math.radians(lat))
+        seg = [0.0]
+        for a, b in zip(line, line[1:]):
+            seg.append(seg[-1] + math.hypot((b[0] - a[0]) * k, b[1] - a[1]))
+        i = min(range(len(line)), key=lambda j: math.hypot((line[j][0] - lon) * k, line[j][1] - lat))
+        measure = 100.0 * (1 - seg[i] / seg[-1]) if seg[-1] > 0 else 50.0
+        return SitePosition(name, int(f["properties"]["comid"]), measure, line[i][0], line[i][1])
+
     def site_position(self, site: str) -> SitePosition:
         d = self.client.get_json(f"{BASE}/nwissite/USGS-{site}?f=json")
         f = d["features"][0]

@@ -304,7 +304,13 @@ What this adds for the user:
 - A pollutant or outfall placed anywhere on either river is tracked down it, into the Sacramento, and on through the Delta.
 - A changed release from Oroville or Folsom becomes a what-if, as Keswick's is (section 3.7). The big-release and dam-failure what-ifs of section 3.11 can start there too.
 
-**Planned for now, built later.** These use the river-routing model kind as it is (section 7.1), with their own gauges, channel measurements and forecast points. The handoff where each joins the Sacramento is the kind already built from the river into the Delta (section 7.4). It runs from one reach into another at a junction, not only into a network. The dams' releases, and the River Forecast Center's forecasts below them, come from feeds the app already uses.
+**Built 26 November 2026 (issue #4), for every river reaching the Delta.** Each is a river-routing reach (section 7.1) from its first dam, or its first gauge where it has none, to where it joins:
+
+- into the Sacramento: the American from Nimbus Dam, and the Feather from Thermalito, with the Yuba from Englebright Dam and the Bear from below Camp Far West Dam joining it;
+- into the Delta, at the junction where DSM2 takes its inflow: the Mokelumne from Camanche Dam, the Cosumnes from Michigan Bar, the Calaveras from New Hogan Dam, and the San Joaquin, with the Tuolumne from La Grange Dam, the Stanislaus from Goodwin Dam and the Merced from Crocker-Huffman Dam joining it;
+- Cache Creek from Clear Lake, which stops above its settling basin: the Yolo Bypass it drains into is not modelled yet.
+
+A dam's release is the reach's upstream flow, as Keswick's is. Where USGS has no live gauge, the dam operator's or DWR's station on CDEC serves: Thermalito's total release, Englebright's, Camanche's and New Hogan's outflows, and DWR's river stations. Each such station is placed on the river by the USGS site at the same place, whose field measurements give the channel's shape, or by its own coordinates, checked to lie on the river. The San Joaquin starts above the Merced, not at Friant: below Friant the river is diverted at Mendota Pool and Sack Dam and runs nearly dry, so the water reaching the Merced is not Friant's. Putah Creek waits for a live gauge below the Putah Diversion Dam. A tributary's water joins the river it flows into part way along it (section 7.4).
 
 ## 4. Engineering: architecture
 

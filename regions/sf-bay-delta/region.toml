@@ -33,6 +33,103 @@ name = "Export canals, from the Delta's pumps"
 kind = "canal-network"   # canals.toml; fdmr_runner.canals
 certainty = { solid_days = 5, floor = 0.2 }
 
+# The Delta's other rivers, from their dams (issue #4; gauges below).
+[[reaches]]
+id = "american"
+name = "American River, Nimbus Dam to the Sacramento"
+kind = "river-routing"
+dam = [-121.220039, 38.636145]   # Nimbus Dam (CDEC NAT), re-regulating Folsom's release
+joins = "river"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "feather"
+name = "Feather River, Thermalito to the Sacramento"
+kind = "river-routing"
+# Starts where Oroville's water returns to the river below the Thermalito
+# complex (CDEC THA, total release). Above it the river carries only the
+# low-flow channel's share, which is not reported live.
+joins = "river"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "yuba"
+name = "Yuba River, Englebright Dam to the Feather"
+kind = "river-routing"
+joins = "feather"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "bear"
+name = "Bear River, below Camp Far West Dam to the Feather"
+kind = "river-routing"
+joins = "feather"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "mokelumne"
+name = "Mokelumne River, Camanche Dam to the Delta"
+kind = "river-routing"
+mouth = [-121.43101, 38.25478]   # DSM2 node 447, its inflow "moke"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "cosumnes"
+name = "Cosumnes River, Michigan Bar to the Delta"
+kind = "river-routing"
+# The Cosumnes has no large dam: it starts at its first gauge, Michigan Bar.
+mouth = [-121.43203, 38.25788]   # DSM2 node 446, its inflow "cosumnes"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "calaveras"
+name = "Calaveras River, New Hogan Dam to the Delta"
+kind = "river-routing"
+mouth = [-121.36938, 37.9668]    # DSM2 node 21, its inflow "calaveras"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "san_joaquin"
+name = "San Joaquin River, above the Merced to Vernalis"
+kind = "river-routing"
+# Not from Friant: below it the river is diverted at Mendota Pool and Sack Dam
+# and runs dry or nearly so in stretches, and the water reaching the Merced is
+# not Friant's (on 25 Nov 2026: 238 cfs at Gravelly Ford, 12 below the
+# Chowchilla Bifurcation). It starts at its first gauge with Friant's
+# successor water, above the Merced.
+mouth = [-121.25406, 37.66753]   # DSM2 node 17, its inflow "vernalis"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "tuolumne"
+name = "Tuolumne River, La Grange Dam to the San Joaquin"
+kind = "river-routing"
+joins = "san_joaquin"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "stanislaus"
+name = "Stanislaus River, Goodwin Dam to the San Joaquin"
+kind = "river-routing"
+joins = "san_joaquin"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "merced"
+name = "Merced River, Crocker-Huffman Dam to the San Joaquin"
+kind = "river-routing"
+dam = [-120.380196, 37.518223]   # just below Crocker-Huffman Dam (CDEC MBH)
+joins = "san_joaquin"
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "cache"
+name = "Cache Creek, Clear Lake to Yolo"
+kind = "river-routing"
+# Ends past the Yolo gauge, above the Cache Creek Settling Basin: the Yolo
+# Bypass it drains into is not modelled yet, so its water stops there.
+certainty = { solid_days = 5, floor = 0.2 }
+
 [[handoffs]]
 from = "river"
 to = "delta"
@@ -49,6 +146,70 @@ at = "Chipps Island line"
 from = "delta"
 to = "canals"
 at = "the Delta model's exports that feed a canal (canals.toml)"
+
+[[handoffs]]
+from = "american"
+to = "river"
+at = "the American's mouth, at Sacramento"
+
+[[handoffs]]
+from = "feather"
+to = "river"
+at = "the Feather's mouth, above Verona"
+
+[[handoffs]]
+from = "yuba"
+to = "feather"
+at = "the Yuba's mouth, at Marysville"
+
+[[handoffs]]
+from = "bear"
+to = "feather"
+at = "the Bear's mouth"
+
+[[handoffs]]
+from = "mokelumne"
+to = "delta"
+at = "DSM2's inflow moke"
+node = 447
+source = "east"
+
+[[handoffs]]
+from = "cosumnes"
+to = "delta"
+at = "DSM2's inflow cosumnes"
+node = 446
+source = "east"
+
+[[handoffs]]
+from = "calaveras"
+to = "delta"
+at = "DSM2's inflow calaveras"
+node = 21
+source = "east"
+
+[[handoffs]]
+from = "san_joaquin"
+to = "delta"
+at = "DSM2's inflow vernalis"
+node = 17
+source = "sjr"
+
+[[handoffs]]
+from = "tuolumne"
+to = "san_joaquin"
+at = "the Tuolumne's mouth"
+
+[[handoffs]]
+from = "stanislaus"
+to = "san_joaquin"
+at = "the Stanislaus's mouth"
+
+[[handoffs]]
+from = "merced"
+to = "san_joaquin"
+at = "the Merced's mouth"
+
 
 # River gauges, upstream to downstream (USGS site numbers, confirmed 25 Nov 2026).
 # forecast: the River Forecast Center point whose flow forecast continues the gauge
@@ -147,6 +308,253 @@ name = "Sacramento R at Freeport"
 role = "main"
 forecast = { source = "cnrfc", group = "LowerSacramento", point = "FPOC1" }
 
+# ---------------------------------------------------------------------------
+# The Delta's other rivers, each from its first dam (specification 3.13; issue
+# #4), each a river-routing reach like the Sacramento's from Keswick. Stations
+# checked 25-26 Nov 2026 on USGS's NWIS site pages and CDEC's station pages;
+# River Forecast Center points against the groups' QINE columns that day.
+# Where USGS has no live gauge, the dam operator's or DWR's CDEC station
+# serves, placed by the USGS site at the same place where there is one (whose
+# field measurements give the channel's shape), else by CDEC's coordinates,
+# which the geometry build checks lie on the river.
+#   joins: the reach it flows into, met where its main stem reaches that
+#   reach's centreline. mouth: where it enters the Delta model, DSM2's inflow
+#   junction (node numbers from HYDRO's node_flow_connections).
+#   dam: where the reach starts, above its release gauge.
+
+[[gauges]]
+reach = "american"
+site = "11446500"
+name = "American R at Fair Oaks (Nimbus Dam's release)"
+role = "release"
+
+[[gauges]]
+reach = "feather"
+site = "THA"
+name = "Feather R, total release below Thermalito (DWR)"
+role = "release"
+source = "cdec"
+parameter = "regulated_release"
+duration = "H"
+lon = -121.633
+lat = 39.450
+
+[[gauges]]
+reach = "feather"
+site = "GRL"
+name = "Feather R near Gridley (DWR)"
+role = "main"
+source = "cdec"
+duration = "E"
+usgs_site = "11407150"
+forecast = { source = "cnrfc", group = "FeatherYuba", point = "GRIC1" }
+
+[[gauges]]
+reach = "feather"
+site = "11421000"
+name = "Yuba R near Marysville"
+role = "tributary"
+
+[[gauges]]
+reach = "feather"
+site = "11424000"
+name = "Bear R near Wheatland"
+role = "tributary"
+
+[[gauges]]
+reach = "feather"
+site = "FSB"
+name = "Feather R at Boyd's Landing above Star Bend (DWR)"
+role = "main"
+source = "cdec"
+duration = "E"
+lon = -121.610435
+lat = 39.045498
+
+[[gauges]]
+reach = "yuba"
+site = "YRE"
+name = "Yuba R below Englebright Dam (Yuba Water Agency)"
+role = "release"
+source = "cdec"
+duration = "E"
+usgs_site = "11418000"
+
+[[gauges]]
+reach = "yuba"
+site = "11421000"
+name = "Yuba R near Marysville"
+role = "main"
+forecast = { source = "cnrfc", group = "FeatherYuba", point = "MRYC1" }
+
+[[gauges]]
+reach = "bear"
+site = "11424000"
+name = "Bear R near Wheatland (below Camp Far West Dam)"
+role = "release"
+
+[[gauges]]
+reach = "mokelumne"
+site = "CMN"
+name = "Camanche Reservoir outflow (EBMUD)"
+role = "release"
+source = "cdec"
+parameter = "reservoir_outflow"
+duration = "E"
+usgs_site = "11323500"
+
+[[gauges]]
+reach = "cosumnes"
+site = "11335000"
+name = "Cosumnes R at Michigan Bar"
+role = "release"
+forecast = { source = "cnrfc", group = "N_SanJoaquin", point = "MHBC1" }
+
+[[gauges]]
+reach = "cosumnes"
+site = "MCC"
+name = "Cosumnes R at McConnell (DWR)"
+role = "main"
+source = "cdec"
+duration = "E"
+usgs_site = "11336000"
+forecast = { source = "cnrfc", group = "N_SanJoaquin", point = "MCNC1" }
+
+[[gauges]]
+reach = "calaveras"
+site = "NHG"
+name = "New Hogan Reservoir outflow (USACE)"
+role = "release"
+source = "cdec"
+parameter = "reservoir_outflow"
+duration = "H"
+usgs_site = "11308900"
+
+[[gauges]]
+reach = "san_joaquin"
+site = "11273400"
+name = "San Joaquin R above Merced R near Newman"
+role = "release"
+
+[[gauges]]
+reach = "san_joaquin"
+site = "11272500"
+name = "Merced R near Stevinson"
+role = "tributary"
+
+[[gauges]]
+reach = "san_joaquin"
+site = "11274000"
+name = "San Joaquin R near Newman"
+role = "main"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "NWMC1" }
+
+[[gauges]]
+reach = "san_joaquin"
+site = "11274550"
+name = "San Joaquin R near Crows Landing"
+role = "main"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "CRDC1" }
+
+[[gauges]]
+reach = "san_joaquin"
+site = "11290000"
+name = "Tuolumne R at Modesto"
+role = "tributary"
+
+[[gauges]]
+reach = "san_joaquin"
+site = "11303000"
+name = "Stanislaus R at Ripon"
+role = "tributary"
+
+[[gauges]]
+reach = "san_joaquin"
+site = "11303500"
+name = "San Joaquin R near Vernalis"
+role = "main"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "VNSC1" }
+
+[[gauges]]
+reach = "tuolumne"
+site = "11289650"
+name = "Tuolumne R below La Grange Dam"
+role = "release"
+
+[[gauges]]
+reach = "tuolumne"
+site = "11290000"
+name = "Tuolumne R at Modesto"
+role = "main"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "MDSC1" }
+
+# Goodwin Dam's release is measured live only at Orange Blossom Bridge (CDEC
+# OBB, DWR; USGS 11302000 below the dam reports daily, ending Sep 2025). CDEC's
+# coordinates for OBB lie in the Delta, so the station is placed at the USGS
+# gauge below the dam: the flow between is Goodwin's release.
+[[gauges]]
+reach = "stanislaus"
+site = "OBB"
+name = "Stanislaus R at Orange Blossom Bridge (DWR)"
+role = "release"
+source = "cdec"
+duration = "E"
+usgs_site = "11302000"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "OBBC1" }
+
+[[gauges]]
+reach = "stanislaus"
+site = "11303000"
+name = "Stanislaus R at Ripon"
+role = "main"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "RIPC1" }
+
+[[gauges]]
+reach = "merced"
+site = "MSN"
+name = "Merced R near Snelling (DWR)"
+role = "release"
+source = "cdec"
+duration = "E"
+lon = -120.451
+lat = 37.502
+
+[[gauges]]
+reach = "merced"
+site = "MST"
+name = "Merced R near Stevinson (DWR)"
+role = "main"
+source = "cdec"
+duration = "E"
+usgs_site = "11272500"
+forecast = { source = "cnrfc", group = "SanJoaquin", point = "STVC1" }
+
+[[gauges]]
+reach = "cache"
+site = "11451000"
+name = "Cache C near Lower Lake (Clear Lake's release)"
+role = "release"
+
+[[gauges]]
+reach = "cache"
+site = "11451300"
+name = "NF Cache C near Clearlake Oaks (Indian Valley's release)"
+role = "tributary"
+
+[[gauges]]
+reach = "cache"
+site = "11451800"
+name = "Cache C at Rumsey"
+role = "main"
+forecast = { source = "cnrfc", group = "CachePutah", point = "RMSC1" }
+
+[[gauges]]
+reach = "cache"
+site = "11452500"
+name = "Cache C at Yolo"
+role = "main"
+forecast = { source = "cnrfc", group = "CachePutah", point = "YLOC1" }
+
 # Tracer stations: sensors that record a natural tracer but not flow, used to
 # calibrate how fast the water moves (specification 9.1). CDEC station ids and
 # coordinates from CDEC's station pages, checked 25 Nov 2026: hourly water
@@ -199,7 +607,7 @@ measures = ["water_temperature"]
 
 # The basemap extract: west, south, east, north (degrees), and the deepest zoom.
 [basemap]
-bbox = [-123.25, 37.25, -120.95, 40.98]
+bbox = [-123.25, 37.0, -120.25, 40.98]   # widened 26 Nov 2026 to the tributaries' dams (Crocker-Huffman, -120.38) and the canals' ends (O'Neill, 37.10)
 maxzoom = 15
 
 # Words that must never appear in engine code (tools/check_seams.py).

@@ -174,7 +174,10 @@ export function addMesh(map: Map, id: string, g: MeshGeometry): void {
 }
 
 /** Draw a frame from the compute engine. Drawing only: placing positions on the lines. */
-export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[] = [], meshes: MeshPlace[] = []): void {
+export function drawFrame(
+  map: Map, reach: Reach, f: Frame, nets: NetworkPlace[] = [], meshes: MeshPlace[] = [],
+  lines: ReadonlyMap<string, Reach> = new globalThis.Map(),
+): void {
   const flow = map.getSource("flow") as GeoJSONSource | undefined;
   const pollutant = map.getSource("pollutant") as GeoJSONSource | undefined;
   if (!flow || !pollutant) return;
@@ -186,13 +189,20 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
     const c = f.layer === "source" ? (shares ? blend(f.sources, shares, i) : undefined) : colour(f.layer, value ? value[i] : NaN);
     return c && fade(c, f.certainty);
   };
-  const riverCol = paint(f.particleValue, f.particleShares);
-  for (let i = 0; i < f.particleX.length; i++) {
-    pts.push({
-      type: "Feature",
-      properties: { s: f.particleSpeed[i], col: riverCol(i) },
-      geometry: { type: "Point", coordinates: reach.place(f.particleX[i], f.particleLateral[i], reach.halfWidth(f.particleX[i])) },
-    });
+  // The main river and every other river reach, the same way.
+  const rivers: [Reach, Pick<Frame, "particleX" | "particleLateral" | "particleSpeed" | "parcelX" | "parcelConcentration" | "particleValue" | "particleShares">][] = [
+    [reach, f],
+    ...f.lines.flatMap((lf) => (lines.has(lf.id) ? [[lines.get(lf.id)!, lf] as [Reach, typeof lf]] : [])),
+  ];
+  for (const [r, rf] of rivers) {
+    const col = paint(rf.particleValue, rf.particleShares);
+    for (let i = 0; i < rf.particleX.length; i++) {
+      pts.push({
+        type: "Feature",
+        properties: { s: rf.particleSpeed[i], col: col(i) },
+        geometry: { type: "Point", coordinates: r.place(rf.particleX[i], rf.particleLateral[i], r.halfWidth(rf.particleX[i])) },
+      });
+    }
   }
   for (const nf of f.networks) {
     const net = nets.find((x) => x.id === nf.id);
@@ -222,16 +232,18 @@ export function drawFrame(map: Map, reach: Reach, f: Frame, nets: NetworkPlace[]
     }
   }
   flow.setData({ type: "FeatureCollection", features: pts });
-  const n = f.parcelX.length;
-  const every = Math.max(1, Math.ceil(n / MAX_DRAWN_PARCELS));
   const ps: GeoJSON.Feature[] = [];
-  for (let i = 0; i < n; i += every) {
-    const lateral = ((i * 2654435761) % 1000) / 500 - 1; // a steady spread across the channel
-    ps.push({
-      type: "Feature",
-      properties: { c: Math.log10(Math.max(1e-9, f.parcelConcentration[i] * 1000)) }, // mg/L
-      geometry: { type: "Point", coordinates: reach.place(f.parcelX[i], lateral, reach.halfWidth(f.parcelX[i])) },
-    });
+  for (const [r, rf] of rivers) {
+    const n = rf.parcelX.length;
+    const every = Math.max(1, Math.ceil(n / MAX_DRAWN_PARCELS));
+    for (let i = 0; i < n; i += every) {
+      const lateral = ((i * 2654435761) % 1000) / 500 - 1; // a steady spread across the channel
+      ps.push({
+        type: "Feature",
+        properties: { c: Math.log10(Math.max(1e-9, rf.parcelConcentration[i] * 1000)) }, // mg/L
+        geometry: { type: "Point", coordinates: r.place(rf.parcelX[i], lateral, r.halfWidth(rf.parcelX[i])) },
+      });
+    }
   }
   for (const nf of f.networks) {
     const net = nets.find((x) => x.id === nf.id);
