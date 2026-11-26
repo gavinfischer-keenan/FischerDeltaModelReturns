@@ -1,4 +1,4 @@
-"""NOAA tide predictions (CO-OPS data API). A national adapter.
+"""NOAA tide predictions and station water temperature (CO-OPS data API). A national adapter.
 
 Astronomical tide predictions for a station, every 15 minutes, in metres
 above the station's MLLW datum, in UTC. They are the tide alone: no river
@@ -20,6 +20,7 @@ from .http import HttpJsonClient, JsonClient
 BASE = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
 SOURCE = "noaa-tides"
 PARAMETER = "tide_prediction"
+WATER_TEMPERATURE = "water_temperature"
 CHUNK_DAYS = 30  # the API serves 15-minute predictions a month at a time
 
 
@@ -48,3 +49,28 @@ class NoaaTidesAdapter:
                 vals[ts] = Value(ts, float(p["v"]), "MLLW")
             t = t1 + 86_400
         return self.store.put_values(SOURCE, station, PARAMETER, "m", [vals[k] for k in sorted(vals)])
+
+    def fetch_water_temperature(self, station: str, start: int, end: int) -> int:
+        """Store a station's measured water temperature (degC, every 6 minutes)
+        for [start, end]; returns how many readings."""
+        day = lambda s: datetime.fromtimestamp(s, timezone.utc).strftime("%Y%m%d")  # noqa: E731
+        vals: dict[int, Value] = {}
+        t = start
+        while t <= end:
+            t1 = min(end, t + (CHUNK_DAYS - 1) * 86_400)
+            q = urlencode({
+                "product": WATER_TEMPERATURE, "station": station, "begin_date": day(t), "end_date": day(t1),
+                "time_zone": "gmt", "units": "metric", "format": "json", "application": "fdmr",
+            })
+            page = self.client.get_json(f"{BASE}?{q}")
+            if "error" in page:
+                raise ValueError(f"NOAA {station} water temperature: {page['error'].get('message', page['error'])}")
+            for p in page.get("data", []):
+                if p.get("v") in (None, ""):
+                    continue
+                ts = timegm(strptime(p["t"], "%Y-%m-%d %H:%M"))
+                v = float(p["v"])
+                if -2.0 <= v <= 40.0:
+                    vals[ts] = Value(ts, v, None)
+            t = t1 + 86_400
+        return self.store.put_values(SOURCE, station, WATER_TEMPERATURE, "degC", [vals[k] for k in sorted(vals)])

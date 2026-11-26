@@ -615,7 +615,9 @@ def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict
     conv = {"salinity": lambda ec: np.asarray(fdmr_py.practical_salinity([float(x) for x in ec])), "temperature": lambda x: x}
     summary: dict = {}
     for field, key in (("salinity", "conductance"), ("temperature", "temperature")):
-        meas = np.array([station_daily(store, st, st.get(key, []), conv[field], days) for st in sts])
+        # A station reporting salinity itself (psu) gives it directly (`salinity`).
+        meas = np.array([station_daily(store, st, st["salinity"], lambda x: x, days) if field == "salinity" and "salinity" in st
+                         else station_daily(store, st, st.get(key, []), conv[field], days) for st in sts])
         model = np.full(meas.shape, np.nan)
         for j, d in enumerate(days):
             sel = [tt for tt in have if d <= tt < d + DAY]
@@ -624,16 +626,20 @@ def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict
         mis = meas - model
         last = np.array([np.nanmean(r[np.isfinite(r)][-3:]) if np.isfinite(r).any() else np.nan for r in mis])
         measured_to = max((j for j in range(len(days)) if np.isfinite(mis[:, j]).any()), default=-1)
-        corr = np.array([spread(dist, mis[:, j] if j <= measured_to else last) for j in range(len(days))])
+        # Stations marked `check_only` (shore and harbour sensors that do not
+        # stand for the open water at their node) steer nothing: the correction
+        # is made from the others, and their miss after it is an independent check.
+        steer = np.array([not st.get("check_only", False) for st in sts], dtype=bool)
+        corr = np.array([spread(dist[steer], (mis[:, j] if j <= measured_to else last)[steer]) for j in range(len(days))])
         # Day by day, a station's misfit after the correction made without it.
         loo = {}
         for i, st in enumerate(sts):
-            others = np.arange(len(sts)) != i
+            others = steer & (np.arange(len(sts)) != i)
             res = [mis[i, j] - spread(dist[others][:, [nodes[i]]], mis[others, j])[0] for j in range(len(days)) if np.isfinite(mis[i, j])]
             before = mis[i][np.isfinite(mis[i])]
             if len(before):
                 loo[st["site"]] = {"name": st["name"], "days": len(before), "misfit": round(float(before.mean()), 2),
-                                   "left_out": round(float(np.mean(np.abs(res))), 2)}
+                                   "left_out": round(float(np.mean(np.abs(res))), 2), **({"check_only": True} if not steer[i] else {})}
         centre = np.array(days) + DAY // 2
         for tt in have:
             p = np.interp(tt, centre, np.arange(len(days)))

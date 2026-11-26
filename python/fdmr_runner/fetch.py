@@ -205,7 +205,19 @@ def main(argv: list[str] | None = None) -> int:
     # and a lower sensor, each its own series (`<parameter>_<sensor>`).
     bcfg = bay.load(Path(args.region)) or {}
     qcfg = bcfg.get("quality")
+    from fdmr_adapters.ndbc import SOURCE as NDBC
+    from fdmr_adapters.ndbc import NdbcAdapter
+    from fdmr_adapters.noaa_tides import SOURCE as TIDES
+
     for st in [] if (args.forecast_only or not qcfg) else qcfg["stations"]:
+        if st["source"] == NDBC:  # its file holds the last 45 days
+            attempt(f"ndbc {st['site']}", lambda s=st["site"]: NdbcAdapter(store).fetch(s))
+            continue
+        if st["source"] == TIDES:
+            cov = store.coverage(TIDES, st["site"], "water_temperature")
+            f0 = max(now - 21 * 86_400, cov[1] + 1) if cov else now - 21 * 86_400
+            attempt(f"noaa {st['site']} water_temperature", lambda s=st["site"], f0=f0: NoaaTidesAdapter(store).fetch_water_temperature(s, int(f0), int(now)))
+            continue
         if st["source"] != SOURCE:
             continue
         for p in [*st.get("conductance", []), *st.get("temperature", [])]:

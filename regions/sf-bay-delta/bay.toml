@@ -85,6 +85,59 @@ east_of = -121.802
 [quality]
 near_m = 2000.0  # a station further than this from every node is not used
 
+# Live stations beyond USGS and CDEC (issue #8; checked 26 Nov 2026 against
+# their own data). China Camp is the San Francisco Bay National Estuarine
+# Research Reserve's sonde, served live through NOAA NDBC (station SCQC1;
+# provisional values, salinity reported in psu). NOAA's tide stations at
+# Alameda, Richmond and Port Chicago measure water temperature, no salinity.
+# CeNCOOS's Carquinez, Tiburon and Fort Point sensors stopped reporting
+# (August 2024, September 2026, November 2023) and are not used. Positions:
+# NDBC's station page and CO-OPS's station metadata.
+# These four are checks only (`check_only`): tried as correction inputs on 26
+# Nov 2026, they made it worse. China Camp's sonde sits 1.4 m down in a marsh-
+# edge cove, 7.6 psu fresher than NOAA's model there, and spread into the open
+# water it doubled the miss at the Richmond-San Rafael Bridge when that is left
+# out (1.5 to 2.9 psu; over the 13 open-water stations, 2.9 to 3.1). The
+# harbour tide gauges disagree with the open-water bridge stations a few km
+# away (Richmond +0.34 degC against the bridge's -0.20). Kept out of the
+# correction, their miss after it is an independent check.
+[[quality.stations]]
+source = "ndbc"
+site = "SCQC1"
+name = "China Camp (SF Bay NERR)"
+lon = -122.460
+lat = 38.001
+salinity = ["salinity"]
+temperature = ["water_temperature"]
+check_only = true
+
+[[quality.stations]]
+source = "noaa-tides"
+site = "9414750"
+name = "Alameda (NOAA)"
+lon = -122.30026
+lat = 37.771954
+temperature = ["water_temperature"]
+check_only = true
+
+[[quality.stations]]
+source = "noaa-tides"
+site = "9414863"
+name = "Richmond (NOAA)"
+lon = -122.4000
+lat = 37.9283
+temperature = ["water_temperature"]
+check_only = true
+
+[[quality.stations]]
+source = "noaa-tides"
+site = "9415144"
+name = "Port Chicago (NOAA)"
+lon = -122.0395
+lat = 38.0560
+temperature = ["water_temperature"]
+check_only = true
+
 [[quality.stations]]
 source = "usgs"
 site = "11455780"
