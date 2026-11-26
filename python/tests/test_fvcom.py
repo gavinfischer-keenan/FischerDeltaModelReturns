@@ -178,3 +178,24 @@ def test_the_tidal_mean_removes_the_tides():
     m = tidal_mean(net + tide, 1.0)
     inner = slice(80, -80)
     assert np.abs(m[inner] - net[inner]).max() < 25
+
+
+def test_misfits_spread_through_the_water_not_across_land():
+    from fdmr_plugins.fvcom import correct
+
+    # A U of water: two arms joined at the east end, land between them.
+    fine = grid_mesh(nx=20, ny=11, d=100.0)
+    keep = ~((fine.x[fine.tri].mean(axis=1) < 1500) & (np.abs(fine.y[fine.tri].mean(axis=1) - 500) < 300))
+    tri = fine.tri[keep]
+    c = mesh.Coarse(fine_node=np.arange(len(fine.x)), lon=fine.lon, lat=fine.lat, x=fine.x, y=fine.y, tri=tri,
+                    depth=np.full(len(fine.x), 4.0), el_owner=np.zeros(0, int), node_owner=np.zeros(0, int), el_area=np.zeros(0), node_area=np.zeros(0))
+    south, north = 0, 10 * 20  # the west ends of the two arms, 1000 m apart across the land
+    d = correct.water_distances(c, [south, north])
+    # Through the water the way round is far longer than the 1000 m across.
+    assert d[0, north] > 2500 and d[0, south] == 0
+    corr = correct.spread(d, np.array([2.0, -1.0]))
+    # Each arm's west end follows its own station.
+    # (the station round the U still counts a little: 5% here)
+    assert corr[south] == pytest.approx(2.0, abs=0.15) and corr[north] == pytest.approx(-1.0, abs=0.15)
+    # A station with no misfit that day is left out.
+    assert np.allclose(correct.spread(d, np.array([2.0, np.nan]))[[south, north]], 2.0)

@@ -281,6 +281,28 @@ impl NetworkEngine {
         );
     }
 
+    /// Take in a flow particle from another reach at junction `node`, in place
+    /// of the one furthest through its life.
+    pub fn take_particle(&mut self, node: u32) -> bool {
+        self.core.take_particle(node as usize)
+    }
+
+    /// The water in the channels now, m³.
+    #[must_use]
+    pub fn water_volume(&self) -> f64 {
+        self.core.water_volume()
+    }
+
+    /// Flow particles passed to another reach since the last call: the junction each reached.
+    pub fn take_handed_particles(&mut self) -> Vec<u32> {
+        #[allow(clippy::cast_possible_truncation)]
+        self.core
+            .take_handed_particles()
+            .into_iter()
+            .map(|n| n as u32)
+            .collect()
+    }
+
     /// Parcels handed on since the last call: flat (junction, time, mass,
     /// half-life or `NaN`) for each.
     pub fn take_handed(&mut self) -> Vec<f64> {
@@ -479,6 +501,28 @@ impl MeshEngine {
                 None
             },
         )
+    }
+
+    /// Take in a flow particle from another reach at (x, y), m, in place of the
+    /// one furthest through its life. False if (x, y) is off the mesh.
+    pub fn take_particle(&mut self, x: f64, y: f64) -> bool {
+        self.core.take_particle(x, y)
+    }
+
+    /// The water on the mesh now, m³.
+    #[must_use]
+    pub fn water_volume(&self) -> f64 {
+        self.core.water_volume()
+    }
+
+    /// Flow particles that crossed a handoff edge since the last call: flat
+    /// (handoff id, x, y) for each.
+    pub fn take_handed_particles(&mut self) -> Vec<f64> {
+        self.core
+            .take_handed_particles()
+            .into_iter()
+            .flat_map(|(id, x, y)| [f64::from(id), x, y])
+            .collect()
     }
 
     /// Parcels that crossed a handoff edge since the last call: flat

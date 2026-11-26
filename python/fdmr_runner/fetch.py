@@ -28,11 +28,31 @@ from fdmr_adapters.cnrfc import CnrfcAdapter
 from fdmr_adapters.noaa_tides import PARAMETER as TIDE
 from fdmr_adapters.noaa_tides import NoaaTidesAdapter
 from fdmr_adapters.noaa_weather import GHCNH, NoaaWeatherAdapter
+from fdmr_adapters.usbr_cvo import SOURCE as USBR
+from fdmr_adapters.usbr_cvo import UsbrCvoAdapter
 from fdmr_adapters.usgs import PARAMETERS, SOURCE, UsgsAdapter
 from fdmr_store import Store
 
 from . import delta
 from .region import load_region
+
+
+def months(start: float, end: float) -> list[tuple[int, int]]:
+    """The calendar months (Pacific Standard Time) from start to end."""
+    a = datetime.fromtimestamp(start - 8 * 3600, timezone.utc)
+    b = datetime.fromtimestamp(end - 8 * 3600, timezone.utc)
+    out, y, m = [], a.year, a.month
+    while (y, m) <= (b.year, b.month):
+        out.append((y, m))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+def month_span(y: int, m: int) -> tuple[int, int]:
+    """A month's first and last day starts (UTC s, midnights PST)."""
+    from calendar import monthrange, timegm
+
+    return timegm((y, m, 1, 0, 0, 0)) + 8 * 3600, timegm((y, m, monthrange(y, m)[1], 0, 0, 0)) + 8 * 3600
 
 
 def iso(t: float) -> str:
@@ -123,7 +143,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{site} {p:31s} held    {f.get('name', f.get('path', ''))}", flush=True)
             continue
         from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
-        if src == SOURCE:
+        if src == SOURCE and f.get("duration") == "D":
+            attempt(f"{site} {p} (daily)", lambda site=site, p=p, f0=from_t: usgs.fetch_daily(site, p, f"{iso(f0 - 86_400)}/{iso(now)}"))
+        elif src == SOURCE:
             attempt(f"{site} {p}", lambda site=site, p=p, f0=from_t: usgs.fetch_values(site, p, f"{iso(f0)}/{iso(now)}"))
         elif src == CDEC:
             dur = f.get("duration", "H")
@@ -160,6 +182,39 @@ def main(argv: list[str] | None = None) -> int:
             print(f"cdec {o['site']} {o['parameter']:26s} held", flush=True)
         else:
             attempt(f"cdec {o['site']} {o['parameter']}", lambda: cdec.fetch_values(o["site"], o["parameter"], int(f0), int(now), duration=o.get("duration", "D")))
+    # The stations the Bay's salinity and temperature are corrected by (bay.toml
+    # [quality]); CDEC's come with the overlays. A USGS bay station has an upper
+    # and a lower sensor, each its own series (`<parameter>_<sensor>`).
+    qcfg = (bay.load(Path(args.region)) or {}).get("quality")
+    for st in [] if (args.forecast_only or not qcfg) else qcfg["stations"]:
+        if st["source"] != SOURCE:
+            continue
+        for p in [*st.get("conductance", []), *st.get("temperature", [])]:
+            base, _, sensor = p.rpartition("_") if p.endswith(("_upper", "_lower")) else (p, "", "")
+            cov = store.coverage(SOURCE, st["site"], p)
+            back = now - 21 * 86_400
+            if cov and cov[1] >= now - max(args.fresh * 60, 2 * 3600):
+                print(f"{st['site']} {p:31s} held    {st['name']}", flush=True)
+                continue
+            f0 = max(back, cov[1] + 1) if cov and cov[0] <= back + 2 * 86_400 else back
+            attempt(f"{st['site']} {p}", lambda s=st["site"], b=base, sn=sensor or None, f0=f0: usgs.fetch_values(s, b, f"{iso(f0)}/{iso(now)}", sensor=sn))
+    # The Delta's daily island water use (dsm2.toml [depletion]): the months the
+    # Delta's runs reach back over, each fetched until it is complete, and the
+    # month in progress (and the one before, still being revised) once a day.
+    dcfg = (delta.load(Path(args.region)) or {}).get("depletion")
+    if dcfg and dcfg["source"] == USBR and not args.forecast_only:
+        cvo = UsbrCvoAdapter(store)
+        back = now - ((delta.load(Path(args.region)) or {}).get("days_back", 28) + 2) * 86_400
+        last = store.latest(USBR, dcfg["site"], dcfg["parameter"])
+        fetched_lately = last is not None and last[1] >= now - 20 * 3600
+        for y, m in months(back, now):
+            m0, m1 = month_span(y, m)
+            got = store.values(USBR, dcfg["site"], dcfg["parameter"], m0, m1 + 1)
+            recent = m1 > now - 40 * 86_400  # still being revised
+            if (recent and fetched_lately) or (not recent and len(got) >= (m1 - m0) // 86_400 + 1):
+                print(f"usbr-cvo {y}-{m:02d} {dcfg['parameter']:24s} held", flush=True)
+                continue
+            attempt(f"usbr-cvo {y}-{m:02d}", lambda y=y, m=m: cvo.fetch_month(y, m, int(now)))
     # River forecasts: one file per forecast group holds all its points.
     groups: dict[str, list[str]] = {}
     for g in region.gauges:

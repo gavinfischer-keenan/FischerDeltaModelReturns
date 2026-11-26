@@ -676,7 +676,7 @@ A tidal fit needs at least a month of past fields to separate the main tides, an
 ### 7.4 Joining the reaches
 
 - **River to Delta** at the Sacramento River inflow point of DSM2. The river model's outflow and pollutant load become the Delta's inflow.
-- **Delta to Bay** at Chipps Island, detailed below.
+- **Delta to Bay** where the rivers narrow just east of Chipps Island, detailed below.
 - All three share one clock and one published time step.
 
 **Why Chipps Island and not Martinez.** Both DSM2 and NOAA cover Suisun Bay, so one has to govern it.
@@ -694,7 +694,9 @@ A tidal fit needs at least a month of past fields to separate the main tides, an
 - A Bay parcel crossing the line landward enters the DSM2 channel that owns that segment.
 - Parcels cross in both directions with every tide. The method conserves mass whatever the two models do.
 
-**The overlap.** The two models are forced separately, so their flows across the line will not match exactly. Between Chipps Island and Martinez both run, and the server compares their tidal and net flows each cycle and publishes the difference. A persistent mismatch shows up as parcels piling up or thinning out at the line; how large a mismatch is acceptable is set during Phase 3.
+**The overlap.** The two models are forced separately, so their flows across the line will not match exactly. Between the line and Martinez both run, and the server compares their tidal and net flows each cycle and publishes the difference. A persistent mismatch shows up as parcels piling up or thinning out at the line.
+
+**Moved east, 25 November 2026.** The line now crosses each river where it has narrowed to one channel: the Sacramento past Collinsville, the San Joaquin at Antioch, and the south channel by Pittsburg. At Chipps Island the open water east of the line (around Browns Island, Winter Island and New York Slough) was DSM2's, so it was drawn and tracked as channel lines through open water, with empty water between them. Now every stretch of open water is the mesh's and DSM2 keeps only channels; the Suisun Marsh sloughs stay DSM2's as before. The reasons for Chipps Island still hold for the line's flow, because the mesh's flow across the line is made DSM2's at every hour, tide and net alike (`fdmr_runner.bay.correct_outflow`): the same water crosses from both sides, so nothing piles up or thins out at the line. The line being nearer NOAA's eastern boundary therefore does not set the flow there. Flow particles cross the line too: one leaving a reach carries on in the other.
 
 **Fallback.** If Phase 0 finds NOAA's mesh too coarse in Suisun Bay, or not reaching Chipps Island, the handoff moves to Martinez, and Suisun Bay is tracked in DSM2's channels with the sideways-spreading limit above noted on screen.
 
@@ -929,6 +931,7 @@ The build runs in six phases, each ending in something that can be seen working;
 - Model kinds and math components are plug-ins behind fixed interfaces, with conformance tests; only the published format carries a version number. The published format and the parcels carry a depth axis from version 1, so 3D mixing models can be added later without a rewrite. See section 4.1.
 - The engine is built to serve any geography. Its math is a shared library written once; each region's package picks a model kind for each reach (river routing, 1D tidal network, 2D field, pool, ocean boundary) and its data feeds. Launch ships Shasta Dam to the Golden Gate; other estuaries and rivers follow. See section 4.1.
 - The Delta hands off to the Bay at Chipps Island rather than Martinez. Martinez is the fallback if Phase 0 finds NOAA's mesh cannot support the handoff at Chipps. See section 7.4.
+- 25 November 2026: the handoff line moved east, to where the rivers narrow (past Collinsville on the Sacramento, at Antioch on the San Joaquin), so that all open water is the two-dimensional mesh's. The mesh's flow across the line is DSM2's at every hour. See section 7.4.
 - A pollutant can be released at any time in the last 14 days as well as now or in the forecast; it plays forward through now into the forecast. See section 3.3.
 - Confirmed: the Bay extension of tides plus outflow drift (section 7.3), the search for published river dye studies (section 9.1), and the certainty method (section 8.2).
 - Map layers: toggles choose what colours the water (plain, contaminant, speed, temperature, salinity, water level, water source), whether the flow is shown moment by moment or net over the tides, and which overlays are drawn, including the X2 line and measured readings such as dissolved oxygen and turbidity. All four are in version 1. See section 3.5.
@@ -960,7 +963,8 @@ The build runs in six phases, each ending in something that can be seen working;
 
 ### Decisions log, 25 November 2026
 
-- The Bay's currents are NOAA's tides with DSM2's net outflow. NOAA's San Francisco Bay model draws about 1,200 m3/s inland past Chipps Island on net, set by its open tidal boundary near Rio Vista, where the measured Delta outflow is about 290 m3/s seaward. Each hour of the Bay gets a steady flow from Chipps Island to the sea that makes its tidally filtered net flow across the join DSM2's; the tides are untouched (build plan, Phase 3).
+- The Bay's currents are NOAA's tides with DSM2's net outflow. NOAA's San Francisco Bay model draws about 1,200 m3/s inland past Chipps Island on net, set by its open tidal boundary near Rio Vista, where the measured Delta outflow is about 290 m3/s seaward. Each hour of the Bay gets a steady flow from Chipps Island to the sea that makes its tidally filtered net flow across the join DSM2's; the tides are untouched (build plan, Phase 3). From 25 November 2026 the added flow is set hour by hour, so that the Bay's flow across the join is DSM2's at every hour, tide and net alike. DSM2's tide there checks well against USGS's measured tidal flows upstream (correlation 0.955 at Rio Vista, 0.975 at Jersey Point); NOAA's is 13% smaller than DSM2's at the join.
+- The Bay's salinity and temperature are NOAA's, corrected each day by the misfit measured at thirteen stations (USGS's Bay network and CDEC), spread over the mesh along the water. NOAA's salinity reads up to 16 psu too salty from Richmond into Suisun Bay (issue #6); its temperature is within half a degree.
 - The Bay extension past NOAA's 48 hours is fitted to a year of NOAA's archive every 2 hours (73 GB fetched once), with the recent non-tidal offset carried on, so the Bay runs the Delta's 14 days.
 - The viewer is served from the model runner by its own Caddy at `tripofisch.com/sturgeon/bay-delta/`, behind the web edge, which forwards that path to it (approved 25 Nov 2026).
 

@@ -138,6 +138,11 @@ pub struct NetworkTracer {
     rng: Rng,
     parcels: Vec<Parcel>,
     particles: Vec<Place>,
+    /// Each flow particle's age and life, s (`crate::PARTICLE_LIFE_S`).
+    ages: Vec<f64>,
+    lives: Vec<f64>,
+    /// Flow particles passed to another reach: the junction each reached.
+    handed_particles: Vec<usize>,
     balance: NetBalance,
     /// Channels another reach tracks (such as a bay's, where a mesh covers them).
     handed_channel: Vec<bool>,
@@ -180,6 +185,9 @@ impl NetworkTracer {
             rng: Rng::new(seed),
             parcels: Vec::new(),
             particles: Vec::new(),
+            ages: Vec::new(),
+            lives: Vec::new(),
+            handed_particles: Vec::new(),
             balance: NetBalance::default(),
             handed_channel: Vec::new(),
             handed: Vec::new(),
@@ -211,6 +219,53 @@ impl NetworkTracer {
     /// leaving that way, into any of them, evenly), at the junction's end.
     /// It counts as released at once, and moves from the next step.
     pub fn take_parcel(&mut self, node: usize, mass: f64, half_life: Option<f64>) {
+        if let Some(place) = self.entry(node) {
+            self.balance.released += mass;
+            self.parcels.push(Parcel {
+                place,
+                mass,
+                // Just before now: in the water now, and not counted again by the step.
+                born: self.time - 1e-6,
+                half_life,
+            });
+        }
+    }
+
+    /// Take in a flow particle arriving from another reach at junction `node`,
+    /// as a parcel would come (`take_parcel`): it takes the place of the
+    /// particle furthest through its life, so the number here stays the same.
+    pub fn take_particle(&mut self, node: usize) -> bool {
+        let Some(place) = self.entry(node) else {
+            return false;
+        };
+        let Some(i) = crate::oldest(&self.ages, &self.lives) else {
+            return false;
+        };
+        self.particles[i] = place;
+        self.ages[i] = 0.0;
+        self.lives[i] = crate::particle_life(&mut self.rng);
+        true
+    }
+
+    /// Flow particles passed to another reach since the last call: the junction each reached.
+    pub fn take_handed_particles(&mut self) -> Vec<usize> {
+        std::mem::take(&mut self.handed_particles)
+    }
+
+    /// The water in the channels now, m³; 0 before the first day. With the
+    /// particle count, the flow particles' density, which a join between
+    /// reaches keeps even.
+    #[must_use]
+    pub fn water_volume(&self) -> f64 {
+        self.particle_conditions(self.time)
+            .map_or(0.0, |now| now.volume.iter().sum())
+    }
+
+    /// Where something arriving at junction `node` from another reach goes:
+    /// one of the network's own channels there, in proportion to the flow
+    /// leaving the junction into each (or, if none is leaving, any of them
+    /// evenly), at the junction's end. None if the junction has none.
+    fn entry(&mut self, node: usize) -> Option<Place> {
         let ours: Vec<(usize, End)> = self.at_node.get(node).map_or_else(Vec::new, |v| {
             v.iter()
                 .copied()
@@ -218,7 +273,7 @@ impl NetworkTracer {
                 .collect()
         });
         if ours.is_empty() {
-            return;
+            return None;
         }
         let now = self.conditions(self.time);
         let mut ways: Vec<(Place, f64)> = ours
@@ -242,16 +297,7 @@ impl NetworkTracer {
             }
         }
         let u = self.rng.uniform();
-        if let Some(place) = pick(u, &ways) {
-            self.balance.released += mass;
-            self.parcels.push(Parcel {
-                place,
-                mass,
-                // Just before now: in the water now, and not counted again by the step.
-                born: self.time - 1e-6,
-                half_life,
-            });
-        }
+        pick(u, &ways)
     }
 
     /// Load one day's channel file (`flow_up`, `flow_down`, `area`).
@@ -667,12 +713,24 @@ impl NetworkTracer {
 
     fn move_particles(&mut self, dt: f64, now: &Now) {
         for i in 0..self.particles.len() {
+            self.ages[i] += dt;
             let p = self.advance(self.particles[i], dt, now, 0.0);
-            self.particles[i] = match p {
-                Place::Channel(..) => p,
-                // A particle that leaves, or settles in a pool, starts again elsewhere.
-                _ => self.random_place(now),
+            // A particle that leaves, settles in a pool or has lived its life starts again elsewhere.
+            let renew = match p {
+                Place::Channel(..) => self.ages[i] > self.lives[i],
+                Place::Gone(Fate::HandedOn(node)) => {
+                    self.handed_particles.push(node);
+                    true
+                }
+                _ => true,
             };
+            if renew {
+                self.particles[i] = self.random_place(now);
+                self.ages[i] = 0.0;
+                self.lives[i] = crate::particle_life(&mut self.rng);
+            } else {
+                self.particles[i] = p;
+            }
         }
     }
 
@@ -706,6 +764,8 @@ impl NetworkTracer {
     /// Seed `n` flow particles through the network, more where there is more water.
     pub fn seed_flow_particles(&mut self, n: usize) {
         self.particles.clear();
+        self.ages.clear();
+        self.lives.clear();
         let Some(now) = self.particle_conditions(self.time) else {
             return;
         };
@@ -713,6 +773,16 @@ impl NetworkTracer {
             let p = self.random_place(&now);
             self.particles.push(p);
         }
+        // Each part way through its life, so that they do not all start again at once.
+        self.lives = (0..n)
+            .map(|_| crate::particle_life(&mut self.rng))
+            .collect();
+        self.ages = self
+            .lives
+            .iter()
+            .map(|l| l * self.rng.uniform())
+            .collect::<Vec<_>>();
+        self.handed_particles.clear();
     }
 
     /// Flow particles: channel index and position along it (0 at its upstream junction, 1 downstream).
@@ -1106,5 +1176,36 @@ mod tests {
         t.seed_flow_particles(300);
         t.step_to(3600.0);
         assert_eq!(t.particles().0.len(), 300);
+    }
+
+    #[test]
+    fn flow_particles_live_a_while_then_start_again() {
+        let mut t = split();
+        t.seed_flow_particles(300);
+        // Seeded part way through their lives.
+        assert!(t
+            .ages
+            .iter()
+            .zip(&t.lives)
+            .all(|(a, l)| *a >= 0.0 && a <= l));
+        t.step_to(10.0 * 3600.0);
+        // Ten hours on, every one has started again at least once (lives are 3 to 9 h).
+        assert!(
+            t.ages.iter().all(|a| *a < crate::PARTICLE_LIFE_S.1),
+            "{:?}",
+            t.ages.iter().copied().fold(0.0, f64::max)
+        );
+        assert_eq!(t.particles().0.len(), 300);
+    }
+
+    #[test]
+    fn a_flow_particle_from_another_reach_replaces_the_oldest() {
+        let mut t = split();
+        t.seed_flow_particles(20);
+        let i = crate::oldest(&t.ages, &t.lives).unwrap();
+        assert!(t.take_particle(0));
+        assert_eq!(t.particles.len(), 20);
+        assert_eq!(t.ages[i].to_bits(), 0.0_f64.to_bits());
+        assert!(matches!(t.particles[i], Place::Channel(..)));
     }
 }

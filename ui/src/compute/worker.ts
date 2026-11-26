@@ -96,13 +96,18 @@ const NETWORK_PARTICLES = 6_000;
 // 200 are clearly worse, 30 and 80 about as good.
 const NETWORK_DISPERSION = 50;
 const MESH_PARTICLES = 5_000;
-// Horizontal diffusivity on a mesh reach, m²/s: a placeholder, to be checked as
-// the network's spreading was. It stands for mixing the depth-averaged mesh
-// does not resolve: eddies smaller than its triangles (about 0.1 to 2 m²/s at
-// 0.1 to 2.5 km by Okubo's 1971 diffusion diagram) and the spreading the
-// averaged-out vertical shear would cause (Elder's 5.93 H u*, about 3 m²/s for
-// 10 m of water and u* = 0.05 m/s, along the flow).
-const MESH_DIFFUSIVITY = 2;
+// Horizontal diffusivity on a mesh reach, m²/s. It stands for mixing the
+// depth-averaged mesh does not resolve, the sum of two parts, worked out on the
+// Bay's own mesh and currents (25 Nov 2026, the 14 days published, by water area):
+// - eddies smaller than a node's own patch of water (median 620 m across): Okubo's
+//   K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802);
+// - the spreading of the vertical shear the depth average hides: Elder's
+//   K = 5.93 H u*, with u* = √Cd |u| and Cd = 0.0025, at every node's depth and
+//   current, averaged over the tides: median 0.74 m²/s (Elder 1959, J. Fluid
+//   Mech. 5: 544-560; Fischer et al. 1979, Mixing in Inland and Coastal Waters).
+// The sum's median by water area is 1.1 m²/s (mean 1.35). Elder's part acts
+// along the flow, so as an even spreading this errs toward too much across it.
+const MESH_DIFFUSIVITY = 1.1;
 // Reaches pass parcels to each other this often, s of model time. A parcel
 // handed back waits at most this long at the join.
 const EXCHANGE_S = 300;
@@ -391,6 +396,52 @@ function run(to: number): void {
         handedIn += h[i + 4];
       }
     }
+    exchangeParticles();
+  }
+}
+
+/** Flow particles that crossed a join carry on in the other reach (each
+ * engine gives up its oldest to take one in, so its number stays the same).
+ * The two reaches hold different numbers of particles per m³ of water, so a
+ * particle is taken in with the chance that keeps the receiving reach's
+ * density: always from the sparser reach, from the denser one in proportion.
+ * Otherwise the denser reach's particles stream into the other in trains. */
+function exchangeParticles(): void {
+  const density = (count: number, volume: number) => (volume > 0 ? count / volume : 0);
+  for (const net of nets) {
+    const h = net.engine?.take_handed_particles();
+    if (!h?.length) continue;
+    const dn = density(NETWORK_PARTICLES, net.engine!.water_volume());
+    for (const m of meshes) {
+      const j = join(net, m);
+      if (!j?.junctions) continue;
+      const take = dn > 0 ? Math.min(1, density(MESH_PARTICLES, m.engine!.water_volume()) / dn) : 0;
+      for (const node of h) {
+        const at = j.junctions.find((x) => x.node === node);
+        if (at && Math.random() < take) m.engine!.take_particle(at.x, at.y);
+      }
+    }
+  }
+  for (const m of meshes) {
+    const h = m.engine?.take_handed_particles(); // (handoff id, x, y) ...
+    if (!h?.length) continue;
+    const dm = density(MESH_PARTICLES, m.engine!.water_volume());
+    for (let i = 0; i + 2 < h.length; i += 3) {
+      const net = nets.find((n) => n.id === m.handoffTo[h[i]]);
+      const j = net && join(net, m);
+      if (!net || !j?.junctions?.length) continue;
+      if (!(dm > 0 && Math.random() < Math.min(1, density(NETWORK_PARTICLES, net.engine!.water_volume()) / dm))) continue;
+      let best = j.junctions[0];
+      let d = Infinity;
+      for (const x of j.junctions) {
+        const dd = (x.x - h[i + 1]) ** 2 + (x.y - h[i + 2]) ** 2;
+        if (dd < d) {
+          d = dd;
+          best = x;
+        }
+      }
+      net.engine!.take_particle(best.node);
+    }
   }
 }
 
@@ -589,6 +640,7 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         engine?.drift_frozen(r.dt);
         for (const net of nets) net.engine?.drift_frozen(r.dt);
         for (const m of meshes) m.engine?.drift_frozen(r.dt);
+        exchangeParticles();
         break;
       case "release": {
         const base = { start: r.start, duration: r.duration, mass: r.mass, halfLife: r.halfLife };

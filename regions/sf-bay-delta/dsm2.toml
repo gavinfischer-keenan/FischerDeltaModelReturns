@@ -194,6 +194,38 @@ site = "VER"
 duration = "D"
 parameter = "specific_conductance"
 
+# Island water use: DWR's Delta Channel Depletion series (per node, daily:
+# diversions, seepage, drainage) come from the reference year. Where 2026 uses
+# more than the reference day (drier), the total follows the net Delta
+# consumptive use (NDCU) in Reclamation's daily Delta Outflow Computation, the
+# water balance DWR and Reclamation keep under D-1641, each node keeping the
+# reference pattern (fdmr_plugins.dsm2.study.Depletion). Where 2026 is wetter
+# the reference is kept (`wetter = false`), on the gauges' evidence:
+# NDCU's rain term (runoff from rain on the Delta, estimated from rain gauges
+# there) reached -482 m3/s on 19-23 Nov 2026, and DWR's outflow index with it
+# 811; USGS's measured outflow at Pittsburg stayed at 400 to 540 through those
+# days. Followed in full, it brought DSM2's net flow past Chipps Island to the
+# index (546 against 484, 13-24 Nov) but made the net flows at 9 of 10 USGS
+# tidal gauges worse (fdmr_runner.delta.net_check, 12-25 Nov): Old River at
+# Bacon Island -34 against a measured -86 (-60 without it), Jersey Point 182
+# against 116 (73 without), the total miss over the 10 gauges 242 m3/s against
+# 165 without; shared by the rain season's drainage pattern or by the run's,
+# alike. DWR's own setup on its 2024 inputs reads Bacon Island -66 against a
+# measured -80 (Nov 2024), so the gauges, not the index, are the better guide.
+# The outflow this leaves (about 300 m3/s past Chipps Island in mid-November
+# 2026, against the index's 484 and Pittsburg's 470) is an open question.
+# Past the last reported day, the last day reported without rain is held, so
+# a forecast carries no rain the reference year had on those days: rain is
+# not forecast here.
+[depletion]
+file = "DICUFILE"
+use = ["DIV-FLOW", "SEEP-FLOW"]
+returns = ["DRAIN-FLOW"]
+source = "usbr-cvo"
+site = "DOUT"
+parameter = "ndcu"
+wetter = false
+
 # Settings held fixed for the whole run.
 # Clifton Court Forebay's gates open and close with the tide on a schedule set
 # against that year's tides and pumping. DWR's 2024 schedule, put against
@@ -285,6 +317,102 @@ site = "SSS"
 duration = "E"
 parameter = "discharge"
 channel = 383
+
+# Net flow to check HYDRO against: USGS's own tidally filtered flow at its tidal
+# gauges (parameter 72137), as daily means over the last 14 days, against DSM2's
+# flow through the same channel filtered by Godin's filter (fdmr_runner.delta.
+# net_check; published with the reach as `net_checks`). Each gauge's channel is
+# the nearest, within 0.42 km, and the way DSM2 counts its flow positive was
+# checked against the gauge's measured tidal flow (correlations 0.82 to 0.99,
+# 12-25 Nov 2026; all the same way). `duration` D: USGS publishes only daily
+# values there. Old and Middle rivers are the flows the pumps pull.
+[[net_checks]]
+name = "Old River at Bacon Island"
+source = "usgs"
+site = "11313405"
+duration = "E"
+parameter = "discharge_tidally_filtered"
+channel = 106
+
+[[net_checks]]
+name = "Middle River at Middle River"
+source = "usgs"
+site = "11312676"
+duration = "E"
+parameter = "discharge_tidally_filtered"
+channel = 144
+
+[[net_checks]]
+name = "Old River near Byron"
+source = "usgs"
+site = "11313315"
+duration = "E"
+parameter = "discharge_tidally_filtered"
+channel = 90
+
+[[net_checks]]
+name = "Old River near the Delta-Mendota Canal"
+source = "usgs"
+site = "11312968"
+duration = "E"
+parameter = "discharge_tidally_filtered"
+channel = 79
+
+[[net_checks]]
+name = "Grant Line Canal near Tracy"
+source = "usgs"
+site = "11313240"
+duration = "D"
+parameter = "discharge_tidally_filtered"
+channel = 213
+
+[[net_checks]]
+name = "Dutch Slough below Jersey Island Road"
+source = "usgs"
+site = "11313433"
+duration = "E"
+parameter = "discharge_tidally_filtered"
+channel = 274
+
+[[net_checks]]
+name = "San Joaquin River at Jersey Point"
+source = "usgs"
+site = "11337190"
+duration = "E"
+parameter = "discharge_tidally_filtered"
+channel = 83
+
+[[net_checks]]
+name = "Threemile Slough near Rio Vista"
+source = "usgs"
+site = "11337080"
+duration = "D"
+parameter = "discharge_tidally_filtered"
+channel = 310
+
+[[net_checks]]
+name = "Sacramento River at Rio Vista"
+source = "usgs"
+site = "11455420"
+duration = "D"
+parameter = "discharge_tidally_filtered"
+channel = 430
+
+[[net_checks]]
+name = "Sacramento River below Walnut Grove Bridge"
+source = "usgs"
+site = "381427121305401"
+duration = "E"
+parameter = "discharge_tidally_filtered"
+channel = 422
+
+[[net_checks]]
+name = "Sacramento River below Georgiana Slough"
+source = "usgs"
+site = "11447905"
+duration = "D"
+parameter = "discharge_tidally_filtered"
+channel = 423
 
 # Measured salinity (EC, uS/cm) to check QUAL against, from the Bay end inland.
 [[ec_checks]]

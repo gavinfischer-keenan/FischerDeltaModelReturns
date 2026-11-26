@@ -74,7 +74,7 @@
   "reading_turbidity_ntu": "Turbidity",
   "reading_turbidity_fnu": "Turbidity",
   "reading_discharge": "Flow",
-  "legend_salinity_bay": "in the Bay, NOAA's salinity reads far too salty from Carquinez to Suisun Bay at present (checked against the stations, 25 Nov 2026)",
+  "legend_salinity_bay": "in the Bay, NOAA's salinity corrected each day to the measuring stations (NOAA's own reads far too salty from Carquinez to Suisun Bay)",
   "overlay_structures": "Dams, pumps and gates",
   "structure_dam": "Dam",
   "structure_pumps": "Pumping plant",

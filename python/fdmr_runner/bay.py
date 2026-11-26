@@ -81,8 +81,12 @@ def prepare(cfg: dict, work: Path, cycle: int) -> tuple[Layout, mesh.Coarse, dic
         coarse = mesh.coarsen(fine, keep, m["k"], m["min_m"], m["max_m"])
         coarse.save(mesh_file)
         made_with.write_text(settings, encoding="utf-8")
-        shutil.rmtree(work / "hours", ignore_errors=True)  # hours on the old mesh
-        shutil.rmtree(work / "forecast", ignore_errors=True)
+        # Everything held at the old mesh's nodes: hours, forecasts, the archive
+        # the extension is fitted to, and the fit itself.
+        for old in ("hours", "forecast", "archive"):
+            shutil.rmtree(work / old, ignore_errors=True)
+        for old in work.glob("extension_fit*.npz"):
+            old.unlink()
     edges = mesh.classify(coarse, cfg["mesh"]["open_sea"], cfg["mesh"].get("handoffs", []))
     return layout, coarse, edges
 
@@ -293,57 +297,133 @@ def overlap(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path], delta_dir:
 
 
 def correct_outflow(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path | dict], delta_dir: Path, reach: str) -> tuple[dict[int, dict], dict]:
-    """Every hour, with a steady flow added so that its tidally filtered net flow
-    across the join to the Delta is DSM2's (fdmr_plugins.fvcom.correct). The
-    tides are left as they are. Returns the hours and a summary for the reach."""
+    """Every hour, with a flow added so that the mesh's flow across the join to
+    the Delta is DSM2's at that hour (fdmr_plugins.fvcom.correct): the same
+    water crosses the join from both sides, tide and net alike, so parcels and
+    flow particles pass it without piling up or thinning out. The added flow
+    runs from the join to the open sea; the mesh's tides elsewhere are its own.
+    Returns the hours and a summary for the reach: both models' net and tidal
+    flow across the join before the correction, and what was added."""
     from fdmr_plugins.fvcom.correct import tidal_mean, unit_outflow
 
     from .handoff import network_to_mesh
 
     cu, cv = unit_outflow(coarse, edges["delta"], edges["open"])
-    # Scaled so its flux across the join, measured as the field's own is, is exactly 1 m3/s.
-    _, unit = mesh_outflow(coarse, edges["delta"], {0: {"u": cu, "v": cv, "level": np.zeros(len(cu), np.float32)}})
-    cu, cv = cu / -unit[0], cv / -unit[0]
     ts = np.array(sorted(hours))
     data = {tt: (hours[tt] if isinstance(hours[tt], dict) else dict(np.load(hours[tt]))) for tt in ts}
     _, out = mesh_outflow(coarse, edges["delta"], data)
-    noaa = tidal_mean(-out, 1.0)  # seaward, tidally filtered (hourly)
+    noaa = -out  # seaward
     net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
     jn = network_to_mesh("delta", net, reach, mesh.geometry(coarse, reach, edges))
-    td, qd = dsm2_outflow(delta_dir, jn, tidal=True)
+    td, qd = dsm2_outflow(delta_dir, jn)
     target = np.interp(ts, td, qd)
-    raw = data
-
-    def apply(dq: np.ndarray) -> tuple[dict[int, dict], np.ndarray]:
-        out_ = {}
-        for i, tt in enumerate(ts):
-            d = dict(raw[tt])
-            d["u"] = (d["u"] + dq[i] * cu).astype(np.float32)
-            d["v"] = (d["v"] + dq[i] * cv).astype(np.float32)
-            out_[tt] = d
-        return out_, -mesh_outflow(coarse, edges["delta"], out_)[1]
-
-    # The added flow's flux moves a little with the water level, so measure how
-    # much of it comes through, tidally filtered, and divide by that one gain.
-    dq = target - noaa
-    _, after = apply(dq)
-    got = tidal_mean(after, 1.0) - noaa
-    gain = float((got * dq).sum() / (dq * dq).sum()) if (dq * dq).sum() > 0 else 1.0
-    dq = dq / gain
-    data, after = apply(dq)
-    after = -after  # back to out of the mesh, as below
-    # How well the corrected tidal mean follows DSM2's, away from the record's ends.
+    # The unit flow's flux across the join at each hour's water level, so each
+    # hour's addition is exact.
+    unit = np.array([-mesh_outflow(coarse, edges["delta"], {tt: {"u": cu, "v": cv, "level": data[tt]["level"]}})[1][0] for tt in ts])
+    dq = (target - noaa) / unit
+    for i, tt in enumerate(ts):
+        d = dict(data[tt])
+        d["u"] = (d["u"] + dq[i] * cu).astype(np.float32)
+        d["v"] = (d["v"] + dq[i] * cv).astype(np.float32)
+        data[tt] = d
+    after = -mesh_outflow(coarse, edges["delta"], data)[1]
+    added = target - noaa
+    # Away from the record's ends, where the tidal filter holds its edge values.
     inner = slice(72, len(ts) - 72) if len(ts) > 200 else slice(None)
-    miss = tidal_mean(-after, 1.0)[inner] - target[inner]
+    tn, tt_ = tidal_mean(noaa, 1.0), tidal_mean(target, 1.0)
+    a, b = (noaa - tn)[inner], (target - tt_)[inner]
     summary = {
-        "noaa_net": round(float(noaa[inner].mean()), 1), "dsm2_net": round(float(target[inner].mean()), 1),
-        "added_mean": round(float(dq.mean()), 1), "added_range": [round(float(dq.min()), 1), round(float(dq.max()), 1)],
-        "net_after": round(float(tidal_mean(-after, 1.0)[inner].mean()), 1), "largest_miss": round(float(np.abs(miss).max()), 1),
-        "gain": round(gain, 3),
+        "noaa_net": round(float(tn[inner].mean()), 1), "dsm2_net": round(float(tt_[inner].mean()), 1),
+        "noaa_tidal": round(float(a.std()), 1), "dsm2_tidal": round(float(b.std()), 1),
+        "tidal_correlation": round(float(np.corrcoef(a, b)[0, 1]), 3),
+        "added_mean": round(float(added.mean()), 1), "added_range": [round(float(added.min()), 1), round(float(added.max()), 1)],
+        "largest_miss": round(float(np.abs(after - target).max()), 2),
     }
-    print(f"outflow correction: tidally filtered net across the join, NOAA {summary['noaa_net']} m3/s seaward, DSM2 {summary['dsm2_net']}; "
+    print(f"outflow correction: across the join, net NOAA {summary['noaa_net']} m3/s seaward, DSM2 {summary['dsm2_net']}; "
+          f"tide NOAA {summary['noaa_tidal']}, DSM2 {summary['dsm2_tidal']} (correlation {summary['tidal_correlation']}); "
           f"added {summary['added_mean']} on average ({summary['added_range'][0]} to {summary['added_range'][1]}); "
-          f"after {summary['net_after']}, at most {summary['largest_miss']} from DSM2's at any hour", flush=True)
+          f"after, at most {summary['largest_miss']} from DSM2's at any hour", flush=True)
+    return data, summary
+
+
+def station_daily(store, st: dict, params: list[str], to_value, days: list[int]) -> np.ndarray:
+    """A station's daily mean (by day start, PST) over its sensors: each
+    sensor's own daily mean, then the mean of those; NaN where no sensor has
+    18 or more hours of the day."""
+    out = np.full(len(days), np.nan)
+    for i, d in enumerate(days):
+        means = []
+        for p in params:
+            vs = [(v.t, v.value) for v in store.values(st["source"], st["site"], p, d, d + DAY - 1) if v.value is not None]
+            if len({t // HOUR for t, _ in vs}) >= 18:
+                means.append(float(np.mean(to_value(np.array([v for _, v in vs])))))
+        if means:
+            out[i] = float(np.mean(means))
+    return out
+
+
+def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict], store_path: str) -> tuple[dict[int, dict], dict]:
+    """The Bay's salinity and temperature corrected by the stations' measured
+    misfit (bay.toml [quality]): each day, at each station, the measured daily
+    mean less the model's at the station's node; spread over the mesh along the
+    water (fdmr_plugins.fvcom.correct.spread); moved smoothly from day to day,
+    and past the last measured day held at each station's mean misfit over its
+    last three. The summary gives, per station, the mean misfit before and the
+    mean miss left when the station itself is left out (an honest check: the
+    correction there is made from the other stations alone)."""
+    import fdmr_py
+    from fdmr_plugins.fvcom.correct import spread, water_distances
+    from fdmr_store import Store
+
+    q = cfg["quality"]
+    ts = np.array(sorted(hours))
+    data = {tt: (hours[tt] if isinstance(hours[tt], dict) else dict(np.load(hours[tt]))) for tt in ts}
+    have = [tt for tt in ts if "salinity" in data[tt] and "temperature" in data[tt]]
+    store = Store(store_path)
+    sts, nodes = [], []
+    for st in q["stations"]:
+        d = np.hypot((coarse.lon - st["lon"]) * np.cos(np.radians(st["lat"])), coarse.lat - st["lat"]) * 111_195
+        k = int(np.argmin(d))
+        if d[k] <= q.get("near_m", 2000.0):
+            sts.append(st)
+            nodes.append(k)
+    dist = water_distances(coarse, nodes)
+    from .delta import pst_midnight
+
+    days = list(range(pst_midnight(int(ts[0])), int(ts[-1]) + 1, DAY))
+    conv = {"salinity": lambda ec: np.asarray(fdmr_py.practical_salinity([float(x) for x in ec])), "temperature": lambda x: x}
+    summary: dict = {}
+    for field, key in (("salinity", "conductance"), ("temperature", "temperature")):
+        meas = np.array([station_daily(store, st, st.get(key, []), conv[field], days) for st in sts])
+        model = np.full(meas.shape, np.nan)
+        for j, d in enumerate(days):
+            sel = [tt for tt in have if d <= tt < d + DAY]
+            if len(sel) >= 18:
+                model[:, j] = np.mean([data[tt][field][nodes] for tt in sel], axis=0)
+        mis = meas - model
+        last = np.array([np.nanmean(r[np.isfinite(r)][-3:]) if np.isfinite(r).any() else np.nan for r in mis])
+        measured_to = max((j for j in range(len(days)) if np.isfinite(mis[:, j]).any()), default=-1)
+        corr = np.array([spread(dist, mis[:, j] if j <= measured_to else last) for j in range(len(days))])
+        # Day by day, a station's misfit after the correction made without it.
+        loo = {}
+        for i, st in enumerate(sts):
+            others = np.arange(len(sts)) != i
+            res = [mis[i, j] - spread(dist[others][:, [nodes[i]]], mis[others, j])[0] for j in range(len(days)) if np.isfinite(mis[i, j])]
+            before = mis[i][np.isfinite(mis[i])]
+            if len(before):
+                loo[st["site"]] = {"name": st["name"], "days": len(before), "misfit": round(float(before.mean()), 2),
+                                   "left_out": round(float(np.mean(np.abs(res))), 2)}
+        centre = np.array(days) + DAY // 2
+        for tt in have:
+            p = np.interp(tt, centre, np.arange(len(days)))
+            j = int(np.floor(p))
+            f = p - j
+            c = corr[j] if f == 0 or j + 1 >= len(days) else corr[j] * (1 - f) + corr[j + 1] * f
+            v = data[tt][field] + c
+            data[tt] = {**data[tt], field: (np.maximum(v, 0.0) if field == "salinity" else v).astype(np.float32)}
+        summary[field] = {"stations": loo, "measured_to": (datetime.fromtimestamp(days[measured_to], timezone.utc).strftime("%Y-%m-%d") if measured_to >= 0 else None)}
+        print(f"{field} correction: " + "; ".join(f"{s} misfit {v['misfit']:+.2f}, left out {v['left_out']:.2f}" for s, v in loo.items()), flush=True)
+    store.close()
     return data, summary
 
 
@@ -488,6 +568,11 @@ def main(argv: list[str] | None = None) -> int:
             hours, extras["outflow_correction"] = correct_outflow(coarse, edges, hours, Path(args.delta).resolve(), cfg["reach"])
         except Exception as e:  # uncorrected, the Bay still has NOAA's own currents
             print(f"outflow correction FAILED {e}", flush=True)
+    if args.store and "quality" in cfg and hours:
+        try:
+            hours, extras["quality_correction"] = correct_quality(cfg, coarse, hours, args.store)
+        except Exception as e:  # uncorrected, the Bay keeps NOAA's own salinity and temperature
+            print(f"quality correction FAILED {e}", flush=True)
     if args.publish:
         pub = publish(cfg, region_dir, coarse, edges, hours, now, latest, Path(args.publish), extras=extras)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())

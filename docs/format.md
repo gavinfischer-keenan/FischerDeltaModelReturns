@@ -50,6 +50,13 @@ A what-if is a full set of forecast days under `whatif/<name>/`, sharing the mai
 - A reach may carry its own `time` block, laid out like the top-level one, and its own `now`. This is for a reach published on its own schedule. For example, the Delta's DSM2 run happens every 6 hours while the river runs hourly. A reach without one uses the top-level `time`.
 - A reach may be a network (`"network": true`); its geometry is described below.
 
+**Checks published with a reach.** A reach entry may also carry how its model compared with measurements this cycle, for anyone to read. A reader that does not use them ignores them.
+
+- `net_checks` (a network reach): for each gauge, the model's net flow (its flow through the gauge's channel, Godin-filtered) against the gauge's own tidally filtered flow, as daily means over the last 14 days. Each entry has `name`, `site`, `channel`, `days`, `measured_mean`, `model_mean`, `mean_difference` and `daily_mae`, in m³/s.
+- `overlap` (a mesh reach fed by a network): both models' flow across the join before correction. It gives `net` (the mean) and `tidal` (the standard deviation about it), in m³/s.
+- `outflow_correction` (the same): what was added to the mesh's currents so that its flow across the join matches the network's at every hour. It gives both models' net flow and tide size before the correction (`noaa_net`, `dsm2_net`, `noaa_tidal`, `dsm2_tidal`, `tidal_correlation`), the flow added (`added_mean`, `added_range`) and the largest hourly miss left (`largest_miss`), in m³/s.
+- `quality_correction` (a mesh reach): for `salinity` and `temperature`, each station's mean misfit before correction (measured less modelled) and `left_out`, the mean miss at that station when the correction is made from the other stations alone; plus `measured_to`, the last measured day.
+
 ## Reach geometry (`geometry/<reach>.json`)
 
 Where each element lies, for the compute engine and for drawing. For a 1D reach:

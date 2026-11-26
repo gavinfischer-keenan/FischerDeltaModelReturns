@@ -143,6 +143,11 @@ pub struct MeshTracer {
     rng: Rng,
     parcels: Vec<Parcel>,
     particles: Vec<MeshPlace>,
+    /// Each flow particle's age and life, s (`crate::PARTICLE_LIFE_S`).
+    ages: Vec<f64>,
+    lives: Vec<f64>,
+    /// Flow particles that crossed a handoff edge: (handoff id, x, y).
+    handed_particles: Vec<(u32, f64, f64)>,
     balance: MeshBalance,
     /// Crossed a handoff edge: where, with mass and half-life.
     handed: Vec<(MeshFate, f64, Option<f64>)>,
@@ -213,6 +218,9 @@ impl MeshTracer {
             rng: Rng::new(seed),
             parcels: Vec::new(),
             particles: Vec::new(),
+            ages: Vec::new(),
+            lives: Vec::new(),
+            handed_particles: Vec::new(),
             balance: MeshBalance::default(),
             handed: Vec::new(),
         }
@@ -611,12 +619,89 @@ impl MeshTracer {
     fn move_particles(&mut self, dt: f64, now: &Now) {
         let time = self.time;
         for i in 0..self.particles.len() {
+            self.ages[i] += dt;
             let p = self.advance(self.particles[i], dt, now, 0.0, time);
-            self.particles[i] = match p {
-                MeshPlace::In(..) => p,
-                MeshPlace::Gone(_) => self.random_place(),
+            let renew = match p {
+                MeshPlace::In(..) => self.ages[i] > self.lives[i],
+                MeshPlace::Gone(MeshFate::Handoff { id, x, y, .. }) => {
+                    self.handed_particles.push((id, x, y));
+                    true
+                }
+                MeshPlace::Gone(MeshFate::ToSea) => true,
             };
+            if renew {
+                self.particles[i] = self.random_wet_place(now);
+                self.ages[i] = 0.0;
+                self.lives[i] = crate::particle_life(&mut self.rng);
+            } else {
+                self.particles[i] = p;
+            }
         }
+    }
+
+    /// A point anywhere on the water that is wet now, evenly by area (a dry
+    /// shoal is skipped; if none is found in a few tries, anywhere).
+    fn random_wet_place(&mut self, now: &Now) -> MeshPlace {
+        let mut p = self.random_place();
+        for _ in 0..30 {
+            if let MeshPlace::In(t, x, y) = p {
+                if self.sample(now, t, x, y).h >= MIN_DEPTH {
+                    return p;
+                }
+            }
+            p = self.random_place();
+        }
+        p
+    }
+
+    /// Flow particles that crossed a handoff edge since the last call: (handoff id, x, y).
+    pub fn take_handed_particles(&mut self) -> Vec<(u32, f64, f64)> {
+        std::mem::take(&mut self.handed_particles)
+    }
+
+    /// The water on the mesh now, m³ (each triangle's area times its mean
+    /// depth); 0 before the first day. With the particle count, the flow
+    /// particles' density, which a join between reaches keeps even.
+    #[must_use]
+    pub fn water_volume(&self) -> f64 {
+        let Some(now) = self.particle_conditions(self.time) else {
+            return 0.0;
+        };
+        self.topo
+            .tri
+            .iter()
+            .zip(&self.area2)
+            .map(|(n, a2)| a2 / 2.0 * (n.iter().map(|&i| now.h[i].max(0.0)).sum::<f64>() / 3.0))
+            .sum()
+    }
+
+    /// Take in a flow particle arriving from another reach at (x, y), m: it
+    /// takes the place of the particle furthest through its life, so the
+    /// number here stays the same. It lands anywhere in the triangle holding
+    /// (x, y), evenly: water arriving from a channel fills the channel's
+    /// mouth, and particles all landing on one point would leave it in single
+    /// file. False if (x, y) is off the mesh.
+    pub fn take_particle(&mut self, x: f64, y: f64) -> bool {
+        let Some(t) = self.locate(x, y) else {
+            return false;
+        };
+        let Some(i) = crate::oldest(&self.ages, &self.lives) else {
+            return false;
+        };
+        let (mut a, mut b) = (self.rng.uniform(), self.rng.uniform());
+        if a + b > 1.0 {
+            (a, b) = (1.0 - a, 1.0 - b);
+        }
+        let n = self.topo.tri[t];
+        let (xs, ys) = (&self.topo.x, &self.topo.y);
+        self.particles[i] = MeshPlace::In(
+            t,
+            xs[n[0]] + a * (xs[n[1]] - xs[n[0]]) + b * (xs[n[2]] - xs[n[0]]),
+            ys[n[0]] + a * (ys[n[1]] - ys[n[0]]) + b * (ys[n[2]] - ys[n[0]]),
+        );
+        self.ages[i] = 0.0;
+        self.lives[i] = crate::particle_life(&mut self.rng);
+        true
     }
 
     /// A point anywhere on the mesh, evenly by area.
@@ -644,8 +729,25 @@ impl MeshTracer {
         )
     }
 
+    /// Seed `n` flow particles over the wet water, evenly by area, each part
+    /// way through its life so that they do not all start again at once.
     pub fn seed_flow_particles(&mut self, n: usize) {
-        self.particles = (0..n).map(|_| self.random_place()).collect();
+        let now = self.particle_conditions(self.time);
+        self.particles = (0..n)
+            .map(|_| match &now {
+                Some(now) => self.random_wet_place(now),
+                None => self.random_place(),
+            })
+            .collect();
+        self.lives = (0..n)
+            .map(|_| crate::particle_life(&mut self.rng))
+            .collect();
+        self.ages = self
+            .lives
+            .iter()
+            .map(|l| l * self.rng.uniform())
+            .collect::<Vec<_>>();
+        self.handed_particles.clear();
     }
 
     fn places(&self, it: impl Iterator<Item = MeshPlace>) -> (Vec<u32>, Vec<f32>) {
@@ -957,6 +1059,30 @@ mod tests {
         let mut t = MeshTracer::new(topo, 0.0, 1, k);
         t.load_day(&day(n, u, v, 25)).unwrap();
         t
+    }
+
+    #[test]
+    fn flow_particles_live_a_while_then_start_again_on_the_water() {
+        let mut t = tracer(0.0, 0.0, 0.0);
+        t.seed_flow_particles(200);
+        assert!(t
+            .ages
+            .iter()
+            .zip(&t.lives)
+            .all(|(a, l)| *a >= 0.0 && a <= l));
+        t.step_to(10.0 * 3600.0);
+        // Ten hours on, every one has started again at least once (lives are 3 to 9 h).
+        assert!(t.ages.iter().all(|a| *a < crate::PARTICLE_LIFE_S.1));
+        assert_eq!(t.particles().0.len(), 200);
+        // A particle from another reach takes the oldest one's place, in the triangle it arrives in.
+        let i = crate::oldest(&t.ages, &t.lives).unwrap();
+        let at = t.locate(150.0, 50.0).unwrap();
+        assert!(t.take_particle(150.0, 50.0));
+        assert!(
+            matches!(t.particles[i], MeshPlace::In(tri, x, y) if tri == at && t.inside(at, x, y))
+        );
+        assert!(!t.take_particle(150.0, 250.0)); // off the mesh
+        assert_eq!(t.particles().0.len(), 200);
     }
 
     #[test]

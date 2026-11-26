@@ -19,6 +19,25 @@ mod series;
 /// Largest time step the engine takes, s.
 pub const MAX_DT: f64 = 60.0;
 
+/// How long a flow particle lives, s (model time): a random while in this
+/// range, then it starts again somewhere else in its reach. Without it,
+/// particles gather where the currents converge, along shores and on drying
+/// shoals, and the open water empties; with it the density stays even
+/// whatever the currents do. Three to nine hours: long enough to show a tide
+/// carrying the water, short enough to keep the water filled.
+pub const PARTICLE_LIFE_S: (f64, f64) = (3.0 * 3600.0, 9.0 * 3600.0);
+
+/// A new flow particle's life (`PARTICLE_LIFE_S`).
+pub(crate) fn particle_life(rng: &mut Rng) -> f64 {
+    PARTICLE_LIFE_S.0 + rng.uniform() * (PARTICLE_LIFE_S.1 - PARTICLE_LIFE_S.0)
+}
+
+/// The particle to give up for one arriving from another reach: the one
+/// furthest through its life.
+pub(crate) fn oldest(ages: &[f64], lives: &[f64]) -> Option<usize> {
+    (0..ages.len()).max_by(|&a, &b| (ages[a] / lives[a]).total_cmp(&(ages[b] / lives[b])))
+}
+
 /// One day of a reach's published flow field.
 struct Day {
     t0: f64,

@@ -7,17 +7,17 @@ river: a model whose upstream edge is an open tidal boundary can draw water
 inland on net where the river pushes it out (one region's case is recorded in
 its bay.toml).
 
-The fix keeps the field's tides and adds a steady potential flow that carries
-the difference from the join out to the open sea. On the mesh it solves
+The fix adds a potential flow that carries the difference from the join out
+to the open sea. On the mesh it solves
 
     div(H grad phi) = 0,   u = -grad(phi)
 
 with a source of 1 m3/s spread along the join's edges (by their cross-
 sections), phi = 0 on the open-sea edges and no flow through land. Weighting
 by the depth H sends the flow mostly through the deep channels, as water
-does. The result is the velocity per m3/s at every node; each hour it is
-scaled by the difference between the target net flow and the field's own,
-both tidally filtered (`tidal_mean`).
+does. The result is the velocity per m3/s at every node; the user scales it
+each hour (a region's runner: by the difference between the network's flow
+across the join and the field's own at that hour, so both carry the same).
 Linear finite elements; the correction's flux out at the sea equals the
 source, by construction, to solver precision.
 """
@@ -75,6 +75,35 @@ def unit_outflow(c: Coarse, join: Sequence[Sequence[int]], sea: Sequence[Sequenc
         np.add.at(u, tri[:, i], ut * area2)
         np.add.at(v, tri[:, i], vt * area2)
     return (u / np.where(wa > 0, wa, 1)).astype(np.float32), (v / np.where(wa > 0, wa, 1)).astype(np.float32)
+
+
+def water_distances(c: Coarse, sources: Sequence[int]) -> np.ndarray:
+    """Distance (m) from each source node to every node, travelling along the
+    mesh's edges: through water, never across land. Shape (sources, nodes)."""
+    from scipy.sparse import coo_matrix
+    from scipy.sparse.csgraph import dijkstra
+
+    e = np.concatenate([c.tri[:, [0, 1]], c.tri[:, [1, 2]], c.tri[:, [2, 0]]])
+    e = np.unique(np.sort(e, axis=1), axis=0)
+    w = np.hypot(c.x[e[:, 0]] - c.x[e[:, 1]], c.y[e[:, 0]] - c.y[e[:, 1]])
+    n = len(c.x)
+    g = coo_matrix((np.concatenate([w, w]), (np.concatenate([e[:, 0], e[:, 1]]), np.concatenate([e[:, 1], e[:, 0]]))), shape=(n, n)).tocsr()
+    return dijkstra(g, indices=list(sources))
+
+
+def spread(dist: np.ndarray, misfit: np.ndarray, near_m: float = 1000.0) -> np.ndarray:
+    """A correction at every node from misfits (measured less modelled) at
+    stations: inverse-distance-squared weights by distance through the water
+    (`water_distances`), so each station speaks for the water nearest it and
+    a station across land counts for little. `near_m` softens the weight
+    within a station's own reach. A station whose misfit is NaN is left out.
+    Shape: (nodes,)."""
+    ok = np.isfinite(misfit)
+    if not ok.any():
+        return np.zeros(dist.shape[1])
+    w = 1.0 / (dist[ok] + near_m) ** 2  # zero where a node is not reached
+    s = w.sum(axis=0)
+    return np.where(s > 0, (w * misfit[ok][:, None]).sum(axis=0) / np.where(s > 0, s, 1.0), 0.0)
 
 
 def running_mean(x: np.ndarray, w: int) -> np.ndarray:

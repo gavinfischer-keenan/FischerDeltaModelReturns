@@ -8,6 +8,17 @@ pointing at a fresh file in the run folder. That file holds:
 - every other series DWR's inputs read from it, copied from DWR's file for the
   same calendar days of a reference year (DWR's average-year practice for
   inputs nobody measures live, such as island water use).
+
+Island water use can follow a live daily total (`Depletion`): the reference
+year's per-node series keep their pattern, and each day the difference
+between their net depletion (uses less returns) and the live total is added
+to the returns where the live day is wetter, or to the uses where it is
+drier. The day's total is then the live one exactly. Where it is wetter, the
+extra is rain running off, so it goes to each node in proportion to that
+node's returns in the reference year's rain season (December to March), when
+returns are runoff; in the irrigation season they are drainage from the
+farms, gathered in a few places. Where it is drier, the extra use goes to
+each node in proportion to its uses over the run.
 """
 
 from __future__ import annotations
@@ -41,6 +52,75 @@ class LiveSetting:
     points: Sequence[tuple[int, float]]  # (UTC time, value), from at or before the run's padded start
 
 
+RAIN_SEASON = (12, 1, 2, 3)  # months whose island returns are rain running off
+
+
+@dataclass(frozen=True)
+class Depletion:
+    """A live daily total of island water use (net channel depletion: water
+    taken from the channels less water returned to them) for the series in
+    one replaced file."""
+
+    file: str  # the replaced setting holding the per-node series, such as DICUFILE
+    use: Sequence[str]  # C parts of water taken from the channels, such as DIV-FLOW
+    returns: Sequence[str]  # C parts of water returned to them, such as DRAIN-FLOW
+    days: dict[int, float]  # day's start (UTC s, a midnight PST) -> net depletion, in the series' units
+    add_use: str = ""  # which `use` part takes added use (default the first)
+    wetter: bool = True  # follow the live total where it is below the reference (rain); False keeps the reference there
+
+
+def adjust_depletion(series: dict[str, list[float | None]], kinds: dict[str, str], use: Sequence[str],
+                     returns: Sequence[str], targets: list[float | None], add_use: str = "",
+                     return_shares: dict[str, float] | None = None, wetter: bool = True) -> tuple[dict[str, list[float | None]], list[float]]:
+    """Per-node daily series made to total `targets` (see the module's note).
+    `series`: path -> values, all the same days; `kinds`: path -> its C part.
+    `return_shares`: how added returns are shared (path -> weight; by default
+    each return's mean over `series`). `wetter` False: a day whose target is
+    below the reference's net (wetter) is left as the reference.
+    A None target leaves the day as it is; a missing value is left missing and
+    takes no share. Returns the new series and each day's change to the net
+    depletion (target less reference; 0 where kept)."""
+    import numpy as np
+
+    paths = list(series)
+    n = len(targets)
+    arr = {p: np.array([np.nan if v is None else v for v in series[p]], dtype=float) for p in paths}
+    sign = {p: (1.0 if kinds[p] in use else -1.0 if kinds[p] in returns else 0.0) for p in paths}
+    ref = np.zeros(n)
+    for p in paths:
+        ref += sign[p] * np.nan_to_num(arr[p][:n])
+    ret = [p for p in paths if kinds[p] in returns]
+    tak = [p for p in paths if kinds[p] == (add_use or use[0])]
+
+    def shares(ps: list[str]) -> dict[str, float]:
+        m = {p: float(np.nanmean(arr[p])) if np.isfinite(arr[p]).any() else 0.0 for p in ps}
+        m = {p: max(v, 0.0) for p, v in m.items()}
+        s = sum(m.values())
+        return {p: (v / s if s > 0 else 1.0 / len(ps)) for p, v in m.items()} if ps else {}
+
+    w_ret, w_tak = shares(ret), shares(tak)
+    if return_shares is not None:
+        s = sum(max(return_shares.get(p, 0.0), 0.0) for p in ret)
+        if s > 0:
+            w_ret = {p: max(return_shares.get(p, 0.0), 0.0) / s for p in ret}
+    change = [0.0] * n
+    for i, tgt in enumerate(targets):
+        if tgt is None:
+            continue
+        d = ref[i] - tgt  # > 0: the live day used less (or ran off more) than the reference
+        if d > 0 and not wetter:
+            continue
+        live_w = {p: w for p, w in (w_ret if d > 0 else w_tak).items() if np.isfinite(arr[p][i])}
+        s = sum(live_w.values())
+        if s <= 0:
+            continue
+        for p, w in live_w.items():
+            arr[p][i] += abs(d) * w / s
+        change[i] = float(tgt - ref[i])
+    out = {p: [None if not np.isfinite(v) else float(v) for v in arr[p]] for p in paths}
+    return out, change
+
+
 @dataclass(frozen=True)
 class RunSettings:
     study: Path  # DWR's study folder, holding config.inp and hydro.inp
@@ -52,6 +132,7 @@ class RunSettings:
     hydro: str  # the hydro program
     qual: str = ""  # the qual program
     mains: Sequence[str] = ("hydro.inp",)  # the study's main files, run in order
+    depletion: Depletion | None = None  # island water use following a live daily total
 
 
 def same_day_in(year: int, t: int) -> int:
@@ -170,6 +251,9 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
     written = set()
     cache: dict[tuple[str, str], tuple[list, str, str, int]] = {}
     t0, t1 = start - 86_400, end + 86_400  # a day either side of the run
+    dep = settings.depletion
+    held: dict[str, tuple[str, str, list, str, str]] = {}  # island water use, written once adjusted
+    rain_mean: dict[str, float] = {}
     for name, dwr_path, run_path in refs:
         out_file = new[name]
         if (out_file, run_path) in written:
@@ -223,12 +307,30 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
         for i in range(n):
             j = (same_day_in(settings.reference_year, t0 + i * step) - y0) // step
             out.append(vals[j] if 0 <= j < len(vals) else None)
-        d.write(out_file, run_path, t0, out, units or "UNDEF", kind or "INST-VAL")
+        if dep and name == dep.file and step == 86_400 and dss.parts(run_path)[2].upper() in (*dep.use, *dep.returns):
+            held[run_path] = (out_file, dss.parts(run_path)[2].upper(), out, units or "UNDEF", kind or "INST-VAL")
+            # The reference year's rain-season mean (value j is the day ending y0 + j steps).
+            wet = [v for j, v in enumerate(vals) if v is not None
+                   and datetime.fromtimestamp(y0 + (j - 1) * step - dss.PST, timezone.utc).month in RAIN_SEASON]
+            rain_mean[run_path] = sum(wet) / len(wet) if wet else 0.0
+        else:
+            d.write(out_file, run_path, t0, out, units or "UNDEF", kind or "INST-VAL")
         filled.append(run_path)
+    depletion_change: list[float] = []
+    if held:
+        # A daily value is stamped at its day's end: value i is the day from t0 + (i - 1) days.
+        n_days = len(next(iter(held.values()))[2])
+        targets = [dep.days.get(t0 + (i - 1) * 86_400) for i in range(n_days)]
+        new_vals, depletion_change = adjust_depletion({p: h[2] for p, h in held.items()}, {p: h[1] for p, h in held.items()},
+                                                      dep.use, dep.returns, targets, dep.add_use, rain_mean, dep.wetter)
+        for p, (out_file, _, _, units, kind) in held.items():
+            d.write(out_file, p, t0, new_vals[p], units, kind)
     missing = sorted(set(by_ae) - used)
     if missing:
         raise ValueError(f"live series not used by the study: {missing}")
-    return {"live": sorted(used), "reference_year": len(filled), "files": {k: new[k] for k in settings.replace}, "env": env_dwr}
+    return {"live": sorted(used), "reference_year": len(filled), "files": {k: new[k] for k in settings.replace}, "env": env_dwr,
+            "depletion": {"series": len(held), "days": sum(1 for c in depletion_change if c != 0.0),
+                          "change": depletion_change, "start": t0 - 86_400}}
 
 
 def with_hdf5_output(text: str, path: str, interval: str = "15min") -> str:

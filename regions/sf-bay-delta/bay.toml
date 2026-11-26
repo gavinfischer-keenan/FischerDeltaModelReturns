@@ -1,6 +1,7 @@
 # The Bay reach (specification 7.3): NOAA's San Francisco Bay forecast system
-# (SFBOFS, an FVCOM model), fetched each cycle, cut at Chipps Island and past
-# the Golden Gate, and coarsened for the compute engine. Data only.
+# (SFBOFS, an FVCOM model), fetched each cycle, cut where the rivers narrow
+# east of Chipps Island and past the Golden Gate, and coarsened for the compute
+# engine. Data only.
 
 reach = "bay"
 ofs = "sfbofs"
@@ -24,15 +25,27 @@ outflow = { source = "cdec", site = "DTO", duration = "D", parameter = "net_outf
 # days (storage east of Chipps took only 27 m3/s of it; the rest leaves at its
 # eastern boundary, which swings +-6,300 m3/s with the tide), against a measured
 # Delta outflow of about 290 m3/s seaward. Every published hour is therefore
-# given a steady potential flow from the Chipps edges to the sea, so that its
-# tidally filtered net flow across the join is DSM2's (fdmr_plugins.fvcom.correct);
-# the tides are NOAA's.
+# given a potential flow from the join's edges to the sea, so that its flow
+# across the join is DSM2's at that hour, tide and net alike
+# (fdmr_runner.bay.correct_outflow): the same water crosses from both sides.
+# Checked 25 Nov 2026 on 12-25 Nov: DSM2's tide at Rio Vista and Jersey Point
+# matches USGS's measured flow (correlation 0.955 and 0.975, 97% and 88% of
+# its size), so DSM2's is the flow kept at the join.
 
 # The mesh: NOAA's triangles kept between these longitudes. East of
-# `east_of` is the Delta's (DSM2's), across the estuary at Chipps Island;
-# west of `west_of` is open ocean too far out to matter.
+# `east_of` is the Delta's (DSM2's); west of `west_of` is open ocean too far
+# out to matter. The cut crosses each river where it has narrowed to one
+# channel: the Sacramento past Collinsville, the San Joaquin at Antioch, and
+# the south channel by Pittsburg. Moved there from Chipps Island (-121.915) on
+# 25 Nov 2026 (issue #2): east of Chipps the open water around Browns Island,
+# Winter Island and New York Slough was only DSM2's channel lines, so it was
+# drawn and tracked as lines through open water. Now every stretch of open
+# water is the mesh's and the network keeps only channels (38 of DSM2's
+# channels are the mesh's, 23 before). The join being nearer NOAA's eastern
+# boundary does not matter for the flow across it, which is DSM2's every hour
+# (below).
 [mesh]
-east_of = -121.915
+east_of = -121.79
 west_of = -122.75
 # Coarse node spacing: k times the size of NOAA's own triangles there, within
 # these limits (m). 2, 80 and 2500 give 5,317 nodes and 9,265 triangles over
@@ -48,8 +61,143 @@ max_m = 2500.0
 west_of = -122.52
 deeper_than_m = 15.0
 
-# Edges on the cut at Chipps Island hand over to the Delta (region.toml's
-# delta-to-bay handoff).
+# Edges on the cut hand over to the Delta (region.toml's delta-to-bay
+# handoff): the boundary edges within about a kilometre of it.
 [[mesh.handoffs]]
 id = "delta"
-east_of = -121.925
+east_of = -121.802
+
+# Salinity and temperature: NOAA's, corrected each day by the stations'
+# measured misfit (fdmr_runner.bay.correct_quality). NOAA's Bay reads far too
+# salty from Carquinez Strait into Suisun Bay (31 psu at Martinez against 14
+# measured, issue #6). Each day, at each station, the measured daily mean less
+# NOAA's at the station's node is spread over the mesh along the water,
+# weighted by inverse distance squared; past the last measured day each
+# station's mean misfit over its last three days is held. The summary in the
+# index gives each station's mean misfit, and the miss left there when the
+# correction is made from the other stations alone.
+#
+# Measured values are depth means where a station has two sensors (the mean of
+# the upper and lower), like the model's depth-averaged fields. Conductance is
+# turned to salinity by PSS-78. Stations and sensors: USGS's San Francisco Bay
+# continuous network and CDEC, checked 25 Nov 2026; coordinates from USGS
+# monitoring-locations and CDEC station pages.
+[quality]
+near_m = 2000.0  # a station further than this from every node is not used
+
+[[quality.stations]]
+source = "usgs"
+site = "11455780"
+name = "Suisun Bay at Benicia Bridge"
+lon = -122.1266
+lat = 38.0449
+conductance = ["specific_conductance_upper", "specific_conductance_lower"]
+temperature = ["water_temperature_upper", "water_temperature_lower"]
+
+[[quality.stations]]
+source = "usgs"
+site = "11455820"
+name = "Carquinez Strait at Carquinez Bridge"
+lon = -122.2255
+lat = 38.0613
+conductance = ["specific_conductance_upper", "specific_conductance_lower"]
+temperature = ["water_temperature_upper", "water_temperature_lower"]
+
+[[quality.stations]]
+source = "usgs"
+site = "375607122264701"
+name = "San Francisco Bay at Richmond-San Rafael Bridge"
+lon = -122.4464
+lat = 37.9353
+conductance = ["specific_conductance_upper", "specific_conductance_lower"]
+temperature = ["water_temperature_upper", "water_temperature_lower"]
+
+[[quality.stations]]
+source = "usgs"
+site = "374938122251801"
+name = "San Francisco Bay at Alcatraz Island"
+lon = -122.4217
+lat = 37.8272
+conductance = ["specific_conductance"]
+temperature = ["water_temperature"]
+
+[[quality.stations]]
+source = "usgs"
+site = "374811122235001"
+name = "San Francisco Bay at Pier 17"
+lon = -122.3973
+lat = 37.803
+conductance = ["specific_conductance"]
+temperature = ["water_temperature"]
+
+[[quality.stations]]
+source = "usgs"
+site = "11162765"
+name = "San Francisco Bay at San Mateo Bridge"
+lon = -122.2508
+lat = 37.5844
+conductance = ["specific_conductance_upper", "specific_conductance_lower"]
+temperature = ["water_temperature_upper", "water_temperature_lower"]
+
+[[quality.stations]]
+source = "usgs"
+site = "373015122071000"
+name = "South San Francisco Bay at Dumbarton Bridge"
+lon = -122.1205
+lat = 37.5041
+conductance = ["specific_conductance_upper", "specific_conductance_lower"]
+temperature = ["water_temperature_upper", "water_temperature_lower"]
+
+[[quality.stations]]
+source = "cdec"
+site = "MRZ"
+name = "Martinez"
+lon = -122.140488
+lat = 38.027637
+conductance = ["specific_conductance", "specific_conductance_bottom"]
+temperature = ["water_temperature"]
+
+[[quality.stations]]
+source = "cdec"
+site = "PCT"
+name = "Port Chicago"
+lon = -121.999971
+lat = 38.056788
+conductance = ["specific_conductance", "specific_conductance_bottom"]
+temperature = ["water_temperature"]
+
+[[quality.stations]]
+source = "cdec"
+site = "GZL"
+name = "Grizzly Bay"
+lon = -122.038117
+lat = 38.12425
+conductance = ["specific_conductance", "specific_conductance_bottom"]
+temperature = ["water_temperature"]
+
+[[quality.stations]]
+source = "cdec"
+site = "MAL"
+name = "Mallard Island"
+lon = -121.92009
+lat = 38.042805
+conductance = ["specific_conductance", "specific_conductance_bottom"]
+temperature = ["water_temperature"]
+
+[[quality.stations]]
+source = "cdec"
+site = "CLL"
+name = "Collinsville"
+lon = -121.850123
+lat = 38.073981
+conductance = ["specific_conductance", "specific_conductance_bottom"]
+temperature = ["water_temperature"]
+
+[[quality.stations]]
+source = "cdec"
+site = "ANH"
+name = "Antioch"
+lon = -121.802963
+lat = 38.01783
+conductance = ["specific_conductance", "specific_conductance_bottom"]
+temperature = ["water_temperature"]

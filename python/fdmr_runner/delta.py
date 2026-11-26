@@ -56,7 +56,7 @@ def feeds(region_dir: Path) -> list[dict]:
     """Every series the Delta's DSM2 run reads or is checked against, for fetching."""
     cfg = load(region_dir) or {}
     return [
-        *cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", []), *cfg.get("ec_checks", []),
+        *cfg.get("live", []), *cfg.get("live_gate", []), *cfg.get("checks", []), *cfg.get("ec_checks", []), *cfg.get("net_checks", []),
         *cfg.get("temperature", {}).get("water", []), *cfg.get("temp_checks", []),
     ]
 
@@ -231,6 +231,27 @@ def gate_setting(store: Store, g: dict, t0: int, now: int) -> study.LiveSetting:
     return study.LiveSetting(g["path"], g.get("units", "UNSPECIF"), pts)
 
 
+TO_DSS_M3S_CFS = 0.3048**3  # m3/s per cfs
+
+
+def live_depletion(store: Store, dcfg: dict, start: int, end: int, now: int) -> dict[int, float]:
+    """Each day's island water use (m3/s, by day's start) from the live
+    source: as reported for the days it covers; on later days, the last day
+    reported without rain (a value at or above zero, the depletion alone), as
+    rain is not forecast here. Days before the record keep the reference."""
+    vals = [(v.t, v.value) for v in store.values(dcfg["source"], dcfg["site"], dcfg["parameter"], start, now + 1) if v.value is not None]
+    days = {t: v for t, v in vals}
+    if not vals:
+        return days
+    dry = next((v for t, v in reversed(vals) if v >= 0), None)
+    if dry is not None:
+        t = vals[-1][0] + DAY
+        while t <= end:
+            days[t] = dry
+            t += DAY
+    return days
+
+
 def pst_midnight(t: int) -> int:
     return (t - dss.PST) // DAY * DAY + dss.PST
 
@@ -273,6 +294,49 @@ def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int,
     return _compare(c, model, grid(store, c, start + STEP, n))
 
 
+def net_check(store: Store, run_dir: Path, c: dict, start: int, end: int) -> dict:
+    """DSM2's net flow in a channel against a gauge's tidally filtered flow,
+    day by day over [start, end) (whole days, PST): DSM2's flow through the
+    channel (the mean of its two ends, from HYDRO's tidefile), filtered by
+    Godin's filter, and the gauge's own tidally filtered flow, each as daily
+    means. A measured day needs 18 hours of values (one daily value, for a
+    gauge that publishes only those)."""
+    import h5py
+    import numpy as np
+
+    from fdmr_plugins.dsm2.fields import tidefile_start
+    from fdmr_plugins.fvcom.correct import tidal_mean
+
+    modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
+    with h5py.File(run_dir / "output" / f"{modifier}.h5", "r") as f:
+        flow = f["hydro/data/channel flow"]
+        nums = list(f["hydro/geometry/channel_number"][:])
+        t0 = tidefile_start(flow.attrs["start_time"][0])
+        q = flow[:, nums.index(c["channel"]), :].mean(axis=1) / TO_DSS["CFS"]  # every 5 minutes
+    tq = t0 + 300 * np.arange(len(q))
+    qf = tidal_mean(q, 12.0)
+    days = range(start, end - DAY + 1, DAY)
+    rows = []
+    for d in days:
+        sel = (tq >= d) & (tq < d + DAY)
+        model = float(qf[sel].mean()) if sel.sum() >= 12 * 18 else None
+        vs = [v for v in store.values(c["source"], c["site"], c["parameter"], d, d + DAY - 1) if v.value is not None]
+        if c.get("duration") == "D":
+            meas = vs[0].value if vs else None
+        else:
+            meas = float(np.mean([v.value for v in vs])) if len({v.t // 3600 for v in vs}) >= 18 else None
+        if model is not None and meas is not None:
+            rows.append((model, meas))
+    if not rows:
+        return {"name": c["name"], "site": c["site"], "days": 0}
+    m, g = np.array(rows).T
+    return {
+        "name": c["name"], "site": c["site"], "channel": c["channel"], "days": len(rows),
+        "measured_mean": round(float(g.mean()), 1), "model_mean": round(float(m.mean()), 1),
+        "mean_difference": round(float((m - g).mean()), 1), "daily_mae": round(float(np.abs(m - g).mean()), 1),
+    }
+
+
 def _compare(c: dict, model: list[float | None], meas: list[float | None]) -> dict:
     w = 100  # 25 hours
     tm, tmeas = running_mean(model, w), running_mean(meas, w)
@@ -290,7 +354,8 @@ def _compare(c: dict, model: list[float | None], meas: list[float | None]) -> di
     }
 
 
-def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, out_root: Path, keep: int = 3) -> Path:
+def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, out_root: Path, keep: int = 3,
+                net_checks: list[dict] | None = None) -> Path:
     """Publish a finished run as a network reach (docs/format.md): geometry,
     daily field files from 14 days before now to the end of the forecast, and
     the reach's entry for index.json. Points out_root/latest at it."""
@@ -340,6 +405,8 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         "now": utc(now),
         "certainty": [round(fdmr_py.certainty_at(start + i * STEP - now, solid, end - now, floor), 4) for i in range(steps)],
         "flow_source": f"dsm2 run {run_dir.name}",
+        # Net flow against the gauges' own tidally filtered flow, the last 14 days (net_check).
+        **({"net_checks": net_checks} if net_checks else {}),
     }
     (pub / "reach.json").write_text(json.dumps(entry, separators=(",", ":")), encoding="utf-8")
     tmp = out_root / ".latest.tmp"
@@ -398,15 +465,27 @@ def main(argv: list[str] | None = None) -> int:
     live += [gate_setting(store, g, t0, now) for g in cfg.get("live_gate", [])]
     live += [study.LiveSetting(f["path"], f.get("units", "UNSPECIF"), [(t0, f["value"])]) for f in cfg.get("fixed", [])]
     root = DSM2_ROOT
+    dcfg = cfg.get("depletion")
+    depletion = None
+    if dcfg:
+        days = live_depletion(store, dcfg, t0 - DAY, end + 2 * DAY, now)
+        depletion = study.Depletion(dcfg["file"], tuple(dcfg["use"]), tuple(dcfg["returns"]),
+                                    {t: v / TO_DSS_M3S_CFS for t, v in days.items()}, dcfg.get("add_use", ""),
+                                    dcfg.get("wetter", True))
     settings = study.RunSettings(
         study=root / "inputs" / cfg["inputs"] / cfg["study"],
         replace=cfg["replace"], version=cfg["version"], version_settings=cfg["version_settings"],
         reference_year=cfg["reference_year"], tool=str(root / "bin" / "dsstool"), hydro=str(root / "bin" / "hydro"),
-        qual=str(root / "bin" / "qual"), mains=cfg.get("mains", ["hydro.inp"]),
+        qual=str(root / "bin" / "qual"), mains=cfg.get("mains", ["hydro.inp"]), depletion=depletion,
     )
     run_dir = Path(args.work) / (datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ") + ("-asof" if hindcast else ""))
     summary = study.build(settings, run_dir, start, end, live)
     print(f"run folder {run_dir}: {len(summary['live'])} live inputs, {summary['reference_year']} from {cfg['reference_year']}")
+    dp = summary.get("depletion") or {}
+    if dp.get("series"):
+        ch = [c * TO_DSS_M3S_CFS for c in dp["change"] if c != 0.0]
+        print(f"island water use: {dp['series']} series follow {dcfg['source']} {dcfg['parameter']} on {dp['days']} days"
+              + (f"; net use changed by {mean(ch):+.1f} m3/s on average ({min(ch):+.1f} to {max(ch):+.1f})" if ch else ""), flush=True)
     secs = study.run_hydro(settings, run_dir)
     print(f"hydro: {args.days + args.ahead} days in {secs:.0f} s")
     for main in settings.mains[1:]:
@@ -443,9 +522,17 @@ def main(argv: list[str] | None = None) -> int:
         print("past    ", json.dumps(check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP, kind)))
         if hindcast:
             print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP, kind)))
+    nets = []
+    for c in cfg.get("net_checks", []):
+        try:
+            nets.append(net_check(store, run_dir, c, today - 14 * DAY, today))
+        except Exception as e:  # one check's failure does not stop the run
+            print(f"net check {c['name']} FAILED {e}", flush=True)
+    for r in nets:
+        print("net     ", json.dumps(r))
     store.close()
     if args.publish and not hindcast:
-        pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish))
+        pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish), net_checks=nets)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())
         print(f"published {pub} ({size / 1e6:.1f} MB)")
         prune_runs(Path(args.work))
