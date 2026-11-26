@@ -50,20 +50,31 @@ export interface Structure {
   model_note?: string;
 }
 
+/** A named place on the water, and the piece of the model it is tied to. */
+export interface Landmark {
+  id: string;
+  name: string;
+  lon: number;
+  lat: number;
+  model?: { reach: string; element: number; km: number };
+}
+
 export interface Overlays {
   isohalines: Isohaline[];
   stations: Station[];
   structures?: Structure[];
+  landmarks?: Landmark[];
   units: Record<string, string>;
 }
 
-export type OverlayKind = "x2" | "stations" | "structures";
+export type OverlayKind = "x2" | "stations" | "structures" | "landmarks";
 
 /** Each kind's colour (also the legend's). */
 export const STRUCTURE_COLOUR: Record<Structure["kind"], string> = { dam: "#f4a261", pumps: "#ef476f", gate: "#b388eb" };
 
 const X2_COLOUR = "#ffd23f";
 const STATION_COLOUR = "#7fdbca";
+const LANDMARK_COLOUR = "#e8eef5";
 const FONT = ["Noto Sans Medium"];
 
 /** Where an isohaline is at time t: km and a point on the axis, or which side of it, past or future held. */
@@ -173,6 +184,43 @@ export function addOverlays(map: Map, ov: Overlays, describe: (s: Station) => st
       const s = structures[Number(f.id)];
       popup.setLngLat([s.lon, s.lat]).setHTML(describeStructure(s)).addTo(map);
     });
+    // Landmarks: a small mark and the name beside it, under the others' markers.
+    map.addSource("landmarks", {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: (ov.landmarks ?? []).map((l, i) => ({ type: "Feature", id: i, properties: { name: l.name }, geometry: { type: "Point", coordinates: [l.lon, l.lat] } })),
+      },
+    });
+    map.addLayer(
+      {
+        id: "landmarks",
+        type: "circle",
+        source: "landmarks",
+        layout: { visibility: "none" },
+        paint: { "circle-radius": 3, "circle-color": LANDMARK_COLOUR, "circle-stroke-color": "#0d1726", "circle-stroke-width": 1.5 },
+      },
+      "stations",
+    );
+    map.addLayer(
+      {
+        id: "landmark-labels",
+        type: "symbol",
+        source: "landmarks",
+        layout: {
+          visibility: "none",
+          "text-field": ["get", "name"],
+          "text-font": FONT,
+          "text-size": ["interpolate", ["linear"], ["zoom"], 7, 11, 11, 13],
+          "text-anchor": "left",
+          "text-offset": [0.7, 0],
+          "text-max-width": 14,
+          "text-optional": true,
+        },
+        paint: { "text-color": LANDMARK_COLOUR, "text-halo-color": "#0d1726", "text-halo-width": 1.5 },
+      },
+      "stations",
+    );
     for (const id of ["stations", "structures"]) {
       map.on("mouseenter", id, () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", id, () => (map.getCanvas().style.cursor = ""));
@@ -186,7 +234,12 @@ export function addOverlays(map: Map, ov: Overlays, describe: (s: Station) => st
 }
 
 export function showOverlay(map: Map, kind: OverlayKind, on: boolean): void {
-  const ids = { x2: ["x2-line", "x2-label"], stations: ["stations", "station-labels"], structures: ["structures", "structure-labels"] }[kind];
+  const ids = {
+    x2: ["x2-line", "x2-label"],
+    stations: ["stations", "station-labels"],
+    structures: ["structures", "structure-labels"],
+    landmarks: ["landmarks", "landmark-labels"],
+  }[kind];
   for (const id of ids) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
 }
 

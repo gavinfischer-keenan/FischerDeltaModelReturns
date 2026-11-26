@@ -91,3 +91,33 @@ def test_gate_state_and_structure_readings():
     assert groups == [("D", ["HRO"], ["pumping"]), ("H", ["DLC"], ["discharge"])]
     # Without the model's rule, no state is claimed.
     assert "state" not in overlays.structures(cfg, store, now, {})[0]
+
+
+def test_landmarks_take_their_place_and_the_nearest_model_element(tmp_path):
+    import json
+
+    from fdmr_runner import overlays
+
+    (tmp_path / "geometry").mkdir()
+    (tmp_path / "geometry" / "net.json").write_text(json.dumps(straight_net()))
+    # A 2D mesh of three nodes to the west.
+    (tmp_path / "geometry" / "mesh.json").write_text(json.dumps({"lon": [-122.2, -122.1, -122.05], "lat": [38.0, 38.0, 38.005]}))
+    index = {"reaches": [{"id": "net"}, {"id": "mesh"}]}
+    cfg = {
+        "stations": [{"site": "S1", "name": "Station", "lon": -121.985, "lat": 38.001}],
+        "structures": [{"id": "pumps", "name": "Pumps", "lon": -121.98, "lat": 38.0295}],
+        "landmarks": [
+            {"id": "a", "name": "On the network", "at": "S1"},
+            {"id": "b", "name": "At the pumps", "at": "pumps"},
+            {"id": "c", "name": "In the mesh", "lon": -122.049, "lat": 38.004},
+            {"id": "d", "name": "Far from both", "lon": -121.5, "lat": 38.5},
+        ],
+    }
+    got = {lm["id"]: lm for lm in overlays.landmarks(cfg, tmp_path, index)}
+    # S1 sits 0.11 km north of the second channel (between its ends, not at one).
+    assert got["a"]["lon"] == -121.985 and got["a"]["model"]["reach"] == "net" and got["a"]["model"]["element"] == 1
+    assert got["a"]["model"]["km"] == pytest.approx(0.111, abs=0.002)
+    # At the end of the side channel.
+    assert got["b"]["model"]["element"] == 5
+    assert got["c"]["model"] == {"reach": "mesh", "element": 2, "km": pytest.approx(0.142, abs=0.002)}
+    assert "model" not in got["d"]

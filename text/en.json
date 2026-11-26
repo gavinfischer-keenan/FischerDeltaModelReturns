@@ -90,5 +90,6 @@
   "reading_reservoir_outflow": "Release",
   "reading_reservoir_inflow": "Inflow",
   "reading_reservoir_storage": "Water held",
-  "reading_pumping": "Pumping"
+  "reading_pumping": "Pumping",
+  "overlay_landmarks": "Landmarks"
 }

@@ -381,3 +381,121 @@ lon = -121.505
 duration = "H"
 show = ["discharge"]
 state = { live_gate = "DLC" }  # the Delta model's own rule for it (dsm2.toml)
+
+# Landmarks (specification 3.5, 3.6): a fixed list of named places on the
+# water, from the top of the river to the sea, for reading arrival times off
+# and finding one's way. Each stands where an agency's station is, so its
+# position has a source: `at` names a station or structure above (and takes
+# its coordinates), or the coordinates are given with their station here,
+# fetched 25 Nov 2026 from USGS (monitoring-locations), NOAA CO-OPS (station
+# metadata) and CDEC (station pages). The runner ties each to the nearest
+# piece of the model (overlays.json `model`), which the arrival times will use.
+
+[[landmarks]]
+id = "keswick"
+name = "Keswick"
+at = "KWK"
+
+[[landmarks]]
+id = "bend_bridge"
+name = "Bend Bridge, near Red Bluff"
+lat = 40.288460  # USGS 11377100, Sacramento R above Bend Bridge
+lon = -122.186631
+
+[[landmarks]]
+id = "hamilton_city"
+name = "Hamilton City"
+lat = 39.750923  # CDEC HMC, Sacramento R at Hamilton City
+lon = -121.997879
+
+[[landmarks]]
+id = "colusa"
+name = "Colusa"
+lat = 39.214034  # USGS 11389500, Sacramento R at Colusa
+lon = -122.000221
+
+[[landmarks]]
+id = "verona"
+name = "Verona (the Feather River joins)"
+lat = 38.774323  # USGS 11425500, Sacramento R at Verona
+lon = -121.598259
+
+[[landmarks]]
+id = "sacramento"
+name = "Sacramento (I Street Bridge)"
+lat = 38.588673  # CDEC IST, Sacramento River at I Street Bridge
+lon = -121.504967
+
+[[landmarks]]
+id = "freeport"
+name = "Freeport"
+at = "FPT"
+
+[[landmarks]]
+id = "rio_vista"
+name = "Rio Vista"
+at = "RVB"
+
+[[landmarks]]
+id = "stockton"
+name = "Stockton"
+lat = 37.963  # CDEC RRI, San Joaquin R at Rough and Ready Island
+lon = -121.365
+
+[[landmarks]]
+id = "barker_slough"
+name = "North Bay Aqueduct intake"
+at = "barker_slough"
+
+[[landmarks]]
+id = "rock_slough"
+name = "Contra Costa intake, Rock Slough"
+# Where the Delta model takes this water: DSM2 grid node 206, at the head of
+# Rock Slough off Old River (DWR's georeferenced grid, 2026-04-16). The
+# pumping plant (CDEC INB, drawn with the structures) is 5.8 km down the
+# canal, beyond the model (issue #5).
+lat = 37.97602
+lon = -121.64105
+
+[[landmarks]]
+id = "state_pumps"
+name = "State pumps (Clifton Court Forebay)"
+at = "clifton_court"
+
+[[landmarks]]
+id = "federal_pumps"
+name = "Federal pumps (Jones)"
+at = "jones"
+
+[[landmarks]]
+id = "antioch"
+name = "Antioch"
+at = "ANH"
+
+[[landmarks]]
+id = "chipps_island"
+name = "Chipps Island"
+at = "MAL"
+
+[[landmarks]]
+id = "martinez"
+name = "Martinez"
+at = "MRZ"
+
+[[landmarks]]
+id = "carquinez"
+name = "Carquinez Strait (Davis Point)"
+lat = 38.056694  # NOAA 9415141, Davis Point
+lon = -122.25961
+
+[[landmarks]]
+id = "richmond"
+name = "Richmond"
+lat = 37.9283  # NOAA 9414863, Richmond
+lon = -122.4
+
+[[landmarks]]
+id = "golden_gate"
+name = "Golden Gate"
+lat = 37.806305  # NOAA 9414290, San Francisco (the Presidio tide gauge)
+lon = -122.46589

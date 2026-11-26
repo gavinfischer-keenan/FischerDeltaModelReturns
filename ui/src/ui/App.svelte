@@ -46,13 +46,15 @@
   let showX2 = $state(false);
   let showStations = $state(false);
   let showStructures = $state(false);
+  let showLandmarks = $state(true); // on at first: they say where things are
   const x2 = $derived(overlays?.isohalines.find((h) => h.id === "x2") ?? null);
   const x2Now = $derived(x2 ? isohalineAt(x2, t) : null);
   const x2Label = (km: number) => `X2 · ${km.toFixed(1)} km`;
-  function toggle(kind: "x2" | "stations" | "structures", on: boolean) {
+  function toggle(kind: "x2" | "stations" | "structures" | "landmarks", on: boolean) {
     if (kind === "x2") showX2 = on;
     else if (kind === "stations") showStations = on;
-    else showStructures = on;
+    else if (kind === "structures") showStructures = on;
+    else showLandmarks = on;
     if (map) showOverlay(map, kind, on);
     if (kind === "x2" && on && map && x2) drawIsohaline(map, x2, t, x2Label);
   }
@@ -242,6 +244,7 @@
               showOverlay(map, "x2", showX2);
               showOverlay(map, "stations", showStations);
               showOverlay(map, "structures", showStructures);
+              showOverlay(map, "landmarks", showLandmarks);
               if (showX2 && x2) drawIsohaline(map, x2, t, x2Label);
             });
           })
@@ -414,6 +417,7 @@
           <span>{text.overlays}</span>
           {#if x2}<label><input type="checkbox" checked={showX2} onchange={(e) => toggle("x2", (e.target as HTMLInputElement).checked)} /> {text.overlay_x2}</label>{/if}
           <label><input type="checkbox" checked={showStations} onchange={(e) => toggle("stations", (e.target as HTMLInputElement).checked)} /> {text.overlay_stations}</label>
+          {#if overlays.landmarks?.length}<label><input type="checkbox" checked={showLandmarks} onchange={(e) => toggle("landmarks", (e.target as HTMLInputElement).checked)} /> {text.overlay_landmarks}</label>{/if}
           {#if overlays.structures?.length}<label><input type="checkbox" checked={showStructures} onchange={(e) => toggle("structures", (e.target as HTMLInputElement).checked)} /> {text.overlay_structures}</label>{/if}
           {#if showX2 && x2Now}
             <span class="unit">

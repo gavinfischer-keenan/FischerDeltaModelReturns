@@ -7,6 +7,9 @@ cycle: `overlays.json` beside the cycle's index.
 - Stations: each station's latest reading of everything it measures, and,
   where it stands on a network reach that computes the same thing, the
   model's value at the same moment beside it.
+- Structures: dams, pumping plants and gates, with their latest readings.
+- Landmarks: named places on the water, each tied to the nearest piece of
+  the model (a reach and an element), for arrival times.
 
 The region's `overlays.toml` says what each one is. Nothing here draws.
 """
@@ -248,13 +251,68 @@ def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict]
     return out
 
 
+def _segment_km(p: np.ndarray, a: np.ndarray, b: np.ndarray) -> float:
+    """Distance from p to the segment a-b, all in km on a local plane."""
+    d = b - a
+    f = 0.0 if not d.any() else float(np.clip(np.dot(p - a, d) / np.dot(d, d), 0.0, 1.0))
+    return float(np.hypot(*(p - (a + f * d))))
+
+
+def nearest_element(geo: dict, lon: float, lat: float) -> tuple[int, float]:
+    """The element of a reach's geometry nearest a point, and how far, km: the
+    nearest line for a 1D reach (lines per element), the nearest node for a 2D
+    mesh (lon/lat per node)."""
+    def xy(lo, la):
+        return np.array(isohaline._xy(lo, la, lat))
+    p = xy(lon, lat)
+    if "lines" in geo:
+        best = (math.inf, -1)
+        for k, line in enumerate(geo["lines"]):
+            pts = [xy(lo, la) for lo, la in line]
+            d = min(_segment_km(p, pts[i], pts[i + 1]) for i in range(len(pts) - 1)) if len(pts) > 1 else float(np.hypot(*(p - pts[0])))
+            best = min(best, (d, k))
+        return best[1], best[0]
+    lo, la = np.asarray(geo["lon"]), np.asarray(geo["lat"])
+    c = math.cos(math.radians(lat))
+    d = np.hypot((lo - lon) * c, la - lat) * isohaline.KM_PER_DEG_LAT
+    k = int(np.argmin(d))
+    return k, float(d[k])
+
+
+def landmarks(cfg: dict, cdir: Path, index: dict) -> list[dict]:
+    """Each landmark where it stands, and the nearest element of any reach
+    within MODEL_NEAR_KM (`model`: reach, element index, km away); one with
+    none is drawn but has no model place."""
+    named = {s["site"]: s for s in cfg.get("stations", [])} | {s["id"]: s for s in cfg.get("structures", [])}
+    geos = {}
+    for r in index["reaches"]:
+        p = cdir / "geometry" / f"{r['id']}.json"
+        if p.exists():
+            geos[r["id"]] = json.loads(p.read_text(encoding="utf-8"))
+    out = []
+    for lm in cfg.get("landmarks", []):
+        src = named[lm["at"]] if "at" in lm else lm
+        lon, lat = float(src["lon"]), float(src["lat"])
+        entry = {"id": lm["id"], "name": lm["name"], "lon": lon, "lat": lat}
+        best = None
+        for rid, geo in geos.items():
+            k, d = nearest_element(geo, lon, lat)
+            if d <= MODEL_NEAR_KM and (best is None or d < best[2]):
+                best = (rid, k, d)
+        if best:
+            entry["model"] = {"reach": best[0], "element": best[1], "km": round(best[2], 3)}
+        out.append(entry)
+    return out
+
+
 def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> dict | None:
     cfg = load(region_dir)
     if cfg is None:
         return None
     st, units = stations(cfg, cdir, index, store, now)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
-            "structures": structures(cfg, store, now, units, (delta.load(region_dir) or {}).get("live_gate", [])), "units": units}
+            "structures": structures(cfg, store, now, units, (delta.load(region_dir) or {}).get("live_gate", [])),
+            "landmarks": landmarks(cfg, cdir, index), "units": units}
 
 
 def fetch_groups(cfg: dict) -> list[tuple[str, list[str], list[str]]]:
