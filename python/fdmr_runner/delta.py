@@ -73,17 +73,34 @@ def grid(store: Store, f: dict, t0: int, n: int, cutoff: int | None = None) -> l
     g0 = t0 - 3 * DAY
     m = n + 3 * 96
     if f.get("duration") == "D":
-        # A daily figure holds through its day, as in DWR's own inputs.
+        # A daily figure holds through its day, as in DWR's own inputs, unless
+        # the input gives its day's shape (`daily_shape`, see day_weights).
+        weights = day_weights(f.get("daily_shape"))
         full: list[float | None] = [None] * m
         for v in vals:
             first = max(0, (v.t - g0 + STEP - 1) // STEP)
             last = (min(v.t + DAY, end) - g0 + STEP - 1) // STEP
             for i in range(first, min(m, last)):
-                full[i] = v.value
+                hour = ((g0 + i * STEP - dss.PST) % DAY) // 3600  # Pacific Standard Time
+                full[i] = v.value * weights[hour]
     else:
         # Others are bridged across gaps of up to 6 hours.
         full = on_grid([(v.t, v.value) for v in vals], g0, STEP, m, max_gap_s=6 * 3600)
     return full[3 * 96 :]
+
+
+def day_weights(shape: list[float] | None) -> list[float]:
+    """How a daily figure is spread over its day: 24 hourly weights (Pacific
+    Standard Time, from midnight), scaled to average 1 so the day's total is
+    kept. None is flat. A shape must come with its source in the region's
+    config: an operator's schedule, or a record showing it (such as a dam
+    that releases only by day). None of this region's inputs has one."""
+    if shape is None:
+        return [1.0] * 24
+    if len(shape) != 24 or min(shape) < 0 or sum(shape) <= 0:
+        raise ValueError("daily_shape needs 24 hourly weights, none negative")
+    mean = sum(shape) / 24
+    return [w / mean for w in shape]
 
 
 def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forecasts: bool) -> tuple[list[float], str]:

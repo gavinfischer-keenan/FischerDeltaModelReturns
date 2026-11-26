@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturgeon: assumptions</title>
+<!--
+  Every place the model fills, spreads, holds or assumes data it does not
+  have (issue #22). Written by hand from the code; each row names the code
+  that does it, so it can be checked. Update this page with any change to
+  how data is filled or carried on.
+-->
+<style>
+  body { font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; margin: 12px; color: #111; background: #fff; }
+  h1 { font-size: 16px; } h2 { font-size: 14px; margin-top: 26px; border-top: 2px solid #000; padding-top: 6px; }
+  table { border-collapse: collapse; margin: 4px 0 10px; } td, th { border: 1px solid #999; padding: 3px 6px; text-align: left; vertical-align: top; }
+  th { background: #eee; } p { max-width: 1000px; } code { background: #f3f3f3; } .note { color: #555; }
+</style>
+</head>
+<body>
+<h1>Sturgeon: every assumption the model makes about data it does not have</h1>
+<p>Wherever a value is filled between readings, spread over a day, carried on into the future or taken from somewhere other than a measurement, it is listed here, with why, the code that does it, and the work that would replace it with data. Nothing is filled silently. Reviewed against the code on 26 Nov 2026. See also <a href="check.html">every published check</a>.</p>
+
+<h2>1. Between readings: putting measurements on the model's 15-minute steps</h2>
+<table>
+<tr><th>#</th><th>Where</th><th>Data</th><th>What is assumed</th><th>Why</th><th>Code</th><th>To replace it</th></tr>
+<tr><td>1.1</td><td>Rivers</td><td>Every gauge's flow (releases and gauges below them)</td><td>Each reading is put on its nearest step; between readings the last one is <b>held</b> (a step, not a ramp) until the next. Before the first reading, the first is held back. A gauge that posts only when its flow changes (CDEC "event" series: Camanche, Yuba, Merced, Stanislaus, the Feather gauges) therefore stays a step.</td><td>A release is changed in steps; a straight line would turn a sudden change into a slow one.</td><td><code>river_routing/wave.py regular</code>, <code>river_routing/model.py filled</code></td><td>—</td></tr>
+<tr><td>1.2</td><td>Delta (DSM2)</td><td>Daily figures: pumping at Banks, Jones, Barker Slough and Rock Slough; Camanche's release; Vernalis conductance</td><td>Each day's figure is <b>held flat through its day</b> (Pacific Standard Time), as in DWR's own inputs. How any of them varies within its day is not known from live data. An input may be given its day's shape (<code>daily_shape</code>: 24 hourly weights, the day's total kept), but only with a source; <b>none has one</b>. It is there for places where a release or pumping is known to follow the clock (elsewhere in the world, dams that release only by day).</td><td>Only daily figures are published live.</td><td><code>fdmr_runner/delta.py grid, day_weights</code></td><td>A sourced hourly shape, if one is ever found (an operator's schedule, or an hourly record)</td></tr>
+<tr><td>1.3</td><td>Delta (DSM2)</td><td>Every other input (river flows, tides, conductance, gates)</td><td>A <b>straight line</b> between readings across gaps of up to 6 hours; a longer gap is left empty and then the last value is <b>held</b> across it.</td><td>Readings come every 15 minutes to an hour; short gaps are dropped transmissions.</td><td><code>forecast.py on_grid</code>, <code>delta.py grid, carried_on</code></td><td>—</td></tr>
+<tr><td>1.4</td><td>River temperature</td><td>The release's measured temperature (below each dam)</td><td>A <b>straight line</b> between readings, across a gap of any length.</td><td>Release temperature changes slowly.</td><td><code>publish.py river_temperature</code></td><td>Limit the bridge to a stated gap</td></tr>
+<tr><td>1.5</td><td>River temperature, Delta</td><td>Weather (air temperature, dew point, wind, cloud, pressure) at each weather zone's airport(s)</td><td>A <b>straight line</b> between readings across gaps up to 6 hours; the mean of a zone's stations where it has several; each river element takes the <b>nearest airport's</b> weather.</td><td>Airports are the only hourly weather along the rivers.</td><td><code>delta.py weather</code>, <code>publish.py river_temperature</code></td><td>Land temperature contrast (#11) shows where an airport misrepresents its river</td></tr>
+<tr><td>1.6</td><td>Bay</td><td>The Delta's net daily outflow (DWR's index)</td><td>Each day's figure is <b>held through its day</b>, and held past the last.</td><td>It is a daily, tidally averaged index.</td><td><code>bay.py on_hours</code></td><td>—</td></tr>
+<tr><td>1.7</td><td>Map and checks</td><td>The model's values at a station or a check point</td><td>A <b>straight line</b> between the model's own steps (15 minutes on the rivers and the Delta, an hour in the Bay).</td><td>The model is published at those steps.</td><td><code>overlays.py NetworkValues.at</code>, <code>ledger.py at_times</code></td><td>—</td></tr>
+<tr><td>1.8</td><td>Tide residual</td><td>NOAA's tide predictions</td><td>A <b>straight line</b> between the 15-minute predictions, to each 6-minute reading.</td><td>The tide changes smoothly over 15 minutes.</td><td><code>overlays.py tide_residual</code></td><td>—</td></tr>
+</table>
+
+<h2>2. Corrections spread from stations to the places between them</h2>
+<table>
+<tr><th>#</th><th>Where</th><th>Data</th><th>What is assumed</th><th>Why</th><th>Code</th><th>To replace it</th></tr>
+<tr><td>2.1</td><td>River temperature</td><td>Each temperature station's misfit (measured less modelled)</td><td>Spread <b>linearly along the river</b> between stations, held beyond the outermost; past a station's last reading its misfit <b>fades away over about a day</b> (e-folding).</td><td>The heat model is right in kind but not in every degree; stations pull it back.</td><td><code>river_routing/heat.py correct</code></td><td>Tuning the heat model itself (#9)</td></tr>
+<tr><td>2.2</td><td>Bay</td><td>Each quality station's daily misfit (salinity, temperature)</td><td>Spread over the mesh by <b>distance along the water</b> (inverse distance squared); moved smoothly day to day; past the last measured day <b>held at each station's mean misfit over its last three days</b>. Check-only stations steer nothing.</td><td>NOAA's Bay model is fresher and warmer than the stations in places.</td><td><code>bay.py correct_quality</code>, <code>fvcom/correct.py spread</code></td><td>—</td></tr>
+</table>
+
+<h2>3. The future: carrying each input on past its last reading</h2>
+<table>
+<tr><th>#</th><th>Where</th><th>Data</th><th>What is assumed</th><th>Why</th><th>Code</th><th>To replace it</th></tr>
+<tr><td>3.1</td><td>Rivers</td><td>Dam releases (11 of 13 rivers)</td><td>The release is <b>held at its last value for all 14 days</b>. Only the Cosumnes (no dam) and the Stanislaus get the River Forecast Center's forecast.</td><td>No release schedule is published in the forecasts we read.</td><td><code>forecast.py extend</code></td><td><b>#21</b>: releases derived from each reservoir's balance and flood-control rules</td></tr>
+<tr><td>3.2</td><td>Rivers</td><td>Gauges with a River Forecast Center forecast</td><td>The forecast, <b>joined to the measured flow over the first day</b> (the difference fades out linearly); past the forecast's end, its last value is held.</td><td>Forecast and gauge rarely agree at the start.</td><td><code>forecast.py extend</code></td><td>—</td></tr>
+<tr><td>3.3</td><td>River temperature</td><td>Release temperature</td><td><b>Held at its last 25-hour mean</b>.</td><td>No release-temperature forecast exists.</td><td><code>publish.py river_temperature</code></td><td>Reservoir cold-water pools (#9's list)</td></tr>
+<tr><td>3.4</td><td>River temperature, Delta</td><td>Weather</td><td>The Weather Service's forecast (about 7 days), joined over a day, then <b>its last day repeated</b> to the end; air pressure has no forecast and is <b>held at its 25-hour mean</b>.</td><td>The forecast ends before ours does.</td><td><code>delta.py weather</code>, <code>forecast.py repeat_last_day</code></td><td>—</td></tr>
+<tr><td>3.5</td><td>Delta (DSM2)</td><td>The tide at Martinez</td><td>NOAA's predictions, <b>fitted to the gauge's last week</b> for timing, size and level. Surge is not forecast.</td><td>Predictions are tide alone.</td><td><code>delta.py carried_on</code>, <code>forecast.py fit_tide</code></td><td>The ocean edge (#18)</td></tr>
+<tr><td>3.6</td><td>Delta (DSM2)</td><td>Freeport and Vernalis flows</td><td>The River Forecast Center's forecast, joined over a day.</td><td>—</td><td><code>delta.py carried_on</code></td><td>—</td></tr>
+<tr><td>3.7</td><td>Delta (DSM2)</td><td>Everything else: pumping, other inflows, gates</td><td><b>Held at the last value</b>; a tidal signal (Martinez conductance) <b>held at its 25-hour mean</b>; gates <b>held in their last state</b>.</td><td>No forecast is published for them.</td><td><code>delta.py carried_on</code></td><td>Published pumping and gate schedules</td></tr>
+<tr><td>3.8</td><td>Delta (DSM2)</td><td>Island water use</td><td><b>DWR's 2024 averages</b>, not measured.</td><td>Not measured live.</td><td>DSM2 study inputs</td><td>OpenET (#8; needs an account)</td></tr>
+<tr><td>3.9</td><td>Bay</td><td>Beyond NOAA's 48-hour forecast</td><td>Carried on to the end of the Delta's forecast by a <b>fit of tides plus outflow drift</b> (refitted daily), driven by the latest measured daily outflow moved by DSM2's forecast change; <b>temperature and salinity held at NOAA's last forecast hour</b>.</td><td>NOAA's Bay forecast stops at 48 hours.</td><td><code>bay.py extension_hours</code>, <code>fvcom/extend.py</code></td><td>—</td></tr>
+<tr><td>3.10</td><td>Canals</td><td>Flow and quality down the export canals</td><td>The flow is the Delta's own export, the same all along a canal; the quality is the intake's, <b>carried down at the water's travel time</b>.</td><td>No live canal gauges are used.</td><td><code>canals.py</code></td><td>—</td></tr>
+</table>
+
+<h2>4. Shown or recorded, not fed to any model</h2>
+<table>
+<tr><th>#</th><th>Where</th><th>Data</th><th>What is assumed</th><th>Why</th><th>Code</th></tr>
+<tr><td>4.1</td><td>Map</td><td>Storage reservoirs' inflow and release (Shasta, Trinity, Oroville, New Bullards Bar, Folsom, New Melones, Don Pedro, McClure, Millerton)</td><td>Shown as <b>daily means</b>, not spread over the day. The hourly figures swing with power peaking (Folsom 118 to 2,135 cfs in a day) and CDEC's hourly inflow is worked out from storage changes (even below zero).</td><td>The daily means match DWR's own report.</td><td><code>overlays.toml daily</code></td></tr>
+<tr><td>4.2</td><td>Checks</td><td>Satellite water and land temperature (ECOSTRESS)</td><td>Only clear pixels 350 m from flagged cloud; a point counts only where its pixel and the eight around it agree in kind (all water, or the place's land).</td><td>Cloud edges read up to 6 °C cold.</td><td><code>adapters/ecostress.py</code></td></tr>
+<tr><td>4.3</td><td>Record</td><td>Soil moisture (SMAP Level 4)</td><td>An area's mean over its land cells (9 km), <b>partly modelled</b> by NASA (measurements assimilated into a land model).</td><td>The only gap-free soil moisture.</td><td><code>adapters/smap.py</code></td></tr>
+<tr><td>4.4</td><td>Record</td><td>Snowpack</td><td>DWR's <b>reviewed</b> station values, not raw sensors; a basin's percent of April 1 is its stations' total against their April 1 averages' total.</td><td>Raw pillows read inches where DWR's reviewed value is nil.</td><td><code>adapters/cdec_reports.py</code></td></tr>
+</table>
+<p class="note">Missing something? Every new fill, hold or interpolation must be added here, with its code, before it goes live.</p>
+</body>
+</html>

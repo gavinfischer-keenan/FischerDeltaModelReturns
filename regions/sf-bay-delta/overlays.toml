@@ -552,6 +552,7 @@ lat = 40.718
 lon = -122.42
 duration = "H"
 show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]  # hourly values swing with power peaking and storage-derived inflow
 storage_report = true
 snow = ["SACRAMENTO RIVER"]
 
@@ -759,6 +760,11 @@ box = [-123.0, 37.2, -120.3, 40.7]
 days = 14
 cache = "ecostress"
 
+# A storage reservoir's hourly release swings with its power plant (Folsom
+# 118 to 2,135 cfs within a day, 25-26 Nov 2026) and CDEC's hourly inflow is
+# worked out from the change in storage, so it swings too, even below zero
+# (Shasta -1,136 cfs); their daily means are what DWR's own report shows
+# (Folsom 1,316 cfs released), so those are shown (`daily`). Storage is hourly.
 # The reservoirs above each river's first dam (issue #13): storage, inflow and
 # release from each one's own CDEC sensors (15, 76, 23; hourly, or daily where
 # `daily` says so: checked 26 Nov 2026), its capacity and the historical
@@ -776,6 +782,7 @@ lat = 40.801
 lon = -122.762
 duration = "H"
 show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]  # hourly values swing with power peaking and storage-derived inflow
 storage_report = true
 snow = ["TRINITY RIVER"]
 
@@ -788,6 +795,7 @@ lat = 39.54
 lon = -121.493
 duration = "H"
 show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]  # hourly values swing with power peaking and storage-derived inflow
 storage_report = true
 snow = ["FEATHER RIVER"]
 
@@ -800,6 +808,7 @@ lat = 39.393
 lon = -121.14
 duration = "H"
 show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]  # hourly values swing with power peaking and storage-derived inflow
 storage_report = true
 snow = ["YUBA & AMERICAN RIVERS"]
 
@@ -812,6 +821,7 @@ lat = 38.683
 lon = -121.183
 duration = "H"
 show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]  # hourly values swing with power peaking and storage-derived inflow
 storage_report = true
 snow = ["YUBA & AMERICAN RIVERS"]
 
@@ -836,6 +846,7 @@ lat = 37.9481
 lon = -120.525
 duration = "H"
 show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]  # hourly values swing with power peaking and storage-derived inflow
 storage_report = true
 snow = ["MOKELUMNE & STANISLAUS RIVERS"]
 
