@@ -31,6 +31,7 @@ MET_URL = "https://www.ndbc.noaa.gov/data/realtime2/{station}.txt"
 MET_COLUMNS = {
     "air_temperature": ("ATMP", "degC", (-40.0, 55.0)), "dew_point": ("DEWP", "degC", (-50.0, 40.0)),
     "wind_speed": ("WSPD", "m/s", (0.0, 60.0)), "air_pressure": ("PRES", "hPa", (850.0, 1090.0)),
+    "wind_direction": ("WDIR", "deg", (0.0, 360.0)), "wind_gust": ("GST", "m/s", (0.0, 80.0)),
     "water_temperature": ("WTMP", "degC", (-2.0, 40.0)),  # a buoy's sea-surface temperature
 }
 

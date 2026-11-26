@@ -382,12 +382,80 @@ lat = 38.19489444
 lon = -122.0328139
 measures = ["water_temperature", "specific_conductance", "discharge"]
 
+# NOAA's other tide stations round the Bay and on the coast (26 Nov 2026,
+# CO-OPS station list and each one's latest data): water level for the tide
+# residual (measured less NOAA's prediction, both above MLLW: the storm surge
+# and the river's set-up), and wind and air pressure over the water (Point
+# Reyes has no wind sensor). Positions: CO-OPS's station metadata.
+[[stations]]
+source = "noaa-tides"
+site = "9414290"
+name = "San Francisco, Golden Gate (NOAA)"
+lat = 37.806305
+lon = -122.46589
+products = ["water_level", "wind", "air_pressure"]  # it offers no water temperature
+
+[[stations]]
+source = "noaa-tides"
+site = "9415020"
+name = "Point Reyes (NOAA)"
+lat = 37.994167
+lon = -122.97361
+products = ["water_level", "air_pressure"]
+
+[[stations]]
+source = "noaa-tides"
+site = "9414523"
+name = "Redwood City (NOAA)"
+lat = 37.506813
+lon = -122.21191
+products = ["water_level", "wind", "air_pressure"]
+
+[[stations]]
+source = "noaa-tides"
+site = "9415102"
+name = "Martinez-Amorco Pier (NOAA)"
+lat = 38.0346
+lon = -122.1252
+products = ["water_level", "wind", "air_pressure"]
+
+# The ocean off the Golden Gate (NDBC's standard files: wind, air pressure,
+# air and sea-surface temperature): the weather coming ashore, and upwelling,
+# which turns the alongshore wind into cold water at the coast. NOAA's daily
+# upwelling index (CUTI, oceanview.pfeg.noaa.gov erdCUTIdaily) was checked on
+# 26 Nov 2026 and runs two months behind (newest 27 Sep), so it is not used.
+# Positions: NDBC's active station list.
+[[stations]]
+source = "ndbc"
+kind = "weather"
+site = "46026"
+name = "San Francisco buoy, 18 nmi west (NDBC 46026)"
+lat = 37.75
+lon = -122.838
+
+[[stations]]
+source = "ndbc"
+kind = "weather"
+site = "46012"
+name = "Half Moon Bay buoy (NDBC 46012)"
+lat = 37.356
+lon = -122.881
+
+[[stations]]
+source = "ndbc"
+kind = "weather"
+site = "46013"
+name = "Bodega Bay buoy (NDBC 46013)"
+lat = 38.235
+lon = -123.317
+
 [[stations]]
 source = "noaa-tides"
 site = "9414750"
 name = "Alameda (NOAA)"
 lat = 37.771954
 lon = -122.30026
+products = ["water_temperature", "water_level", "wind", "air_pressure"]
 
 [[stations]]
 source = "noaa-tides"
@@ -395,6 +463,7 @@ site = "9414863"
 name = "Richmond (NOAA)"
 lat = 37.9283
 lon = -122.4000
+products = ["water_temperature", "water_level", "wind", "air_pressure"]
 
 [[stations]]
 source = "noaa-tides"
@@ -402,6 +471,7 @@ site = "9415144"
 name = "Port Chicago (NOAA)"
 lat = 38.056
 lon = -122.0395
+products = ["water_temperature", "water_level", "wind", "air_pressure"]
 
 [[stations]]
 source = "erddap:erddap.cencoos.org"

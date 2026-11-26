@@ -50,6 +50,10 @@ SHOWN = {
     "discharge": None,
     "air_temperature": None,
     "wind_speed": None,
+    "wind_direction": None,
+    "wind_gust": None,
+    "air_pressure": None,
+    "water_level": None,
 }
 CHECK_DAYS = 14  # each station's readings against the model over this many days
 MODEL_NEAR_KM = 1.0  # a station further than this from every channel gets no model value
@@ -249,6 +253,43 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
                     **({"model_reach": near[0].reach, "model_km": round(near[2], 2)} if near else {}),
                     **({"checks": checks} if checks else {})})
     return out, units
+
+
+RESIDUAL_DAYS = 7
+
+
+def tide_residual(cfg: dict, store: Store, now: int) -> list[dict]:
+    """The weather's and the river's part of the water level at each tide
+    station that measures it (`products` with "water_level"): measured less
+    NOAA's astronomical prediction (both above the station's MLLW), as hourly
+    means over the last RESIDUAL_DAYS: the latest hour, the mean (the slow
+    set-up from river flow, wind and pressure), and the highest and lowest
+    hour (surges and drawdowns), m."""
+    from fdmr_adapters.noaa_tides import PARAMETER as PREDICTION
+    from fdmr_adapters.noaa_tides import SOURCE as TIDES
+
+    out = []
+    t0 = now - RESIDUAL_DAYS * 86_400
+    for s in cfg.get("stations", []):
+        if s.get("source") != TIDES or "water_level" not in s.get("products", []):
+            continue
+        obs = [(v.t, v.value) for v in store.values(TIDES, s["site"], "water_level", t0, now + 1) if v.value is not None]
+        pred = [(v.t, v.value) for v in store.values(TIDES, s["site"], PREDICTION, t0 - 3600, now + 3600) if v.value is not None]
+        if len(obs) < 24 or len(pred) < 24:
+            continue
+        ot, ov = np.array(obs).T
+        pt, pv = np.array(pred).T
+        inside = (ot >= pt[0]) & (ot <= pt[-1])
+        res = ov[inside] - np.interp(ot[inside], pt, pv)
+        hours = (ot[inside] // 3600).astype(int)
+        hs, idx = np.unique(hours, return_inverse=True)
+        hourly = np.bincount(idx, weights=res) / np.bincount(idx)
+        if not len(hourly):
+            continue
+        out.append({"site": s["site"], "name": s["name"], "latest_hour": int(hs[-1] * 3600), "latest_m": round(float(hourly[-1]), 3),
+                    "mean_m": round(float(hourly.mean()), 3), "highest_m": round(float(hourly.max()), 3),
+                    "highest_at": int(hs[int(hourly.argmax())] * 3600), "lowest_m": round(float(hourly.min()), 3), "hours": int(len(hourly))})
+    return out
 
 
 def _summary(d: list[float]) -> dict:
@@ -484,7 +525,13 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
         sm = soil.summary(region_dir, store, now)
     except Exception as e:
         print(f"soil moisture FAILED {e}", flush=True)
+    tr = None
+    try:  # a record; the overlays are published whatever it says
+        tr = tide_residual(cfg, store, now)
+    except Exception as e:
+        print(f"tide residual FAILED {e}", flush=True)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
+            **({"tide_residual": tr} if tr else {}),
             **({"satellite_temperature": sat} if sat else {}),
             **({"land_temperature": lt} if lt and lt["stretches"] else {}),
             **({"soil_moisture": sm} if sm and sm["areas"] else {}),

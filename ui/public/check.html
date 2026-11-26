@@ -100,6 +100,18 @@ async function get(name) {
         percentile: a.percentile, "root zone, 7-day change": a.rootzone_change_7d })));
     } else h += "<p class='note'>(none yet)</p>";
 
+    h += "<h3>Tide residual: measured water level less NOAA's prediction (overlays.json tide_residual)</h3>";
+    h += "<p>Both above the station's MLLW datum; hourly means over the last 7 days, m. The mean is the slow set-up (river flow, wind, pressure); the highest and lowest hours are surges and drawdowns.</p>";
+    const iso = (s) => s ? new Date(s * 1000).toISOString().slice(0, 16) + "Z" : "";
+    h += table((ov.tide_residual || []).map((r) => ({ station: r.name, site: r.site, "latest hour": iso(r.latest_hour), latest: r.latest_m, "7-day mean": r.mean_m,
+      highest: r.highest_m, "highest at": iso(r.highest_at), lowest: r.lowest_m, hours: r.hours })));
+    h += "<h3>Weather over the water: each station's latest wind and pressure (overlays.json stations)</h3>";
+    const wx = ov.stations.filter((s) => s.readings.wind_speed || s.readings.air_pressure).map((s) => ({ station: s.name, source: s.source, site: s.site,
+      "wind, m/s": s.readings.wind_speed?.v, "from, degrees": s.readings.wind_direction?.v, "gust, m/s": s.readings.wind_gust?.v,
+      "pressure, hPa": s.readings.air_pressure?.v, "air, °C": s.readings.air_temperature?.v, "water, °C": s.readings.water_temperature?.v,
+      at: iso((s.readings.wind_speed || s.readings.air_pressure).t) }));
+    h += table(wx);
+
     h += "<h2>4. Reservoirs and snowpack (overlays.json structures)</h2>";
     const res = ov.structures.filter((s) => s.storage || (s.snow && s.snow.length)).map((s) => ({
       dam: s.name, site: s.site,

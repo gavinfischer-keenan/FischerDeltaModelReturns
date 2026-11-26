@@ -170,9 +170,17 @@ def main(argv: list[str] | None = None) -> int:
         if src == "ndbc":
             attempt(f"ndbc {s['site']}", lambda s=s: _NdbcO(store).fetch_met(s["site"]) if s.get("kind") == "weather" else _NdbcO(store).fetch(s["site"]))
         elif src == "noaa-tides":
-            cov = store.coverage(src, s["site"], "water_temperature")
-            f0 = max(now - 21 * 86_400, cov[1] + 1) if cov else now - 21 * 86_400
-            attempt(f"noaa {s['site']} water_temperature", lambda s=s, f0=f0: _Tides(store).fetch_water_temperature(s["site"], int(f0), int(now)))
+            from fdmr_adapters.noaa_tides import OBSERVED as _OBS
+
+            for prod in s.get("products", ["water_temperature"]):
+                cov = store.coverage(src, s["site"], _OBS[prod][0][1])
+                f0 = max(now - 21 * 86_400, cov[1] + 1) if cov else now - 21 * 86_400
+                attempt(f"noaa {s['site']} {prod}", lambda s=s, f0=f0, prod=prod: _Tides(store).fetch_observed(s["site"], prod, int(f0), int(now)))
+            if "water_level" in s.get("products", []):  # its predictions, for the tide residual
+                cov = store.coverage(src, s["site"], TIDE)
+                if not (cov and cov[0] <= now - 21 * 86_400 and cov[1] >= now + 86_400):
+                    f0 = now - 22 * 86_400 if not cov or cov[0] > now - 21 * 86_400 else cov[1] - 86_400
+                    attempt(f"noaa {s['site']} {TIDE}", lambda s=s, f0=f0: _Tides(store).fetch_predictions(s["site"], int(f0), int(now + 3 * 86_400)))
         elif src == SOURCE:
             for p in s.get("measures", ["water_temperature", "specific_conductance"]):
                 cov = store.coverage(SOURCE, s["site"], p)
