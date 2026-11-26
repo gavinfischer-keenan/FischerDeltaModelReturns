@@ -589,6 +589,18 @@ def publish(
             index["overlays"] = "overlays.json"
     except Exception as e:  # the water is published whatever happens to its overlays
         print(f"overlays FAILED {e}", flush=True)
+    # The prediction ledger (fdmr_runner.ledger): this cycle's predictions kept
+    # when due, and every kept prediction scored against what was measured.
+    if store.path.name != ":memory:":
+        try:
+            from . import ledger
+
+            skill = ledger.run(region_dir, cdir, index, store, store.path.parent / "ledger" / f"{index['region']}.sqlite", int(time.time()))
+            (cdir / "skill.json").write_text(json.dumps(skill, separators=(",", ":"), allow_nan=False), encoding="utf-8")
+            index["skill"] = "skill.json"
+            print(f"ledger: kept {skill['kept_this_cycle']} values; {skill['cycles']} cycles scored", flush=True)
+        except Exception as e:  # a record; the water is published whatever happens to it
+            print(f"ledger FAILED {e}", flush=True)
     (cdir / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
 
     tmp = out_dir / ".current.tmp"

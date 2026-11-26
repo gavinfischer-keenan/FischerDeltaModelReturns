@@ -65,6 +65,7 @@ class NetworkValues:
     a network's channels, a river's elements, or (`points`) a mesh's nodes."""
 
     def __init__(self, cdir: Path, entry: dict, fields: list[str]) -> None:
+        """With no `fields`, the geometry only: for finding places, not values."""
         import fdmr_py
 
         self.reach = entry["id"]
@@ -73,7 +74,7 @@ class NetworkValues:
             self.geo["lines"] = [[[x, y]] for x, y in zip(self.geo["lon"], self.geo["lat"])]
         data: dict[str, list[np.ndarray]] = {f: [] for f in fields}
         self.t0 = self.step = None
-        for day in entry["time"]["days"]:
+        for day in entry["time"]["days"] if fields else []:
             path = cdir / entry["id"] / f"{day}.quality.fdf"
             if not path.exists():
                 continue
@@ -189,13 +190,14 @@ def axis_km(axis: isohaline.Axis, lon: float, lat: float) -> float:
     return float(axis.line_km[int(np.argmin(np.hypot(*(xy - p).T)))])
 
 
-def model_lookups(cdir: Path, index: dict) -> list[NetworkValues]:
-    """Every reach that computes water quality, to look its values up."""
+def model_lookups(cdir: Path, index: dict, load: bool = True) -> list[NetworkValues]:
+    """Every reach that computes water quality, to look its values up (or,
+    with `load` False, only to find places on it)."""
     lookups = []
     for r in index["reaches"]:
         fields = sorted({f for f in SHOWN.values() if f and f in r.get("quality_fields", [])})
         if fields:  # a reach without its own time block (a river) runs on the cycle's
-            lk = NetworkValues(cdir, {**r, "time": r.get("time", index["time"])}, fields)
+            lk = NetworkValues(cdir, {**r, "time": r.get("time", index["time"])}, fields if load else [])
             lk.skip = frozenset(c for h in index.get("handoffs", []) if h.get("from") == r["id"] for c in h.get("owned", []))
             lookups.append(lk)
     return lookups
