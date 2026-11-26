@@ -342,7 +342,8 @@ def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict]
         max_age = LATEST_S if s.get("duration", "H") != "D" else 3 * 86_400
         readings = {}
         for p in s.get("show", []):
-            vs = [v for v in store.values(src, s["site"], p, now - max_age, now + 1) if v.value is not None]
+            age = 3 * 86_400 if p in s.get("daily", []) else max_age
+            vs = [v for v in store.values(src, s["site"], p, now - age, now + 1) if v.value is not None]
             if vs:
                 units[p] = store.unit(src, s["site"], p) or ""
                 readings[p] = {"v": round(vs[-1].value, 3), "t": vs[-1].t}
@@ -356,8 +357,51 @@ def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict]
                 entry["state"] = st
         if "model_note" in s:
             entry["model_note"] = s["model_note"]
+        if s.get("storage_report"):
+            st = storage(store, src, s["site"], readings.get("reservoir_storage", {}).get("v"), now)
+            if st:
+                entry["storage"] = st
+        if s.get("snow"):
+            entry["snow"] = [g for g in (snowpack(store, src, grp, now) for grp in s["snow"]) if g]
         out.append(entry)
     return out
+
+
+def _latest(store: Store, src: str, site: str, p: str, t0: int, t1: int) -> float | None:
+    vs = [v for v in store.values(src, site, p, t0, t1) if v.value is not None]
+    return vs[-1].value if vs else None
+
+
+def storage(store: Store, src: str, site: str, held: float | None, now: int) -> dict | None:
+    """A reservoir's storage against its capacity and the historical average
+    for the date (DWR's daily reservoir report, fdmr_adapters.cdec_reports)."""
+    cap = _latest(store, src, site, "reservoir_capacity", now - 3 * 86_400, now + 1)
+    avg = _latest(store, src, site, "reservoir_storage_average", now - 3 * 86_400, now + 1)
+    if cap is None:
+        return None
+    out = {"capacity_m3": round(cap), **({"average_m3": round(avg)} if avg else {})}
+    if held is not None:
+        out["percent_full"] = round(100 * held / cap, 1)
+        if avg:
+            out["percent_of_average"] = round(100 * held / avg, 1)
+    return out
+
+
+def snowpack(store: Store, src: str, group: str, now: int) -> dict | None:
+    """A snow basin group's latest summary (DWR's reviewed values,
+    fdmr_adapters.cdec_reports) and its change over the last week."""
+    from fdmr_adapters.cdec_reports import slug
+
+    site = slug(group)
+    swe = _latest(store, src, site, "snow_water_equivalent", now - 3 * 86_400, now + 1)
+    if swe is None:
+        return None
+    week = _latest(store, src, site, "snow_water_equivalent", now - 10 * 86_400, now - 7 * 86_400 + 1)
+    pct = _latest(store, src, site, "snow_percent_april1", now - 3 * 86_400, now + 1)
+    n = _latest(store, src, site, "snow_stations", now - 3 * 86_400, now + 1)
+    return {"group": group, "site": site, "stations": int(n or 0), "swe_mm": round(swe, 1),
+            **({"percent_april1": round(pct, 1)} if pct is not None else {}),
+            **({"change_7d_mm": round(swe - week, 1)} if week is not None else {})}
 
 
 def _segment_km(p: np.ndarray, a: np.ndarray, b: np.ndarray) -> float:
@@ -441,6 +485,9 @@ def fetch_groups(cfg: dict) -> list[tuple[str, list[str], list[str]]]:
             groups.setdefault((s.get("duration", "H"), tuple(p for p in SHOWN if p in cdec.SENSORS)), []).append(s["site"])
     for s in cfg.get("structures", []):
         if s.get("source", cdec.SOURCE) == cdec.SOURCE:
-            ps = tuple(s.get("show", []))
-            groups.setdefault((s.get("duration", "H"), ps), []).append(s["site"])
+            daily = set(s.get("daily", []))  # series this one reports daily only
+            for dur, ps in ((s.get("duration", "H"), tuple(p for p in s.get("show", []) if p not in daily)),
+                            ("D", tuple(p for p in s.get("show", []) if p in daily))):
+                if ps:
+                    groups.setdefault((dur, ps), []).append(s["site"])
     return [(d, sites, list(ps)) for (d, ps), sites in sorted(groups.items())]

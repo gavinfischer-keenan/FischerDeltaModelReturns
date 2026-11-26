@@ -153,9 +153,6 @@ def main(argv: list[str] | None = None) -> int:
             attempt(f"swot {r['id']}", lambda r=r: sw.fetch(r["id"], iso(now - 60 * 86_400), iso(now)))
     # Water temperature seen from orbit (overlays.toml [satellite_temperature]):
     # each new pass's water pixels, kept beside the store.
-    from . import overlays as _ov
-
-    ocfg = _ov.load(Path(args.region)) or {}
     if not args.forecast_only and ocfg.get("satellite_temperature"):
         from fdmr_adapters.ecostress import EcostressAdapter
 
@@ -197,6 +194,15 @@ def main(argv: list[str] | None = None) -> int:
             attempt(f"cdec {len(held)} stations ({dur}) from {iso(f0)}", lambda h=held, f0=f0, d=dur: sum(cdec.fetch_many(h, shown, int(f0), int(now), d).values()))
         if new:
             attempt(f"cdec {len(new)} new stations ({dur})", lambda n=new, d=dur: sum(cdec.fetch_many(n, shown, int(start), int(now), d).values()))
+    # DWR's daily reservoir and snow reports, for the dams that show them.
+    res = [s["site"] for s in ocfg.get("structures", []) if s.get("storage_report")]
+    if not args.forecast_only and (res or any(s.get("snow") for s in ocfg.get("structures", []))):
+        from fdmr_adapters.cdec_reports import CdecReports
+
+        reports = CdecReports(store)
+        if res:
+            attempt("cdec reservoir report", lambda: reports.fetch_storage(res, int(now)))
+        attempt("cdec snow reports", lambda: reports.fetch_snow(int(now)))
     # Feeds of other model kinds' flow sources, such as the Delta's DSM2 inputs.
     for f in [] if args.forecast_only else delta.feeds(Path(args.region)):
         src, site, p = f["source"], f["site"], f["parameter"]

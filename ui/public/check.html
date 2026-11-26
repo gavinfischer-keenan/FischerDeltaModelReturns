@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturgeon: checks</title>
+<!--
+  A plain page of every check the published cycle carries, for verifying the
+  maths (issue #9). It reads the same files as the map: index.json,
+  overlays.json and skill.json under data/<region>/current/. Nothing here
+  computes; it lays out what was published. ?region=<id> picks the region.
+-->
+<style>
+  body { font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; margin: 12px; color: #111; background: #fff; }
+  h1 { font-size: 16px; } h2 { font-size: 14px; margin-top: 28px; border-top: 2px solid #000; padding-top: 6px; } h3 { font-size: 13px; margin: 14px 0 4px; }
+  table { border-collapse: collapse; margin: 4px 0 10px; } td, th { border: 1px solid #999; padding: 2px 6px; text-align: right; vertical-align: top; }
+  th { background: #eee; } td.l, th.l { text-align: left; } p { max-width: 980px; } pre { background: #f6f6f6; padding: 6px; overflow-x: auto; max-width: 100%; }
+  .bad { background: #fdd; } .note { color: #555; }
+</style>
+</head>
+<body>
+<h1>Sturgeon: every published check</h1>
+<p class="note">The current cycle's checks as published, for verifying the maths. Misfits are measured less modelled (or less predicted) unless a table says otherwise; satellite differences are satellite less station or model. Units are the stored ones: m³/s, °C, µS/cm, psu, m³, mm.</p>
+<div id="out">Loading…</div>
+<script>
+const region = new URLSearchParams(location.search).get("region") || "sf-bay-delta";
+const base = new URL(`data/${region}/current/`, location.href).href;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmt = (v) => typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString("en-US") : Math.abs(v) >= 1000 ? Math.round(v).toLocaleString("en-US") : v.toPrecision(4).replace(/\.?0+$/, "")) : v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
+/** rows: array of flat objects; cols: [key, heading] pairs (or keys). */
+function table(rows, cols, flag) {
+  if (!rows || !rows.length) return "<p class='note'>(none)</p>";
+  cols = cols || [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  cols = cols.map((c) => Array.isArray(c) ? c : [c, c]);
+  const head = cols.map(([, h]) => `<th class="${typeof rows[0][cols[0][0]] === "number" ? "" : "l"}">${esc(h)}</th>`).join("");
+  const body = rows.map((r) => `<tr class="${flag && flag(r) ? "bad" : ""}">` + cols.map(([k]) => `<td class="${typeof r[k] === "number" ? "" : "l"}">${esc(fmt(r[k]))}</td>`).join("") + "</tr>").join("");
+  return `<table><tr>${head}</tr>${body}</table>`;
+}
+/** Anything published: a list of flat objects as a table, an object of those by key, else the raw values. */
+function anything(v) {
+  const flat = (o) => o && typeof o === "object" && !Array.isArray(o) && Object.values(o).every((x) => x === null || typeof x !== "object");
+  if (Array.isArray(v) && v.length && v.every(flat)) return table(v);
+  if (flat(v)) return table([v]);
+  if (v && typeof v === "object" && !Array.isArray(v)) {
+    const parts = Object.entries(v).map(([k, x]) => `<h3>${esc(k)}</h3>` + anything(x));
+    return parts.join("");
+  }
+  return `<pre>${esc(JSON.stringify(v, null, 1))}</pre>`;
+}
+async function get(name) {
+  const r = await fetch(base + name, { cache: "no-store" });
+  return r.ok ? r.json() : null;
+}
+(async () => {
+  const index = await get("index.json");
+  if (!index) { document.getElementById("out").textContent = "No published cycle found at " + base; return; }
+  const ov = index.overlays ? await get(index.overlays) : null;
+  const skill = index.skill ? await get(index.skill) : null;
+  let h = `<p>Region <b>${esc(index.region)}</b>, cycle <b>${esc(index.cycle)}</b>, status ${esc(index.status)}, newest data by source: ${esc(Object.entries(index.data_age_s || {}).map(([k, s]) => `${k} ${Math.round(s / 60)} min old`).join(", "))}. Files: <a href="${base}index.json">index.json</a> · <a href="${base}overlays.json">overlays.json</a> · <a href="${base}skill.json">skill.json</a></p>`;
+
+  h += "<h2>1. Prediction ledger: forecasts against what happened (skill.json)</h2>";
+  if (skill) {
+    h += `<p>${skill.cycles} cycles kept in the last ${skill.window_days} days. Each prediction against the reading nearest its time (within 30 min), measured less predicted, by how far ahead it was made.</p>`;
+    h += table(skill.groups, [["reach", "reach"], ["parameter", "quantity"], ["lead", "lead"], ["pairs", "pairs"], ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"]]);
+    h += "<h3>Per check point</h3>";
+    const pts = skill.points.flatMap((p) => Object.entries(p.leads).map(([lead, s]) => ({ reach: p.reach, name: p.name, source: p.source, site: p.site, parameter: p.parameter, lead, ...s })));
+    h += table(pts, ["reach", "name", "source", "site", "parameter", "lead", "pairs", ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"]]);
+  } else h += "<p class='note'>(no skill.json in this cycle)</p>";
+
+  h += "<h2>2. Stations against the model covering them, last 14 days (overlays.json)</h2>";
+  if (ov) {
+    const rows = ov.stations.flatMap((s) => Object.entries(s.checks || {}).map(([p, c]) => ({ name: s.name, source: s.source, site: s.site, model: s.model_reach, km: s.model_km, parameter: p, ...c })));
+    rows.sort((a, b) => (a.parameter + a.model).localeCompare(b.parameter + b.model) || Math.abs(b.rms_misfit) - Math.abs(a.rms_misfit));
+    h += table(rows, ["parameter", "model", "name", "source", "site", ["km", "km to model"], "readings", ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"]]);
+    const none = ov.stations.filter((s) => !s.model_reach).map((s) => `${s.name} (${s.source} ${s.site})`);
+    h += `<p class="note">On the map but beyond 1 km of every model: ${esc(none.join("; ") || "none")}.</p>`;
+
+    h += "<h2>3. Water temperature seen from orbit (overlays.json satellite_temperature)</h2>";
+    const sat = ov.satellite_temperature;
+    if (sat) {
+      h += `<p>${esc(sat.source)}: ${sat.passes} passes, newest ${esc(sat.newest)}. Satellite less station, then satellite less model.</p>`;
+      if (sat.stations) h += table([{ stations: sat.stations.stations, pairs: sat.stations.pairs, mean: sat.stations.mean_difference, rms: sat.stations.rms_difference }]) + table(sat.stations.per_station);
+      if (sat.models) h += table(Object.entries(sat.models).map(([reach, m]) => ({ reach, ...m })));
+    } else h += "<p class='note'>(none in this cycle)</p>";
+
+    h += "<h2>4. Reservoirs and snowpack (overlays.json structures)</h2>";
+    const res = ov.structures.filter((s) => s.storage || (s.snow && s.snow.length)).map((s) => ({
+      dam: s.name, site: s.site,
+      "storage, million m³": s.readings.reservoir_storage ? s.readings.reservoir_storage.v / 1e6 : null,
+      "inflow, m³/s": s.readings.reservoir_inflow ? s.readings.reservoir_inflow.v : null,
+      "release, m³/s": s.readings.reservoir_outflow ? s.readings.reservoir_outflow.v : null,
+      "capacity, million m³": s.storage ? s.storage.capacity_m3 / 1e6 : null,
+      "% full": s.storage ? s.storage.percent_full : null,
+      "% of average for the date": s.storage ? s.storage.percent_of_average : null,
+      "snow basin": (s.snow || []).map((g) => g.group).join(", "),
+      "snow stations": (s.snow || []).map((g) => g.stations).join(", "),
+      "snow water, mm": (s.snow || []).map((g) => g.swe_mm).join(", "),
+      "% of April 1": (s.snow || []).map((g) => g.percent_april1).join(", "),
+      "7-day change, mm": (s.snow || []).map((g) => g.change_7d_mm ?? "").join(", "),
+    }));
+    h += table(res);
+    h += "<p class='note'>Storage, inflow and release: each dam's CDEC sensors. Capacity and the average for the date: DWR's daily reservoir report. Snow: DWR's reviewed snow sensor values (Page 6), each basin group's mean, and its total against its April 1 averages' total.</p>";
+  }
+
+  h += "<h2>5. Each reach's own checks (index.json)</h2>";
+  for (const r of index.reaches) {
+    const keys = Object.keys(r).filter((k) => /check|correction|seam|overlap/.test(k));
+    if (!keys.length) continue;
+    h += `<h3>${esc(r.id)} (${esc(r.kind)})</h3>` + keys.map((k) => `<h3>${esc(r.id)} · ${esc(k)}</h3>` + anything(r[k])).join("");
+  }
+  document.getElementById("out").innerHTML = h;
+})().catch((e) => { document.getElementById("out").textContent = "Failed: " + e; });
+</script>
+</body>
+</html>

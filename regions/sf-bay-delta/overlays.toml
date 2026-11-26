@@ -459,7 +459,8 @@ site = "CMN"
 lat = 38.225
 lon = -121.021
 duration = "D"   # its event series posts only when the release changes; the daily mean is always there
-show = ["reservoir_outflow"]
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true
 
 [[structures]]
 id = "new_hogan"
@@ -469,7 +470,8 @@ site = "NHG"
 lat = 38.152
 lon = -120.812
 duration = "H"
-show = ["reservoir_outflow"]
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true  # no snow sensor stands in the Calaveras's basin
 
 [[structures]]
 id = "shasta"
@@ -480,6 +482,8 @@ lat = 40.718
 lon = -122.42
 duration = "H"
 show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true
+snow = ["SACRAMENTO RIVER"]
 
 [[structures]]
 id = "keswick"
@@ -684,3 +688,122 @@ source = "NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), water-surface temperature"
 box = [-123.0, 37.2, -120.3, 40.7]
 days = 14
 cache = "ecostress"
+
+# The reservoirs above each river's first dam (issue #13): storage, inflow and
+# release from each one's own CDEC sensors (15, 76, 23; hourly, or daily where
+# `daily` says so: checked 26 Nov 2026), its capacity and the historical
+# average storage for the date from DWR's daily reservoir report (`RES`,
+# `storage_report`), and the snowpack of its basin group from DWR's reviewed
+# snow sensor values (`PAGE6`, `snow`). Positions and operators: CDEC's station
+# pages. Kept as the record of what fed the rivers, for the validation work
+# (#9), and later perhaps for release forecasts.
+[[structures]]
+id = "trinity"
+kind = "dam"
+name = "Trinity Dam (its water is sent on into the Sacramento at Keswick)"
+site = "CLE"
+lat = 40.801
+lon = -122.762
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true
+snow = ["TRINITY RIVER"]
+
+[[structures]]
+id = "oroville"
+kind = "dam"
+name = "Oroville Dam (the Feather)"
+site = "ORO"
+lat = 39.54
+lon = -121.493
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true
+snow = ["FEATHER RIVER"]
+
+[[structures]]
+id = "new_bullards_bar"
+kind = "dam"
+name = "New Bullards Bar Dam (the Yuba)"
+site = "BUL"
+lat = 39.393
+lon = -121.14
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true
+snow = ["YUBA & AMERICAN RIVERS"]
+
+[[structures]]
+id = "folsom"
+kind = "dam"
+name = "Folsom Dam (the American)"
+site = "FOL"
+lat = 38.683
+lon = -121.183
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true
+snow = ["YUBA & AMERICAN RIVERS"]
+
+[[structures]]
+id = "pardee"
+kind = "dam"
+name = "Pardee Dam (the Mokelumne, above Camanche)"
+site = "PAR"
+lat = 38.25
+lon = -120.85
+duration = "H"
+show = ["reservoir_storage"]  # its inflow and release are not reported live
+storage_report = true
+snow = ["MOKELUMNE & STANISLAUS RIVERS"]
+
+[[structures]]
+id = "new_melones"
+kind = "dam"
+name = "New Melones Dam (the Stanislaus)"
+site = "NML"
+lat = 37.9481
+lon = -120.525
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+storage_report = true
+snow = ["MOKELUMNE & STANISLAUS RIVERS"]
+
+[[structures]]
+id = "don_pedro"
+kind = "dam"
+name = "Don Pedro Dam (the Tuolumne)"
+site = "DNP"
+lat = 37.702
+lon = -120.421
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]
+storage_report = true
+snow = ["TUOLUMNE & MERCED RIVERS"]
+
+[[structures]]
+id = "mcclure"
+kind = "dam"
+name = "New Exchequer Dam, Lake McClure (the Merced)"
+site = "EXC"
+lat = 37.585
+lon = -120.27
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]
+storage_report = true
+snow = ["TUOLUMNE & MERCED RIVERS"]
+
+[[structures]]
+id = "millerton"
+kind = "dam"
+name = "Friant Dam, Millerton Lake (the San Joaquin)"
+site = "MIL"
+lat = 37.001
+lon = -119.705
+duration = "H"
+show = ["reservoir_outflow", "reservoir_inflow", "reservoir_storage"]
+daily = ["reservoir_outflow", "reservoir_inflow"]
+storage_report = true
+snow = ["SAN JOAQUIN RIVER"]
