@@ -120,6 +120,8 @@ pub struct Engine {
     /// Parcels that passed the end since last taken: (time, mass, half-life),
     /// for handing on to the next reach (specification 7.4).
     outflow: Vec<(f64, f64, Option<f64>)>,
+    /// Water-quality fields per element (`<day>.quality.fdf`), loaded to be shown.
+    quality: series::Series,
 }
 
 impl Engine {
@@ -137,7 +139,46 @@ impl Engine {
             particles: Vec::new(),
             balance: MassBalance::default(),
             outflow: Vec::new(),
+            quality: series::Series::default(),
         }
+    }
+
+    /// Load one day's water-quality file (such as `temperature`, per element),
+    /// to show it.
+    ///
+    /// # Errors
+    /// If the file is not a quality file for this reach.
+    pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), EngineError> {
+        self.quality
+            .load_day(bytes, &[])
+            .map_err(EngineError::Format)?;
+        if self.quality.elements != self.elements() {
+            return Err(EngineError::WrongReach(format!(
+                "quality file has {} elements, expected {}",
+                self.quality.elements,
+                self.elements()
+            )));
+        }
+        Ok(())
+    }
+
+    /// A water-quality field's value now where each flow particle is, in the
+    /// order of `particle_snapshot`; `NaN` where there is none.
+    #[must_use]
+    pub fn particle_values(&self, name: &str) -> Vec<f32> {
+        let per = self.quality.at(self.time, name);
+        self.particles
+            .iter()
+            .map(|p| {
+                per.as_ref()
+                    .and_then(|v| v.get(self.element(p.x)))
+                    .map_or(f32::NAN, |&x| {
+                        #[allow(clippy::cast_possible_truncation)]
+                        let y = x as f32;
+                        y
+                    })
+            })
+            .collect()
     }
 
     #[must_use]

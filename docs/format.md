@@ -72,6 +72,8 @@ Where each element lies, for the compute engine and for drawing. For a 1D reach:
 }
 ```
 
+A river reach whose temperature is modelled also has `<day>.quality.fdf` per day, with `temperature` (degC) per element, and its index entry lists `quality_fields` and carries `temperature_checks`: for each station measuring it, its chainage (`km`), `readings`, the model's misfit before correction (`mean_misfit`, `rms_misfit`, degC, measured less modelled) and its miss when the correction is made from the other stations alone (`left_out_mean`, `left_out_rms`).
+
 `start_m` and `end_m` are distances along the reach (chainage). `width_m` (optional) is the element's water-surface width at its median flow over the published steps: a reader spreads flow particles across it, and seeds them evenly over the water's surface, as for a network. `lines` holds a short polyline per element, longitude and latitude, from its upstream end to its downstream end.
 
 ### Network geometry (1D, version 1.1)

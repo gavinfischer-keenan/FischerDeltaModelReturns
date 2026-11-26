@@ -46,6 +46,8 @@
   "layer_source": "Water source",
   "legend_plain": "Particles show which way the water moves and how fast.",
   "legend_river_grey": "grey where not modelled yet (the river above the Delta)",
+  "legend_rivers_fresh": "the rivers above the Delta are fresh water, shown as fresh (below 0.5 psu): not measured there",
+  "legend_river_temperature": "the rivers: their releases' measured temperature carried down with the weather, corrected to the measuring stations; grey where no release temperature is measured (the Yuba, Bear, Mokelumne, Cosumnes, Merced, Cache Creek)",
   "legend_source_note": "Delta: DSM2's source tracking; the river is all Sacramento water; grey in the Bay, whose model tracks no sources",
   "source_sac": "Sacramento",
   "source_sjr": "San Joaquin",

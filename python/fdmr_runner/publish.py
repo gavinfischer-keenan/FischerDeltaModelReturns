@@ -200,9 +200,12 @@ def river_days(t0: int, end: int, n: int) -> list[tuple[str, int, int, int]]:
 
 
 def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str, t0: int, now: int, end: int,
-                  ahead: int, datums: dict | None, calibration: dict | None) -> tuple[dict, list[int]]:
+                  ahead: int, datums: dict | None, calibration: dict | None,
+                  weather_cache: dict | None = None, done: dict | None = None) -> tuple[dict, list[int]]:
     """One river-routing reach's geometry and day files in `cdir`: its index entry,
-    and the issue times of the river forecasts it used."""
+    and the issue times of the river forecasts it used. `done` holds each reach
+    already published, with its outflow and its water's temperature there, for
+    the reaches it joins (a tributary's water mixes in)."""
     geo = json.loads((region_dir / f"{reach}.json").read_text(encoding="utf-8"))
     line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
     gauges, chainage = river_chain(region_dir, reach)
@@ -240,6 +243,29 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
     floor = rc.get("floor", 0.2)
     certainty = [round(fdmr_py.certainty_at((i - i_now) * STEP, solid, ahead * DAY, floor), 4) for i in range(n)]
 
+    # Water temperature (specification 7.5), with every tributary already done mixing in.
+    temperature, temp_checks = None, []
+    try:
+        inflows = []
+        for h in region.handoffs:
+            if h["to"] == reach and "node" not in h and h["from"] in (done or {}):
+                q_t, t_t = done[h["from"]]
+                if t_t is None:
+                    continue
+                at = centreline_join(region_dir, h["from"], reach)
+                e = min(range(len(field.elements)), key=lambda i: abs(field.elements[i].mid - at))
+                inflows.append((e, q_t, t_t))
+        res = river_temperature(region_dir, region, store, reach, line, field, records, t0, now, n,
+                                weather_cache if weather_cache is not None else {}, inflows)
+        if res is not None:
+            temperature, temp_checks = res
+    except Exception as e:  # noqa: BLE001 - the flow is published whatever happens to the temperature
+        print(f"{reach}: temperature FAILED {e}", flush=True)
+    if done is not None:
+        import numpy as np
+
+        done[reach] = (np.array([row[-1] for row in field.flow]), None if temperature is None else temperature[:, -1])
+
     (cdir / reach).mkdir(parents=True, exist_ok=True)
     els = field.elements
     widths = element_widths(field, records)
@@ -263,13 +289,145 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                 ("dispersion", "m2/s", True, flat(dispersion)),
             ],
         )
+        if temperature is not None:
+            fdmr_py.write_field_file(
+                str(cdir / reach / f"{name}.quality.fdf"), f"{reach}:quality", 1, len(els), 1, i1 - i0, d0, STEP,
+                [("temperature", "degC", True, temperature[i0:i1].ravel().tolist())],
+            )
     issues = [store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") for g in gauges if g.forecast]
     entry = {
         "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
         "fields": ["flow", "area", "velocity", "volume", "dispersion"],
         "certainty": certainty,
+        **({"quality_fields": ["temperature"], "temperature_checks": temp_checks} if temperature is not None else {}),
     }
     return entry, [f for _, f in (x for x in issues if x)]
+
+
+TEMPERATURE = "water_temperature"
+
+
+def centreline_join(region_dir: Path, a: str, b: str) -> float:
+    """Where river reach `a` ends on reach `b`, m along b: b's centreline point
+    nearest a's last point (from the region's centreline files)."""
+    import math
+
+    ga = json.loads((region_dir / f"{a}.json").read_text(encoding="utf-8"))
+    gb = json.loads((region_dir / f"{b}.json").read_text(encoding="utf-8"))
+    end = ga["coords"][-1]
+    k = math.cos(math.radians(end[1]))
+    i = min(range(len(gb["coords"])), key=lambda j: math.hypot((gb["coords"][j][0] - end[0]) * k, gb["coords"][j][1] - end[1]))
+    return gb["chainage_m"][i]
+
+
+def on_centreline(line: Centreline, lon: float, lat: float) -> tuple[float, float]:
+    """(chainage m, distance m) of the centreline point nearest (lon, lat)."""
+    import math
+
+    k = math.cos(math.radians(lat))
+    i = min(range(len(line.coords)), key=lambda j: math.hypot((line.coords[j][0] - lon) * k, line.coords[j][1] - lat))
+    return line.chainage[i], math.hypot((line.coords[i][0] - lon) * k, line.coords[i][1] - lat) * 111_195
+
+
+def river_temperature(region_dir: Path, region, store: Store, reach: str, line: Centreline, field, records,
+                      t0: int, now: int, n: int, weather_cache: dict, inflows: list) -> tuple | None:
+    """Water temperature for every element and step of a river reach
+    (fdmr_plugins.river_routing.heat): the release's measured temperature
+    carried down, warming and cooling with the weather of the nearest weather
+    zone, tributaries mixing in, then corrected toward every station on the
+    reach that measures it. None where the release's temperature is not
+    measured. Returns (temperature [step, element], checks)."""
+    import math
+    import tomllib
+
+    import numpy as np
+    from fdmr_plugins.river_routing import heat
+
+    from . import delta as dl
+
+    cfg = next((r for r in region.reaches if r["id"] == reach), {})
+    rel = cfg.get("release_temperature")
+    rt = tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("river_temperature", {})
+    zones = rt.get("weather", [])
+    if not rel or not zones:
+        return None
+    times = t0 + STEP * np.arange(n)
+    i_now = (now - t0) // STEP
+
+    def measured(source: str, site: str, duration_cut: int) -> np.ndarray:
+        vs = [(v.t, v.value) for v in store.values(source, site, TEMPERATURE, t0 - DAY, duration_cut + 1) if v.value is not None]
+        g = forecast.on_grid(vs, t0, STEP, n, max_gap_s=6 * 3600)
+        return np.array([np.nan if v is None else v for v in g], dtype=float)
+
+    top = measured(rel["source"], rel["site"], now)
+    if not np.isfinite(top[: i_now + 1]).any():
+        return None
+    # Past its last reading the release's water is held at its last 25 h mean (specification 7.5).
+    known = np.where(np.isfinite(top))[0]
+    last = known[-1]
+    hold = float(np.nanmean(top[max(0, last - 99): last + 1]))
+    top = np.interp(np.arange(n), known, top[known])
+    top[last + 1:] = hold
+
+    els = field.elements
+    x_el = np.array([e.mid for e in els])
+    lengths = [e.length for e in els]
+    lonlat = [line.point_at(e.mid) for e in els]
+    zone_of = [min(range(len(zones)), key=lambda z: math.hypot(zones[z]["lon"] - lo, zones[z]["lat"] - la)) for lo, la in lonlat]
+    for z in set(zone_of):
+        name = zones[z]["name"]
+        if name not in weather_cache:
+            w, _ = dl.weather(store, zones[z], t0, n, now, use_forecast=True)
+            w = {k: np.array(v, dtype=float) for k, v in w.items()}
+            w["sunlight"] = heat.sunlight(times, zones[z]["lat"], zones[z]["lon"], zones[z].get("elev_m", 0.0), w["cloud_cover"])
+            weather_cache[name] = w
+    weather = {}
+    for k in ("air_temperature", "dew_point", "wind_speed", "cloud_cover", "sunlight"):
+        cols = {z: weather_cache[zones[z]["name"]][k] for z in set(zone_of)}
+        weather[k] = np.stack([cols[z] for z in zone_of], axis=1)
+
+    q = np.array(field.flow, dtype=float)
+    a = np.array(field.area, dtype=float)
+    u = np.array(field.velocity, dtype=float)
+    wa = np.array([shape_at(records, e.mid)[1].width_a for e in els])
+    wb = np.array([shape_at(records, e.mid)[1].width_b for e in els])
+    depth = a / np.clip(wa * np.clip(q, 1e-3, None) ** wb, 1.0, None)
+
+    # Stations on the reach that measure water temperature (region.toml [[stations]]).
+    stations, names = [], []
+    for s in region.stations:
+        if s.get("reach") != reach or TEMPERATURE not in s.get("measures", []):
+            continue
+        x, off = on_centreline(line, s["lon"], s["lat"])
+        if off > 500:
+            print(f"{reach}: temperature station {s['id']} is {off:.0f} m from the river; left out", flush=True)
+            continue
+        stations.append((x, measured(s.get("source", "cdec"), s["id"], now)))
+        names.append(s["id"])
+    initial = np.full(len(els), top[0])
+    at0 = [(x, m[0]) for x, m in stations if np.isfinite(m[0])]
+    if at0:
+        xs, vs = zip(*sorted(at0))
+        initial = np.interp(x_el, xs, vs)
+
+    model = heat.run(lengths, u, depth, q, a, STEP, top, initial, weather, inflows)
+    out = heat.correct(model, x_el, times.astype(float), stations)
+
+    # Checks: each station's misfit before correction, and its miss when the
+    # correction is made from the other stations alone.
+    checks = []
+    past = np.arange(n) <= i_now
+    for k, (x, meas) in enumerate(stations):
+        e = int(np.clip(np.searchsorted(x_el, x), 0, len(els) - 1))
+        ok = past & np.isfinite(meas)
+        if not ok.any():
+            continue
+        loo = heat.correct(model, x_el, times.astype(float), [s for j, s in enumerate(stations) if j != k])
+        d0, d1 = meas[ok] - model[ok, e], meas[ok] - loo[ok, e]
+        checks.append({"station": names[k], "km": round(x / 1000, 1), "readings": int(ok.sum()),
+                       "mean_misfit": round(float(d0.mean()), 2), "rms_misfit": round(float(np.sqrt((d0 ** 2).mean())), 2),
+                       "left_out_mean": round(float(d1.mean()), 2), "left_out_rms": round(float(np.sqrt((d1 ** 2).mean())), 2)})
+    return out, checks
 
 
 def join_at(cdir: Path, a: str, b: str) -> float:
@@ -326,9 +484,17 @@ def publish(
     # built this cycle is left out rather than holding back the rest.
     entries, fetched = [], []
     others = [r["id"] for r in region.reaches if r.get("kind") == "river-routing" and r["id"] != reach]
-    for rid in [reach, *others]:
+
+    def hops(r: str, seen: int = 0) -> int:
+        h = next((x for x in region.handoffs if x["from"] == r and "node" not in x), None)
+        return 1 + hops(h["to"], seen + 1) if h and seen < 10 else 0
+
+    weather_cache: dict = {}
+    done: dict = {}
+    for rid in sorted([reach, *others], key=hops, reverse=True):  # upstream reaches first
         try:
-            entry, issued = publish_river(region_dir, region, store, cdir, rid, t0, now, end, ahead, datums, calibration)
+            entry, issued = publish_river(region_dir, region, store, cdir, rid, t0, now, end, ahead, datums, calibration,
+                                          weather_cache, done)
         except Exception as e:  # noqa: BLE001
             if rid == reach:
                 raise
@@ -336,6 +502,7 @@ def publish(
             continue
         entries.append(entry)
         fetched += issued
+    entries.sort(key=lambda e: e["id"] != reach)  # the main river first
     day_names = [d[0] for d in river_days(t0, end, n)]
 
     data_age = {SOURCE: int(time.time() - now)}

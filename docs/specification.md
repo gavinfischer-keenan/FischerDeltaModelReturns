@@ -721,7 +721,7 @@ Temperature and salinity are the same for every visitor, so the server computes 
 
 | Reach | Temperature | Salinity |
 | --- | --- | --- |
-| River | Our own 1D heat model: the Keswick release temperature carried downstream, warming and cooling with the weather. Checked against USGS gauges | Fresh water. Shown from gauge conductance, not modelled |
+| Rivers | Our own 1D heat model (`fdmr_plugins.river_routing.heat`, built 26 Nov 2026): each dam's measured release temperature carried downstream, warming and cooling with the weather of the nearest airport (Chapra 1997's heat budget, with QUAL2K's cloud term on the sky's long-wave), tributaries mixing in, then corrected toward every CDEC and USGS station on the river that measures it. Each cycle publishes every station's misfit before correction and its miss when left out (`temperature_checks`). Where no release temperature is measured (the Yuba, Bear, Mokelumne, Cosumnes, Merced, Cache Creek), it is not modelled | Fresh water, shown in the fresh class (below 0.5 psu), not measured |
 | Delta | DSM2 QUAL, driven by weather and inflow temperatures | DSM2 QUAL, which DWR calibrates for salinity; sea salt enters at Martinez |
 | Bay | NOAA's forecast | NOAA's forecast |
 

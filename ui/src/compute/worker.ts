@@ -136,11 +136,16 @@ const MESH_DIFFUSIVITY = 1.1;
 // Reaches pass parcels to each other this often, s of model time. A parcel
 // handed back waits at most this long at the join.
 const EXCHANGE_S = 300;
+// River water above the Delta, for the salinity layer: shown in the Venice
+// System's fresh class (below 0.5 psu; layers.ts), as a class, not a measurement.
+const RIVER_SALINITY_PSU = 0.1;
 // How a network says where it passed something on (fdmr-wasm `take_handed`).
 const JUNCTION = 0, CUT = 1, OUTLET = 2;
 
 let engine: Engine | null = null;
 let days: Uint8Array[] = [];
+/** The main river's water-quality day files (its temperature), once a layer needs them. */
+let riverQuality: Uint8Array[] | null = null;
 let starts = new Float64Array();
 let ends = new Float64Array();
 let particles = 0;
@@ -201,6 +206,8 @@ const nets: Net[] = [];
 /** Another river reach (a tributary from its dam), run like the main river. */
 interface Line {
   id: string;
+  /** Water-quality day files (temperature), once a layer needs them. */
+  quality: Uint8Array[] | null;
   starts: Float64Array;
   ends: Float64Array;
   days: Uint8Array[];
@@ -300,6 +307,7 @@ async function loadLine(cycle: string, id: string): Promise<void> {
     days: present(await Promise.all((index?.time.days ?? []).map((d) => bytes(`${cycle}/${id}/${d}.fdf`)))),
     releases: [],
     engine: null,
+    quality: null,
     count: lineCount(g, 100),
   });
   // Upstream reaches first, so a tributary's water reaches what it joins in the same exchange.
@@ -423,7 +431,20 @@ const QUALITY_LAYERS = new Set<Layer>(["temperature", "salinity", "source"]);
 /** Fetch the water-quality day files of every reach not holding them yet, and load them. */
 async function loadQuality(): Promise<void> {
   const get = (id: string, ds: string[]) => Promise.all(ds.map((d) => bytes(`${cycleUrl}/${id}/${d}.quality.fdf`))).then(present);
+  // River reaches publish quality files only where their temperature is modelled.
+  const modelled = (id: string) => !!index?.reaches.find((r) => r.id === id)?.quality_fields?.length;
+  const riverDays = index?.time.days ?? [];
   await Promise.all([
+    ...(riverQuality === null && modelled(riverId)
+      ? [get(riverId, riverDays).then((q) => {
+          riverQuality = q;
+          for (const b of q) engine?.load_quality(b);
+        })]
+      : []),
+    ...lines.filter((l) => !l.quality && modelled(l.id)).map(async (l) => {
+      l.quality = await get(l.id, riverDays);
+      for (const b of l.quality) l.engine?.load_quality(b);
+    }),
     ...nets.filter((n) => !n.quality).map(async (n) => {
       n.quality = await get(n.id, n.days);
       for (const b of n.quality) n.engine?.load_quality(b);
@@ -457,11 +478,13 @@ function build(t: number): void {
   const e = new Engine(starts, ends, first, 2026);
   for (const d of days) e.load_day(d);
   for (const r of riverReleases) e.add_release(r.x, r.start, r.duration, r.mass, hl(r.halfLife), PARCELS_PER_RELEASE);
+  for (const b of riverQuality ?? []) e.load_quality(b);
   engine = e;
   for (const l of lines) {
     const le = new Engine(l.starts, l.ends, first, 2029);
     for (const d of l.days) le.load_day(d);
     for (const r of l.releases) le.add_release(r.x, r.start, r.duration, r.mass, hl(r.halfLife), PARCELS_PER_RELEASE);
+    for (const b of l.quality ?? []) le.load_quality(b);
     l.engine = le;
   }
   for (const net of nets) {
@@ -764,7 +787,10 @@ function riverShares(n: number, id = riverId): Float32Array {
 function riverLayer(n: number, e: Engine = engine!, id = riverId): { particleValue?: Float32Array; particleShares?: Float32Array } {
   if (layer === "speed") return { particleValue: Float32Array.from(e.particle_speed()) };
   if (layer === "source") return { particleShares: riverShares(n, id) };
-  if (FIELD[layer]) return { particleValue: new Float32Array(n).fill(NaN) }; // not modelled on the river yet
+  // The rivers above the Delta are fresh water: shown as fresh, not measured.
+  if (layer === "salinity") return { particleValue: new Float32Array(n).fill(RIVER_SALINITY_PSU) };
+  const f = FIELD[layer];
+  if (f) return { particleValue: e.particle_values(f) }; // NaN where the river's field is not published
   return {};
 }
 

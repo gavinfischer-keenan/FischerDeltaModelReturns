@@ -101,6 +101,22 @@ impl Engine {
         self.core.particle_snapshot().2
     }
 
+    /// Load one day's water-quality file (such as the river's temperature).
+    ///
+    /// # Errors
+    /// If it does not match the reach.
+    pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), JsError> {
+        self.core
+            .load_quality(bytes)
+            .map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// A field's value where each flow particle is (`NaN` where there is none).
+    #[must_use]
+    pub fn particle_values(&self, name: &str) -> Vec<f32> {
+        self.core.particle_values(name)
+    }
+
     /// Parcels in the water: chainage, m.
     #[must_use]
     pub fn parcel_x(&self) -> Vec<f64> {

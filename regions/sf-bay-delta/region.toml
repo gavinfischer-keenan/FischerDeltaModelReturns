@@ -11,6 +11,7 @@ display_units = "us"   # cubic feet per second, feet, miles, degrees Fahrenheit
 id = "river"
 name = "Sacramento River, Keswick Dam to Sacramento"
 kind = "river-routing"
+release_temperature = { source = "cdec", site = "KWK", duration = "H" }   # Keswick's release (CDEC KWK, hourly)
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
@@ -40,6 +41,7 @@ name = "American River, Nimbus Dam to the Sacramento"
 kind = "river-routing"
 dam = [-121.220039, 38.636145]   # Nimbus Dam (CDEC NAT), re-regulating Folsom's release
 joins = "river"
+release_temperature = { source = "usgs", site = "11446500" }   # Nimbus's release, at Fair Oaks (USGS 11446500, 0.3 km below the dam's old Hazel Ave station)
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
@@ -50,6 +52,7 @@ kind = "river-routing"
 # complex (CDEC THA, total release). Above it the river carries only the
 # low-flow channel's share, which is not reported live.
 joins = "river"
+release_temperature = { source = "cdec", site = "FTA", duration = "E" }   # below Thermalito Afterbay (CDEC FTA)
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
@@ -86,6 +89,7 @@ id = "calaveras"
 name = "Calaveras River, New Hogan Dam to the Delta"
 kind = "river-routing"
 mouth = [-121.36938, 37.9668]    # DSM2 node 21, its inflow "calaveras"
+release_temperature = { source = "cdec", site = "NGQ", duration = "E" }   # below New Hogan Dam (CDEC NGQ)
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
@@ -98,6 +102,7 @@ kind = "river-routing"
 # Chowchilla Bifurcation). It starts at its first gauge with Friant's
 # successor water, above the Merced.
 mouth = [-121.25406, 37.66753]   # DSM2 node 17, its inflow "vernalis"
+release_temperature = { source = "usgs", site = "11273400" }   # above the Merced (USGS 11273400)
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
@@ -105,6 +110,7 @@ id = "tuolumne"
 name = "Tuolumne River, La Grange Dam to the San Joaquin"
 kind = "river-routing"
 joins = "san_joaquin"
+release_temperature = { source = "usgs", site = "11289650" }   # below La Grange Dam (USGS 11289650)
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
@@ -112,6 +118,7 @@ id = "stanislaus"
 name = "Stanislaus River, Goodwin Dam to the San Joaquin"
 kind = "river-routing"
 joins = "san_joaquin"
+release_temperature = { source = "usgs", site = "11302000" }   # below Goodwin Dam (USGS 11302000)
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
@@ -604,6 +611,265 @@ name = "Sacramento R at Red Bluff Diversion Dam"
 lat = 40.154362
 lon = -122.20195
 measures = ["water_temperature"]
+
+# Water temperature along the rivers (specification 7.5; fdmr_plugins.river_routing.heat):
+# stations measuring it live, checked 25-26 Nov 2026 against their own data
+# (CDEC's JSON service, USGS's instantaneous values); names and coordinates as
+# the agencies give them. Each reach's model is corrected toward these. CDEC
+# stations whose data proved dead though listed (Anderson AND, Mahon MHN, San
+# Joaquin near Stevinson SJS reading 0 degF) are left out; nothing live
+# measures the Yuba, Bear, Mokelumne, Cosumnes, Merced or Cache Creek below
+# their releases, so their temperature is not modelled.
+
+[[stations]]
+reach = "river"
+source = "cdec"
+id = "SAC"
+name = "Sacramento R upstream of Hwy 44"
+lat = 40.59258
+lon = -122.36983
+measures = ["water_temperature"]
+duration = "H"
+
+[[stations]]
+reach = "river"
+source = "usgs"
+id = "11390500"
+name = "Sacramento R below Wilkins Slough"
+lat = 39.00987205
+lon = -121.8246576
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "river"
+source = "usgs"
+id = "11447650"
+name = "Sacramento R at Freeport"
+lat = 38.45566389
+lon = -121.5016167
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "american"
+source = "usgs"
+id = "11446500"
+name = "American R at Fair Oaks"
+lat = 38.6354394
+lon = -121.227692
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "american"
+source = "usgs"
+id = "11446700"
+name = "American R at William B Pond Park"
+lat = 38.59129436
+lon = -121.3327288
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "american"
+source = "usgs"
+id = "11446980"
+name = "American R below Watt Ave Bridge"
+lat = 38.5671281
+lon = -121.3882857
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "feather"
+source = "cdec"
+id = "FTA"
+name = "Feather R below Thermalito Afterbay"
+lat = 39.452924
+lon = -121.639539
+measures = ["water_temperature"]
+duration = "E"
+
+[[stations]]
+reach = "feather"
+source = "cdec"
+id = "FOW"
+name = "Feather R (CDEC FOW)"
+lat = 39.4025
+lon = -121.6194
+measures = ["water_temperature"]
+duration = "E"
+
+[[stations]]
+reach = "feather"
+source = "cdec"
+id = "GRL"
+name = "Feather R near Gridley"
+lat = 39.366577
+lon = -121.647369
+measures = ["water_temperature"]
+duration = "E"
+
+[[stations]]
+reach = "calaveras"
+source = "cdec"
+id = "NGQ"
+name = "Calaveras R below New Hogan Dam"
+lat = 38.1481
+lon = -120.8239
+measures = ["water_temperature"]
+duration = "E"
+
+[[stations]]
+reach = "san_joaquin"
+source = "usgs"
+id = "11273400"
+name = "San Joaquin R above Merced R"
+lat = 37.34718815
+lon = -120.9761399
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "san_joaquin"
+source = "usgs"
+id = "11274550"
+name = "San Joaquin R near Crows Landing"
+lat = 37.43218889
+lon = -121.0133444
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "san_joaquin"
+source = "cdec"
+id = "SJP"
+name = "San Joaquin R at Patterson"
+lat = 37.494
+lon = -121.081
+measures = ["water_temperature"]
+duration = "E"
+
+[[stations]]
+reach = "san_joaquin"
+source = "cdec"
+id = "MRB"
+name = "San Joaquin R at Maze Rd"
+lat = 37.6414
+lon = -121.2276
+measures = ["water_temperature"]
+duration = "E"
+
+[[stations]]
+reach = "san_joaquin"
+source = "cdec"
+id = "VER"
+name = "San Joaquin R at Vernalis (USBR)"
+lat = 37.679376
+lon = -121.265002
+measures = ["water_temperature"]
+duration = "H"
+
+[[stations]]
+reach = "tuolumne"
+source = "usgs"
+id = "11289650"
+name = "Tuolumne R below La Grange Dam"
+lat = 37.66629746
+lon = -120.4421023
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "tuolumne"
+source = "usgs"
+id = "11290000"
+name = "Tuolumne R at Modesto"
+lat = 37.627153
+lon = -120.9843777
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "stanislaus"
+source = "usgs"
+id = "11302000"
+name = "Stanislaus R below Goodwin Dam"
+lat = 37.85159385
+lon = -120.6379816
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "stanislaus"
+source = "usgs"
+id = "11302500"
+name = "Stanislaus R at Oakdale"
+lat = 37.77715006
+lon = -120.852988
+measures = ["water_temperature"]
+
+[[stations]]
+reach = "stanislaus"
+source = "usgs"
+id = "11303000"
+name = "Stanislaus R at Ripon"
+lat = 37.72962389
+lon = -121.110454
+measures = ["water_temperature"]
+
+# The weather each river element warms and cools with: its nearest airport's
+# (NOAA GHCNh archive and the Weather Service's observations; ids checked in
+# NCEI's GHCNh station list, 26 Nov 2026), then the Weather Service's forecast
+# for the airport's 2.5 km grid cell (api.weather.gov/points). Clear-sky
+# sunlight is reckoned at sea level: Redding's 150 m would add 0.3 %.
+
+[[river_temperature.weather]]
+name = "Redding"
+lat = 40.5147
+lon = -122.2978
+stations = [{ ghcnh = "USW00024257", nws = "KRDD", name = "Redding airport" }]
+forecast = { office = "STO", x = 31, y = 160 }
+
+[[river_temperature.weather]]
+name = "Red Bluff"
+lat = 40.1519
+lon = -122.2547
+stations = [{ ghcnh = "USW00024216", nws = "KRBL", name = "Red Bluff airport" }]
+forecast = { office = "STO", x = 29, y = 143 }
+
+[[river_temperature.weather]]
+name = "Oroville"
+lat = 39.4942
+lon = -121.6222
+stations = [{ ghcnh = "USW00093210", nws = "KOVE", name = "Oroville airport" }]
+forecast = { office = "STO", x = 45, y = 110 }
+
+[[river_temperature.weather]]
+name = "Marysville"
+lat = 39.1019
+lon = -121.5689
+stations = [{ ghcnh = "USW00093205", nws = "KMYV", name = "Marysville airport" }]
+forecast = { office = "STO", x = 43, y = 92 }
+
+[[river_temperature.weather]]
+name = "Sacramento"
+lat = 38.5067
+lon = -121.4961
+stations = [{ ghcnh = "USW00023232", nws = "KSAC", name = "Sacramento airport" }]
+forecast = { office = "STO", x = 40, y = 65 }
+
+[[river_temperature.weather]]
+name = "Stockton"
+lat = 37.89
+lon = -121.2264
+stations = [{ ghcnh = "USW00023237", nws = "KSCK", name = "Stockton airport" }]
+forecast = { office = "STO", x = 44, y = 36 }
+
+[[river_temperature.weather]]
+name = "Modesto"
+lat = 37.6256
+lon = -120.955
+stations = [{ ghcnh = "USW00023258", nws = "KMOD", name = "Modesto airport" }]
+forecast = { office = "STO", x = 51, y = 22 }
+
+[[river_temperature.weather]]
+name = "Merced"
+lat = 37.2858
+lon = -120.5178
+stations = [{ ghcnh = "USW00023257", nws = "KMCE", name = "Merced airport" }]
+forecast = { office = "HNX", x = 31, y = 128 }
 
 # The basemap extract: west, south, east, north (degrees), and the deepest zoom.
 [basemap]

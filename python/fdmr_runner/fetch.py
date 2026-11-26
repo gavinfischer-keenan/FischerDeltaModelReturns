@@ -115,6 +115,12 @@ def main(argv: list[str] | None = None) -> int:
     # Tracer stations (CDEC): hourly readings, from where the store's copy ends.
     cdec = CdecAdapter(store)
     for s in [] if args.forecast_only else region.stations:
+        if s.get("source") == SOURCE:  # a USGS station: its readings by parameter
+            for p in s.get("measures", []):
+                cov = store.coverage(SOURCE, s["id"], p)
+                from_t = max(start, cov[1]) if cov and cov[0] <= start + 2 * 86_400 else start
+                attempt(f"{s['id']} {p}", lambda s=s, p=p, f=from_t: usgs.fetch_values(s["id"], p, f"{iso(f)}/{iso(now)}"))
+            continue
         if s.get("source") != CDEC:
             continue
         for p in s.get("measures", []):
@@ -123,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{s['id']} {p:31s} held    {s['name']}", flush=True)
                 continue
             from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
-            attempt(f"cdec {s['id']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["id"], p, int(f), int(now)))
+            attempt(f"cdec {s['id']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["id"], p, int(f), int(now), duration=s.get("duration", "H")))
     # Stations, dams, pumps and gates shown on the map (overlays.toml): asked
     # in one request per duration and set of sensors. Stations with readings already held
     # are asked from where their newest ends; new ones (and any that have
@@ -162,7 +168,11 @@ def main(argv: list[str] | None = None) -> int:
     # file per station and runs days behind, so it is fetched once a day; the
     # Weather Service's observations (its last week) and forecast every run.
     tcfg = (delta.load(Path(args.region)) or {}).get("temperature")
-    if tcfg:
+    import tomllib
+
+    rt = tomllib.loads((Path(args.region) / "region.toml").read_text(encoding="utf-8")).get("river_temperature", {})
+    # The Delta's weather, and each river weather zone's (region.toml [river_temperature]).
+    for tcfg in [c for c in [tcfg, *rt.get("weather", [])] if c]:
         wx = NoaaWeatherAdapter(store)
         for s in [] if args.forecast_only else tcfg["stations"]:
             cov = store.coverage(GHCNH, s["ghcnh"], "air_temperature")

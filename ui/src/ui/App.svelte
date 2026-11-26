@@ -414,7 +414,7 @@
           <div class="legend">
             <div class="bar" style={`background: ${lg.gradient}`}></div>
             <div class="ticks">{#each lg.ticks as [x, label]}<span style={`left: ${(x * 100).toFixed(1)}%`}>{label}</span>{/each}</div>
-            <span class="unit">{lg.unit}{layer === "temperature" || layer === "salinity" || layer === "level" ? ` · ${text.legend_river_grey}` : ""}{layer === "salinity" ? ` · ${text.legend_salinity_bay}` : ""}</span>
+            <span class="unit">{lg.unit}{layer === "level" ? ` · ${text.legend_river_grey}` : ""}{layer === "temperature" ? ` · ${text.legend_river_temperature}` : ""}{layer === "salinity" ? ` · ${text.legend_rivers_fresh} · ${text.legend_salinity_bay}` : ""}</span>
           </div>
         {:else if layer === "source"}
           <div class="legend swatches">
