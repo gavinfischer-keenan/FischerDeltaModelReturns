@@ -226,11 +226,22 @@ at = "the Merced's mouth"
 # routing points; "tributary" are inflows added where they join. Ungauged
 # inflows and diversions between main-stem gauges are carried as each
 # segment's measured gain or loss.
+# A release's forecast where no schedule is published for the gauge below
+# (issue #21; fdmr_runner.releases): `release_forecast` follows the River
+# Forecast Center's release forecast for a dam upstream (New Bullards Bar,
+# NBBC1R: its first day matched the dam's measured release, 621 against
+# 619-632 cfs, 26 Nov 2026); otherwise the flood-control rule from the
+# reservoir's storage (CDEC), its top of conservation (the Corps' daily Flood
+# Control Requirements report, `report` its name there) and its inflow
+# forecast (the River Forecast Center's point for the reservoir: SHDC1, ORDC1,
+# FOLC1 and NHGC1 matched CDEC's daily inflows in size, 26 Nov 2026). Any
+# rise in the dam's release is added to the gauge below it.
 [[gauges]]
 reach = "river"
 site = "11370500"
 name = "Sacramento R at Keswick"
 role = "release"
+release_rule = { reservoir = "SHA", report = "Shasta", inflow = { group = "UpperSacramento", point = "SHDC1" } }
 
 [[gauges]]
 reach = "river"
@@ -334,6 +345,7 @@ reach = "american"
 site = "11446500"
 name = "American R at Fair Oaks (Nimbus Dam's release)"
 role = "release"
+release_rule = { reservoir = "FOL", report = "Folsom", inflow = { group = "american", point = "FOLC1" } }
 
 [[gauges]]
 reach = "feather"
@@ -345,6 +357,7 @@ parameter = "regulated_release"
 duration = "H"
 lon = -121.633
 lat = 39.450
+release_rule = { reservoir = "ORO", report = "Oroville", inflow = { group = "FeatherYuba", point = "ORDC1" } }
 
 [[gauges]]
 reach = "feather"
@@ -386,6 +399,7 @@ role = "release"
 source = "cdec"
 duration = "E"
 usgs_site = "11418000"
+release_rule = { release_forecast = { group = "FeatherYuba", point = "NBBC1R" } }
 
 [[gauges]]
 reach = "yuba"
@@ -436,6 +450,7 @@ source = "cdec"
 parameter = "reservoir_outflow"
 duration = "H"
 usgs_site = "11308900"
+release_rule = { reservoir = "NHG", report = "New Hogan", inflow = { group = "N_SanJoaquin", point = "NHGC1" } }
 
 [[gauges]]
 reach = "san_joaquin"

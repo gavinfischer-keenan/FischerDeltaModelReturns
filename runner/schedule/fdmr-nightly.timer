@@ -1,9 +1,11 @@
-# Channel measurements, and later recalibration, once a night (02:40 in California).
+# Channel measurements, recalibration and the nightly regime (hindcast, the
+# prediction ledger's scores, the night's log) once a night, at 00:05 Pacific
+# Standard Time (issue #9).
 [Unit]
 Description=FDMR nightly cycle
 
 [Timer]
-OnCalendar=*-*-* 10:40:00 UTC
+OnCalendar=*-*-* 08:05:00 UTC
 Persistent=true
 Unit=fdmr-cycle@nightly.service
 

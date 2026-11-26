@@ -374,7 +374,7 @@ def _compare(c: dict, model: list[float | None], meas: list[float | None]) -> di
 
 
 def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, out_root: Path, keep: int = 3,
-                net_checks: list[dict] | None = None) -> Path:
+                net_checks: list[dict] | None = None, assumptions: list[dict] | None = None) -> Path:
     """Publish a finished run as a network reach (docs/format.md): geometry,
     daily field files from 14 days before now to the end of the forecast, and
     the reach's entry for index.json. Points out_root/latest at it."""
@@ -427,6 +427,8 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         "flow_source": f"dsm2 run {run_dir.name}",
         # Net flow against the gauges' own tidally filtered flow, the last 14 days (net_check).
         **({"net_checks": net_checks} if net_checks else {}),
+        # How each input was carried past its last reading (#22).
+        **({"assumptions": assumptions} if assumptions else {}),
     }
     (pub / "reach.json").write_text(json.dumps(entry, separators=(",", ":")), encoding="utf-8")
     tmp = out_root / ".latest.tmp"
@@ -477,11 +479,21 @@ def main(argv: list[str] | None = None) -> int:
     t0 = start - DAY
     n = (end + DAY - t0) // STEP + 1
     live: list[study.LiveSeries | study.LiveSetting] = []
+    assumed: list[dict] = []  # how each input was carried past its last reading (index.json `assumptions`)
+
+    def last_reading(f: dict) -> int | None:
+        x = store.latest(f["source"], f["site"], f["parameter"])
+        return min(x[0], now) if x else None
+
     for f in cfg["live"]:
         series, how = carried_on(store, f, t0, n, now, use_river_forecasts=not hindcast)
         values = resample([v * TO_DSS[f["units"]] for v in series], dss.interval(f["path"]))
         live.append(study.LiveSeries(f["path"], f["units"], t0, values))
         print(f"{f['path']:44s} {f['source']} {f['site']:9s} {how}")
+        assumed.append({"input": f"{f['source']} {f['site']} {f['parameter']}", "how": how, "last_reading": last_reading(f),
+                        **({"daily_held_flat": True} if f.get("duration") == "D" and not f.get("daily_shape") else {})})
+    for g in cfg.get("live_gate", []):
+        assumed.append({"input": f"gate {g.get('name', g['site'])}", "how": "held in its last state", "last_reading": last_reading(g)})
     live += [gate_setting(store, g, t0, now) for g in cfg.get("live_gate", [])]
     live += [study.LiveSetting(f["path"], f.get("units", "UNSPECIF"), [(t0, f["value"])]) for f in cfg.get("fixed", [])]
     root = DSM2_ROOT
@@ -502,6 +514,8 @@ def main(argv: list[str] | None = None) -> int:
     summary = study.build(settings, run_dir, start, end, live)
     print(f"run folder {run_dir}: {len(summary['live'])} live inputs, {summary['reference_year']} from {cfg['reference_year']}")
     dp = summary.get("depletion") or {}
+    assumed.append({"input": "island water use", "how": (f"DWR's averages, {dp['series']} series moved with {dcfg['source']} {dcfg['parameter']}"
+                                                         if dp.get("series") else "DWR's averages")})
     if dp.get("series"):
         ch = [c * TO_DSS_M3S_CFS for c in dp["change"] if c != 0.0]
         print(f"island water use: {dp['series']} series follow {dcfg['source']} {dcfg['parameter']} on {dp['days']} days"
@@ -524,11 +538,13 @@ def main(argv: list[str] | None = None) -> int:
         wx, how = weather(store, tcfg, t0, n, now, use_forecast=not hindcast)
         for p, h in how.items():
             print(f"weather {p:28s} {h}")
+            assumed.append({"input": f"weather {p}", "how": h})
         climate = temperature.Climate(t0, wx["air_temperature"], wx["dew_point"], wx["wind_speed"], wx["cloud_cover"], wx["air_pressure"])
         water = {}
         for f in tcfg["water"]:
             water[f["name"]], h = carried_on(store, f, t0, n, now, use_river_forecasts=False)
             print(f"water temperature {f['name']:10s} {f['source']} {f['site']:9s} {h}")
+            assumed.append({"input": f"inflow temperature {f['name']} ({f['source']} {f['site']})", "how": h, "last_reading": last_reading(f)})
         outputs = [(c["output"], c["channel"], str(c["distance"])) for c in cfg.get("temp_checks", [])]
         counts = temperature.write_study(run_dir, settings.mains[1], summary["env"], settings.tool, climate, water,
                                          tcfg["inflows"], tcfg.get("scalars", {}), outputs)
@@ -551,8 +567,8 @@ def main(argv: list[str] | None = None) -> int:
     for r in nets:
         print("net     ", json.dumps(r))
     store.close()
-    if args.publish and not hindcast:
-        pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish), net_checks=nets)
+    if args.publish:  # a hindcast publishes too, wherever it is told (fdmr_runner.nightly)
+        pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish), net_checks=nets, assumptions=assumed)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())
         print(f"published {pub} ({size / 1e6:.1f} MB)")
         prune_runs(Path(args.work))

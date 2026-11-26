@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturgeon: nightly log</title>
+<!--
+  The nightly regime's logs (issue #9; fdmr_runner.nightly): each night's
+  hindcast, and the prediction ledger scored, live and hindcast apart, each
+  against persistence. Plain, for reading and tuning by hand. Reads
+  data/<region>/nightly/index.json and <date>.json. ?region=, ?date=.
+-->
+<style>
+  body { font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; margin: 12px; color: #111; background: #fff; }
+  h1 { font-size: 16px; } h2 { font-size: 14px; margin-top: 24px; border-top: 2px solid #000; padding-top: 6px; }
+  table { border-collapse: collapse; margin: 4px 0 10px; } td, th { border: 1px solid #999; padding: 2px 6px; text-align: right; vertical-align: top; }
+  th { background: #eee; } td.l, th.l { text-align: left; } p { max-width: 980px; } .worse { background: #fdd; } .better { background: #dfd; } .note { color: #555; }
+</style>
+</head>
+<body>
+<h1>Sturgeon: the nightly log</h1>
+<p class="note">Each night at 00:05 Pacific Standard Time: a hindcast (the rivers and the Delta rerun as of five days before, with only what was measured before then, every forecast input held), and every kept prediction scored against what happened, measured less predicted, live and hindcast apart. Persistence is the benchmark that nothing changes (the last reading at the cycle's time, held); skill above 0 beats it (green), below 0 does worse (red). Nothing here changes the model: tuning is by hand. See also <a href="check.html">every published check</a> and <a href="assumptions.html">every assumption</a>.</p>
+<div id="out">Loading…</div>
+<script>
+const q = new URLSearchParams(location.search);
+const region = q.get("region") || "sf-bay-delta";
+const base = new URL(`data/${region}/nightly/`, location.href).href;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmt = (v) => typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString("en-US") : v.toPrecision(4).replace(/\.?0+$/, "")) : v == null ? "" : String(v);
+function table(rows, cols, cls) {
+  if (!rows || !rows.length) return "<p class='note'>(none)</p>";
+  cols = cols.map((c) => Array.isArray(c) ? c : [c, c]);
+  return "<table><tr>" + cols.map(([, h]) => `<th>${esc(h)}</th>`).join("") + "</tr>" + rows.map((r) => `<tr class="${cls ? cls(r) : ""}">` +
+    cols.map(([k]) => `<td class="${typeof r[k] === "number" ? "" : "l"}">${esc(fmt(r[k]))}</td>`).join("") + "</tr>").join("") + "</table>";
+}
+const skillClass = (r) => r.skill_vs_persistence == null ? "" : r.skill_vs_persistence > 0 ? "better" : "worse";
+(async () => {
+  const idx = await (await fetch(base + "index.json", { cache: "no-store" })).json().catch(() => null);
+  if (!idx || !idx.logs.length) { document.getElementById("out").textContent = "No nightly log yet."; return; }
+  const date = q.get("date") || idx.logs[0];
+  const log = await (await fetch(base + date + ".json", { cache: "no-store" })).json();
+  let h = `<p>Logs: ${idx.logs.map((d) => d === date ? `<b>${d}</b>` : `<a href="?region=${region}&date=${d}">${d}</a>`).join(" · ")}</p>`;
+  h += `<h2>${esc(date)}</h2><p>Model version: ${esc(JSON.stringify(log.model_version || {}))}</p>`;
+  const hc = log.hindcast;
+  h += hc ? `<p>Hindcast as of <b>${esc(hc.as_of)}</b>: ${esc(hc.reaches.join(", "))}; ${fmt(hc.kept)} predictions kept; forecasts ${esc(hc.forecasts)}; not hindcast: ${esc(hc.not_hindcast.join(", "))}.</p>` : "<p><b>The hindcast failed tonight</b>; see the steps.</p>";
+  h += table(log.steps.map((s) => ({ step: s.step, ok: s.ok ? "yes" : "NO", seconds: s.seconds, "last lines": (s.tail || []).join(" | ") })), ["step", "ok", "seconds", "last lines"]);
+  const s = log.score;
+  h += `<h2>Scores: the last ${s.window_days} days (${esc(JSON.stringify(s.cycles_by_kind || {}))} cycles)</h2>`;
+  h += table(s.groups, [["kind", "kind"], ["reach", "reach"], ["parameter", "quantity"], ["lead", "lead"], ["pairs", "pairs"], ["mean_misfit", "mean misfit"],
+    ["rms_misfit", "RMS misfit"], ["rms_persistence", "RMS persistence"], ["skill_vs_persistence", "skill"]], skillClass);
+  h += "<h2>Per check point</h2>";
+  const pts = s.points.flatMap((p) => Object.entries(p.leads).map(([lead, x]) => ({ reach: p.reach, name: p.name, site: p.site, parameter: p.parameter, lead, ...x })));
+  h += table(pts, ["reach", "name", "site", "parameter", "lead", "pairs", ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"], ["rms_persistence", "RMS persistence"], ["skill_vs_persistence", "skill"]], skillClass);
+  document.getElementById("out").innerHTML = h;
+})().catch((e) => { document.getElementById("out").textContent = "Failed: " + e; });
+</script>
+</body>
+</html>

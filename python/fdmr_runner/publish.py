@@ -201,7 +201,7 @@ def river_days(t0: int, end: int, n: int) -> list[tuple[str, int, int, int]]:
 
 def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str, t0: int, now: int, end: int,
                   ahead: int, datums: dict | None, calibration: dict | None,
-                  weather_cache: dict | None = None, done: dict | None = None) -> tuple[dict, list[int]]:
+                  weather_cache: dict | None = None, done: dict | None = None, hindcast: bool = False) -> tuple[dict, list[int]]:
     """One river-routing reach's geometry and day files in `cdir`: its index entry,
     and the issue times of the river forecasts it used. `done` holds each reach
     already published, with its outflow and its water's temperature there, for
@@ -214,6 +214,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
 
     shapes = fit_shapes(gauges, chainage, store)
     records = []
+    assumed: list[dict] = []  # how each gauge was carried past its last reading (#22)
     fc_ends: list[int | None] = []  # last forecast step at each gauge that has a forecast
     for g in gauges:
         shape = shapes[g.site]
@@ -222,12 +223,31 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
             raise ValueError(f"gauge {g.site} has no discharge in the store")
         measured = regular([(v.t, v.value) for v in vals], t0, STEP, i_now + 1)
         fc = None
-        if g.forecast and g.forecast.get("source") == cnrfc.SOURCE:
+        if g.forecast and g.forecast.get("source") == cnrfc.SOURCE and not hindcast:
             fv = store.values(cnrfc.SOURCE, g.forecast["point"], "discharge", now - DAY, end + DAY)
             fc = forecast.on_grid([(v.t, v.value) for v in fv], t0, STEP, n) if fv else None
+        rule_rec = None
+        if fc is None and g.role == "release" and g.release_rule and not hindcast:
+            from . import releases
+
+            m_now = next((v for v in reversed(measured) if v is not None), None)
+            if m_now is not None:
+                fc, rule_rec = releases.rule_forecast(store, g.release_rule, m_now, t0, STEP, n, i_now, now)
         flow, fc_end = forecast.extend(measured, fc, i_now, n, BLEND_S // STEP)
-        if fc is not None:
+        if fc is not None and rule_rec is None:
             fc_ends.append(fc_end)
+        last_t = min(vals[-1].t, now)
+        if rule_rec is not None:
+            how = rule_rec.pop("how") + (f", to {utc(t0 + fc_end * STEP)}, then held" if fc is not None and fc_end is not None else "")
+            assumed.append({"input": f"{g.source} {g.site} {g.parameter} ({g.role})", "how": how, "last_reading": last_t, **rule_rec})
+            records.append(model.GaugeRecord(chainage[g.site], shape, flow))
+            continue
+        if fc is None:
+            how = "held at its last value" + (" (a dam's release: no schedule is published)" if g.role == "release" else "")
+        else:
+            how = (f"River Forecast Center {g.forecast['point']}, joined over a day" +
+                   (f", to {utc(t0 + fc_end * STEP)}, then held" if fc_end is not None else ", which covers nothing ahead: held"))
+        assumed.append({"input": f"{g.source} {g.site} {g.parameter} ({g.role})", "how": how, "last_reading": last_t})
         records.append(model.GaugeRecord(chainage[g.site], shape, flow))
 
     wave_scale, water_factor = corrections(calibration, reach, gauges)
@@ -256,9 +276,11 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                 e = min(range(len(field.elements)), key=lambda i: abs(field.elements[i].mid - at))
                 inflows.append((e, q_t, t_t))
         res = river_temperature(region_dir, region, store, reach, line, field, records, t0, now, n,
-                                weather_cache if weather_cache is not None else {}, inflows)
+                                weather_cache if weather_cache is not None else {}, inflows, use_forecast=not hindcast)
         if res is not None:
             temperature, temp_checks = res
+            assumed.append({"input": "release temperature", "how": "held at its last 25 h mean past its last reading"})
+            assumed.append({"input": "weather (nearest airport's)", "how": "Weather Service forecast joined over a day, then its last day again; air pressure held at its 25 h mean"})
     except Exception as e:  # noqa: BLE001 - the flow is published whatever happens to the temperature
         print(f"{reach}: temperature FAILED {e}", flush=True)
     if done is not None:
@@ -301,6 +323,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         "certainty": certainty,
         **({"quality_fields": ["temperature"], "temperature_checks": temp_checks} if temperature is not None else {}),
         **({"swot_checks": sw} if (sw := swot_checks(region_dir, store, reach, line, els, widths, now)) else {}),
+        "assumptions": assumed,
     }
     return entry, [f for _, f in (x for x in issues if x)]
 
@@ -331,7 +354,7 @@ def on_centreline(line: Centreline, lon: float, lat: float) -> tuple[float, floa
 
 
 def river_temperature(region_dir: Path, region, store: Store, reach: str, line: Centreline, field, records,
-                      t0: int, now: int, n: int, weather_cache: dict, inflows: list) -> tuple | None:
+                      t0: int, now: int, n: int, weather_cache: dict, inflows: list, use_forecast: bool = True) -> tuple | None:
     """Water temperature for every element and step of a river reach
     (fdmr_plugins.river_routing.heat): the release's measured temperature
     carried down, warming and cooling with the weather of the nearest weather
@@ -378,7 +401,7 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
     for z in set(zone_of):
         name = zones[z]["name"]
         if name not in weather_cache:
-            w, _ = dl.weather(store, zones[z], t0, n, now, use_forecast=True)
+            w, _ = dl.weather(store, zones[z], t0, n, now, use_forecast=use_forecast)
             w = {k: np.array(v, dtype=float) for k, v in w.items()}
             w["sunlight"] = heat.sunlight(times, zones[z]["lat"], zones[z]["lon"], zones[z].get("elev_m", 0.0), w["cloud_cover"])
             weather_cache[name] = w
@@ -484,6 +507,34 @@ def join_at(cdir: Path, a: str, b: str) -> float:
     return round(at, 1)
 
 
+class _Skip(Exception):
+    """Leaves out a step a hindcast does not take."""
+
+
+def model_version(region_dir: Path, calibration: dict | None) -> dict:
+    """What this cycle ran with, as short fingerprints (#9): the code (every
+    module of the Python packages and the compiled engine), the region's
+    package (its configs and centrelines), and the calibration. Two cycles
+    with the same fingerprints ran the same maths on the same settings."""
+    import hashlib
+
+    def digest(files: list[Path], base: Path) -> str:
+        h = hashlib.sha256()
+        for f in sorted(files):
+            h.update(str(f.relative_to(base)).encode())
+            h.update(f.read_bytes())
+        return h.hexdigest()[:12]
+
+    pkg = Path(__file__).resolve().parents[1]
+    code = [f for f in pkg.rglob("*.py") if "tests" not in f.parts]
+    if getattr(fdmr_py, "__file__", None):
+        code.append(Path(fdmr_py.__file__).resolve())
+    code_base = Path(os.path.commonpath([str(f) for f in code]))
+    region_files = [f for f in Path(region_dir).rglob("*") if f.is_file()]
+    return {"code": digest(code, code_base), "region": digest(region_files, Path(region_dir)),
+            "calibration": hashlib.sha256(json.dumps(calibration or {}, sort_keys=True).encode()).hexdigest()[:12]}
+
+
 def publish(
     region_dir: Path,
     store: Store,
@@ -494,15 +545,21 @@ def publish(
     ahead: int = 14,
     calibration: dict | None = None,
     extra_reaches: list[Path] | None = None,
+    as_of: int | None = None,
 ) -> Path:
+    """Publish a cycle. With `as_of` (a hindcast), the cycle's "now" is that
+    time: nothing measured after it is read, no forecast is used (river
+    forecasts, release rules and weather forecasts all hold: past forecast
+    issues are not kept), and its overlays and ledger are left to the caller."""
     region = load_region(region_dir)
     gauges, _ = river_chain(region_dir, reach)
+    hindcast = as_of is not None
 
     # The model's "now": the latest time every main gauge of the main river has reported.
     latest = [store.latest(g.source, g.site, g.parameter) for g in gauges]
     if any(x is None for x in latest):
         raise ValueError("a main gauge has no discharge in the store")
-    now = min(t for t, _ in latest) // STEP * STEP
+    now = (as_of if hindcast else min(t for t, _ in latest)) // STEP * STEP
     t0 = (now - days * DAY) // DAY * DAY
     end = now + ahead * DAY
     n = (end - t0) // STEP + 1
@@ -526,7 +583,7 @@ def publish(
     for rid in sorted([reach, *others], key=hops, reverse=True):  # upstream reaches first
         try:
             entry, issued = publish_river(region_dir, region, store, cdir, rid, t0, now, end, ahead, datums, calibration,
-                                          weather_cache, done)
+                                          weather_cache, done, hindcast=hindcast)
         except Exception as e:  # noqa: BLE001
             if rid == reach:
                 raise
@@ -544,6 +601,7 @@ def publish(
         "format": "fdmr-flow-field",
         "format_version": [1, 0],
         "region": region.id,
+        "model_version": model_version(region_dir, calibration),
         "cycle": utc(now),
         "created": utc(time.time()),
         "time": {"start": utc(t0), "step_s": STEP, "days": day_names},
@@ -579,14 +637,20 @@ def publish(
             joins.append({"from": h["from"], "to": h["to"], "outlets": [{"export": i["export"], "node": i["node"]} for i in g["inlets"]]})
     if joins:
         index["handoffs"] = joins  # format 1.1: where parcels leaving one reach enter the next
+    if hindcast:
+        index["hindcast"] = {"as_of": utc(now), "forecasts": "held (past forecast issues are not kept)"}
     # What is drawn over the water: X2, the stations' readings (fdmr_runner.overlays).
     try:
+        if hindcast:
+            raise _Skip
         from . import overlays
 
         ov = overlays.build(region_dir, cdir, index, store, int(time.time()))
         if ov is not None:
             (cdir / "overlays.json").write_text(json.dumps(ov, separators=(",", ":"), allow_nan=False), encoding="utf-8")
             index["overlays"] = "overlays.json"
+    except _Skip:
+        pass
     except Exception as e:  # the water is published whatever happens to its overlays
         print(f"overlays FAILED {e}", flush=True)
     # The last fetch's own account of what it could not get (fdmr_runner.fetch).
@@ -595,7 +659,7 @@ def publish(
         index["fetch_status"] = json.loads(fs.read_text(encoding="utf-8"))
     # The prediction ledger (fdmr_runner.ledger): this cycle's predictions kept
     # when due, and every kept prediction scored against what was measured.
-    if store.path.name != ":memory:":
+    if store.path.name != ":memory:" and not hindcast:
         try:
             from . import ledger
 
@@ -638,6 +702,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--keep", type=int, default=3, help="cycles to keep, the newest first")
     ap.add_argument("--calibration", help="the calibration file written by fdmr_runner.calibrate")
     ap.add_argument("--with-reach", action="append", default=[], help="a reach published on its own schedule, to include (repeatable)")
+    ap.add_argument("--as-of", help="a hindcast: publish as of this past time (UTC, 2026-11-21T00:00)")
     args = ap.parse_args(argv)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -648,7 +713,8 @@ def main(argv: list[str] | None = None) -> int:
     calibration = json.loads(cal_path.read_text(encoding="utf-8")) if cal_path and cal_path.exists() else None
     extra = [Path(p) for p in args.with_reach if (Path(p) / "reach.json").exists()]
     cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead,
-                   calibration=calibration, extra_reaches=extra)
+                   calibration=calibration, extra_reaches=extra,
+                   as_of=int(datetime.fromisoformat(args.as_of).replace(tzinfo=timezone.utc).timestamp()) if args.as_of else None)
     size = sum(f.stat().st_size for f in cdir.rglob("*") if f.is_file())
     print(f"published {cdir} ({size / 1e6:.1f} MB)")
     gone = prune(out, max(1, args.keep))

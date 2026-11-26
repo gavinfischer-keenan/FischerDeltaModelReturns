@@ -134,3 +134,11 @@ def test_a_server_error_is_retried_and_a_refusal_is_not(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", refuse)
     with pytest.raises(urllib.error.HTTPError):
         ecostress._download("https://x/y.tif", "t", sleep=lambda s: None)
+
+
+def test_utm_back_to_longitude_and_latitude():
+    lons = np.array([-121.5, -122.9, -120.1])
+    lats = np.array([38.1, 37.3, 39.9])
+    e, n = ecostress.utm(lons, lats, 10)
+    lo, la = ecostress.lonlat_from_utm(e, n, 10)
+    assert np.allclose(lo, lons, atol=1e-7) and np.allclose(la, lats, atol=1e-7)

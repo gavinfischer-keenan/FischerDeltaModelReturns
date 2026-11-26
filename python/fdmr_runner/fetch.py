@@ -242,6 +242,17 @@ def main(argv: list[str] | None = None) -> int:
             area = next((a for a in sareas if a["site"] == f"area:{name}"), None)
             for sample in _soil.openet_samples(area) if area else []:
                 attempt(f"openet {sample['site']}", lambda sample=sample: OpenEtAdapter(store).fetch(sample, int(now - 60 * 86_400), int(now)))
+    # Where the water is, from radar passes (overlays.toml [water_extent]).
+    we = ocfg.get("water_extent")
+    if not args.forecast_only and we:
+        from fdmr_adapters.areas import extent as _extent
+        from fdmr_adapters.opera import OperaAdapter
+
+        from . import water_extent as _we
+
+        wbox = _extent([{"box": a["box"]} for a in we["areas"]], margin=0.0)
+        attempt("opera water maps", lambda: OperaAdapter(Path(args.store).parent / we.get("cache", "opera")).fetch(
+            wbox, _we.windows(we, int(now))))
     # The ocean's state at the model's edge (overlays.toml [ocean_state]).
     ostate = ocfg.get("ocean_state", {})
     if ostate.get("enso"):
@@ -391,6 +402,16 @@ def main(argv: list[str] | None = None) -> int:
     for g in region.gauges:
         if g.forecast and g.forecast.get("source") == "cnrfc":
             groups.setdefault(g.forecast["group"], []).append(g.forecast["point"])
+        for key in ("inflow", "release_forecast"):  # a release rule's forecasts (fdmr_runner.releases)
+            fc = (g.release_rule or {}).get(key)
+            if fc and fc["point"] not in groups.setdefault(fc["group"], []):
+                groups[fc["group"]].append(fc["point"])
+    # The Corps' daily flood-control report, for the release rules' reservoirs.
+    spk = {g.release_rule["reservoir"]: g.release_rule["report"] for g in region.gauges if g.release_rule and "report" in g.release_rule}
+    if spk and not args.forecast_only:
+        from fdmr_adapters.usace_spk import UsaceSpkAdapter
+
+        attempt("usace flood-control report", lambda: UsaceSpkAdapter(store).fetch(spk))
     for fc in delta.forecasts(Path(args.region)):
         if fc["source"] == "cnrfc" and fc["point"] not in groups.setdefault(fc["group"], []):
             groups[fc["group"]].append(fc["point"])

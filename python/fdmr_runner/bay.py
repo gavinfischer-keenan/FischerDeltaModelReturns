@@ -849,14 +849,17 @@ def main(argv: list[str] | None = None) -> int:
                                                     Path(args.delta).resolve() if args.delta else None, coarse, edges)}
         except Exception as e:  # without the extension the Bay still has NOAA's 48 hours
             print(f"extension FAILED {e}", flush=True)
+    assumed: list[dict] = [{"input": "NOAA's own forecast of the mesh", "how": "used as NOAA gives it, to its 48th hour"}]
     if any(isinstance(p, dict) for p in hours.values()):
         extras["extension_from"] = datetime.fromtimestamp(min(t for t, p in hours.items() if isinstance(p, dict)), timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+        assumed.append({"input": "the Bay past NOAA's forecast", "how": f"from {extras['extension_from']}: tides plus outflow drift, fitted to the archive and driven by the Delta's forecast outflow; temperature and salinity held at NOAA's last forecast hour"})
     if args.delta and (Path(args.delta) / "geometry" / "delta.json").exists() and hours and "delta" in edges:
         try:
             hours, extras["outflow_correction"] = correct_outflow(coarse, edges, hours, Path(args.delta).resolve(), cfg["reach"])
         except Exception as e:  # uncorrected, the Bay still has NOAA's own currents
             print(f"outflow correction FAILED {e}", flush=True)
     if args.store and "quality" in cfg and hours:
+        assumed.append({"input": "the Bay's salinity and temperature correction", "how": "each station's misfit spread along the water; past the last measured day, held at each station's mean misfit over its last three days"})
         try:
             hours, extras["quality_correction"] = correct_quality(cfg, coarse, hours, args.store)
         except Exception as e:  # uncorrected, the Bay keeps NOAA's own salinity and temperature
@@ -874,6 +877,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"currents check: {extras['currents_check']}", flush=True)
         except Exception as e:  # a check; the currents are published whatever it says
             print(f"currents check FAILED {e}", flush=True)
+    extras["assumptions"] = assumed
     if args.publish:
         pub = publish(cfg, region_dir, coarse, edges, hours, now, latest, Path(args.publish), extras=extras)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())

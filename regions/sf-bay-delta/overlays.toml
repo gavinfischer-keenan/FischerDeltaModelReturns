@@ -904,3 +904,30 @@ dataset = "noaacwBLENDEDsshDaily"
 variable = "sla"
 box = [-123.75, 37.25, -122.75, 38.25]
 site = "offshore-golden-gate"
+
+# Where the water is, from Sentinel-1 radar (issues #14 and #15;
+# fdmr_runner.water_extent): NASA JPL's OPERA DSWx-S1 water maps, 30 m, every
+# few days, kept `days`, and the same season (`baseline_window_days` either
+# side of the date) in each of the last `baseline_years` years. Per box and
+# pass: water seen, and new water (water where, in that same season of earlier
+# years, at least `min_prior` passes saw it water less than `new_below` of the
+# time), in patches of at least `min_patch_km2`. Fields and islands are
+# flooded on purpose every winter (first tried on 26 Nov 2026 against the dry
+# autumn alone, the Sutter box's winter flooding, 12 to 93 km2 of water from
+# October, all looked new), so only water the same season has not had is a
+# sign of a breach or a flood. The bypass boxes are drawn round the Yolo Bypass (Fremont
+# Weir to Rio Vista's latitude) and the Sutter Bypass (Tisdale Weir to Fremont
+# Weir), so they take in the fields beside them too.
+[water_extent]
+cache = "opera"
+days = 60
+new_below = 0.2
+min_prior = 3
+min_patch_km2 = 0.5
+baseline_years = 2
+baseline_window_days = 30
+areas = [
+  { name = "delta", box = [-121.95, 37.65, -121.20, 38.55] },
+  { name = "yolo bypass", box = [-121.70, 38.25, -121.52, 38.78] },
+  { name = "sutter bypass", box = [-121.82, 38.78, -121.60, 39.15] },
+]

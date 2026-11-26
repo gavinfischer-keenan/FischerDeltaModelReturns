@@ -27,6 +27,7 @@ class Gauge:
     usgs_site: str | None = None
     lon: float | None = None
     lat: float | None = None
+    release_rule: dict | None = None  # a release's forecast where no schedule is published (fdmr_runner.releases)
 
     @property
     def place_site(self) -> str | None:

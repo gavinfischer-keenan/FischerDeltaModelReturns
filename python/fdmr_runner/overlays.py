@@ -545,6 +545,14 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
         lc = levels.level_checks(cfg, cdir, index, store, now)
     except Exception as e:
         print(f"level checks FAILED {e}", flush=True)
+    wx = None
+    if cfg.get("water_extent") and store.path.name != ":memory:":
+        try:  # a sign to look at; the overlays are published whatever it says
+            from . import water_extent
+
+            wx = water_extent.summary(cfg, store.path.parent / cfg["water_extent"].get("cache", "opera"), now)
+        except Exception as e:
+            print(f"water extent FAILED {e}", flush=True)
     oc = None
     try:  # a record; the overlays are published whatever it says
         from . import ocean
@@ -554,6 +562,7 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
         print(f"ocean state FAILED {e}", flush=True)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
             **({"ocean_state": oc} if oc else {}),
+            **({"water_extent": wx} if wx else {}),
             **({"tide_residual": tr} if tr else {}),
             **({"level_checks": lc} if lc else {}),
             **({"satellite_temperature": sat} if sat else {}),

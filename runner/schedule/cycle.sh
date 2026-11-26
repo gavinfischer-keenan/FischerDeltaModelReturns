@@ -3,7 +3,8 @@
 # decisions log). Run by systemd timers as the fdmr user.
 #
 #   cycle.sh hourly    gauges and forecasts, then publish
-#   cycle.sh nightly   the same, plus channel measurements and recalibration
+#   cycle.sh nightly   the same, plus channel measurements, recalibration and the
+#                      nightly regime (fdmr_runner.nightly: hindcast, scores, log)
 #   cycle.sh delta     the same as hourly, plus a DSM2 run for every region that
 #                      has one (regions/<id>/dsm2.toml) and NOAA's latest Bay
 #                      forecast for every region with a bay (regions/<id>/bay.toml),
@@ -64,5 +65,9 @@ for region in $REGIONS; do
   echo "== $region: publish"
   "$PY" -m fdmr_runner.publish "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$DATA/publish/$region" \
     --calibration "$DATA/calibration/$region.json" --with-reach "$delta/published/latest"     --with-reach "$bay/published/latest" $with_canals || status=1
+  if [ "$MODE" = nightly ]; then
+    echo "== $region: nightly regime (hindcast, scores, log)"
+    "$PY" -m fdmr_runner.nightly "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$DATA" || status=1
+  fi
 done
 exit $status

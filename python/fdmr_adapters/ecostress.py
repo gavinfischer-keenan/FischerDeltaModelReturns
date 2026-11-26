@@ -73,6 +73,25 @@ def utm(lon, lat, zone: int) -> tuple[np.ndarray, np.ndarray]:
     return 500_000.0 + k0 * big_a * east, k0 * big_a * north
 
 
+def lonlat_from_utm(east, north, zone: int) -> tuple[np.ndarray, np.ndarray]:
+    """UTM easting and northing (m, northern hemisphere) back to WGS84
+    longitude and latitude (degrees): the inverse of `utm`, by Krüger's series
+    to the third order in n (Karney 2011, J. Geodesy 85:475, equations 15-21)."""
+    a, f, k0 = 6378137.0, 1 / 298.257223563, 0.9996
+    n = f / (2 - f)
+    big_a = a / (1 + n) * (1 + n ** 2 / 4 + n ** 4 / 64)
+    beta = (n / 2 - 2 * n ** 2 / 3 + 37 * n ** 3 / 96, n ** 2 / 48 + n ** 3 / 15, 17 * n ** 3 / 480)
+    delta = (2 * n - 2 * n ** 2 / 3 - 2 * n ** 3, 7 * n ** 2 / 3 - 8 * n ** 3 / 5, 56 * n ** 3 / 15)
+    xi = np.asarray(north, dtype=float) / (k0 * big_a)
+    eta = (np.asarray(east, dtype=float) - 500_000.0) / (k0 * big_a)
+    xi_p = xi - sum(b * np.sin(2 * j * xi) * np.cosh(2 * j * eta) for j, b in enumerate(beta, 1))
+    eta_p = eta - sum(b * np.cos(2 * j * xi) * np.sinh(2 * j * eta) for j, b in enumerate(beta, 1))
+    chi = np.arcsin(np.sin(xi_p) / np.cosh(eta_p))
+    lat = chi + sum(d * np.sin(2 * j * chi) for j, d in enumerate(delta, 1))
+    lon = math.radians(zone * 6 - 183) + np.arctan2(np.sinh(eta_p), np.cos(xi_p))
+    return np.degrees(lon), np.degrees(lat)
+
+
 def read_tif(data: bytes) -> tuple[np.ndarray, dict]:
     """A tile's raster and where it lies: UTM `x0`, `y0` (its top-left corner),
     pixel size `dx` (m) and `zone`, from its GeoTIFF tags."""

@@ -1,0 +1,172 @@
+"""Where the water is, seen from orbit, and where it is new (issue #14:
+levee breaches and flooding; #15: the bypasses; overlays.toml [water_extent];
+fdmr_adapters.opera).
+
+Each radar pass's water map (OPERA DSWx-S1, 30 m) is laid on one UTM grid per
+area (a box): overlapping tiles fill each other's gaps. For each pass and
+area: how much was seen, how much was water, and how much was **new** water:
+water now where, in the same season of earlier years (`baseline_years`, within
+`baseline_window_days` of the date; at least `min_prior` of those passes
+seeing the pixel), it was water less than `new_below` of the time. Many fields
+and islands are flooded on purpose every winter (rice straw, wildlife), so
+water alone means nothing, and neither does water that was not there in a dry
+autumn; water where the same season has not had any is the sign of a breach
+or a flood. New water joined into patches of at least `min_patch_km2` is listed
+with where it is. New water that was also dry on the previous pass is
+**sudden** (`sudden_new_km2`, `sudden_patches`): new water that stays pass
+after pass is more likely a lasting change, such as a restored wetland,
+than a breach. A sign to look at, not a finding: the radar can mistake
+some wet fields and smooth ground for water.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import numpy as np
+
+PIXEL_KM2 = 0.03 * 0.03
+
+
+def _grid(box: tuple[float, float, float, float], zone: int, dx: float):
+    """A UTM grid (zone, dx metres) over a box: its origin and shape, aligned to dx."""
+    from fdmr_adapters.ecostress import utm
+
+    w, s, e, n = box
+    xs, ys = utm(np.array([w, e, w, e]), np.array([s, s, n, n]), zone)
+    x0 = np.floor(np.min(xs) / dx) * dx
+    y0 = np.ceil(np.max(ys) / dx) * dx
+    cols = int(np.ceil((np.max(xs) - x0) / dx))
+    rows = int(np.ceil((y0 - np.min(ys)) / dx))
+    return x0, y0, rows, cols
+
+
+def _inside(box, zone, x0, y0, rows, cols, dx):
+    """Which grid cells' centres are inside the box (longitude, latitude)."""
+    from fdmr_adapters.ecostress import lonlat_from_utm
+
+    xs = x0 + (np.arange(cols) + 0.5) * dx
+    ys = y0 - (np.arange(rows) + 0.5) * dx
+    ee, nn = np.meshgrid(xs, ys)
+    lo, la = lonlat_from_utm(ee, nn, zone)
+    w, s, e, n = box
+    return (lo >= w) & (lo <= e) & (la >= s) & (la <= n)
+
+
+def mosaics(tiles: list[dict], box, zone: int, dx: float) -> list[tuple[int, np.ndarray]]:
+    """Each pass (tiles within an hour of each other) as one grid over the box:
+    1 water, 0 not, 255 not seen."""
+    from fdmr_adapters.opera import NOT_SEEN
+
+    x0, y0, rows, cols = _grid(box, zone, dx)
+    passes: dict[int, list[dict]] = {}
+    for tl in sorted(tiles, key=lambda t: t["t"]):
+        key = next((k for k in passes if abs(k - tl["t"]) <= 3600), tl["t"])
+        passes.setdefault(key, []).append(tl)
+    out = []
+    for t, group in sorted(passes.items()):
+        g = np.full((rows, cols), NOT_SEEN, np.uint8)
+        for tl in group:
+            if tl["zone"] != zone or tl["dx"] != dx:
+                continue
+            tx0 = tl["x0"] + tl["col0"] * dx
+            ty0 = tl["y0"] - tl["row0"] * dx
+            dc, dr = int(round((tx0 - x0) / dx)), int(round((y0 - ty0) / dx))
+            w = tl["water"]
+            r0, c0 = max(0, dr), max(0, dc)
+            r1, c1 = min(rows, dr + w.shape[0]), min(cols, dc + w.shape[1])
+            if r0 >= r1 or c0 >= c1:
+                continue
+            src = w[r0 - dr:r1 - dr, c0 - dc:c1 - dc]
+            dst = g[r0:r1, c0:c1]
+            fill = (dst == NOT_SEEN) & (src != NOT_SEEN)
+            dst[fill] = src[fill]
+        out.append((t, g))
+    return out
+
+
+def area_record(tiles: list[dict], area: dict, cfg: dict, baseline: list[dict] | None = None) -> dict | None:
+    from scipy.ndimage import label
+
+    from fdmr_adapters.ecostress import lonlat_from_utm
+    from fdmr_adapters.opera import NOT_SEEN
+
+    if not tiles:
+        return None
+    zone, dx = tiles[0]["zone"], tiles[0]["dx"]
+    box = tuple(area["box"])
+    x0, y0, rows, cols = _grid(box, zone, dx)
+    inside = _inside(box, zone, x0, y0, rows, cols, dx)
+    water_n = np.zeros((rows, cols), np.uint16)
+    seen_n = np.zeros((rows, cols), np.uint16)
+    # The same season in earlier years: how often each pixel was water then.
+    for _, g in mosaics(baseline or [], box, zone, dx):
+        seen = (g != NOT_SEEN) & inside
+        if seen.sum() >= 0.2 * inside.sum():
+            water_n += ((g == 1) & inside).astype(np.uint16)
+            seen_n += seen.astype(np.uint16)
+    passes = []
+    prev = None
+    for t, g in mosaics(tiles, box, zone, dx):
+        seen = (g != NOT_SEEN) & inside
+        water = (g == 1) & inside
+        if seen.sum() < 0.2 * inside.sum():  # a pass that saw little of the area tells little
+            continue
+        freq = np.where(seen_n > 0, water_n / np.maximum(seen_n, 1), 1.0)
+        new = water & (seen_n >= cfg.get("min_prior", 3)) & (freq < cfg.get("new_below", 0.2))
+        rec = {"t": int(t), "seen_km2": round(float(seen.sum()) * PIXEL_KM2, 1), "water_km2": round(float(water.sum()) * PIXEL_KM2, 1),
+               "new_water_km2": round(float(new.sum()) * PIXEL_KM2, 2), "baseline_passes": int(seen_n[inside].max())}
+        def patches_of(mask):
+            out = []
+            if mask.any():
+                lab, _ = label(mask, structure=np.ones((3, 3), bool))
+                sizes = np.bincount(lab.ravel())
+                for k in np.nonzero(sizes * PIXEL_KM2 >= cfg.get("min_patch_km2", 0.5))[0]:
+                    if k == 0:
+                        continue
+                    rr, cc = np.nonzero(lab == k)
+                    lo, la = lonlat_from_utm(x0 + (cc.mean() + 0.5) * dx, y0 - (rr.mean() + 0.5) * dx, zone)
+                    out.append({"km2": round(float(sizes[k]) * PIXEL_KM2, 2), "lon": round(float(lo), 4), "lat": round(float(la), 4)})
+            return sorted(out, key=lambda p: -p["km2"])[:10]
+
+        patches = patches_of(new)
+        if patches:
+            rec["new_patches"] = patches
+        if prev is not None:
+            sudden = new & (prev == 0)
+            rec["sudden_new_km2"] = round(float(sudden.sum()) * PIXEL_KM2, 2)
+            sp = patches_of(sudden)
+            if sp:
+                rec["sudden_patches"] = sp
+        prev = g
+        passes.append(rec)
+    return {"area": area["name"], "box": list(box), "passes": passes} if passes else None
+
+
+def summary(cfg: dict, cache: Path, now: int) -> dict | None:
+    we = cfg.get("water_extent")
+    if not we or not cache.exists():
+        return None
+    recent_from = now - we.get("days", 60) * 86_400
+    tiles, baseline = [], []
+    for p in sorted(cache.glob("*.npz")):
+        z = np.load(p)
+        tl = {"t": int(z["t"]), "water": z["water"], "row0": int(z["row0"]), "col0": int(z["col0"]),
+              "x0": float(z["x0"]), "y0": float(z["y0"]), "dx": float(z["dx"]), "zone": int(z["zone"])}
+        (tiles if tl["t"] >= recent_from else baseline).append(tl)
+    areas = [r for r in (area_record(tiles, a, we, baseline) for a in we.get("areas", [])) if r]
+    return {"source": "NASA JPL OPERA DSWx-S1 (Sentinel-1 radar, 30 m), PO.DAAC", "new_below": we.get("new_below", 0.2),
+            "min_prior": we.get("min_prior", 3), "min_patch_km2": we.get("min_patch_km2", 0.5),
+            "baseline_years": we.get("baseline_years", 2), "baseline_window_days": we.get("baseline_window_days", 30), "areas": areas} if areas else None
+
+
+def windows(cfg: dict, now: int) -> list[tuple[int, int]]:
+    """The passes to keep: the last `days`, and the same season (`baseline_window_days`
+    either side of the date) in each of the last `baseline_years` years."""
+    days = cfg.get("days", 60) * 86_400
+    w = cfg.get("baseline_window_days", 30) * 86_400
+    out = [(now - days, now)]
+    for y in range(1, cfg.get("baseline_years", 2) + 1):
+        c = now - y * 365 * 86_400
+        out.append((c - w, c + w))
+    return out

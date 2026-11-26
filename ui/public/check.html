@@ -63,13 +63,18 @@ async function get(name) {
     h += `<p>Last fetch: ${fmt(fsx.attempts)} fetches, <b>${fmt(fsx.failures)} failed</b>, finished ${new Date(fsx.finished * 1000).toISOString().slice(0, 16)}Z.</p>`;
     if (fsx.failed.length) h += table(fsx.failed);
   }
+  const assumed = index.reaches.flatMap((r) => (r.assumptions || []).map((a) => ({ reach: r.id, input: a.input, "carried on": a.how,
+    "last reading": a.last_reading ? new Date(a.last_reading * 1000).toISOString().slice(0, 16) + "Z" : "", "daily figure held flat": a.daily_held_flat ? "yes" : "" })));
+  h += `<h2>0. What this cycle assumed (index.json reaches[].assumptions)</h2><p>Each input past its last reading, as this cycle carried it on. The kinds of assumption, with their code: <a href="assumptions.html">assumptions</a>.</p>` + table(assumed);
   h += "<h2>1. Prediction ledger: forecasts against what happened (skill.json)</h2>";
   if (skill) {
     h += `<p>${skill.cycles} cycles kept in the last ${skill.window_days} days. Each prediction against the reading nearest its time (within 30 min), measured less predicted, by how far ahead it was made.</p>`;
-    h += table(skill.groups, [["reach", "reach"], ["parameter", "quantity"], ["lead", "lead"], ["pairs", "pairs"], ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"]]);
+    h += table(skill.groups, [["kind", "kind"], ["reach", "reach"], ["parameter", "quantity"], ["lead", "lead"], ["pairs", "pairs"], ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"],
+      ["rms_persistence", "RMS persistence"], ["skill_vs_persistence", "skill vs persistence"]]);
+    h += `<p class="note">Persistence: nothing changes (the last reading at the cycle's time, held). Skill = 1 - RMS / persistence's RMS: above 0 beats it. The nightly hindcasts and their log: <a href="nightly.html">nightly</a>. Model version of this cycle: ${esc(JSON.stringify(index.model_version || {}))}.</p>`;
     h += "<h3>Per check point</h3>";
     const pts = skill.points.flatMap((p) => Object.entries(p.leads).map(([lead, s]) => ({ reach: p.reach, name: p.name, source: p.source, site: p.site, parameter: p.parameter, lead, ...s })));
-    h += table(pts, ["reach", "name", "source", "site", "parameter", "lead", "pairs", ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"]]);
+    h += table(pts, ["reach", "name", "source", "site", "parameter", "lead", "pairs", ["mean_misfit", "mean misfit"], ["rms_misfit", "RMS misfit"], ["rms_persistence", "RMS persistence"], ["skill_vs_persistence", "skill"]]);
   } else h += "<p class='note'>(no skill.json in this cycle)</p>";
 
   h += "<h2>2. Stations against the model covering them, last 14 days (overlays.json)</h2>";
@@ -135,6 +140,17 @@ async function get(name) {
       "pressure, hPa": s.readings.air_pressure?.v, "air, °C": s.readings.air_temperature?.v, "water, °C": s.readings.water_temperature?.v,
       at: iso((s.readings.wind_speed || s.readings.air_pressure).t) }));
     h += table(wx);
+
+    const wxs = ov.water_extent;
+    h += "<h3>Water seen from radar, and new water (overlays.json water_extent)</h3>";
+    if (wxs) {
+      h += `<p>${esc(wxs.source)}. New water: water now where, in the same season (${wxs.baseline_window_days} days either side of the date) of the last ${wxs.baseline_years} years, at least ${wxs.min_prior} passes saw it water less than ${wxs.new_below * 100}% of the time; patches of at least ${wxs.min_patch_km2} km². A sign of a breach or flood to look at, not a finding.</p>`;
+      for (const a of wxs.areas) {
+        h += `<p><b>${esc(a.area)}</b> (box ${a.box.join(", ")})</p>`;
+        h += table(a.passes.slice(-12).map((p) => ({ pass: iso(p.t), "seen, km²": p.seen_km2, "water, km²": p.water_km2, "new water, km²": p.new_water_km2,
+          "same-season passes, earlier years": p.baseline_passes, "sudden new (dry last pass), km²": p.sudden_new_km2, "sudden patches": (p.sudden_patches || []).map((q) => `${q.km2} at ${q.lon}, ${q.lat}`).join("; "), "new patches (km² at lon, lat)": (p.new_patches || []).map((q) => `${q.km2} at ${q.lon}, ${q.lat}`).join("; ") })));
+      }
+    } else h += "<p class='note'>(none yet)</p>";
 
     h += "<h2>4. Reservoirs and snowpack (overlays.json structures)</h2>";
     const res = ov.structures.filter((s) => s.storage || (s.snow && s.snow.length)).map((s) => ({
