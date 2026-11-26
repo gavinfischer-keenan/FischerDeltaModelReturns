@@ -58,6 +58,11 @@ async function get(name) {
   const skill = index.skill ? await get(index.skill) : null;
   let h = `<p>Region <b>${esc(index.region)}</b>, cycle <b>${esc(index.cycle)}</b>, status ${esc(index.status)}, newest data by source: ${esc(Object.entries(index.data_age_s || {}).map(([k, s]) => `${k} ${Math.round(s / 60)} min old`).join(", "))}. Files: <a href="${base}index.json">index.json</a> · <a href="${base}overlays.json">overlays.json</a> · <a href="${base}skill.json">skill.json</a></p>`;
 
+  const fsx = index.fetch_status;
+  if (fsx) {
+    h += `<p>Last fetch: ${fmt(fsx.attempts)} fetches, <b>${fmt(fsx.failures)} failed</b>, finished ${new Date(fsx.finished * 1000).toISOString().slice(0, 16)}Z.</p>`;
+    if (fsx.failed.length) h += table(fsx.failed);
+  }
   h += "<h2>1. Prediction ledger: forecasts against what happened (skill.json)</h2>";
   if (skill) {
     h += `<p>${skill.cycles} cycles kept in the last ${skill.window_days} days. Each prediction against the reading nearest its time (within 30 min), measured less predicted, by how far ahead it was made.</p>`;

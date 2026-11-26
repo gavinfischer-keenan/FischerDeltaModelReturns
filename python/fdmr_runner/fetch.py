@@ -17,6 +17,7 @@ issue is not already held. One gauge's failure does not stop the rest.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 from datetime import datetime, timezone
@@ -77,13 +78,17 @@ def main(argv: list[str] | None = None) -> int:
     now = time.time()
     start = now - args.days * 86_400
     failures = 0
+    attempts = 0
+    failed: list[dict] = []
 
     def attempt(label: str, fn) -> None:
-        nonlocal failures
+        nonlocal failures, attempts
+        attempts += 1
         try:
             print(f"{label:40s} {fn():7d}", flush=True)
         except Exception as e:  # one gauge's outage must not stop the rest
             failures += 1
+            failed.append({"what": label, "error": str(e)[:200]})
             print(f"{label:40s} FAILED {e}", flush=True)
         time.sleep(args.pause)
 
@@ -402,8 +407,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"cnrfc {group:34s} FAILED {e}", flush=True)
         time.sleep(args.pause)
     store.close()
-    print(f"done: {len(region.gauges)} gauges, {failures} failures")
-    return 1 if failures else 0
+    print(f"done: {len(region.gauges)} gauges, {attempts} fetches, {failures} failures")
+    # The run's own account, published with the next cycle (index.json
+    # `fetch_status`): a failed source stays visible by name without one
+    # network blip marking the whole cycle failed. Only a run where every
+    # fetch failed is a failure.
+    status = {"finished": int(time.time()), "attempts": attempts, "failures": failures, "failed": failed}
+    Path(args.store).parent.joinpath(f"fetch-status-{region.id}.json").write_text(json.dumps(status), encoding="utf-8")
+    return 1 if attempts and failures == attempts else 0
 
 
 if __name__ == "__main__":

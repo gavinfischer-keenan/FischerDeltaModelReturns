@@ -589,6 +589,10 @@ def publish(
             index["overlays"] = "overlays.json"
     except Exception as e:  # the water is published whatever happens to its overlays
         print(f"overlays FAILED {e}", flush=True)
+    # The last fetch's own account of what it could not get (fdmr_runner.fetch).
+    fs = store.path.parent / f"fetch-status-{index['region']}.json" if store.path.name != ":memory:" else None
+    if fs and fs.exists():
+        index["fetch_status"] = json.loads(fs.read_text(encoding="utf-8"))
     # The prediction ledger (fdmr_runner.ledger): this cycle's predictions kept
     # when due, and every kept prediction scored against what was measured.
     if store.path.name != ":memory:":
