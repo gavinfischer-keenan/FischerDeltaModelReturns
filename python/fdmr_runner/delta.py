@@ -143,8 +143,10 @@ def weather(store: Store, tcfg: dict, t0: int, n: int, now: int, use_forecast: b
     for p in WEATHER:
         per = []
         for s in tcfg["stations"]:
-            pts = {v.t: v.value for v in store.values(nw.GHCNH, s["ghcnh"], p, t0 - DAY, now + 1) if v.value is not None}
-            pts.update({v.t: v.value for v in store.values(nw.NWS, s["nws"], p, t0 - DAY, now + 1) if v.value is not None})
+            pts = {}
+            for src, key in ((nw.GHCNH, "ghcnh"), (nw.NWS, "nws"), ("ndbc", "ndbc")):  # an NDBC weather station too
+                if key in s:
+                    pts.update({v.t: v.value for v in store.values(src, s[key], p, t0 - DAY, now + 1) if v.value is not None})
             per.append(on_grid(sorted(pts.items()), t0, STEP, i_cut + 1, max_gap_s=6 * 3600))
         g: list[float | None] = []
         for i in range(i_cut + 1):

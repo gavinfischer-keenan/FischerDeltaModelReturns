@@ -112,6 +112,30 @@ temperature = ["water_temperature"]
 check_only = true
 
 [[quality.stations]]
+source = "erddap:erddap.cencoos.org"
+server = "https://erddap.cencoos.org/erddap"
+site = "exploratorium-seabird"
+name = "Exploratorium, Pier 15 (CeNCOOS)"
+lon = -122.3967
+lat = 37.8025
+salinity = ["salinity"]
+temperature = ["water_temperature"]
+check_only = true
+
+[[quality.stations]]
+# SF State's Tiburon pier sonde: not reporting since 24 Sep 2026; used again
+# as soon as it reports (a station with no readings is passed over).
+source = "erddap:erddap.cencoos.org"
+server = "https://erddap.cencoos.org/erddap"
+site = "tiburon-water-tibc1"
+name = "Tiburon, Romberg Tiburon Center pier (CeNCOOS)"
+lon = -122.4467
+lat = 37.8915
+salinity = ["salinity"]
+temperature = ["water_temperature"]
+check_only = true
+
+[[quality.stations]]
 source = "noaa-tides"
 site = "9414750"
 name = "Alameda (NOAA)"
@@ -282,3 +306,16 @@ source = "usgs"
 site = "380245121532301"
 parameter = "discharge_tidally_filtered"
 duration = "D"
+
+# The mesh's currents checked against measured surface currents (issue #8):
+# the US IOOS high-frequency radar network's 500 m West Coast product, hourly,
+# through NOAA CoastWatch's ERDDAP (checked 26 Nov 2026: current to within
+# hours; licence "may be used and redistributed for free but is not intended
+# for legal use"; Terrill et al. 2006, Proc. MTS/IEEE Oceans). It covers the
+# Central Bay and the Golden Gate, 37.79-37.90 N; San Pablo Bay has none.
+# Box: south, north, west, east (degrees).
+[currents_check]
+server = "https://coastwatch.pfeg.noaa.gov/erddap"
+dataset = "ucsdHfrW500"
+box = [37.76, 37.93, -122.52, -122.33]
+near_m = 400.0

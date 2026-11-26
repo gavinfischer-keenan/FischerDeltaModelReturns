@@ -500,6 +500,10 @@ stations = [
   { ghcnh = "USW00023232", nws = "KSAC", name = "Sacramento Executive Airport" },
   { ghcnh = "USW00023237", nws = "KSCK", name = "Stockton Metropolitan Airport" },
   { ghcnh = "USW00023202", nws = "KSUU", name = "Travis Air Force Base" },
+  # The SF Bay estuarine reserve's Rush Ranch weather station in Suisun Marsh,
+  # through NOAA NDBC (SFXC1; added 26 Nov 2026, issue #8): air temperature,
+  # dew point, wind and pressure, the marsh's own; no cloud.
+  { ndbc = "SFXC1", name = "Rush Ranch (SF Bay NERR)" },
 ]
 # Past now, the Weather Service's forecast for the grid cell at 38.1 N 121.6 W
 # (the central Delta), about 7 days; then its last day over again.

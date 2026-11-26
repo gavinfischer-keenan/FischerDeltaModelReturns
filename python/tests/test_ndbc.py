@@ -12,3 +12,12 @@ def test_ocean_file_rows_become_temperature_and_salinity_oldest_first():
     assert [v.value for v in got["salinity"]] == [22.6, 22.7]
     assert [v.value for v in got["water_temperature"]] == [12.8]  # the missing one is skipped
     assert got["salinity"][0].t < got["salinity"][1].t
+
+
+def test_overlay_fetch_asks_cdec_only_for_its_own_sensors():
+    from fdmr_adapters import cdec
+    from fdmr_runner import overlays
+
+    groups = overlays.fetch_groups({"stations": [{"site": "ABC"}, {"site": "SCQC1", "source": "ndbc"}]})
+    assert groups and all(p in cdec.SENSORS for _, _, ps in groups for p in ps)
+    assert all("SCQC1" not in sites for _, sites, _ in groups)

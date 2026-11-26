@@ -137,6 +137,42 @@ def main(argv: list[str] | None = None) -> int:
     from . import overlays
 
     ocfg = (overlays.load(Path(args.region)) or {}) if not args.forecast_only else {}
+    # SWOT's view of the rivers (region.toml [[river_swot]]): passes come days
+    # apart, so asked at most twice a day.
+    import tomllib as _tl
+
+    from fdmr_adapters.swot import SOURCE as SWOT
+    from fdmr_adapters.swot import SwotAdapter
+
+    for rs in [] if args.forecast_only else _tl.loads((Path(args.region) / "region.toml").read_text(encoding="utf-8")).get("river_swot", []):
+        sw = SwotAdapter(store)
+        for r in rs["reaches"]:
+            last = store.latest(SWOT, r["id"], "width")
+            if last and last[1] >= now - 12 * 3600:
+                continue
+            attempt(f"swot {r['id']}", lambda r=r: sw.fetch(r["id"], iso(now - 60 * 86_400), iso(now)))
+    # The map's stations from other agencies than CDEC (overlays.toml `source`).
+    from fdmr_adapters import erddap as _erddap
+    from fdmr_adapters.ndbc import NdbcAdapter as _NdbcO
+    from fdmr_adapters.noaa_tides import NoaaTidesAdapter as _Tides
+
+    for s in ocfg.get("stations", []):
+        src = s.get("source", CDEC)
+        if src == "ndbc":
+            attempt(f"ndbc {s['site']}", lambda s=s: _NdbcO(store).fetch_met(s["site"]) if s.get("kind") == "weather" else _NdbcO(store).fetch(s["site"]))
+        elif src == "noaa-tides":
+            cov = store.coverage(src, s["site"], "water_temperature")
+            f0 = max(now - 21 * 86_400, cov[1] + 1) if cov else now - 21 * 86_400
+            attempt(f"noaa {s['site']} water_temperature", lambda s=s, f0=f0: _Tides(store).fetch_water_temperature(s["site"], int(f0), int(now)))
+        elif src == SOURCE:
+            for p in s.get("measures", ["water_temperature", "specific_conductance"]):
+                cov = store.coverage(SOURCE, s["site"], p)
+                f0 = max(now - 21 * 86_400, cov[1]) if cov else now - 21 * 86_400
+                attempt(f"{s['site']} {p}", lambda s=s, p=p, f0=f0: usgs.fetch_values(s["site"], p, f"{iso(f0)}/{iso(now)}"))
+        elif src.startswith("erddap:"):
+            cov = store.coverage(src, s["site"], "water_temperature")
+            f0 = max(now - 21 * 86_400, cov[1] + 1) if cov else now - 21 * 86_400
+            attempt(f"erddap {s['site']}", lambda s=s, f0=f0: _erddap.ErddapAdapter(store, s["server"]).fetch(s["site"], iso(f0), ["water_temperature", "salinity"]))
     for dur, group, shown in overlays.fetch_groups(ocfg):
         ends = {}
         for site in group:
@@ -175,6 +211,11 @@ def main(argv: list[str] | None = None) -> int:
     for tcfg in [c for c in [tcfg, *rt.get("weather", [])] if c]:
         wx = NoaaWeatherAdapter(store)
         for s in [] if args.forecast_only else tcfg["stations"]:
+            if "ndbc" in s:  # an NDBC weather station: its file holds the last 45 days
+                from fdmr_adapters.ndbc import NdbcAdapter as _Ndbc
+
+                attempt(f"ndbc {s['ndbc']} weather", lambda s=s: _Ndbc(store).fetch_met(s["ndbc"]))
+                continue
             cov = store.coverage(GHCNH, s["ghcnh"], "air_temperature")
             fetched = store.latest(GHCNH, s["ghcnh"], "air_temperature")
             if cov and cov[0] <= start + 2 * 86_400 and fetched and fetched[1] >= now - 20 * 3600:
@@ -210,6 +251,13 @@ def main(argv: list[str] | None = None) -> int:
     from fdmr_adapters.noaa_tides import SOURCE as TIDES
 
     for st in [] if (args.forecast_only or not qcfg) else qcfg["stations"]:
+        if st["source"].startswith("erddap:"):
+            from fdmr_adapters import erddap as _erddap_q
+
+            cov = store.coverage(st["source"], st["site"], "water_temperature")
+            f0 = max(now - 21 * 86_400, cov[1] + 1) if cov else now - 21 * 86_400
+            attempt(f"erddap {st['site']}", lambda st=st, f0=f0: _erddap_q.ErddapAdapter(store, st["server"]).fetch(st["site"], iso(f0), ["water_temperature", "salinity"]))
+            continue
         if st["source"] == NDBC:  # its file holds the last 45 days
             attempt(f"ndbc {st['site']}", lambda s=st["site"]: NdbcAdapter(store).fetch(s))
             continue

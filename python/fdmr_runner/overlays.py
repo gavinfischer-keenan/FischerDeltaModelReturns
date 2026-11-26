@@ -38,13 +38,17 @@ DAY_OFFSET = {cdec.SOURCE: cdec.PST_TO_UTC}
 # that the model computes for it.
 SHOWN = {
     "water_temperature": "temperature",
+    "salinity": "salinity",
     "specific_conductance": "ec",
     "specific_conductance_bottom": None,
     "dissolved_oxygen": None,
     "turbidity_ntu": None,
     "turbidity_fnu": None,
     "discharge": None,
+    "air_temperature": None,
+    "wind_speed": None,
 }
+CHECK_DAYS = 14  # each station's readings against the model over this many days
 MODEL_NEAR_KM = 1.0  # a station further than this from every channel gets no model value
 
 
@@ -54,12 +58,16 @@ def load(region_dir: Path) -> dict | None:
 
 
 class NetworkValues:
-    """A network reach's water-quality fields per channel over its days, to look up."""
+    """A reach's water-quality fields per element over its days, to look up:
+    a network's channels, a river's elements, or (`points`) a mesh's nodes."""
 
     def __init__(self, cdir: Path, entry: dict, fields: list[str]) -> None:
         import fdmr_py
 
+        self.reach = entry["id"]
         self.geo = json.loads((cdir / "geometry" / f"{entry['id']}.json").read_text(encoding="utf-8"))
+        if "lines" not in self.geo:  # a mesh: each node is a point
+            self.geo["lines"] = [[[x, y]] for x, y in zip(self.geo["lon"], self.geo["lat"])]
         data: dict[str, list[np.ndarray]] = {f: [] for f in fields}
         self.t0 = self.step = None
         for day in entry["time"]["days"]:
@@ -74,11 +82,15 @@ class NetworkValues:
                 data[f].append(np.asarray(got[f], dtype=float).reshape(steps, n) if f in got else np.full((steps, n), np.nan))
         self.data = {f: np.concatenate(v) for f, v in data.items() if v}
 
+    skip: frozenset = frozenset()  # channels another reach covers (a mesh's), not this one's to answer for
+
     def channel_near(self, lon: float, lat: float) -> tuple[int, float]:
         """The channel nearest a point, and how far it is, km."""
         c = math.cos(math.radians(lat))
         best = (math.inf, -1)
         for k, line in enumerate(self.geo["lines"]):
+            if k in self.skip:
+                continue
             a = np.asarray(line)
             d = float(np.min(((a[:, 0] - lon) * c) ** 2 + (a[:, 1] - lat) ** 2))
             best = min(best, (d, k))
@@ -175,13 +187,19 @@ def axis_km(axis: isohaline.Axis, lon: float, lat: float) -> float:
 
 
 def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> tuple[list[dict], dict]:
-    """Each station's latest readings, with the model's value beside where it has one."""
-    nets = [r for r in index["reaches"] if r.get("network") and r.get("quality_fields")]
+    """Each station's latest readings, with the value of whichever model covers
+    it beside (a network's channel, a river's element or a mesh's node within
+    MODEL_NEAR_KM), and `checks`: its readings over the last CHECK_DAYS days
+    against that model's at the same moments (mean and RMS of measured less
+    modelled)."""
+    nets = [r for r in index["reaches"] if r.get("quality_fields")]
     lookups = []
     for r in nets:
         fields = sorted({f for f in SHOWN.values() if f and f in r["quality_fields"]})
-        if fields:
-            lookups.append(NetworkValues(cdir, r, fields))
+        if fields:  # a reach without its own time block (a river) runs on the cycle's
+            lk = NetworkValues(cdir, {**r, "time": r.get("time", index["time"])}, fields)
+            lk.skip = frozenset(c for h in index.get("handoffs", []) if h.get("from") == r["id"] for c in h.get("owned", []))
+            lookups.append(lk)
     units: dict[str, str] = {}
     out = []
     for st in cfg.get("stations", []):
@@ -203,9 +221,23 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> tupl
                 if m is not None:
                     r["model"] = round(m, 3)
             readings[p] = r
+        checks = {}
+        for p, field in SHOWN.items():
+            if not (field and near):
+                continue
+            pairs = []
+            for v in store.values(st.get("source", "cdec"), st["site"], p, now - CHECK_DAYS * 86_400, now + 1):
+                m = near[0].at(field, near[1], v.t) if v.value is not None else None
+                if m is not None:
+                    pairs.append(v.value - m)
+            if len(pairs) >= 24:
+                d = np.array(pairs)
+                checks[p] = {"readings": len(d), "mean_misfit": round(float(d.mean()), 3),
+                             "rms_misfit": round(float(np.sqrt((d ** 2).mean())), 3)}
         out.append({"site": st["site"], "name": st["name"], "lon": st["lon"], "lat": st["lat"],
                     "source": st.get("source", "cdec"), "readings": readings,
-                    **({"model_channel": near[0].geo["elements"][near[1]]["id"]} if near else {})})
+                    **({"model_reach": near[0].reach, "model_km": round(near[2], 2)} if near else {}),
+                    **({"checks": checks} if checks else {})})
     return out, units
 
 
@@ -321,7 +353,7 @@ def fetch_groups(cfg: dict) -> list[tuple[str, list[str], list[str]]]:
     groups: dict[tuple[str, tuple[str, ...]], list[str]] = {}
     for s in cfg.get("stations", []):
         if s.get("source", cdec.SOURCE) == cdec.SOURCE:
-            groups.setdefault((s.get("duration", "H"), tuple(SHOWN)), []).append(s["site"])
+            groups.setdefault((s.get("duration", "H"), tuple(p for p in SHOWN if p in cdec.SENSORS)), []).append(s["site"])
     for s in cfg.get("structures", []):
         if s.get("source", cdec.SOURCE) == cdec.SOURCE:
             ps = tuple(s.get("show", []))

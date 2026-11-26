@@ -24,20 +24,26 @@ from .http import USER_AGENT
 SOURCE = "ndbc"
 URL = "https://www.ndbc.noaa.gov/data/realtime2/{station}.ocean"
 COLUMNS = {"water_temperature": ("OTMP", "degC", (-2.0, 40.0)), "salinity": ("SAL", "psu", (0.0, 42.0))}
+# The standard meteorological file (`.txt`): weather, in the weather adapter's parameter names.
+MET_URL = "https://www.ndbc.noaa.gov/data/realtime2/{station}.txt"
+MET_COLUMNS = {
+    "air_temperature": ("ATMP", "degC", (-40.0, 55.0)), "dew_point": ("DEWP", "degC", (-50.0, 40.0)),
+    "wind_speed": ("WSPD", "m/s", (0.0, 60.0)), "air_pressure": ("PRES", "hPa", (850.0, 1090.0)),
+}
 
 
-def parse(lines: Iterable[str]) -> dict[str, list[Value]]:
+def parse(lines: Iterable[str], columns: dict = COLUMNS) -> dict[str, list[Value]]:
     """Each parameter's readings, oldest first."""
     rows = [ln.split() for ln in lines if ln.strip()]
     head = rows[0]
     head[0] = head[0].lstrip("#")
     col = {name: i for i, name in enumerate(head)}
-    out: dict[str, list[Value]] = {p: [] for p in COLUMNS}
+    out: dict[str, list[Value]] = {p: [] for p in columns}
     for r in rows[1:]:
         if r[0].startswith("#"):
             continue
         t = timegm((int(r[0]), int(r[1]), int(r[2]), int(r[3]), int(r[4]), 0))
-        for p, (name, _, (lo, hi)) in COLUMNS.items():
+        for p, (name, _, (lo, hi)) in columns.items():
             if name not in col or col[name] >= len(r) or r[col[name]] == "MM":
                 continue
             v = float(r[col[name]])
@@ -61,3 +67,8 @@ class NdbcAdapter:
         """Store a station's last 45 days; returns how many readings."""
         data = parse(self.get_lines(URL.format(station=station)))
         return sum(self.store.put_values(SOURCE, station, p, COLUMNS[p][1], vs) for p, vs in data.items() if vs)
+
+    def fetch_met(self, station: str) -> int:
+        """Store a station's last 45 days of weather; returns how many readings."""
+        data = parse(self.get_lines(MET_URL.format(station=station)), MET_COLUMNS)
+        return sum(self.store.put_values(SOURCE, station, p, MET_COLUMNS[p][1], vs) for p, vs in data.items() if vs)

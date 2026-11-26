@@ -871,6 +871,56 @@ lon = -120.5178
 stations = [{ ghcnh = "USW00023257", nws = "KMCE", name = "Merced airport" }]
 forecast = { office = "HNX", x = 31, y = 128 }
 
+# The river's width checked against what the SWOT satellite sees (issue #8):
+# SWORD v17b river reaches (about 10 km each) along the main stem from
+# Keswick to Freeport, ids and centres from SWORD's attribute table for basin
+# 77 (Zenodo record 23870877), observed through PO.DAAC's Hydrocron. Only
+# passes flagged good or suspect are used. SWOT's water level is not compared:
+# the river model carries none, and on a river this narrow it scatters by
+# metres from pass to pass.
+[[river_swot]]
+reach = "river"
+reaches = [
+  { id = "77449500064", lon = -122.44534, lat = 40.61209 },
+  { id = "77449500051", lon = -122.41017, lat = 40.59464 },
+  { id = "77449500043", lon = -122.36629, lat = 40.58561 },
+  { id = "77449500031", lon = -122.36326, lat = 40.53867 },
+  { id = "77449500021", lon = -122.29756, lat = 40.47189 },
+  { id = "77449500011", lon = -122.20433, lat = 40.42743 },
+  { id = "77449300121", lon = -122.19530, lat = 40.34917 },
+  { id = "77449300111", lon = -122.16259, lat = 40.31682 },
+  { id = "77449300101", lon = -122.20546, lat = 40.26872 },
+  { id = "77449300091", lon = -122.18856, lat = 40.24292 },
+  { id = "77449300081", lon = -122.21954, lat = 40.18264 },
+  { id = "77449300071", lon = -122.14347, lat = 40.13971 },
+  { id = "77449300061", lon = -122.11667, lat = 40.05136 },
+  { id = "77449300051", lon = -122.09247, lat = 39.96606 },
+  { id = "77449300041", lon = -122.06748, lat = 39.89708 },
+  { id = "77449300031", lon = -122.05952, lat = 39.83925 },
+  { id = "77449300021", lon = -122.02742, lat = 39.77040 },
+  { id = "77449300011", lon = -121.95223, lat = 39.71766 },
+  { id = "77449100131", lon = -121.97488, lat = 39.66688 },
+  { id = "77449100121", lon = -121.98701, lat = 39.62001 },
+  { id = "77449100111", lon = -121.99697, lat = 39.55692 },
+  { id = "77449100101", lon = -121.99516, lat = 39.49163 },
+  { id = "77449100091", lon = -122.00441, lat = 39.41531 },
+  { id = "77449100081", lon = -122.02212, lat = 39.33168 },
+  { id = "77449100071", lon = -122.01288, lat = 39.26849 },
+  { id = "77449100061", lon = -121.98719, lat = 39.20836 },
+  { id = "77449100051", lon = -121.93396, lat = 39.16362 },
+  { id = "77449100041", lon = -121.87803, lat = 39.08173 },
+  { id = "77449100031", lon = -121.82163, lat = 38.97362 },
+  { id = "77449100021", lon = -121.78635, lat = 38.88024 },
+  { id = "77449100011", lon = -121.71595, lat = 38.81755 },
+  { id = "77447000011", lon = -121.66227, lat = 38.76704 },
+  { id = "77445000021", lon = -121.60754, lat = 38.72577 },
+  { id = "77445000011", lon = -121.56151, lat = 38.62604 },
+  { id = "77443000113", lon = -121.50718, lat = 38.58616 },
+  { id = "77443000103", lon = -121.51828, lat = 38.56756 },
+  { id = "77443000223", lon = -121.52434, lat = 38.53074 },
+  { id = "77443000213", lon = -121.52347, lat = 38.47361 },
+]
+
 # The basemap extract: west, south, east, north (degrees), and the deepest zoom.
 [basemap]
 bbox = [-123.25, 37.0, -120.25, 40.98]   # widened 26 Nov 2026 to the tributaries' dams (Crocker-Huffman, -120.38) and the canals' ends (O'Neill, 37.10)

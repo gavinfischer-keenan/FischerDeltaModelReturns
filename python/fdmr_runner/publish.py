@@ -300,6 +300,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         "fields": ["flow", "area", "velocity", "volume", "dispersion"],
         "certainty": certainty,
         **({"quality_fields": ["temperature"], "temperature_checks": temp_checks} if temperature is not None else {}),
+        **({"swot_checks": sw} if (sw := swot_checks(region_dir, store, reach, line, els, widths, now)) else {}),
     }
     return entry, [f for _, f in (x for x in issues if x)]
 
@@ -428,6 +429,37 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
                        "mean_misfit": round(float(d0.mean()), 2), "rms_misfit": round(float(np.sqrt((d0 ** 2).mean())), 2),
                        "left_out_mean": round(float(d1.mean()), 2), "left_out_rms": round(float(np.sqrt((d1 ** 2).mean())), 2)})
     return out, checks
+
+
+def swot_checks(region_dir: Path, store: Store, reach: str, line: Centreline, els, widths, now: int) -> dict | None:
+    """The river's widths (at each element's median flow) against SWOT's
+    measured widths over the last 60 days (region.toml [[river_swot]]): per
+    SWOT reach, the median of its passes beside the model's width at the
+    element nearest its centre, and over all of them the median ratio."""
+    import tomllib
+
+    import numpy as np
+
+    cfg = tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("river_swot", [])
+    rs = next((c for c in cfg if c["reach"] == reach), None)
+    if not rs:
+        return None
+    mids = np.array([e.mid for e in els])
+    rows = []
+    for r in rs["reaches"]:
+        vs = [v.value for v in store.values("swot", r["id"], "width", now - 60 * 86_400, now + 1) if v.value is not None]
+        if len(vs) < 2:
+            continue
+        x, off = on_centreline(line, r["lon"], r["lat"])
+        if off > 1000:
+            continue
+        e = int(np.argmin(np.abs(mids - x)))
+        rows.append({"id": r["id"], "km": round(x / 1000, 1), "passes": len(vs),
+                     "swot_width": round(float(np.median(vs)), 1), "model_width": widths[e]})
+    if not rows:
+        return None
+    ratio = [r["model_width"] / r["swot_width"] for r in rows if r["swot_width"] > 0]
+    return {"reaches": len(rows), "median_ratio": round(float(np.median(ratio)), 2), "per_reach": rows}
 
 
 def join_at(cdir: Path, a: str, b: str) -> float:

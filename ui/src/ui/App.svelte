@@ -61,7 +61,7 @@
     if (kind === "x2" && on && map && x2) drawIsohaline(map, x2, t, x2Label);
   }
   const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
-  const UNIT: Record<string, string> = { degC: "°C", "uS/cm": "µS/cm", "mg/L": "mg/L", NTU: "NTU", FNU: "FNU", "m3/s": "m³/s" };
+  const UNIT: Record<string, string> = { degC: "°C", "uS/cm": "µS/cm", "mg/L": "mg/L", NTU: "NTU", FNU: "FNU", "m3/s": "m³/s", psu: "psu", "m/s": "m/s" };
   const n0 = (x: number) => Math.round(x).toLocaleString("en-US");
   /** A flow in m³/s, with cubic feet per second beside it, as the agencies report it. */
   const flow = (q: number) => `<b>${n0(q)}</b> m³/s (${n0(q / 0.028316846592)} cfs)`;
@@ -92,7 +92,9 @@
       const age = Math.max(0, Math.round((Date.now() / 1000 - r.t) / 3600));
       return `<tr><td>${esc(key(`reading_${p}`))}</td><td><b>${v(r.v)}</b> ${u}${model}</td><td class="age">${age < 1 ? text.station_just_now : `${age} h`}</td></tr>`;
     });
-    return `<div class="station"><b>${esc(s.name)}</b> <span class="site">${esc(s.site)}</span><table>${rows.join("") || `<tr><td>${text.station_no_readings}</td></tr>`}</table><p>${text.station_source}</p></div>`;
+    const src = key(`source_${s.source ?? "cdec"}`);
+    const model = s.model_reach ? (key(`model_${s.model_reach}`) !== `model_${s.model_reach}` ? key(`model_${s.model_reach}`) : text.model_river) : text.station_no_model;
+    return `<div class="station"><b>${esc(s.name)}</b> <span class="site">${esc(s.site)}</span><table>${rows.join("") || `<tr><td>${text.station_no_readings}</td></tr>`}</table><p>${text.station_measured}: ${esc(src)}. ${text.station_modelled}: ${esc(model)}.</p></div>`;
   }
   let netFlow = $state(false);
   function setFlow(net: boolean) {

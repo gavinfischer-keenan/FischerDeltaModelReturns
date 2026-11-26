@@ -340,6 +340,85 @@ lat = 37.371
 lon = -120.931
 duration = "H"
 
+# Stations of other agencies (issue #8; each checked against its own live data,
+# 26 Nov 2026; positions from NDBC's station pages, CO-OPS's station
+# metadata, USGS's site service and CeNCOOS's ERDDAP). Shown with their latest
+# readings and the value of whichever model covers them, and checked against
+# it each cycle.
+[[stations]]
+source = "ndbc"
+site = "SCQC1"
+name = "China Camp (SF Bay estuarine reserve)"
+lat = 38.001
+lon = -122.460
+
+[[stations]]
+source = "ndbc"
+site = "FFFC1"
+name = "First Mallard, Rush Ranch (SF Bay estuarine reserve)"
+lat = 38.195
+lon = -122.033
+
+[[stations]]
+source = "ndbc"
+site = "RYEC1"
+name = "Second Mallard, Rush Ranch (SF Bay estuarine reserve)"
+lat = 38.184
+lon = -122.014
+
+[[stations]]
+source = "ndbc"
+kind = "weather"
+site = "SFXC1"
+name = "Rush Ranch weather (SF Bay estuarine reserve)"
+lat = 38.200
+lon = -122.026
+
+[[stations]]
+source = "usgs"
+site = "381142122015801"
+name = "First Mallard Branch near Fairfield (USGS)"
+lat = 38.19489444
+lon = -122.0328139
+measures = ["water_temperature", "specific_conductance", "discharge"]
+
+[[stations]]
+source = "noaa-tides"
+site = "9414750"
+name = "Alameda (NOAA)"
+lat = 37.771954
+lon = -122.30026
+
+[[stations]]
+source = "noaa-tides"
+site = "9414863"
+name = "Richmond (NOAA)"
+lat = 37.9283
+lon = -122.4000
+
+[[stations]]
+source = "noaa-tides"
+site = "9415144"
+name = "Port Chicago (NOAA)"
+lat = 38.056
+lon = -122.0395
+
+[[stations]]
+source = "erddap:erddap.cencoos.org"
+server = "https://erddap.cencoos.org/erddap"
+site = "exploratorium-seabird"
+name = "Exploratorium, Pier 15 (CeNCOOS)"
+lat = 37.8025
+lon = -122.3967
+
+[[stations]]
+source = "erddap:erddap.cencoos.org"
+server = "https://erddap.cencoos.org/erddap"
+site = "tiburon-water-tibc1"
+name = "Tiburon pier (CeNCOOS; not reporting since 24 Sep 2026)"
+lat = 37.8915
+lon = -122.4467
+
 # Dams, pumping plants and gates (specification 3.5), with their latest
 # readings from CDEC: what each one releases, pumps or lets through. `show`
 # names the readings, `duration` the CDEC series (H hourly, D daily; a daily

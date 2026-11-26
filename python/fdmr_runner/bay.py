@@ -583,6 +583,64 @@ def seam_quality(data: dict[int, dict], coarse: mesh.Coarse, delta_dir: Path, jo
     return out
 
 
+def currents_check(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict], now: int, radar=None) -> dict | None:
+    """The mesh's currents against high-frequency radar's measured surface
+    currents (bay.toml [currents_check]), every past hour both have, at each
+    radar cell with data at least half the hours and a mesh node within
+    `near_m`. The radar sees the top metre or so; the mesh's currents are
+    averaged over the depth, so the radar's run faster in a typical profile.
+    Gives the mean speeds, the RMS of the vector difference, and the complex
+    correlation (Kundu 1976: its magnitude, 0 to 1, and the angle the mesh's
+    currents turn from the radar's, degrees anticlockwise)."""
+    cc = cfg.get("currents_check")
+    if not cc:
+        return None
+    from fdmr_adapters import hfradar
+
+    past = sorted(tt for tt in hours if tt <= now)
+    if not past:
+        return None
+    n_hours = int((now - past[0]) // HOUR) + 2
+    r = radar or hfradar.fetch(cc["server"], cc["dataset"], tuple(cc["box"]), min(n_hours, cc.get("hours", 24 * 16)))
+    ok = np.isfinite(r.u) & np.isfinite(r.v)
+    share = ok.mean(axis=0)
+    cells = [(iy, ix) for iy, ix in zip(*np.where(share >= 0.5))]
+    near_m = cc.get("near_m", 400.0)
+    pairs_r, pairs_m, used = [], [], set()
+    node_of = {}
+    for iy, ix in cells:
+        d = np.hypot((coarse.lon - r.lon[ix]) * np.cos(np.radians(r.lat[iy])), coarse.lat - r.lat[iy]) * 111_195
+        k = int(np.argmin(d))
+        if d[k] <= near_m:
+            node_of[(iy, ix)] = k
+    if not node_of:
+        return {"cells": 0, "note": "no radar cell lies near a mesh node"}
+    times = {int(round(t / HOUR)) * HOUR: i for i, t in enumerate(r.t)}
+    for tt in past:
+        i = times.get(int(tt))
+        if i is None:
+            continue
+        h = hours[tt] if isinstance(hours[tt], dict) else dict(np.load(hours[tt]))
+        if "u" not in h:
+            continue
+        for (iy, ix), k in node_of.items():
+            if ok[i, iy, ix]:
+                pairs_r.append(complex(r.u[i, iy, ix], r.v[i, iy, ix]))
+                pairs_m.append(complex(float(h["u"][k]), float(h["v"][k])))
+                used.add(tt)
+    if not pairs_r:
+        return {"cells": len(node_of), "hours": 0, "note": "no hour in common"}
+    wr, wm = np.array(pairs_r), np.array(pairs_m)
+    rho = np.mean(np.conj(wr) * wm) / np.sqrt(np.mean(np.abs(wr) ** 2) * np.mean(np.abs(wm) ** 2))
+    return {
+        "cells": len(node_of), "hours": len(used), "pairs": len(wr),
+        "radar_mean_speed": round(float(np.mean(np.abs(wr))), 3), "mesh_mean_speed": round(float(np.mean(np.abs(wm))), 3),
+        "rms_difference": round(float(np.sqrt(np.mean(np.abs(wr - wm) ** 2))), 3),
+        "correlation": round(float(np.abs(rho)), 3), "veering_deg": round(float(np.degrees(np.angle(rho))), 1),
+        "source": f"{cc['server']} {cc['dataset']}",
+    }
+
+
 def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict], store_path: str) -> tuple[dict[int, dict], dict]:
     """The Bay's salinity and temperature corrected by the stations' measured
     misfit (bay.toml [quality]): each day, at each station, the measured daily
@@ -810,6 +868,12 @@ def main(argv: list[str] | None = None) -> int:
                                                   ("salinity", "temperature"), cfg.get("join", {}).get("seam_m", 2000.0))
         except Exception as e:  # the mesh keeps its own values at the join
             print(f"quality seam FAILED {e}", flush=True)
+    if hours and cfg.get("currents_check"):
+        try:
+            extras["currents_check"] = currents_check(cfg, coarse, hours, now)
+            print(f"currents check: {extras['currents_check']}", flush=True)
+        except Exception as e:  # a check; the currents are published whatever it says
+            print(f"currents check FAILED {e}", flush=True)
     if args.publish:
         pub = publish(cfg, region_dir, coarse, edges, hours, now, latest, Path(args.publish), extras=extras)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())

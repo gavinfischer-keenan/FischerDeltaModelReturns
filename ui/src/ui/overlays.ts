@@ -33,6 +33,9 @@ export interface Station {
   lon: number;
   lat: number;
   readings: Record<string, Reading>;
+  /** Who measures it (a `source_<name>` text), and which reach's model sits beside it. */
+  source?: string;
+  model_reach?: string;
 }
 
 export interface Structure {
