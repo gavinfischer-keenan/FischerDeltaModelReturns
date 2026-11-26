@@ -84,3 +84,9 @@ def test_end_asks_for_the_whole_last_day():
     client = Client([[]])
     cdec.CdecAdapter(Store(), client).fetch_values("MAL", "specific_conductance", t - 3600, t)
     assert "Start=2026-11-25" in client.urls[0] and "End=2026-11-26" in client.urls[0]
+
+
+def test_cdec_missing_markers_are_all_skipped():
+    from fdmr_adapters import cdec
+
+    assert {-9999, -9998, -9997} <= set(cdec.MISSING)

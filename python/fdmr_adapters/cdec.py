@@ -41,6 +41,12 @@ class Sensor:
     max_spike: float  # a reading this far from both neighbours, the same way, is dropped
 
 
+# CDEC's markers for a reading that is missing or not reported (seen live: -9999,
+# and -9997 at the Tuolumne below La Grange, 26 Nov 2026). Flow sensors allow
+# negative values (tidal channels run both ways), so the range check alone
+# does not catch them.
+MISSING = (-9999, -9998, -9997)
+
 SENSORS = {
     "water_temperature": Sensor(
         25, "degC", {"DEG F": lambda f: (f - 32) * 5 / 9, "DEG C": lambda c: c}, (0.5, 35.0), 3.0
@@ -121,7 +127,7 @@ class CdecAdapter:
             q = urlencode({"Stations": station, "SensorNums": sensor.number, "dur_code": duration, "Start": day(t), "End": end_day(t1)})
             for r in self.client.get_json(f"{BASE}?{q}") or []:
                 v, unit = r.get("value"), (r.get("units") or "").strip()
-                if v is None or v == -9999:
+                if v is None or v in MISSING:
                     continue
                 if unit not in sensor.convert:
                     raise ValueError(f"CDEC {station} sensor {sensor.number}: unexpected unit {unit!r}")
@@ -149,7 +155,7 @@ class CdecAdapter:
             for r in self.client.get_json(f"{BASE}?{q}") or []:
                 p = by_number.get(r.get("SENSOR_NUM"))
                 v, unit = r.get("value"), (r.get("units") or "").strip()
-                if p is None or v is None or v == -9999:
+                if p is None or v is None or v in MISSING:
                     continue
                 sensor = SENSORS[p]
                 if unit not in sensor.convert:

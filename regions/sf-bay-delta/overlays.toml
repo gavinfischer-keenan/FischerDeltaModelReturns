@@ -288,6 +288,58 @@ lat = 37.676041
 lon = -121.266327
 duration = "H"
 
+# The Delta's other rivers (issue #4): their CDEC river stations, names and
+# coordinates from CDEC's station pages, 26 Nov 2026. Orange Blossom Bridge
+# (OBB) on the Stanislaus is left out: CDEC's coordinates for it lie in the Delta.
+[[stations]]
+site = "GRL"
+name = "Feather River near Gridley"
+lat = 39.366577
+lon = -121.647369
+duration = "H"
+
+[[stations]]
+site = "FSB"
+name = "Feather River at Boyd's Landing above Star Bend"
+lat = 39.045498
+lon = -121.610435
+duration = "H"
+
+[[stations]]
+site = "YRE"
+name = "Yuba River below Englebright Dam"
+lat = 39.235171
+lon = -121.274126
+duration = "H"
+
+[[stations]]
+site = "MCC"
+name = "Cosumnes River at McConnell"
+lat = 38.357666
+lon = -121.343735
+duration = "H"
+
+[[stations]]
+site = "LGN"
+name = "Tuolumne River below La Grange Dam"
+lat = 37.666321
+lon = -120.442139
+duration = "H"
+
+[[stations]]
+site = "MSN"
+name = "Merced River near Snelling"
+lat = 37.502
+lon = -120.451
+duration = "H"
+
+[[stations]]
+site = "MST"
+name = "Merced River near Stevinson"
+lat = 37.371
+lon = -120.931
+duration = "H"
+
 # Dams, pumping plants and gates (specification 3.5), with their latest
 # readings from CDEC: what each one releases, pumps or lets through. `show`
 # names the readings, `duration` the CDEC series (H hourly, D daily; a daily
@@ -297,6 +349,48 @@ duration = "H"
 # reading it rests on must be among those shown.
 # No live data was found for the Montezuma Slough Salinity Control Gates or the
 # South Delta temporary barriers; they are not shown until a source is.
+
+# The dams whose releases start the Delta's other rivers (issue #4). Sensors
+# and coordinates from CDEC's station pages, 26 Nov 2026.
+[[structures]]
+id = "nimbus"
+kind = "dam"
+name = "Nimbus Dam (the American's release)"
+site = "NAT"
+lat = 38.636145
+lon = -121.220039
+duration = "H"
+show = ["reservoir_outflow"]
+
+[[structures]]
+id = "thermalito"
+kind = "dam"
+name = "Thermalito (the Feather's total release)"
+site = "THA"
+lat = 39.45
+lon = -121.633
+duration = "H"
+show = ["regulated_release"]
+
+[[structures]]
+id = "camanche"
+kind = "dam"
+name = "Camanche Dam (the Mokelumne's release)"
+site = "CMN"
+lat = 38.225
+lon = -121.021
+duration = "D"   # its event series posts only when the release changes; the daily mean is always there
+show = ["reservoir_outflow"]
+
+[[structures]]
+id = "new_hogan"
+kind = "dam"
+name = "New Hogan Dam (the Calaveras's release)"
+site = "NHG"
+lat = 38.152
+lon = -120.812
+duration = "H"
+show = ["reservoir_outflow"]
 
 [[structures]]
 id = "shasta"

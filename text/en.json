@@ -90,6 +90,7 @@
   "gate_since": "since",
   "model_note_held_open": "DWR opens and closes these gates with the tide; their position is not published as live data. The Delta model holds them open, at their most common open setting.",
   "reading_reservoir_outflow": "Release",
+  "reading_regulated_release": "Release",
   "reading_reservoir_inflow": "Inflow",
   "reading_reservoir_storage": "Water held",
   "reading_pumping": "Pumping",
