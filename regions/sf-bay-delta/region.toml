@@ -815,6 +815,17 @@ measures = ["water_temperature"]
 # for the airport's 2.5 km grid cell (api.weather.gov/points). Clear-sky
 # sunlight is reckoned at sea level: Redding's 150 m would add 0.3 %.
 
+# The land along each river against the land at its weather zone's airport,
+# seen from orbit (issue #11; fdmr_runner.land): ECOSTRESS land surface
+# temperature over the land within `band_m` of the river and within
+# `airport_m` of the airport, at every pass, kept in the store; each cycle
+# summarises the last `days`, day and night apart. A lead for tuning the heat
+# model's air temperature (#9), not an input to it.
+[river_temperature.land]
+band_m = 1000.0
+airport_m = 2000.0
+days = 14
+
 [[river_temperature.weather]]
 name = "Redding"
 lat = 40.5147

@@ -14,6 +14,14 @@ masks. Each kept tile is a small `.npz` in the cache folder: the water
 pixels' rows, columns and temperatures, the tile's UTM origin, pixel size and
 zone, and the pass time.
 
+The land is kept only as means over named places (`fetch_land`): the land
+surface temperature (layer LST, kept as degC) over the clear land within a
+distance of a place's points (water, cloud within CLOUD_BUFFER pixels and
+poor quality left out), stored under source `ecostress`, site the place's
+name, parameter `land_surface_temperature`, at the pass time, when at least
+MIN_LAND_PIXELS count. Land is a surface temperature too: on a sunny
+afternoon tens of degrees above the air, on a clear night below it.
+
 The temperature is the water's skin, its top fraction of a millimetre, at the
 moment of the pass. The station's orbit drifts, so passes come at any hour.
 The skin differs from a sensor's reading a metre or so down by a few tenths
@@ -36,7 +44,9 @@ from .http import USER_AGENT, HttpJsonClient, JsonClient
 
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.json"
 SHORT_NAME, VERSION = "ECO_L2T_LSTE", "003"
-LAYERS = ("water", "cloud", "QC", "WST")
+LAYERS = ("water", "cloud", "QC", "WST", "LST")
+NEEDED = ("water", "cloud", "QC")  # a pass without these is not used
+MIN_LAND_PIXELS = 100  # about half a square kilometre of clear land
 TOKEN_FILE = Path.home() / ".config" / "fdmr" / "earthdata-token"
 CLOUD_BUFFER = 5  # pixels (350 m) kept clear of any flagged cloud
 PER_RUN = 12  # new tiles downloaded per fetch at most, newest first, so a backlog never holds up a cycle
@@ -113,16 +123,33 @@ def search(box: tuple[float, float, float, float], start: int, end: int, client:
             for layer in LAYERS:
                 if h.startswith("https") and h.endswith(f"_{layer}.tif"):
                     urls[layer] = h
-        if len(urls) == len(LAYERS):
+        if all(k in urls for k in NEEDED):
             out.append({"id": e["title"], "t": timegm(time.strptime(e["time_start"][:19], "%Y-%m-%dT%H:%M:%S")), "urls": urls})
     return out
 
 
-def _download(url: str, token: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    req.add_unredirected_header("Authorization", f"Bearer {token}")  # not passed on to the storage it redirects to
-    with urllib.request.urlopen(req, timeout=300) as r:
-        return r.read()
+RETRY_WAITS_S = (5, 20)  # waits before each retry of a download the server failed
+
+
+def _download(url: str, token: str, sleep=time.sleep) -> bytes:
+    """A file, with the token; a server error or a dropped connection is
+    retried after each of RETRY_WAITS_S."""
+    import urllib.error
+
+    for wait in (*RETRY_WAITS_S, None):
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        req.add_unredirected_header("Authorization", f"Bearer {token}")  # not passed on to the storage it redirects to
+        try:
+            with urllib.request.urlopen(req, timeout=300) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            if e.code < 500 or wait is None:
+                raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if wait is None:
+                raise
+        sleep(wait)
+    raise AssertionError("unreachable")
 
 
 class EcostressAdapter:
@@ -138,25 +165,31 @@ class EcostressAdapter:
         older than `keep_s`; returns how many water pixels were kept."""
         self.cache.mkdir(parents=True, exist_ok=True)
         for old in self.cache.glob("*"):
-            if old.stat().st_mtime < end - keep_s - 86_400 and old.suffix in (".npz", ".none"):
+            if old.stat().st_mtime < end - keep_s - 86_400 and old.suffix in (".npz", ".none", ".land"):
                 old.unlink()
         kept = 0
         todo = [g for g in search(box, start, end, self.client)
                 if not any((self.cache / f"{g['id']}{s}").exists() for s in (".npz", ".none"))]
         for g in sorted(todo, key=lambda g: -g["t"])[:per_run]:
-            water, where = read_tif(self.download(g["urls"]["water"], self.token))
-            cloud, _ = read_tif(self.download(g["urls"]["cloud"], self.token))
-            if not water_pixels(water, cloud, None, None).any():
-                (self.cache / f"{g['id']}.none").touch()
-                continue
-            qc, _ = read_tif(self.download(g["urls"]["QC"], self.token))
-            wst, _ = read_tif(self.download(g["urls"]["WST"], self.token))
-            ok = water_pixels(water, cloud, qc, wst)
-            rows, cols = np.nonzero(ok)
-            np.savez_compressed(self.cache / f"{g['id']}.npz", rows=rows.astype(np.uint16), cols=cols.astype(np.uint16),
-                                temperature=(wst[ok] - KELVIN).astype(np.float32), shape=np.array(ok.shape), t=g["t"], **where)
-            kept += int(ok.sum())
+            try:
+                kept += self._keep_water(g)
+            except Exception as e:  # one tile's failure does not stop the rest; it is tried again next time
+                print(f"ecostress {g['id']} FAILED {e}", flush=True)
         return kept
+
+    def _keep_water(self, g: dict) -> int:
+        water, where = read_tif(self.download(g["urls"]["water"], self.token))
+        cloud, _ = read_tif(self.download(g["urls"]["cloud"], self.token))
+        if "WST" not in g["urls"] or not water_pixels(water, cloud, None, None).any():
+            (self.cache / f"{g['id']}.none").touch()
+            return 0
+        qc, _ = read_tif(self.download(g["urls"]["QC"], self.token))
+        wst, _ = read_tif(self.download(g["urls"]["WST"], self.token))
+        ok = water_pixels(water, cloud, qc, wst)
+        rows, cols = np.nonzero(ok)
+        np.savez_compressed(self.cache / f"{g['id']}.npz", rows=rows.astype(np.uint16), cols=cols.astype(np.uint16),
+                            temperature=(wst[ok] - KELVIN).astype(np.float32), shape=np.array(ok.shape), t=g["t"], **where)
+        return int(ok.sum())
 
 
 class Tile:
@@ -199,3 +232,73 @@ class Tile:
                 if np.isfinite(self.grid[r - 1:r + 2, c - 1:c + 2]).all() and (best is None or dr * dr + dc * dc < best[0]):
                     best = (dr * dr + dc * dc, float(self.grid[r, c]))
         return None if best is None else best[1]
+
+
+def place_masks(where: dict, shape: tuple[int, int], places: list[dict]) -> dict[str, np.ndarray]:
+    """Each place's pixels in a tile: those within its `radius_m` of any of its
+    `points` (lon, lat). Places missing the tile are left out."""
+    from scipy.ndimage import distance_transform_edt
+
+    out = {}
+    for p in places:
+        pts = np.asarray(p["points"], dtype=float)
+        e, n = utm(pts[:, 0], pts[:, 1], where["zone"])
+        c = np.floor((np.atleast_1d(e) - where["x0"]) / where["dx"]).astype(int)
+        r = np.floor((where["y0"] - np.atleast_1d(n)) / where["dx"]).astype(int)
+        reach = int(math.ceil(p["radius_m"] / where["dx"]))
+        inside = (r >= -reach) & (c >= -reach) & (r < shape[0] + reach) & (c < shape[1] + reach)
+        if not inside.any():
+            continue
+        r0, r1 = max(0, r[inside].min() - reach), min(shape[0], r[inside].max() + reach + 1)
+        c0, c1 = max(0, c[inside].min() - reach), min(shape[1], c[inside].max() + reach + 1)
+        if r0 >= r1 or c0 >= c1:
+            continue
+        line = np.ones((r1 - r0, c1 - c0), bool)  # False where a point falls, for the distance transform
+        ok = (r >= r0) & (r < r1) & (c >= c0) & (c < c1)
+        line[r[ok] - r0, c[ok] - c0] = False
+        if line.all():  # the points pass just outside the tile: none of its pixels is near enough to tell
+            continue
+        mask = np.zeros(shape, bool)
+        mask[r0:r1, c0:c1] = distance_transform_edt(line) * where["dx"] <= p["radius_m"]
+        out[p["site"]] = mask
+    return out
+
+
+def land_pixels(water: np.ndarray, cloud: np.ndarray, qc: np.ndarray, lst: np.ndarray, buffer: int = CLOUD_BUFFER) -> np.ndarray:
+    """Pixels whose land temperature is kept: not water, clear with no cloud
+    within `buffer` pixels, quality best or nominal, with a temperature."""
+    clear = water_pixels(np.ones_like(water), cloud, qc, lst, buffer)
+    return clear & (water == 0)
+
+
+def fetch_land(adapter: "EcostressAdapter", store, places: list[dict], box: tuple[float, float, float, float],
+               start: int, end: int, per_run: int = PER_RUN) -> int:
+    """For the passes since `start` not yet done, newest first and at most
+    `per_run`, each place's mean land surface temperature; returns how many
+    values were stored. A pass is marked done (`<id>.land`) whatever it held."""
+    from fdmr_store import Value
+
+    adapter.cache.mkdir(parents=True, exist_ok=True)
+    todo = [g for g in search(box, start, end, adapter.client)
+            if "LST" in g["urls"] and not (adapter.cache / f"{g['id']}.land").exists()]
+    n = 0
+    for g in sorted(todo, key=lambda g: -g["t"])[:per_run]:
+        try:
+            water, where = read_tif(adapter.download(g["urls"]["water"], adapter.token))
+            masks = place_masks(where, water.shape, places)
+            if masks:
+                cloud, _ = read_tif(adapter.download(g["urls"]["cloud"], adapter.token))
+                if (cloud == 0).any():
+                    qc, _ = read_tif(adapter.download(g["urls"]["QC"], adapter.token))
+                    lst, _ = read_tif(adapter.download(g["urls"]["LST"], adapter.token))
+                    ok = land_pixels(water, cloud, qc, lst)
+                    for site, m in masks.items():
+                        sel = m & ok
+                        if sel.sum() >= MIN_LAND_PIXELS:
+                            n += store.put_values("ecostress", site, "land_surface_temperature", "degC",
+                                                  [Value(g["t"], float(lst[sel].mean()) - KELVIN, None)])
+        except Exception as e:  # one tile's failure does not stop the rest; it is tried again next time
+            print(f"ecostress land {g['id']} FAILED {e}", flush=True)
+            continue
+        (adapter.cache / f"{g['id']}.land").touch()
+    return n

@@ -470,8 +470,16 @@ def build(region_dir: Path, cdir: Path, index: dict, store: Store, now: int) -> 
             sat = satellite_temperature(cfg, store.path.parent / cfg["satellite_temperature"]["cache"], lookups, store, now)
         except Exception as e:
             print(f"satellite temperature check FAILED {e}", flush=True)
+    lt = None
+    try:  # a check; the overlays are published whatever it says
+        from . import land
+
+        lt = land.contrast(region_dir, store, now)
+    except Exception as e:
+        print(f"land temperature check FAILED {e}", flush=True)
     return {"generated": now, "isohalines": isohalines(cfg, cdir, index, store, now), "stations": st,
             **({"satellite_temperature": sat} if sat else {}),
+            **({"land_temperature": lt} if lt and lt["stretches"] else {}),
             "structures": structures(cfg, store, now, units, (delta.load(region_dir) or {}).get("live_gate", [])),
             "landmarks": landmarks(cfg, cdir, index), "units": units}
 

@@ -100,3 +100,37 @@ def test_geotiff_tags_give_the_tile_position(tmp_path):
         (34735, "H", len(keys), keys)])
     a, where = ecostress.read_tif(buf.getvalue())
     assert a.shape == (4, 4) and where == {"x0": 600000.0, "y0": 4300020.0, "dx": 70.0, "zone": 10}
+
+
+def test_a_server_error_is_retried_and_a_refusal_is_not(monkeypatch):
+    import urllib.error
+    import urllib.request
+
+    calls = []
+
+    def fake(req, timeout):
+        calls.append(req.full_url)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError(req.full_url, 502, "Bad Gateway", {}, None)
+
+        class R:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b"ok"
+
+        return R()
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    assert ecostress._download("https://x/y.tif", "t", sleep=lambda s: None) == b"ok" and len(calls) == 3
+
+    def refuse(req, timeout):
+        raise urllib.error.HTTPError(req.full_url, 401, "Unauthorized", {}, None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", refuse)
+    with pytest.raises(urllib.error.HTTPError):
+        ecostress._download("https://x/y.tif", "t", sleep=lambda s: None)

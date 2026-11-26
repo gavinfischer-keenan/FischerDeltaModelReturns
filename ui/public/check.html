@@ -83,6 +83,15 @@ async function get(name) {
       if (sat.models) h += table(Object.entries(sat.models).map(([reach, m]) => ({ reach, ...m })));
     } else h += "<p class='note'>(none in this cycle)</p>";
 
+    const lt = ov.land_temperature;
+    h += "<h3>Land along each river against the land at its weather airport (overlays.json land_temperature)</h3>";
+    if (lt) {
+      h += `<p>${esc(lt.source)}, last ${lt.days} days: land within ${lt.band_m} m of the river less land within ${lt.airport_m} m of the airport whose weather that stretch takes, at the same pass, °C. Day: local solar hour 8 to 17; night: 20 to 5.</p>`;
+      h += table(lt.stretches.map((s) => ({ reach: s.reach, airport: s.zone,
+        "day passes": s.day?.passes, "day contrast": s.day?.contrast, "day river land": s.day?.band_mean, "day airport land": s.day?.airport_mean,
+        "night passes": s.night?.passes, "night contrast": s.night?.contrast, "night river land": s.night?.band_mean, "night airport land": s.night?.airport_mean })));
+    } else h += "<p class='note'>(none yet)</p>";
+
     h += "<h2>4. Reservoirs and snowpack (overlays.json structures)</h2>";
     const res = ov.structures.filter((s) => s.storage || (s.snow && s.snow.length)).map((s) => ({
       dam: s.name, site: s.site,

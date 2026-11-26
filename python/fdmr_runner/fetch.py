@@ -194,6 +194,17 @@ def main(argv: list[str] | None = None) -> int:
             attempt(f"cdec {len(held)} stations ({dur}) from {iso(f0)}", lambda h=held, f0=f0, d=dur: sum(cdec.fetch_many(h, shown, int(f0), int(now), d).values()))
         if new:
             attempt(f"cdec {len(new)} new stations ({dur})", lambda n=new, d=dur: sum(cdec.fetch_many(n, shown, int(start), int(now), d).values()))
+    # The land's surface temperature along the rivers and at their weather
+    # zones' airports, from orbit (region.toml [river_temperature.land]).
+    from . import land as _land
+
+    lplaces = [] if args.forecast_only else _land.places(Path(args.region))
+    if lplaces:
+        from fdmr_adapters.ecostress import EcostressAdapter, fetch_land
+
+        lkeep = int(_land.load(Path(args.region))[0].get("days", 14)) * 86_400
+        attempt("ecostress land", lambda: fetch_land(EcostressAdapter(Path(args.store).parent / "ecostress"), store, lplaces,
+                                                     _land.box(lplaces), int(now - lkeep), int(now)))
     # DWR's daily reservoir and snow reports, for the dams that show them.
     res = [s["site"] for s in ocfg.get("structures", []) if s.get("storage_report")]
     if not args.forecast_only and (res or any(s.get("snow") for s in ocfg.get("structures", []))):
