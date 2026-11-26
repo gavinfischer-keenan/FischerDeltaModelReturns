@@ -1190,6 +1190,29 @@
    ]
   },
   {
+   "key": "rws_ddapi",
+   "authors": "Rijkswaterstaat",
+   "year": 2026,
+   "title": "WaterWebservices (DDAPI 2.0): water level, discharge, temperature, chloride and wind, measured and forecast",
+   "kind": "data",
+   "in": "Rijkswaterstaat, Ministry of Infrastructure and Water Management, the Netherlands; open data (CC0 1.0 / Public Domain Mark 1.0 in the data.overheid.nl catalogue)",
+   "url": "https://ddapi20-waterwebservices.rijkswaterstaat.nl/webservices-api-docs",
+   "checked": "The API's OpenAPI description read and live requests made, 26 Nov 2026",
+   "citation": "Rijkswaterstaat (2026). WaterWebservices (DDAPI 2.0): water level, discharge, temperature, chloride and wind, measured and forecast. Rijkswaterstaat, Ministry of Infrastructure and Water Management, the Netherlands; open data (CC0 1.0 / Public Domain Mark 1.0 in the data.overheid.nl catalogue). https://ddapi20-waterwebservices.rijkswaterstaat.nl/webservices-api-docs",
+   "used": [
+    {
+     "file": "python/fdmr_adapters/rws.py",
+     "line": 30,
+     "text": "References: ref:rws_ddapi (references.toml)."
+    },
+    {
+     "file": "regions/rhine-meuse/region.toml",
+     "line": 5,
+     "text": "from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws), so a"
+    }
+   ]
+  },
+  {
    "key": "schaffter1997",
    "authors": "Schaffter, R. G.",
    "year": 1997,

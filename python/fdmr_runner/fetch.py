@@ -439,6 +439,26 @@ def main(argv: list[str] | None = None) -> int:
             failures += 1
             print(f"cnrfc {group:34s} FAILED {e}", flush=True)
         time.sleep(args.pause)
+    # Live stations of a region read from Rijkswaterstaat (region.toml
+    # [[live_stations]], source "rws"; fdmr_adapters.rws): each quantity from
+    # where the store's record ends, and the agency's own forecasts afresh.
+    import tomllib as _toml
+
+    live = _toml.loads((Path(args.region) / "region.toml").read_text(encoding="utf-8")).get("live_stations", [])
+    if live:
+        from fdmr_adapters.rws import SOURCE as RWS, RwsAdapter
+
+        rws = RwsAdapter(store)
+        for st in live:
+            if st.get("source") != RWS:
+                continue
+            for q in st.get("quantities", []):
+                cov = store.coverage(RWS, st["site"], q)
+                f0 = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
+                attempt(f"rws {st['site']} {q}", lambda st=st, q=q, f0=f0: rws.fetch(st["site"], q, int(f0), int(now),
+                                                                      depth_cm=st.get("depth_cm") if q in st.get("depth_for", ["chloride", "water_temperature"]) else None))
+            for q in st.get("forecasts", []):
+                attempt(f"rws {st['site']} {q} forecast", lambda st=st, q=q: rws.fetch(st["site"], q, int(now) - 3 * 3600, int(now) + 3 * 86_400, forecast=True))
     store.close()
     print(f"done: {len(region.gauges)} gauges, {attempts} fetches, {failures} failures")
     # The run's own account, published with the next cycle (index.json

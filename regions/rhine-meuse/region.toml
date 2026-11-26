@@ -1,0 +1,148 @@
+# The Rhine-Meuse delta, the Netherlands: the model's second region (issue
+# #23), to prove it is not tied to one place. Data only.
+#
+# Stage 1 (26 Nov 2026): its live stations are recorded, every 10 minutes,
+# from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws), so a
+# record builds up for checking whatever model runs here. Nothing is published
+# yet (fetch_only): no reach can run until the steps below are done.
+#
+# What porting here has shown is tied to the United States, so far:
+# - river geometry comes from the USGS's national river network (NLDI on
+#   NHDPlus, fdmr_runner.geometry), which covers only the United States; a
+#   European river network (Copernicus EU-Hydro, or OpenStreetMap) is needed;
+# - river channels take their shape (area and width against flow) from USGS's
+#   field measurements at each gauge; Rijkswaterstaat publishes no such
+#   measurements through its API;
+# - the tidal network model: DWR's DSM2 runs the Bay-Delta, but no open model
+#   of the Rhine-Meuse delta's channels can be had. Rijkswaterstaat's D-Flow FM
+#   schematizations are released only on request, for its own tasks (checked
+#   26 Nov 2026), so a network model here must be built from open data;
+# - the datum (NAP), the time zone (Rijkswaterstaat's fixed +01:00) and the
+#   units (cm, mg/L chloride) are handled by the adapter.
+
+id = "rhine-meuse"
+name = "Rhine-Meuse delta, Lobith and Eijsden to the North Sea"
+timezone = "Europe/Amsterdam"
+fetch_only = true
+reaches = []
+
+# Each: site (Rijkswaterstaat's code), what it is, and the quantities read
+# (fdmr_adapters.rws.QUANTITIES); `forecasts`, Rijkswaterstaat's own
+# (about 31 hours for rivers, 48 for tidal stations); `depth_cm` for a
+# water-quality station measuring at several depths, applied to its chloride
+# and temperature (`depth_for` to change which). Chosen from the stations
+# live on 26 Nov 2026; the discharges balance at each split (Lobith 2035 =
+# Waal 1534 + Pannerdensch Kanaal 491; the canal 491 = Nederrijn 210 + IJssel 287).
+[[live_stations]]
+source = "rws"
+site = "lobith.bovenrijn.tolkamer"
+name = "Rhine at Lobith (entering the Netherlands)"
+quantities = ["discharge", "water_level"]
+forecasts = ["discharge"]
+
+[[live_stations]]
+source = "rws"
+site = "lobith.bovenrijn.haven"
+name = "Rhine at Lobith, harbour"
+quantities = ["water_temperature"]
+
+[[live_stations]]
+source = "rws"
+site = "millingenaanderijn"
+name = "Waal at its head (Millingen aan de Rijn)"
+quantities = ["discharge"]
+
+[[live_stations]]
+source = "rws"
+site = "pannerden.pannerdenschkanaal"
+name = "Pannerdensch Kanaal"
+quantities = ["discharge"]
+
+[[live_stations]]
+source = "rws"
+site = "arnhem.nederrijn"
+name = "Nederrijn at Arnhem"
+quantities = ["discharge", "water_level"]
+forecasts = ["discharge"]
+
+[[live_stations]]
+source = "rws"
+site = "westervoort.1"
+name = "IJssel at Westervoort"
+quantities = ["discharge"]
+
+[[live_stations]]
+source = "rws"
+site = "tiel.waal"
+name = "Waal at Tiel"
+quantities = ["discharge"]
+
+[[live_stations]]
+source = "rws"
+site = "nijmegen.waal"
+name = "Waal at Nijmegen"
+quantities = ["water_level"]
+
+[[live_stations]]
+source = "rws"
+site = "dordrecht.oudemaas.benedenmerwede"
+name = "Dordrecht"
+quantities = ["water_level"]
+
+[[live_stations]]
+source = "rws"
+site = "rotterdam.nieuwemaas.boerengat"
+name = "Nieuwe Maas at Rotterdam"
+quantities = ["water_level"]
+
+[[live_stations]]
+source = "rws"
+site = "krimpenaandelek.lek"
+name = "Lek at Krimpen aan de Lek"
+quantities = ["water_level"]
+
+[[live_stations]]
+source = "rws"
+site = "maassluis"
+name = "Nieuwe Waterweg at Maassluis"
+quantities = ["water_level"]
+
+[[live_stations]]
+source = "rws"
+site = "hoekvanholland"
+name = "Hoek van Holland (the sea)"
+quantities = ["water_level", "water_temperature", "chloride"]
+forecasts = ["water_level"]
+depth_cm = -250
+
+[[live_stations]]
+source = "rws"
+site = "moerdijk"
+name = "Hollandsch Diep at Moerdijk"
+quantities = ["water_level"]
+
+[[live_stations]]
+source = "rws"
+site = "eijsden.grens"
+name = "Meuse at Eijsden (entering the Netherlands)"
+quantities = ["discharge", "water_level"]
+forecasts = ["discharge"]
+
+[[live_stations]]
+source = "rws"
+site = "venlo"
+name = "Meuse at Venlo"
+quantities = ["discharge", "water_level"]
+
+[[live_stations]]
+source = "rws"
+site = "megen.maas"
+name = "Meuse at Megen"
+quantities = ["discharge", "water_level"]
+forecasts = ["discharge"]
+
+[guard]
+words = [
+  "Lobith", "Waal", "IJssel", "Nederrijn", "Pannerdensch", "Hoek van Holland", "Maassluis",
+  "Haringvliet", "Rotterdam", "Dordrecht", "Borgharen", "Eijsden", "Nieuwe Waterweg",
+]

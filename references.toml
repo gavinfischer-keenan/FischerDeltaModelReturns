@@ -715,3 +715,12 @@ kind = "standard"
 in = "Federal Register 71, 17757; 7 April 2006"
 url = "https://www.federalregister.gov/citation/71-FR-17757"
 checked = "Federal Register citation confirmed, 26 Nov 2026"
+
+[rws_ddapi]
+authors = "Rijkswaterstaat"
+year = 2026
+title = "WaterWebservices (DDAPI 2.0): water level, discharge, temperature, chloride and wind, measured and forecast"
+kind = "data"
+in = "Rijkswaterstaat, Ministry of Infrastructure and Water Management, the Netherlands; open data (CC0 1.0 / Public Domain Mark 1.0 in the data.overheid.nl catalogue)"
+url = "https://ddapi20-waterwebservices.rijkswaterstaat.nl/webservices-api-docs"
+checked = "The API's OpenAPI description read and live requests made, 26 Nov 2026"

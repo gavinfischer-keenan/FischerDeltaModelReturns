@@ -19,7 +19,7 @@ MODE=${1:-hourly}
 ROOT=${FDMR_ROOT:-$HOME/fdmr}
 DATA=${FDMR_DATA:-/srv/fdmr-data}
 PY=${FDMR_PYTHON:-$HOME/venv/bin/python}
-REGIONS=${FDMR_REGIONS:-"sf-bay-delta test-colorado"}
+REGIONS=${FDMR_REGIONS:-"sf-bay-delta test-colorado rhine-meuse"}
 
 exec 9>"$DATA/.cycle.lock"
 flock 9
@@ -36,6 +36,8 @@ for region in $REGIONS; do
   echo "== $region: fetch ($MODE)"
   # shellcheck disable=SC2086
   "$PY" -m fdmr_runner.fetch "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" $FETCH --pause 1 || status=1
+  # A region that so far only records its stations (region.toml fetch_only).
+  if grep -q '^fetch_only = true' "$ROOT/regions/$region/region.toml"; then continue; fi
   if [ "$MODE" = nightly ]; then
     echo "== $region: calibrate"
     "$PY" -m fdmr_runner.calibrate "$ROOT/regions/$region" "$DATA/store/fdmr.sqlite" "$DATA/calibration" || status=1

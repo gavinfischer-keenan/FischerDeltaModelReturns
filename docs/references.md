@@ -631,6 +631,17 @@ Used in:
 
 - `python/fdmr_adapters/smap.py:19`: References: ref:smap_l4 (references.toml).
 
+## rws_ddapi
+
+Rijkswaterstaat (2026). WaterWebservices (DDAPI 2.0): water level, discharge, temperature, chloride and wind, measured and forecast. Rijkswaterstaat, Ministry of Infrastructure and Water Management, the Netherlands; open data (CC0 1.0 / Public Domain Mark 1.0 in the data.overheid.nl catalogue). https://ddapi20-waterwebservices.rijkswaterstaat.nl/webservices-api-docs
+
+Checked: The API's OpenAPI description read and live requests made, 26 Nov 2026
+
+Used in:
+
+- `python/fdmr_adapters/rws.py:30`: References: ref:rws_ddapi (references.toml).
+- `regions/rhine-meuse/region.toml:5`: from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws), so a
+
 ## schaffter1997
 
 Schaffter, R. G. (1997). White sturgeon spawning migrations and location of spawning habitat in the Sacramento River, California. California Fish and Game 83(1), 1-20. https://consensus.app/papers/white-sturgeon-spawning-migrations-and-location-of-schaffter/w:e399478f-8ce6-4a12-a42b-6bd02d63facb/
