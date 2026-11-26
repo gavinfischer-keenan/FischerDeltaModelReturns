@@ -201,3 +201,31 @@ lon = -121.802963
 lat = 38.01783
 conductance = ["specific_conductance", "specific_conductance_bottom"]
 temperature = ["water_temperature"]
+
+# The Delta's net outflow across the join, checked every cycle against measured
+# outflow (fdmr_runner.bay.outflow_checks; published as `outflow_checks`), day
+# by day over the days published, split into dry and wet days. A day is dry
+# when Reclamation's net Delta consumptive use is at or above zero (no rain
+# running off). Checked 25 Nov 2026 over 5 Aug-24 Nov (issue #7): on 96 dry
+# days DSM2 averaged 171 m3/s against DWR's index 169, and USGS's Pittsburg
+# figure read about 130 above both (314; it sums tidally filtered net flows,
+# which carry large biases here: Rio Vista's reads about 25% high). From dry to
+# wet days USGS's figure rose about 90 and DSM2's 70 to 90, the index's 265: its
+# rain term overshoots (dsm2.toml [depletion]).
+[outflow_dry]
+source = "usbr-cvo"
+site = "DOUT"
+parameter = "ndcu"
+
+[[outflow_checks]]
+name = "DWR Net Delta Outflow Index"
+source = "cdec"
+site = "DTO"
+parameter = "net_outflow"
+
+[[outflow_checks]]
+name = "USGS combined Delta outflow at Pittsburg"
+source = "usgs"
+site = "380245121532301"
+parameter = "discharge_tidally_filtered"
+duration = "D"

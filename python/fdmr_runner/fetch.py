@@ -185,7 +185,8 @@ def main(argv: list[str] | None = None) -> int:
     # The stations the Bay's salinity and temperature are corrected by (bay.toml
     # [quality]); CDEC's come with the overlays. A USGS bay station has an upper
     # and a lower sensor, each its own series (`<parameter>_<sensor>`).
-    qcfg = (bay.load(Path(args.region)) or {}).get("quality")
+    bcfg = bay.load(Path(args.region)) or {}
+    qcfg = bcfg.get("quality")
     for st in [] if (args.forecast_only or not qcfg) else qcfg["stations"]:
         if st["source"] != SOURCE:
             continue
@@ -198,6 +199,13 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             f0 = max(back, cov[1] + 1) if cov and cov[0] <= back + 2 * 86_400 else back
             attempt(f"{st['site']} {p}", lambda s=st["site"], b=base, sn=sensor or None, f0=f0: usgs.fetch_values(s, b, f"{iso(f0)}/{iso(now)}", sensor=sn))
+    # Measured outflows the network's outflow is checked against (bay.toml
+    # [[outflow_checks]]): USGS's daily values.
+    for c in [] if (args.forecast_only or not bcfg) else bcfg.get("outflow_checks", []):
+        if c["source"] == SOURCE and c.get("duration") == "D":
+            cov = store.coverage(SOURCE, c["site"], c["parameter"])
+            f0 = max(start, cov[1] - 3 * 86_400) if cov else start
+            attempt(f"{c['site']} {c['parameter']} (daily)", lambda c=c, f0=f0: usgs.fetch_daily(c["site"], c["parameter"], f"{iso(f0)}/{iso(now)}"))
     # The Delta's daily island water use (dsm2.toml [depletion]): the months the
     # Delta's runs reach back over, each fetched until it is complete, and the
     # month in progress (and the one before, still being revised) once a day.

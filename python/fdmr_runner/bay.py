@@ -296,6 +296,63 @@ def overlap(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path], delta_dir:
     return out
 
 
+def compare_days(model: dict[int, float], measured: dict[int, float], dry: dict[int, bool]) -> dict:
+    """Daily model against daily measured values on the days both have: the
+    means and their difference, over all days and split into dry and wet days
+    (a day with no `dry` entry counts in all days only). A daily mean swings
+    with the spring-neap filling and draining of the water, so a split with
+    fewer than `MIN_SPLIT_DAYS` days gives only its count."""
+    def summary(days: list[int], least: int = 1) -> dict:
+        if len(days) < max(least, 1):
+            return {"days": len(days)}
+        m, g = np.array([model[d] for d in days]), np.array([measured[d] for d in days])
+        return {"days": len(days), "model_mean": round(float(m.mean()), 1), "measured_mean": round(float(g.mean()), 1),
+                "difference": round(float((m - g).mean()), 1)}
+
+    both = sorted(d for d in model if d in measured and np.isfinite(model[d]) and np.isfinite(measured[d]))
+    return {"all": summary(both), "dry": summary([d for d in both if dry.get(d) is True], MIN_SPLIT_DAYS),
+            "wet": summary([d for d in both if dry.get(d) is False], MIN_SPLIT_DAYS)}
+
+
+MIN_SPLIT_DAYS = 5
+
+
+def outflow_checks(cfg: dict, delta_dir: Path, jn: dict, store_path: str, now: int) -> list[dict]:
+    """The network's net outflow across the join (tidally filtered, daily
+    means over the days published) against each measured outflow in bay.toml
+    [[outflow_checks]], split by whether the day was dry (bay.toml
+    [outflow_dry]: a daily series at or above zero on a dry day)."""
+    from fdmr_store import Store
+
+    from .delta import pst_midnight
+
+    td, qd = dsm2_outflow(delta_dir, jn, tidal=True)
+    days = range(pst_midnight(int(td[0])) + DAY, min(pst_midnight(now), int(td[-1]) - DAY) + 1, DAY)
+    model = {}
+    for d in days:
+        sel = (td >= d) & (td < d + DAY)
+        if sel.sum() >= 18 * 4:
+            model[d] = float(qd[sel].mean())
+    store = Store(store_path)
+    dc = cfg.get("outflow_dry")
+    dry = {}
+    if dc:
+        for v in store.values(dc["source"], dc["site"], dc["parameter"], days.start, days.stop):
+            if v.value is not None:
+                dry[v.t] = v.value >= 0
+    out = []
+    for c in cfg.get("outflow_checks", []):
+        meas = {v.t: v.value for v in store.values(c["source"], c["site"], c["parameter"], days.start, days.stop) if v.value is not None}
+        r = {"name": c["name"], "site": c["site"], **compare_days(model, meas, dry)}
+        out.append(r)
+        a = r["all"]
+        if a["days"]:
+            print(f"outflow check, {c['name']}: {a['days']} days, network {a['model_mean']} against {a['measured_mean']} m3/s"
+                  + (f"; dry days {r['dry']['model_mean']} against {r['dry']['measured_mean']}" if "model_mean" in r["dry"] else ""), flush=True)
+    store.close()
+    return out
+
+
 def correct_outflow(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path | dict], delta_dir: Path, reach: str) -> tuple[dict[int, dict], dict]:
     """Every hour, with a flow added so that the mesh's flow across the join to
     the Delta is DSM2's at that hour (fdmr_plugins.fvcom.correct): the same
@@ -548,6 +605,12 @@ def main(argv: list[str] | None = None) -> int:
             ov = overlap(coarse, edges, hours, Path(args.delta).resolve(), cfg["reach"], now)
             if ov:
                 extras["overlap"] = ov
+            if args.store and cfg.get("outflow_checks"):
+                from .handoff import network_to_mesh
+
+                dnet = json.loads((Path(args.delta) / "geometry" / "delta.json").read_text(encoding="utf-8"))
+                jn = network_to_mesh("delta", dnet, cfg["reach"], mesh.geometry(coarse, cfg["reach"], edges))
+                extras["outflow_checks"] = outflow_checks(cfg, Path(args.delta).resolve(), jn, args.store, now)
         except Exception as e:
             print(f"overlap FAILED {e}", flush=True)
     if args.store and "extension" in cfg and hours:

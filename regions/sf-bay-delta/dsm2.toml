@@ -212,8 +212,9 @@ parameter = "specific_conductance"
 # 165 without; shared by the rain season's drainage pattern or by the run's,
 # alike. DWR's own setup on its 2024 inputs reads Bacon Island -66 against a
 # measured -80 (Nov 2024), so the gauges, not the index, are the better guide.
-# The outflow this leaves (about 300 m3/s past Chipps Island in mid-November
-# 2026, against the index's 484 and Pittsburg's 470) is an open question.
+# Over the longer record the outflow this leaves is the index's on dry days (171
+# against 169 m3/s on 96 days, Aug-Nov 2026; bay.toml [[outflow_checks]], issue
+# #7); USGS's Pittsburg figure reads about 130 above both.
 # Past the last reported day, the last day reported without rain is held, so
 # a forecast carries no rain the reference year had on those days: rain is
 # not forecast here.

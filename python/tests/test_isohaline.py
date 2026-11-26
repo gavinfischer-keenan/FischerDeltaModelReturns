@@ -121,3 +121,23 @@ def test_landmarks_take_their_place_and_the_nearest_model_element(tmp_path):
     assert got["b"]["model"]["element"] == 5
     assert got["c"]["model"] == {"reach": "mesh", "element": 2, "km": pytest.approx(0.142, abs=0.002)}
     assert "model" not in got["d"]
+
+
+def test_outflow_is_compared_day_by_day_and_split_dry_and_wet():
+    from fdmr_runner.bay import compare_days
+
+    model = {1: 100.0, 2: 200.0, 3: 300.0, 4: float("nan")}
+    measured = {1: 110.0, 2: 260.0, 3: 290.0, 4: 50.0, 5: 70.0}
+    from fdmr_runner import bay
+
+    old = bay.MIN_SPLIT_DAYS
+    bay.MIN_SPLIT_DAYS = 1
+    try:
+        got = compare_days(model, measured, {1: True, 2: False, 3: True})
+    finally:
+        bay.MIN_SPLIT_DAYS = old
+    assert got["all"] == {"days": 3, "model_mean": 200.0, "measured_mean": 220.0, "difference": -20.0}
+    assert got["dry"] == {"days": 2, "model_mean": 200.0, "measured_mean": 200.0, "difference": 0.0}
+    assert got["wet"]["days"] == 1 and got["wet"]["difference"] == -60.0
+    # Too few days to split: only the count.
+    assert compare_days(model, measured, {1: True, 2: False, 3: True})["dry"] == {"days": 2}
