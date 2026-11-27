@@ -193,8 +193,13 @@ pub struct NetworkTracer {
     /// The cuts by number: (channel, place along it, other reach downstream).
     cuts: Vec<(usize, f64, bool)>,
     /// Each channel's water-surface width, m, if given (`set_widths`): flow
-    /// particles then start evenly over the water's surface, as on a mesh.
+    /// particles then start evenly over the water's surface, as on a mesh,
+    /// and the water's depth (for settling) is its cross-section over it.
     widths: Vec<f64>,
+    /// In where flow particles start, a channel counts as at least this wide,
+    /// m (`set_min_seed_width`), so narrow channels still show their water
+    /// moving. Particle placement only: never the physics (#50).
+    min_seed_width: f64,
     /// Per junction then pool, the outlet its exports go through to another
     /// reach, if any (`set_outlets`).
     outlet: Vec<Option<usize>>,
@@ -248,6 +253,7 @@ impl NetworkTracer {
             cut: Vec::new(),
             cuts: Vec::new(),
             widths: Vec::new(),
+            min_seed_width: 0.0,
             outlet: Vec::new(),
             handed: Vec::new(),
             settling: None,
@@ -274,6 +280,13 @@ impl NetworkTracer {
     /// open water next to it. Without it they start by volume.
     pub fn set_widths(&mut self, widths: &[f64]) {
         self.widths = widths.to_vec();
+    }
+
+    /// Where flow particles start, count every channel as at least `w` m
+    /// wide. Only where particles are placed: settling still uses the
+    /// channels' own widths (#50).
+    pub fn set_min_seed_width(&mut self, w: f64) {
+        self.min_seed_width = w.max(0.0);
     }
 
     /// Exports that carry on into another reach (the export canals): each a
@@ -1066,7 +1079,7 @@ impl NetworkTracer {
                 }
                 let (a, b) = self.own_part(c);
                 match self.widths.get(c) {
-                    Some(w) => w.max(0.0) * (b - a),
+                    Some(w) => w.max(self.min_seed_width).max(0.0) * (b - a),
                     None => now.volume[c] * (b - a) / self.topo.length[c].max(f64::EPSILON),
                 }
             })
@@ -1643,6 +1656,37 @@ mod tests {
             "{} {}",
             per_m(0),
             per_m(1)
+        );
+    }
+
+    #[test]
+    fn the_seeding_floor_spreads_particles_but_settling_keeps_the_true_width() {
+        // A floor of 90 m makes the 10 m channels count as wide as the 90 m one
+        // for where particles start (#50) ...
+        let mut t = split();
+        t.set_widths(&[10.0, 90.0, 10.0]);
+        t.set_min_seed_width(90.0);
+        t.seed_flow_particles(6000);
+        let (el, _) = t.particles();
+        let n = |c: u32| el.iter().filter(|&&e| e == c).count() as f64;
+        let per_m = |c: u32| n(c) / t.topo.length[c as usize];
+        assert!(
+            (per_m(0) / per_m(1) - 1.0).abs() < 0.2,
+            "{} {}",
+            per_m(0),
+            per_m(1)
+        );
+        // ... while the depth that settling divides by is still area over the true width.
+        let mut s = with_sediment(10.0, 1.0, 0.0, 1e-4);
+        s.set_min_seed_width(100.0);
+        let now = s.conditions(100.0).unwrap();
+        let sed = s.sediment_now(100.0, &now).unwrap();
+        let depth = now.volume[0] / s.topo.length[0] / 10.0;
+        assert!(
+            (sed.settle[0] - 1e-4 / depth).abs() < 1e-12,
+            "{} {}",
+            sed.settle[0],
+            1e-4 / depth
         );
     }
 

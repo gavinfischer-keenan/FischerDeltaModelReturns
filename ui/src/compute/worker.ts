@@ -563,8 +563,11 @@ function build(t: number): void {
     if (netFlow) ne.set_net_flow(true);
     net.count = NETWORK_PARTICLES;
     if (net.widths) {
+      // The engine gets the channels' true widths (settling divides by the
+      // depth over them); the floor applies only to where particles start (#50).
+      ne.set_widths(net.widths);
+      ne.set_min_seed_width(MIN_COUNTED_WIDTH_M);
       const w = net.widths.map((x) => Math.max(x, MIN_COUNTED_WIDTH_M));
-      ne.set_widths(w);
       // The network's own water surface: not channels a mesh tracks, nor past a cut.
       const ownedSet = new Set(owned);
       const cutAt = new Map(cuts.map((c) => [c.element, c.inside === "down" ? c.at : 1 - c.at]));

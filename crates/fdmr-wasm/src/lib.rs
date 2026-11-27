@@ -356,9 +356,16 @@ impl NetworkEngine {
     }
 
     /// Each channel's water-surface width, m: flow particles then start evenly
-    /// over the water's surface rather than by volume.
+    /// over the water's surface rather than by volume, and settling divides
+    /// by the water's depth over it.
     pub fn set_widths(&mut self, widths: &[f64]) {
         self.core.set_widths(widths);
+    }
+
+    /// Where flow particles start, count every channel as at least `w` m
+    /// wide (placement only, never the physics).
+    pub fn set_min_seed_width(&mut self, w: f64) {
+        self.core.set_min_seed_width(w);
     }
 
     /// Where another reach takes over part way along channels: for each cut,
