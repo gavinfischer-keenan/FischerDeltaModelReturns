@@ -181,8 +181,11 @@ def run_scenario(cfg: dict, exp: dict, scen: dict, run_dir: Path, lock: str | No
         shutil.rmtree(run_dir)
     summary = study.build(s, run_dir, start, end, [])
     config = run_dir / "config.inp"
-    new = {"TEMPDIR": str(run_dir / "tmp")}  # not /tmp: the runner's /tmp is memory
-    (run_dir / "tmp").mkdir()
+    # Not /tmp, which is memory on the runner; and short: QUAL failed to read
+    # the run folder's own tmp (77 characters) as its temp_dir (27 Nov 2026).
+    tmp = DSM2_ROOT.parent / "qt"
+    tmp.mkdir(exist_ok=True)
+    new = {"TEMPDIR": str(tmp)}
     if scen.get("override"):
         src = Path(inp.expand("${GATEFILE}", summary["env"]))
         gates = run_dir / "gates.dss"
