@@ -19,7 +19,7 @@ Used in:
 - `python/fdmr_plugins/registry.py:124`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
 - `python/fdmr_runner/delta.py:162`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
 - `regions/sf-bay-delta/dsm2.toml:655`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
-- `runner/dsm2/gtm-sediment.patch:21`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
+- `runner/dsm2/gtm-sediment.patch:27`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
 
 ## allen1998fao56
 
@@ -89,7 +89,7 @@ Checked: DataCite record of the DOI; CaltechAUTHORS record, 26 Nov 2026
 
 Used in:
 
-- `runner/dsm2/gtm-sediment.patch:6`: Shields curve (ref:brownlie1981),
+- `runner/dsm2/gtm-sediment.patch:12`: Shields curve (ref:brownlie1981),
 
 ## cdfw_sturgeon_regs
 
@@ -191,7 +191,7 @@ Used in:
 - `python/fdmr_plugins/registry.py:111`: "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
 - `python/fdmr_plugins/registry.py:117`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:1`: DSM2 for the Delta reach (specification 7.2; ref:dsm2): DWR's own historical study, run
-- `runner/dsm2/gtm-sediment.patch:1`: FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
+- `runner/dsm2/gtm-sediment.patch:7`: FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
 
 ## dwr2026dsm2input
 
@@ -866,7 +866,7 @@ Used in:
 - `python/fdmr_plugins/dsm2/sediment.py:7`: (Partheniades 1965, ref:partheniades1965), no more
 - `python/fdmr_plugins/registry.py:117`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:662`: in Partheniades' form (ref:partheniades1965)
-- `runner/dsm2/gtm-sediment.patch:20`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
+- `runner/dsm2/gtm-sediment.patch:26`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
 
 ## patton2020
 
@@ -1174,7 +1174,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `runner/dsm2/gtm-sediment.patch:5`: (Stokes/van Rijn, ref:vanrijn1984) and its critical shear stress from Brownlie's
+- `runner/dsm2/gtm-sediment.patch:11`: (Stokes/van Rijn, ref:vanrijn1984) and its critical shear stress from Brownlie's
 
 ## visser1997
 

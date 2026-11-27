@@ -1,6 +1,6 @@
 # Building DSM2 on Linux
 
-DWR's DSM2 runs in the model runner as a separate, unmodified GPL program (specification section 9.4). DWR publishes ready-made DSM2 for Windows only. This folder builds it natively on Debian 13, with no Windows and no emulation.
+DWR's DSM2 runs in the model runner as a separate GPL program (specification section 9.4): DWR's release, with one published patch to its General Transport Model (`gtm-sediment.patch`, issue #16). DWR publishes ready-made DSM2 for Windows only. This folder builds it natively on Debian 13, with no Windows and no emulation.
 
 ## The missing library
 
@@ -16,7 +16,9 @@ Two more pieces of the Windows edition are handled differently:
 - `heclib/intel_extra.for` only maps Fortran names onto Windows calling conventions (`_openf_@20` and the like). It is left out on Linux.
 - The in-memory buffer helpers (`readmem`, `writemem`, `reallocatemem`) store a memory address in a 4-byte INTEGER, which cannot hold a 64-bit address. `posix_io.c` keeps the real addresses in a table and gives the Fortran code a small handle instead.
 
-Nothing in DSM2 itself is changed. Only HYDRO and QUAL are built, the two programs the app uses.
+DSM2 itself is changed in one place only: `gtm-sediment.patch` changes GTM's sediment code (issue #16; the patch says what and why). HYDRO, QUAL and GTM are built, the three programs the app uses, and `dsstool`, a small DSS reader and writer of our own.
+
+**Licence.** DSM2 is GPL version 3 or later. `gtm-sediment.patch` modifies its source, so it is GPL too (`COPYING` here), and not covered by the repository's PolyForm Noncommercial licence. The patched programs run as separate processes and are not linked into any FDMR code, and they are not redistributed.
 
 ## Compiler workaround
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Build DWR's DSM2 natively on Linux (Debian 13) with Intel oneAPI 2023.2.
 #
-# DSM2 is run as a separate, unmodified GPL program (specification section 9.4).
+# DSM2 is run as a separate GPL program (specification section 9.4): DWR's
+# release, with one published patch to GTM (gtm-sediment.patch, GPL as DSM2 is;
+# issue #16).
 # This script only fetches public sources, builds DSM2's dependencies and runs
 # DWR's own build. HEClib v6, which DWR does not publish on its own, comes from
 # the HEClib source DWR includes in its public DSM2 8.1.2 source package.

@@ -1,3 +1,9 @@
+License: GNU General Public License version 3 or later, as DSM2 itself
+(runner/dsm2/COPYING). This patch modifies DSM2's GPL source, so it is GPL
+too, and it is not covered by the repository's PolyForm Noncommercial
+licence (LICENSE). The patched GTM runs as a separate program; no FDMR
+code links to it. (#56)
+
 FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
 sediment in the Delta (issue #16). Applied by build_dsm2.sh before building.
 

@@ -38,3 +38,10 @@ cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test --r
 ```
 
 CI runs the same checks on every push.
+
+## Licence
+
+- **The software** (everything here unless said otherwise): PolyForm Noncommercial 1.0.0, in `LICENSE`.
+- **The written content** (the documents and the site's text): Creative Commons BY-NC 4.0.
+- **`runner/dsm2/gtm-sediment.patch`**: GNU GPL version 3 or later, as DSM2 itself, in `runner/dsm2/COPYING`. It changes DWR's DSM2 source, and it is not covered by the PolyForm licence. DSM2 runs as a separate program, not linked into any of the code here (specification 9.4).
+- **Data** keep their own terms, credited where they are used: `docs/references.md` lists every source and its licence.

@@ -39,7 +39,7 @@
     },
     {
      "file": "runner/dsm2/gtm-sediment.patch",
-     "line": 21,
+     "line": 27,
      "text": "the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),"
     }
    ]
@@ -162,7 +162,7 @@
    "used": [
     {
      "file": "runner/dsm2/gtm-sediment.patch",
-     "line": 6,
+     "line": 12,
      "text": "Shields curve (ref:brownlie1981),"
     }
    ]
@@ -368,7 +368,7 @@
     },
     {
      "file": "runner/dsm2/gtm-sediment.patch",
-     "line": 1,
+     "line": 7,
      "text": "FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended"
     }
    ]
@@ -1695,7 +1695,7 @@
     },
     {
      "file": "runner/dsm2/gtm-sediment.patch",
-     "line": 20,
+     "line": 26,
      "text": "(Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is"
     }
    ]
@@ -2294,7 +2294,7 @@
    "used": [
     {
      "file": "runner/dsm2/gtm-sediment.patch",
-     "line": 5,
+     "line": 11,
      "text": "(Stokes/van Rijn, ref:vanrijn1984) and its critical shear stress from Brownlie's"
     }
    ]

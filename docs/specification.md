@@ -441,7 +441,7 @@ Model kinds and math components are plug-ins behind fixed interfaces, so new one
 - **A math-component plug-in** replaces or adds one calculation behind the same inputs and outputs. Examples are another dispersion estimate, a turbulence or vertical-mixing scheme, or a heat-exchange formula.
 - **Conformance tests.** Every plug-in must pass the engine's tests before a region can use it: mass balance, the published format, and textbook cases for its kind.
 - **Versioned format.** The published format carries a version number, so a file from an older format is refused clearly rather than misread. The other interfaces live in the one repository and change together, in the same change as everything that uses them.
-- **Outside programs.** A plug-in can wrap an outside program, as the DSM2 adapter does. A GPL model is run as a separate, unmodified program, never linked into our code (section 9.4).
+- **Outside programs.** A plug-in can wrap an outside program, as the DSM2 adapter does. A GPL model is run as a separate program, never linked into our code (section 9.4).
 
 **Ready for 3D from the start.** So that a 3D plug-in does not mean a rewrite, version 1 builds in the depth axis even though nothing uses it yet:
 
@@ -907,12 +907,12 @@ The river model has three sets of parameters, each calibrated from a different k
 - **DSM2 is built natively on Linux** in the model runner, by `runner/dsm2/build_dsm2.sh`. There is no Windows and no emulation.
   - DSM2's Linux build needs HEClib v6, its DSS file library, which DWR does not publish on its own. Its source is, however, in DWR's public DSM2 8.1.2 source package, in a Windows edition.
   - That edition compiles on Linux once its Windows file layer and seven Windows-only routines are replaced by standard POSIX and Fortran versions (`runner/dsm2/heclib-linux/`).
-  - DSM2 itself is built unmodified, from DWR's GitHub release, with Intel's oneAPI 2023.2 compilers.
+  - DSM2 itself is built from DWR's GitHub release, with Intel's oneAPI 2023.2 compilers, and one published patch to GTM's sediment code (`runner/dsm2/gtm-sediment.patch`, issue #16).
 
 ### 9.4 Licensing and credit
 
-- **Our code**: PolyForm Noncommercial 1.0.0 for the software, and Creative Commons BY-NC 4.0 for the written content. None of the data sources requires GPL for our code, because DSM2 runs as a separate, unmodified program.
-- **DSM2**: GNU GPL version 3 or later. We run it unmodified and do not redistribute it. Any code of ours that copies or modifies DSM2 source would have to be GPL, and GPL cannot carry a non-commercial restriction, so we keep the two strictly apart.
+- **Our code**: PolyForm Noncommercial 1.0.0 for the software, and Creative Commons BY-NC 4.0 for the written content. None of the data sources requires GPL for our code, because DSM2 runs as a separate program, not linked into it. The software's licence is in `LICENSE`.
+- **DSM2**: GNU GPL version 3 or later. We run it as a separate program and do not redistribute it. Our one change to its source, `runner/dsm2/gtm-sediment.patch`, is therefore GPL version 3 or later (`runner/dsm2/COPYING`), and is not covered by the PolyForm licence. Any other code of ours that copied or modified DSM2 source would have to be GPL too, and GPL cannot carry a non-commercial restriction, so everything else is kept strictly apart from it.
 - **DWR data**: credited as the source; DWR's terms bar commercial redistribution.
 - **USGS and NOAA data**: US government public data, credited.
 - **Map**: OpenStreetMap data under the Open Database License, with the required attribution on the map.
