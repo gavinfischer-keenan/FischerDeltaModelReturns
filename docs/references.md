@@ -32,6 +32,30 @@ Used in:
 - `python/fdmr_plugins/registry.py:74`: "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
 - `python/fdmr_plugins/river_routing/heat.py:18`: the surface is FAO-56's clear-sky radiation (Allen et al. 1998, ref:allen1998fao56, Crop
 
+## bergsutula2015
+
+Berg, M., and Sutula, M. (2015). Factors Affecting the Growth of Cyanobacteria with Special Emphasis on the Sacramento-San Joaquin Delta. Southern California Coastal Water Research Project, Technical Report 869; prepared for the Central Valley Regional Water Quality Control Board and the State Water Resources Control Board; August 2015. https://amarine.com/documents/factors-affecting-the-growth-of-cyanobacteria-with-special-emphasis-on-the-sacramento-san-joaquin-delta/
+
+*Table 5.1, p. 49: in the Delta Microcystis is not observed below 19 degC, and needs more than 25 degC to grow as fast as diatoms; p. 48: salinity sets how far seaward blooms reach.*
+
+Checked: The report read (Table 5.1 and section 5), 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/blooms.toml:31`: ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:
+
+## boumagregson2024
+
+Bouma-Gregson, K., Bosworth, D., Flynn, T., Maguire, A., Rinde, J., and Hartman, R. (2024). Delta Blue(green)s: The Impact of Drought and Drought Management Actions on Microcystis in the Sacramento-San Joaquin Delta. San Francisco Estuary and Watershed Science 22(1). https://doi.org/10.15447/sfews.2024v22iss1art2
+
+*The surveys' visual Microcystis index 2014-2021 modelled on temperature, Secchi depth and exports (Table 6, Fig. 6); regional contrasts (Table 4).*
+
+Checked: Crossref record of the DOI; the paper read for FDMR, 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/blooms.toml:21`: than the Sacramento side (Bouma-Gregson et al. 2024, ref:boumagregson2024,
+
 ## brown1987qual2e
 
 Brown, L. C., and Barnwell, T. O., Jr. (1987). The Enhanced Stream Water Quality Models QUAL2E and QUAL2E-UNCAS: Documentation and User Manual. EPA/600/3-87/007, Environmental Research Laboratory, U.S. Environmental Protection Agency, Athens, Georgia; May 1987. https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=30000KGT.TXT
@@ -461,6 +485,18 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_runner/bay.py:593`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
+
+## lehman2005
+
+Lehman, P. W., Boyer, G., Hall, C., Waller, S., and Gehrts, K. (2005). Distribution and toxicity of a new colonial Microcystis aeruginosa bloom in the San Francisco Bay Estuary, California. Hydrobiologia 541(1), 87-99. https://doi.org/10.1007/s10750-004-4670-0
+
+*pp. 93-94: colonies at 0.1-18 ppt, bloom biomass in Delta water below 5 ppt.*
+
+Checked: Crossref record of the DOI; the paper read for FDMR (pp. 93-94), 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/blooms.toml:39`: ref:lehman2005, pp. 93-94); salinity sets how far seaward blooms reach, not
 
 ## leopold1953
 

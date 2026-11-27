@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturgeon: the bloom forecast</title>
+<!--
+  The cyanobacteria bloom forecast (issue #28; fdmr_runner.blooms), as published
+  with the current cycle (data/<region>/current/blooms.json). Plain, for
+  checking. Computes nothing. ?region=
+-->
+<style>
+  body { font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; margin: 12px; color: #111; background: #fff; }
+  h1 { font-size: 16px; } h2 { font-size: 14px; margin-top: 24px; border-top: 2px solid #000; padding-top: 6px; }
+  table { border-collapse: collapse; margin: 4px 0 10px; } td, th { border: 1px solid #999; padding: 2px 6px; text-align: right; vertical-align: top; }
+  th { background: #eee; } td.l, th.l { text-align: left; } p { max-width: 980px; } .note { color: #555; }
+</style>
+</head>
+<body>
+<h1>Sturgeon: the cyanobacteria bloom forecast</h1>
+<p class="note">Where, day by day over the forecast, the water the model predicts favours <i>Microcystis</i>, the Delta's main bloom former, from published evidence only: each number comes from a paper or agency report, cited in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/regions/sf-bay-delta/blooms.toml">the region's rules</a> and listed on the <a href="references.html">references</a> page. A channel's day is <b>unlikely</b> below 19 °C or at 5 psu and above, <b>possible</b> from 19 °C, and <b>likely</b> from 25 °C (Berg and Sutula 2015, Table 5.1; Lehman et al. 2005). Not used: flow, residence time and clarity (their published thresholds disagree, and the model's sediment reads low where blooms are), and toxin, which these drivers do not predict. <b>Not yet scored</b> against the surveys' bloom index. Not a health advisory: see the State Water Board's <a href="https://mywaterquality.ca.gov/habs/">California HABs portal</a> for reported blooms. See also <a href="check.html">every check</a> and <a href="assumptions.html">every assumption</a>.</p>
+<div id="out">Loading…</div>
+<script>
+const q = new URLSearchParams(location.search);
+const region = q.get("region") || "sf-bay-delta";
+const base = new URL(`data/${region}/current/`, location.href).href;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+(async () => {
+  const index = await (await fetch(base + "index.json", { cache: "no-store" })).json();
+  if (!index.blooms) { document.getElementById("out").textContent = "This cycle has no bloom forecast."; return; }
+  const bx = await (await fetch(base + index.blooms, { cache: "no-store" })).json();
+  let h = `<p>Cycle <b>${esc(bx.generated_for_cycle)}</b>, now ${esc(bx.now)}.</p>`;
+  h += "<table><tr><th class='l'>day</th><th class='l'>channels: unlikely / possible / likely</th><th class='l'>warmest places favouring a bloom (reach element: °C, psu, lon, lat)</th></tr>";
+  for (const d of bx.days) {
+    const counts = Object.entries(d.counts || {}).map(([r, c]) => `${r} ${c.unlikely} / ${c.possible} / ${c.likely}`).join(", ");
+    const pl = (d.warmest || []).slice(0, 4).map((w) => `${esc(w.reach)} ${w.element}: ${w.temperature}, ${w.salinity}, ${w.lon ?? ""}, ${w.lat ?? ""}`).join("<br>");
+    h += `<tr><td class="l">${esc(d.date)}</td><td class="l">${esc(counts)}</td><td class="l">${pl || "none"}</td></tr>`;
+  }
+  h += "</table>";
+  document.getElementById("out").innerHTML = h;
+})().catch((e) => { document.getElementById("out").textContent = "Failed: " + e; });
+</script>
+</body>
+</html>

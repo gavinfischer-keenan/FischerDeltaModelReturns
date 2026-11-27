@@ -824,3 +824,33 @@ in = "Journal of the American Statistical Association 90(430), 773-795"
 doi = "10.1080/01621459.1995.10476572"
 note = "Their scale of evidence: twice the log Bayes factor (which a difference in the Bayesian information criterion approximates) above 10 is very strong evidence."
 checked = "Crossref record of the DOI, 27 Nov 2026"
+
+[bergsutula2015]
+authors = "Berg, M., and Sutula, M."
+year = 2015
+title = "Factors Affecting the Growth of Cyanobacteria with Special Emphasis on the Sacramento-San Joaquin Delta"
+kind = "report"
+in = "Southern California Coastal Water Research Project, Technical Report 869; prepared for the Central Valley Regional Water Quality Control Board and the State Water Resources Control Board; August 2015"
+url = "https://amarine.com/documents/factors-affecting-the-growth-of-cyanobacteria-with-special-emphasis-on-the-sacramento-san-joaquin-delta/"
+note = "Table 5.1, p. 49: in the Delta Microcystis is not observed below 19 degC, and needs more than 25 degC to grow as fast as diatoms; p. 48: salinity sets how far seaward blooms reach."
+checked = "The report read (Table 5.1 and section 5), 27 Nov 2026"
+
+[lehman2005]
+authors = "Lehman, P. W., Boyer, G., Hall, C., Waller, S., and Gehrts, K."
+year = 2005
+title = "Distribution and toxicity of a new colonial Microcystis aeruginosa bloom in the San Francisco Bay Estuary, California"
+kind = "paper"
+in = "Hydrobiologia 541(1), 87-99"
+doi = "10.1007/s10750-004-4670-0"
+note = "pp. 93-94: colonies at 0.1-18 ppt, bloom biomass in Delta water below 5 ppt."
+checked = "Crossref record of the DOI; the paper read for FDMR (pp. 93-94), 27 Nov 2026"
+
+[boumagregson2024]
+authors = "Bouma-Gregson, K., Bosworth, D., Flynn, T., Maguire, A., Rinde, J., and Hartman, R."
+year = 2024
+title = "Delta Blue(green)s: The Impact of Drought and Drought Management Actions on Microcystis in the Sacramento-San Joaquin Delta"
+kind = "paper"
+in = "San Francisco Estuary and Watershed Science 22(1)"
+doi = "10.15447/sfews.2024v22iss1art2"
+note = "The surveys' visual Microcystis index 2014-2021 modelled on temperature, Secchi depth and exports (Table 6, Fig. 6); regional contrasts (Table 4)."
+checked = "Crossref record of the DOI; the paper read for FDMR, 27 Nov 2026"

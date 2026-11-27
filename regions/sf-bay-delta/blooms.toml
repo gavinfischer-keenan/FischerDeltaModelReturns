@@ -1,0 +1,42 @@
+# The cyanobacteria bloom forecast (issue #28): where, over the next 14 days,
+# the water the model predicts favours Microcystis, the Delta's main bloom
+# former, from published evidence only. Data only; fdmr_runner.blooms applies
+# it to each cycle. Every number is a source's, with where in it.
+#
+# Used: the day's mean water temperature, the season's gate and its strength,
+# and salinity, which sets where blooms can be at all. Each element of the
+# listed reaches is "unlikely", "possible" or "likely".
+#
+# What is NOT used, and why:
+# - Flow, residence time and clarity: their numeric thresholds in the
+#   literature all trace back to one paper (Lehman et al. 2013, Hydrobiologia
+#   718), and the papers citing it give different numbers (San Joaquin flow
+#   below 80 or below 30 m3/s; suspended solids below 40 mg/L, or turbidity
+#   below 50 NTU). The model's own suspended sediment also reads low in the
+#   south and east Delta (#24), where blooms are, so it would overstate clarity.
+# - Toxin: the toxic share of cells is not predictable from these drivers
+#   (Lehman et al. 2017, Harmful Algae 63, p. 101).
+# - Water source: no published relation, only regional contrasts. The south
+#   Delta, the San Joaquin, Old and Middle rivers and Franks Tract bloom more
+#   than the Sacramento side (Bouma-Gregson et al. 2024, ref:boumagregson2024,
+#   Table 4).
+# Validation: not yet scored. The IEP surveys' visual Microcystis index
+# (edi.539, edi.1076, edi.1391, edi.276; #28) is what to check it against.
+
+reaches = ["delta"]
+
+# Water temperature, degC, the day's mean. Microcystis is "not observed at
+# temperatures <19 degC" in the Delta, and "requires temperatures above 25 degC
+# for growth rates to be competitive with diatoms" (Berg and Sutula 2015,
+# ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:
+# possible; above the second: likely. Bouma-Gregson et al. 2024 (Fig. 6),
+# from the surveys' visual index 2014-2021, find high ratings climbing
+# steeply above 25 degC.
+temperature_c = [19.0, 25.0]
+
+# Salinity, psu, the day's mean. Microcystis colonies were found at 0.1 to 18
+# ppt, but bloom biomass only in Delta water below 5 ppt (Lehman et al. 2005,
+# ref:lehman2005, pp. 93-94); salinity sets how far seaward blooms reach, not
+# where within the Delta (Berg and Sutula 2015, p. 48). At or above it:
+# unlikely, whatever the temperature.
+salinity_below_psu = 5.0

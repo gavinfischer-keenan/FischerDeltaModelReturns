@@ -777,6 +777,16 @@ def publish(
                 index["fishing"] = "fishing.json"
         except Exception as e:  # the water is published whatever happens to its forecast
             print(f"fishing FAILED {e}", flush=True)
+        # The bloom forecast (fdmr_runner.blooms, issue #28), likewise.
+        try:
+            from . import blooms
+
+            bx = blooms.forecast(region_dir, cdir, index)
+            if bx is not None:
+                (cdir / "blooms.json").write_text(json.dumps(bx, separators=(",", ":"), allow_nan=False), encoding="utf-8")
+                index["blooms"] = "blooms.json"
+        except Exception as e:  # the water is published whatever happens to its forecast
+            print(f"blooms FAILED {e}", flush=True)
     # The last fetch's own account of what it could not get (fdmr_runner.fetch).
     fs = store.path.parent / f"fetch-status-{index['region']}.json" if store.path.name != ":memory:" else None
     if fs and fs.exists():

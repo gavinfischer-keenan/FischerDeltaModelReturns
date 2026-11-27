@@ -71,6 +71,13 @@ Every number the model is set with: in each region's settings and among the mode
 | | **`currents_check`** | | The mesh's currents checked against measured surface currents (issue #8): the US IOOS high-frequency radar network's 500 m West Coast product, hourly, through NOAA CoastWatch's ERDDAP (checked 26 Nov 2026: current to within hours; licence "may be used and redistributed for free but is not intended for legal use"; [hfradar](references.md#hfradar); Terrill et al. 2006, Proc. MTS/IEEE Oceans, [terrill2006](references.md#terrill2006)). It covers the Central Bay and the Golden Gate, 37.79-37.90 N; San Pablo Bay has none. Box: south, north, west, east (degrees). |
 | [335](../regions/sf-bay-delta/bay.toml#L335) | `currents_check`<br>`near_m` | `400.0` |  |
 
+### blooms.toml
+
+| Where | Setting | Value | Note and source |
+| --- | --- | --- | --- |
+| [35](../regions/sf-bay-delta/blooms.toml#L35) | `temperature_c` | `[19.0, 25.0]` | Water temperature, degC, the day's mean. Microcystis is "not observed at temperatures <19 degC" in the Delta, and "requires temperatures above 25 degC for growth rates to be competitive with diatoms" (Berg and Sutula 2015, [bergsutula2015](references.md#bergsutula2015), Table 5.1, p. 49). Below the first: unlikely; between: possible; above the second: likely. Bouma-Gregson et al. 2024 (Fig. 6), from the surveys' visual index 2014-2021, find high ratings climbing steeply above 25 degC. |
+| [42](../regions/sf-bay-delta/blooms.toml#L42) | `salinity_below_psu` | `5.0` | Salinity, psu, the day's mean. Microcystis colonies were found at 0.1 to 18 ppt, but bloom biomass only in Delta water below 5 ppt (Lehman et al. 2005, [lehman2005](references.md#lehman2005), pp. 93-94); salinity sets how far seaward blooms reach, not where within the Delta (Berg and Sutula 2015, p. 48). At or above it: unlikely, whatever the temperature. |
+
 ### canals.toml
 
 | Where | Setting | Value | Note and source |
@@ -284,6 +291,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/publish.py:137](../python/fdmr_runner/publish.py#L137) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
 | [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/soil.py:33](../python/fdmr_runner/soil.py#L33) | `POINT_SPACING_M` | `2_000.0` | centreline points kept for a corridor: far closer than its 9 km cells |
+| [python/fdmr_runner/trial.py:39](../python/fdmr_runner/trial.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/water_extent.py:28](../python/fdmr_runner/water_extent.py#L28) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 |
 | [python/fdmr_plugins/dsm2/dss.py:15](../python/fdmr_plugins/dsm2/dss.py#L15) | `PST` | `8 * 3600` | s: DSM2's clock is Pacific Standard Time, UTC-8 all year |
 | [python/fdmr_plugins/dsm2/dss.py:16](../python/fdmr_plugins/dsm2/dss.py#L16) | `MISSING` | `-901.0` | HEC-DSS's missing-value flag |
