@@ -35,11 +35,11 @@ import numpy as np
 SIGMA = 5.670374e-8  # W/m2/K4
 RHO_CP = 1000.0 * 4186.0  # J/m3/K
 CAL_CM2_D = 41_840.0 / 86_400.0  # 1 cal/cm2/day in W/m2
-ALBEDO = 0.06
-EMISSIVITY = 0.97
+ALBEDO = 0.06  # share of sunlight the water reflects, about 6 % (Chapra 1997, Lecture 30, ref:chapra1997)
+EMISSIVITY = 0.97  # water's long-wave emissivity (Chapra 1997, Lecture 30, ref:chapra1997)
 BRUNT_A, BRUNT_B, LONGWAVE_REFLECTED = 0.6, 0.031, 0.03
 BOWEN = 0.47  # mmHg/degC
-CLOUD_LONGWAVE = 0.17
+CLOUD_LONGWAVE = 0.17  # sky long-wave times (1 + 0.17 C^2) for cloud C (QUAL2K, ref:chapra2008qual2k, after TVA 1972, ref:tva1972)
 WIND_7M = (7.0 / 10.0) ** (1 / 7)  # wind measured 10 m up, at 7 m (one-seventh power law)
 GSC = 1367.0  # W/m2, solar constant
 

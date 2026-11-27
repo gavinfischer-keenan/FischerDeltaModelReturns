@@ -37,7 +37,7 @@ from .delta import pst_midnight
 from .region import load_region
 
 DAY = 86_400
-KEEP_LOGS = 120
+KEEP_LOGS = 120  # nightly review logs kept: the last 120 nights
 
 
 def run(cmd: list[str], log: list[dict], what: str) -> bool:

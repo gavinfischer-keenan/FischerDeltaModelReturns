@@ -12,7 +12,7 @@ id = "river"
 name = "Sacramento River, Keswick Dam to Sacramento"
 kind = "river-routing"
 release_temperature = { source = "cdec", site = "KWK", duration = "H" }   # Keswick's release (CDEC KWK, hourly)
-certainty = { solid_days = 5, floor = 0.2 }
+certainty = { solid_days = 5, floor = 0.2 }   # certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2)
 
 [[reaches]]
 id = "delta"
@@ -26,7 +26,7 @@ id = "bay"
 name = "Suisun Bay to the Golden Gate"
 kind = "2d-field"
 flow_source = "noaa-ofs:sfbofs"
-certainty = { solid_days = 2, floor = 0.2 }
+certainty = { solid_days = 2, floor = 0.2 }   # certainty 1 to the end of NOAA's 48-hour SFBOFS forecast (bay.toml forecast_hours), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2)
 
 [[reaches]]
 id = "canals"

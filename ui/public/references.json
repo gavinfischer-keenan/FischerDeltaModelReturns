@@ -432,6 +432,16 @@
      "file": "python/fdmr_plugins/river_routing/heat.py",
      "line": 5,
      "text": "(1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, \"Heat budgets\"):"
+    },
+    {
+     "file": "python/fdmr_plugins/river_routing/heat.py",
+     "line": 38,
+     "text": "ALBEDO = 0.06  # share of sunlight the water reflects, about 6 % (Chapra 1997, Lecture 30, ref:chapra1997)"
+    },
+    {
+     "file": "python/fdmr_plugins/river_routing/heat.py",
+     "line": 39,
+     "text": "EMISSIVITY = 0.97  # water's long-wave emissivity (Chapra 1997, Lecture 30, ref:chapra1997)"
     }
    ]
   },
@@ -456,6 +466,11 @@
      "file": "python/fdmr_plugins/river_routing/heat.py",
      "line": 10,
      "text": "2008, ref:chapra2008qual2k, QUAL2K documentation, after TVA 1972, ref:tva1972);"
+    },
+    {
+     "file": "python/fdmr_plugins/river_routing/heat.py",
+     "line": 42,
+     "text": "CLOUD_LONGWAVE = 0.17  # sky long-wave times (1 + 0.17 C^2) for cloud C (QUAL2K, ref:chapra2008qual2k, after TVA 1972, ref:tva1972)"
     }
    ]
   },
@@ -497,6 +512,11 @@
      "file": "python/fdmr_plugins/river_routing/channel.py",
      "line": 63,
      "text": "(wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,"
+    },
+    {
+     "file": "python/fdmr_plugins/river_routing/model.py",
+     "line": 26,
+     "text": "WAVE_TO_WATER = 1.5  # a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, ref:chow1959); refitted nightly per segment"
     },
     {
      "file": "regions/sf-bay-delta/canals.toml",
@@ -599,7 +619,7 @@
     },
     {
      "file": "python/fdmr_runner/publish.py",
-     "line": 122,
+     "line": 140,
      "text": "scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's"
     }
    ]
@@ -935,6 +955,25 @@
      "file": "python/fdmr_adapters/openet.py",
      "line": 11,
      "text": "References: ref:openet, and the method: ref:melton2022openet (references.toml)."
+    }
+   ]
+  },
+  {
+   "key": "moritz2000grs80",
+   "authors": "Moritz, H.",
+   "year": 2000,
+   "title": "Geodetic Reference System 1980",
+   "kind": "paper",
+   "in": "Journal of Geodesy 74(1), 128-133",
+   "doi": "10.1007/s001900050278",
+   "note": "The GRS 80 ellipsoid's derived constants, among them the mean Earth radius R1 = 6 371 008.7714 m.",
+   "checked": "Crossref record of the DOI, 27 Nov 2026",
+   "citation": "Moritz, H. (2000). Geodetic Reference System 1980. Journal of Geodesy 74(1), 128-133. https://doi.org/10.1007/s001900050278",
+   "used": [
+    {
+     "file": "python/fdmr_plugins/river_routing/centreline.py",
+     "line": 15,
+     "text": "EARTH_RADIUS_M = 6_371_008.8  # m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, ref:moritz2000grs80)"
     }
    ]
   },
@@ -1521,6 +1560,11 @@
      "file": "regions/sf-bay-delta/fishing.toml",
      "line": 12,
      "text": "checked against CDFW's trammel-net sets (ref:stompe2024; method and numbers"
+    },
+    {
+     "file": "tools/validation/cdfw_sturgeon/README.md",
+     "line": 7,
+     "text": "ref:stompe2024). Accessed 27 Nov 2026."
     }
    ]
   },
@@ -1563,6 +1607,11 @@
      "file": "python/fdmr_plugins/river_routing/heat.py",
      "line": 21,
      "text": "1997, after TVA 1972, ref:tva1972). The water heats or cools at H / (rho c_p d), d its depth."
+    },
+    {
+     "file": "python/fdmr_plugins/river_routing/heat.py",
+     "line": 42,
+     "text": "CLOUD_LONGWAVE = 0.17  # sky long-wave times (1 + 0.17 C^2) for cloud C (QUAL2K, ref:chapra2008qual2k, after TVA 1972, ref:tva1972)"
     }
    ]
   },

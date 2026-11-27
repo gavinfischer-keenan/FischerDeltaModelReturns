@@ -40,7 +40,7 @@ from fdmr_store import Store
 
 from .forecast import extend, fit_tide, on_grid, repeat_last_day, shifted
 
-STEP = 900
+STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
 DAY = 86_400
 TO_DSS = {"CFS": 1 / 0.3048**3, "FEET": 1 / 0.3048, "UMHOS/CM": 1.0}  # from the store's units
 DSM2_ROOT = Path("/srv/fdmr-data/dsm2")

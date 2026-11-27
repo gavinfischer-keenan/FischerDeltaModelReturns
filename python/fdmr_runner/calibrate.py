@@ -37,14 +37,14 @@ from .forecast import on_grid
 from .publish import fit_shapes, river_chain
 from .region import load_region
 
-STEP = 900
+STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
 TRACERS = {  # parameter: smallest swing in the smoothed signal that counts as a signal
     "specific_conductance": 5.0,  # µS/cm
     "water_temperature": 0.5,  # °C
 }
 
 
-MIN_PAIR_M = 40_000
+MIN_PAIR_M = 40_000  # m: a tracer pair at least this far apart, or weather swamps its travel time (below; FDMR's choice)
 MIN_COVER = 0.25  # a pair corrects only segments it covers at least this share of
 MAX_OFF_LINE_M = 1_500  # a station further than this from the river centreline is misplaced
 

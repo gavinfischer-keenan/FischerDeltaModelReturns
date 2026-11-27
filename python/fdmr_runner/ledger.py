@@ -43,9 +43,9 @@ HOUR = 3600
 EVERY_S = 6 * HOUR - 15 * 60  # a cycle is kept when the last kept is this old (four a day)
 LEADS_S = [h * HOUR for h in range(0, 48)] + [h * HOUR for h in range(48, 15 * 24 + 1, 6)]
 MATCH_S = 30 * 60  # a reading counts for a prediction within this of its time
-WINDOW_DAYS = 30
+WINDOW_DAYS = 30  # scores cover the last 30 days of kept cycles (FDMR's choice)
 LEAD_BANDS = [("0-6 h", 0, 6), ("6-24 h", 6, 24), ("1-2 days", 24, 48), ("2-5 days", 48, 120), ("5-15 days", 120, 361)]
-MODEL_NEAR_KM = 1.0
+MODEL_NEAR_KM = 1.0  # km: a station is compared with a reach it stands within this of (FDMR's choice)
 BIG_KEYS = ("certainty", "lines")  # index.json arrays too large to keep with every cycle
 
 SCHEMA = """

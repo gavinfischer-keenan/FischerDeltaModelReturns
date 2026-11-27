@@ -29,9 +29,9 @@ from fdmr_store import Store
 
 from . import ledger, overlays
 
-WINDOW_DAYS = 7
-MODEL_NEAR_KM = 1.0
-MAX_LAG_S = 3 * 3600
+WINDOW_DAYS = 7  # days of the cycle's measured past checked (FDMR's choice)
+MODEL_NEAR_KM = 1.0  # km: a station is checked against a reach it stands within this of (FDMR's choice)
+MAX_LAG_S = 3 * 3600  # s: the largest shift searched when lining the tides up, 3 hours (FDMR's choice)
 MIN_FRACTION = 0.6  # of the window's steps with both values
 
 

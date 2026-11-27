@@ -65,7 +65,7 @@ name = "Waal, Millingen to Gorinchem"
 kind = "river-routing"
 line = { source = "pdok", names = ["Waal"], end = [4.975, 51.830], bbox = [4.9, 51.75, 6.1, 51.95], max_snap_m = 600 }
 mouth = [4.975, 51.830]   # where the Waal becomes the Boven-Merwede, at Gorinchem: tidal below
-certainty = { solid_days = 1, floor = 0.2 }
+certainty = { solid_days = 1, floor = 0.2 }   # certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2)
 maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
 
 [[reaches]]

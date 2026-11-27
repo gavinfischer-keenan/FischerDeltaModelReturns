@@ -12,8 +12,8 @@ import subprocess
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 
-PST = 8 * 3600
-MISSING = -901.0
+PST = 8 * 3600  # s: DSM2's clock is Pacific Standard Time, UTC-8 all year
+MISSING = -901.0  # HEC-DSS's missing-value flag
 INTERVALS = {"15MIN": 900, "1HOUR": 3600, "1DAY": 86_400}
 
 

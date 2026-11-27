@@ -222,6 +222,8 @@ Used in:
 - `python/fdmr_plugins/registry.py:55`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/registry.py:89`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
+- `python/fdmr_plugins/river_routing/heat.py:38`: ALBEDO = 0.06  # share of sunlight the water reflects, about 6 % (Chapra 1997, Lecture 30, ref:chapra1997)
+- `python/fdmr_plugins/river_routing/heat.py:39`: EMISSIVITY = 0.97  # water's long-wave emissivity (Chapra 1997, Lecture 30, ref:chapra1997)
 
 ## chapra2008qual2k
 
@@ -235,6 +237,7 @@ Used in:
 
 - `python/fdmr_plugins/registry.py:55`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/river_routing/heat.py:10`: 2008, ref:chapra2008qual2k, QUAL2K documentation, after TVA 1972, ref:tva1972);
+- `python/fdmr_plugins/river_routing/heat.py:42`: CLOUD_LONGWAVE = 0.17  # sky long-wave times (1 + 0.17 C^2) for cloud C (QUAL2K, ref:chapra2008qual2k, after TVA 1972, ref:tva1972)
 
 ## chen2003fvcom
 
@@ -256,6 +259,7 @@ Used in:
 
 - `python/fdmr_plugins/registry.py:46`: "Chow 1959, Open-Channel Hydraulics, chapters 5-6 (ref:chow1959); each region's width, slope and roughness "
 - `python/fdmr_plugins/river_routing/channel.py:63`: (wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,
+- `python/fdmr_plugins/river_routing/model.py:26`: WAVE_TO_WATER = 1.5  # a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, ref:chow1959); refitted nightly per segment
 - `regions/sf-bay-delta/canals.toml:76`: 1959, Open-Channel Hydraulics, Table 5-6, ref:chow1959), and the canal's grade of 3 inches
 
 ## chow1988
@@ -303,7 +307,7 @@ Used in:
 - `crates/fdmr-math/src/dispersion.rs:29`: (Fischer 1966, ref:fischer1966, eq. 57). Taylor's theory "should be applied
 - `docs/maths.md:20`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
 - `python/fdmr_plugins/registry.py:61`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
-- `python/fdmr_runner/publish.py:122`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
+- `python/fdmr_runner/publish.py:140`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
 
 ## fischer1979
 
@@ -479,6 +483,18 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/openet.py:11`: References: ref:openet, and the method: ref:melton2022openet (references.toml).
+
+## moritz2000grs80
+
+Moritz, H. (2000). Geodetic Reference System 1980. Journal of Geodesy 74(1), 128-133. https://doi.org/10.1007/s001900050278
+
+*The GRS 80 ellipsoid's derived constants, among them the mean Earth radius R1 = 6 371 008.7714 m.*
+
+Checked: Crossref record of the DOI, 27 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/river_routing/centreline.py:15`: EARTH_RADIUS_M = 6_371_008.8  # m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, ref:moritz2000grs80)
 
 ## muellersolger2012
 
@@ -801,6 +817,7 @@ Checked: The data tables' SHA-1 checksums against the DataONE system metadata; t
 Used in:
 
 - `regions/sf-bay-delta/fishing.toml:12`: checked against CDFW's trammel-net sets (ref:stompe2024; method and numbers
+- `tools/validation/cdfw_sturgeon/README.md:7`: ref:stompe2024). Accessed 27 Nov 2026.
 
 ## swot_riversp
 
@@ -824,6 +841,7 @@ Used in:
 
 - `python/fdmr_plugins/river_routing/heat.py:10`: 2008, ref:chapra2008qual2k, QUAL2K documentation, after TVA 1972, ref:tva1972);
 - `python/fdmr_plugins/river_routing/heat.py:21`: 1997, after TVA 1972, ref:tva1972). The water heats or cools at H / (rho c_p d), d its depth.
+- `python/fdmr_plugins/river_routing/heat.py:42`: CLOUD_LONGWAVE = 0.17  # sky long-wave times (1 + 0.17 C^2) for cloud C (QUAL2K, ref:chapra2008qual2k, after TVA 1972, ref:tva1972)
 
 ## terrill2006
 

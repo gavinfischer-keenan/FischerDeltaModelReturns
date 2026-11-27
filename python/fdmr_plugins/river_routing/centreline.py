@@ -12,7 +12,7 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-EARTH_RADIUS_M = 6_371_008.8
+EARTH_RADIUS_M = 6_371_008.8  # m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, ref:moritz2000grs80)
 
 
 def distance_m(a: tuple[float, float], b: tuple[float, float]) -> float:

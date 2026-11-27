@@ -19,7 +19,7 @@ display_units = "us"
 id = "river"
 name = "Colorado River, Lees Ferry to Grand Canyon"
 kind = "river-routing"
-certainty = { solid_days = 5, floor = 0.2 }
+certainty = { solid_days = 5, floor = 0.2 }   # as the Sacramento's: about as far as the river forecasts reach, then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2)
 
 # Gauges, upstream to downstream (USGS site numbers, confirmed 25 Nov 2026).
 [[gauges]]

@@ -32,6 +32,9 @@ NOT_PARAMETERS = {
     "reference_year", "max_snap_m", "join_m", "depth_cm", "long",
 }
 REF = re.compile(r"\bref:([a-z][a-z0-9_]*)")
+# Module constants that are units, not settings: their note says so.
+UNITS = {"DAY": "unit: seconds in a day", "HOUR": "unit: seconds in an hour",
+         "FT": "unit: metres in an international foot (exact)", "INCH": "unit: metres in an inch (exact)"}
 
 
 def tracked(pattern: str) -> list[Path]:
@@ -67,8 +70,14 @@ def numbers(value: str) -> list[tuple[str, str]]:
 def toml_rows(path: Path) -> list[dict]:
     """The numbers in a TOML file. A table's comment (the block just above its
     header) goes with the table (`table_note`), a key's (the block just above
-    it, and its line's own) with the key."""
-    rows, table, table_note, block, counts = [], "", "", [], {}
+    it, and its line's own) with the key. A key with no comment of its own
+    takes, in turn: the note of the same key with the same value in an earlier
+    entry of the same array of tables (a setting repeated per reach, noted
+    once); or the comment of the keys just above it (no blank line between:
+    one commented group). An entry of an array of tables after the first, with
+    no comment of its own, points to the first entry's note."""
+    rows, table, table_note, block, counts, group, first_notes = [], "", "", [], {}, "", {}
+    repeated: dict[tuple[str, str, str], tuple[str, str]] = {}  # (array, key, value): (where noted, note)
     lines = path.read_text(encoding="utf-8").splitlines()
     for i, raw in enumerate(lines, 1):
         line = raw.strip()
@@ -76,15 +85,20 @@ def toml_rows(path: Path) -> list[dict]:
             block.append(line.lstrip("#").strip())
             continue
         if not line:
-            block = []
+            block, group = [], ""
             continue
         m = re.match(r"^\[\[([^\]]+)\]\]", line) or re.match(r"^\[([^\]]+)\]", line)
         if m:
             name = m.group(1).strip()
+            table_note = " ".join(block)
             if line.startswith("[["):
                 counts[name] = counts.get(name, 0) + 1
+                if counts[name] == 1:
+                    first_notes[name] = table_note
+                elif not table_note and first_notes.get(name):
+                    table_note = f"See the note on `{name}[1]`."
                 name = f"{name}[{counts[name]}]"
-            table, table_note, block = name, " ".join(block), []
+            table, block, group = name, [], ""
             continue
         m = re.match(r"^([A-Za-z0-9_\-\"]+)\s*=\s*(.*)$", line)
         if not m:
@@ -93,11 +107,19 @@ def toml_rows(path: Path) -> list[dict]:
         key, rest = m.group(1).strip('"'), m.group(2)
         value, _, inline = rest.partition(" #")
         inline_table = value.strip().startswith("{")
+        own = " ".join(block + ([inline.strip()] if inline.strip() else []))
+        if block:
+            group = " ".join(block)
         if key in NOT_PARAMETERS and not inline_table:
             block = []
             continue
+        array = re.sub(r"\[\d+\]$", "", table)
         for sub, n in numbers(value):
-            note = " ".join(block + ([inline.strip()] if inline.strip() else []))
+            k = key + (("." + sub) if sub else "")
+            if own and array != table:
+                repeated.setdefault((array, k, n), (table, own))
+            seen = repeated.get((array, k, n)) if array != table else None
+            note = own or (f"As in `{seen[0]}`: {seen[1]}" if seen and seen[0] != table else group)
             rows.append({"file": path.relative_to(ROOT).as_posix(), "line": i, "table": table, "table_note": table_note,
                          "key": key + (("." + sub) if sub else ""), "value": n, "note": note})
         block = []
@@ -116,8 +138,9 @@ def code_rows(path: Path) -> list[dict]:
         while j >= 0 and lines[j].strip().startswith("#"):
             above.insert(0, lines[j].strip().lstrip("#").strip())
             j -= 1
+        note = " ".join(above[-4:] + ([m.group(3)] if m.group(3) else [])) or UNITS.get(m.group(1), "")
         rows.append({"file": path.relative_to(ROOT).as_posix(), "line": i, "table": "(module constant)",
-                     "key": m.group(1), "value": m.group(2).strip(), "note": " ".join(above[-4:] + ([m.group(3)] if m.group(3) else []))})
+                     "key": m.group(1), "value": m.group(2).strip(), "note": note})
     return rows
 
 

@@ -256,7 +256,7 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
     return out, units
 
 
-RESIDUAL_DAYS = 7
+RESIDUAL_DAYS = 7  # days of hourly tide residual summarised (FDMR's choice)
 SLOW_DAYS = 30  # the residual's slow part: the ocean's state, river set-up and the datum's age
 
 

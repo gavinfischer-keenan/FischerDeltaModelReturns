@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from .channel import ChannelShape, between
 
-WAVE_TO_WATER = 1.5
+WAVE_TO_WATER = 1.5  # a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, ref:chow1959); refitted nightly per segment
 
 
 @dataclass(frozen=True)

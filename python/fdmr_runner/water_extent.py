@@ -25,7 +25,7 @@ from pathlib import Path
 
 import numpy as np
 
-PIXEL_KM2 = 0.03 * 0.03
+PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1
 
 
 def _grid(box: tuple[float, float, float, float], zone: int, dx: float):

@@ -8,31 +8,37 @@ Every number the model is set with: in each region's settings and among the mode
 
 | Where | Setting | Value | Note and source |
 | --- | --- | --- | --- |
-| [68](../regions/rhine-meuse/region.toml#L68) | `reaches[1]`<br>`certainty.solid_days` | `1` |  |
-| [68](../regions/rhine-meuse/region.toml#L68) | `reaches[1]`<br>`certainty.floor` | `0.2` |  |
-| [82](../regions/rhine-meuse/region.toml#L82) | `reaches[2]`<br>`certainty.solid_days` | `1` |  |
-| [82](../regions/rhine-meuse/region.toml#L82) | `reaches[2]`<br>`certainty.floor` | `0.2` |  |
-| [91](../regions/rhine-meuse/region.toml#L91) | `reaches[3]`<br>`certainty.solid_days` | `1` |  |
-| [91](../regions/rhine-meuse/region.toml#L91) | `reaches[3]`<br>`certainty.floor` | `0.2` |  |
+| [68](../regions/rhine-meuse/region.toml#L68) | `reaches[1]`<br>`certainty.solid_days` | `1` | certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [68](../regions/rhine-meuse/region.toml#L68) | `reaches[1]`<br>`certainty.floor` | `0.2` | certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [82](../regions/rhine-meuse/region.toml#L82) | `reaches[2]`<br>`certainty.solid_days` | `1` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [82](../regions/rhine-meuse/region.toml#L82) | `reaches[2]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [91](../regions/rhine-meuse/region.toml#L91) | `reaches[3]`<br>`certainty.solid_days` | `1` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [91](../regions/rhine-meuse/region.toml#L91) | `reaches[3]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
 | | **`gauges[1]`** | | Discharge gauges (Rijkswaterstaat; ETRS89 positions from its catalogue), each with its channel: width (Visser 2000, [visser2000](references.md#visser2000), table 2.1 and pp. 42-49), bed slope (Visser 2000, citing Rijkswaterstaat 2000) and main-channel Chezy C, m^0.5/s (Huyskens and Barneveld 1994, tables 3.6, 3.13, 3.22: the middle of each branch's range from low flow to bankfull). |
 | [114](../regions/rhine-meuse/region.toml#L114) | `gauges[1]`<br>`channel.width_m` | `260` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
 | [114](../regions/rhine-meuse/region.toml#L114) | `gauges[1]`<br>`channel.slope` | `1.1e-4` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
 | [114](../regions/rhine-meuse/region.toml#L114) | `gauges[1]`<br>`channel.chezy` | `45` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
-| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.width_m` | `260` |  |
-| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.slope` | `1.1e-4` |  |
-| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.chezy` | `45` |  |
+| | **`gauges[2]`** | | See the note on `gauges[1]`. |
+| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.width_m` | `260` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.slope` | `1.1e-4` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.chezy` | `45` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| | **`gauges[3]`** | | See the note on `gauges[1]`. |
 | [135](../regions/rhine-meuse/region.toml#L135) | `gauges[3]`<br>`channel.width_m` | `130` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
 | [135](../regions/rhine-meuse/region.toml#L135) | `gauges[3]`<br>`channel.slope` | `1.26e-4` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
 | [135](../regions/rhine-meuse/region.toml#L135) | `gauges[3]`<br>`channel.chezy` | `42` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
-| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.width_m` | `130` |  |
-| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.slope` | `1.26e-4` |  |
-| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.chezy` | `42` |  |
+| | **`gauges[4]`** | | See the note on `gauges[1]`. |
+| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.width_m` | `130` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.slope` | `1.26e-4` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.chezy` | `42` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| | **`gauges[5]`** | | See the note on `gauges[1]`. |
 | [157](../regions/rhine-meuse/region.toml#L157) | `gauges[5]`<br>`channel.width_m` | `130` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
 | [157](../regions/rhine-meuse/region.toml#L157) | `gauges[5]`<br>`channel.slope` | `1.26e-4` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
 | [157](../regions/rhine-meuse/region.toml#L157) | `gauges[5]`<br>`channel.chezy` | `42` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
+| | **`gauges[6]`** | | See the note on `gauges[1]`. |
 | [167](../regions/rhine-meuse/region.toml#L167) | `gauges[6]`<br>`channel.width_m` | `80` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
 | [167](../regions/rhine-meuse/region.toml#L167) | `gauges[6]`<br>`channel.slope` | `1.0e-4` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
 | [167](../regions/rhine-meuse/region.toml#L167) | `gauges[6]`<br>`channel.chezy` | `41` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
+| | **`gauges[7]`** | | See the note on `gauges[1]`. |
 | [177](../regions/rhine-meuse/region.toml#L177) | `gauges[7]`<br>`channel.width_m` | `110` | Olst: 110 m (Visser p. 42) |
 | [177](../regions/rhine-meuse/region.toml#L177) | `gauges[7]`<br>`channel.slope` | `1.0e-4` | Olst: 110 m (Visser p. 42) |
 | [177](../regions/rhine-meuse/region.toml#L177) | `gauges[7]`<br>`channel.chezy` | `41` | Olst: 110 m (Visser p. 42) |
@@ -53,8 +59,8 @@ Every number the model is set with: in each region's settings and among the mode
 | [48](../regions/sf-bay-delta/bay.toml#L48) | `mesh`<br>`east_of` | `-121.79` |  |
 | [49](../regions/sf-bay-delta/bay.toml#L49) | `mesh`<br>`west_of` | `-122.75` |  |
 | [54](../regions/sf-bay-delta/bay.toml#L54) | `mesh`<br>`k` | `2.0` | Coarse node spacing: k times the size of NOAA's own triangles there, within these limits (m). 2, 80 and 2500 give 5,317 nodes and 9,265 triangles over 99% of NOAA's water area, with Carquinez Strait several triangles wide (checked 25 Nov 2026); NOAA's mesh has 54,120 nodes. |
-| [55](../regions/sf-bay-delta/bay.toml#L55) | `mesh`<br>`min_m` | `80.0` |  |
-| [56](../regions/sf-bay-delta/bay.toml#L56) | `mesh`<br>`max_m` | `2500.0` |  |
+| [55](../regions/sf-bay-delta/bay.toml#L55) | `mesh`<br>`min_m` | `80.0` | Coarse node spacing: k times the size of NOAA's own triangles there, within these limits (m). 2, 80 and 2500 give 5,317 nodes and 9,265 triangles over 99% of NOAA's water area, with Carquinez Strait several triangles wide (checked 25 Nov 2026); NOAA's mesh has 54,120 nodes. |
+| [56](../regions/sf-bay-delta/bay.toml#L56) | `mesh`<br>`max_m` | `2500.0` | Coarse node spacing: k times the size of NOAA's own triangles there, within these limits (m). 2, 80 and 2500 give 5,317 nodes and 9,265 triangles over 99% of NOAA's water area, with Carquinez Strait several triangles wide (checked 25 Nov 2026); NOAA's mesh has 54,120 nodes. |
 | | **`mesh.open_sea`** | | Edges where water leaves the Bay for the ocean: west of the Golden Gate and deeper than the coast there. |
 | [61](../regions/sf-bay-delta/bay.toml#L61) | `mesh.open_sea`<br>`west_of` | `-122.52` |  |
 | [62](../regions/sf-bay-delta/bay.toml#L62) | `mesh.open_sea`<br>`deeper_than_m` | `15.0` |  |
@@ -70,21 +76,26 @@ Every number the model is set with: in each region's settings and among the mode
 | Where | Setting | Value | Note and source |
 | --- | --- | --- | --- |
 | | **`canal.section[1]`** | | DWR Bulletin 132-16 (2017, [dwr2017b132](references.md#dwr2017b132)), Table 1-5: 66.7 miles (107.3 km) from Clifton Court Forebay to O'Neill Forebay. The line built is 107.5 km. |
-| [42](../regions/sf-bay-delta/canals.toml#L42) | `canal.section[1]`<br>`bottom_ft` | `70` |  |
-| [43](../regions/sf-bay-delta/canals.toml#L43) | `canal.section[1]`<br>`depth_ft` | `32.5` |  |
-| [44](../regions/sf-bay-delta/canals.toml#L44) | `canal.section[1]`<br>`side` | `3.0` |  |
+| [42](../regions/sf-bay-delta/canals.toml#L42) | `canal.section[1]`<br>`bottom_ft` | `70` | The intake channel, 2.7 miles to Banks Pumping Plant: unlined, 30-35 ft deep, bottom 80 narrowing to 60 ft, side slopes 3:1 (DWR Bulletin 200, Vol. II, 1974, [dwr1974b200v2](references.md#dwr1974b200v2), p. 117 and Table 7). Middle values taken. |
+| [43](../regions/sf-bay-delta/canals.toml#L43) | `canal.section[1]`<br>`depth_ft` | `32.5` | The intake channel, 2.7 miles to Banks Pumping Plant: unlined, 30-35 ft deep, bottom 80 narrowing to 60 ft, side slopes 3:1 (DWR Bulletin 200, Vol. II, 1974, [dwr1974b200v2](references.md#dwr1974b200v2), p. 117 and Table 7). Middle values taken. |
+| [44](../regions/sf-bay-delta/canals.toml#L44) | `canal.section[1]`<br>`side` | `3.0` | The intake channel, 2.7 miles to Banks Pumping Plant: unlined, 30-35 ft deep, bottom 80 narrowing to 60 ft, side slopes 3:1 (DWR Bulletin 200, Vol. II, 1974, [dwr1974b200v2](references.md#dwr1974b200v2), p. 117 and Table 7). Middle values taken. |
+| | **`canal.section[2]`** | | See the note on `canal.section[1]`. |
 | [54](../regions/sf-bay-delta/canals.toml#L54) | `canal.section[2]`<br>`bottom_ft` | `40` | Banks to O'Neill Forebay: concrete-lined, bottom 40 ft, water 30 ft deep, side slopes 1.5:1, "constant throughout the North San Joaquin Division" (Bulletin 200, Vol. II, p. 132, [dwr1974b200v2](references.md#dwr1974b200v2)). Twelve radial-gate checks keep each pool "checked full", within a foot of design depth (DWR, California Aqueduct Subsidence Study, 2017, p. 5-4, [dwr2017cass](references.md#dwr2017cass)), so speed is flow over this section: 4 ft/s at the 10,000 cfs design flow, as the Bulletin says. Bethany Reservoir, 1.2 miles past Banks, is taken at this section; the South Bay Aqueduct's take there (up to 300 cfs) is not published live and is not taken off. |
-| [55](../regions/sf-bay-delta/canals.toml#L55) | `canal.section[2]`<br>`depth_ft` | `30` |  |
-| [56](../regions/sf-bay-delta/canals.toml#L56) | `canal.section[2]`<br>`side` | `1.5` |  |
+| [55](../regions/sf-bay-delta/canals.toml#L55) | `canal.section[2]`<br>`depth_ft` | `30` | Banks to O'Neill Forebay: concrete-lined, bottom 40 ft, water 30 ft deep, side slopes 1.5:1, "constant throughout the North San Joaquin Division" (Bulletin 200, Vol. II, p. 132, [dwr1974b200v2](references.md#dwr1974b200v2)). Twelve radial-gate checks keep each pool "checked full", within a foot of design depth (DWR, California Aqueduct Subsidence Study, 2017, p. 5-4, [dwr2017cass](references.md#dwr2017cass)), so speed is flow over this section: 4 ft/s at the 10,000 cfs design flow, as the Bulletin says. Bethany Reservoir, 1.2 miles past Banks, is taken at this section; the South Bay Aqueduct's take there (up to 300 cfs) is not published live and is not taken off. |
+| [56](../regions/sf-bay-delta/canals.toml#L56) | `canal.section[2]`<br>`side` | `1.5` | Banks to O'Neill Forebay: concrete-lined, bottom 40 ft, water 30 ft deep, side slopes 1.5:1, "constant throughout the North San Joaquin Division" (Bulletin 200, Vol. II, p. 132, [dwr1974b200v2](references.md#dwr1974b200v2)). Twelve radial-gate checks keep each pool "checked full", within a foot of design depth (DWR, California Aqueduct Subsidence Study, 2017, p. 5-4, [dwr2017cass](references.md#dwr2017cass)), so speed is flow over this section: 4 ft/s at the 10,000 cfs design flow, as the Bulletin says. Bethany Reservoir, 1.2 miles past Banks, is taken at this section; the South Bay Aqueduct's take there (up to 300 cfs) is not published live and is not taken off. |
+| | **`canal.section[3]`** | | See the note on `canal.section[1]`. |
 | [81](../regions/sf-bay-delta/canals.toml#L81) | `canal.section[3]`<br>`bottom_ft` | `48` | Concrete-lined, bottom 48 ft, side slopes 1.5:1 (same inventory, Table 2). Its water depth is not published. 17 ft is the depth at which Manning's equation, with n = 0.014, inside Chow's range for concrete linings (Chow 1959, Open-Channel Hydraulics, Table 5-6, [chow1959](references.md#chow1959)), and the canal's grade of 3 inches per mile (JRP, DMC Subsidence Correction historic resources report, 2022, pp. 26-27), carries the 4,600 cfs design flow at the head; it sits just under the lining's 19.58 ft less its 2.2-2.4 ft freeboard. Derived, not published. |
-| [82](../regions/sf-bay-delta/canals.toml#L82) | `canal.section[3]`<br>`depth_ft` | `17` |  |
-| [83](../regions/sf-bay-delta/canals.toml#L83) | `canal.section[3]`<br>`side` | `1.5` |  |
-| [109](../regions/sf-bay-delta/canals.toml#L109) | `canal.section[4]`<br>`diameter_in` | `120` |  |
+| [82](../regions/sf-bay-delta/canals.toml#L82) | `canal.section[3]`<br>`depth_ft` | `17` | Concrete-lined, bottom 48 ft, side slopes 1.5:1 (same inventory, Table 2). Its water depth is not published. 17 ft is the depth at which Manning's equation, with n = 0.014, inside Chow's range for concrete linings (Chow 1959, Open-Channel Hydraulics, Table 5-6, [chow1959](references.md#chow1959)), and the canal's grade of 3 inches per mile (JRP, DMC Subsidence Correction historic resources report, 2022, pp. 26-27), carries the 4,600 cfs design flow at the head; it sits just under the lining's 19.58 ft less its 2.2-2.4 ft freeboard. Derived, not published. |
+| [83](../regions/sf-bay-delta/canals.toml#L83) | `canal.section[3]`<br>`side` | `1.5` | Concrete-lined, bottom 48 ft, side slopes 1.5:1 (same inventory, Table 2). Its water depth is not published. 17 ft is the depth at which Manning's equation, with n = 0.014, inside Chow's range for concrete linings (Chow 1959, Open-Channel Hydraulics, Table 5-6, [chow1959](references.md#chow1959)), and the canal's grade of 3 inches per mile (JRP, DMC Subsidence Correction historic resources report, 2022, pp. 26-27), carries the 4,600 cfs design flow at the head; it sits just under the lining's 19.58 ft less its 2.2-2.4 ft freeboard. Derived, not published. |
+| | **`canal.section[4]`** | | See the note on `canal.section[1]`. |
+| [109](../regions/sf-bay-delta/canals.toml#L109) | `canal.section[4]`<br>`diameter_in` | `120` | To Pumping Plant No. 1: Rock Slough's old open canal replaced by a pipe of 10 ft inside diameter (EA-1589, p. 3); the last 200 ft were due to close in autumn 2026 (Central Valley Water Board, R5-2022-0006-009, 2024, [cvrwqcb_r5_2022_0006_009](references.md#cvrwqcb_r5_2022_0006_009)). The stretch of Rock Slough from the model's node to the fish screen is taken at the pipe's section too. |
+| | **`canal.section[5]`** | | See the note on `canal.section[1]`. |
 | [114](../regions/sf-bay-delta/canals.toml#L114) | `canal.section[5]`<br>`bottom_ft` | `24` | Past the plant: USBR's typical section for the canal, bottom 24 ft, side slopes 3:1, water 6.5 ft deep (Reclamation Dataweb, "CVP - Delta Division Engineering Data", archived 2009, [usbr_ccc_projectdata](references.md#usbr_ccc_projectdata)). The only published section. |
-| [115](../regions/sf-bay-delta/canals.toml#L115) | `canal.section[5]`<br>`depth_ft` | `6.5` |  |
-| [116](../regions/sf-bay-delta/canals.toml#L116) | `canal.section[5]`<br>`side` | `3.0` |  |
+| [115](../regions/sf-bay-delta/canals.toml#L115) | `canal.section[5]`<br>`depth_ft` | `6.5` | Past the plant: USBR's typical section for the canal, bottom 24 ft, side slopes 3:1, water 6.5 ft deep (Reclamation Dataweb, "CVP - Delta Division Engineering Data", archived 2009, [usbr_ccc_projectdata](references.md#usbr_ccc_projectdata)). The only published section. |
+| [116](../regions/sf-bay-delta/canals.toml#L116) | `canal.section[5]`<br>`side` | `3.0` | Past the plant: USBR's typical section for the canal, bottom 24 ft, side slopes 3:1, water 6.5 ft deep (Reclamation Dataweb, "CVP - Delta Division Engineering Data", archived 2009, [usbr_ccc_projectdata](references.md#usbr_ccc_projectdata)). The only published section. |
 | | **`canal.section[6]`** | | 27.6 miles of pipeline (DWR Bulletin 132-16, Table 1-5, [dwr2017b132](references.md#dwr2017b132)); the line built is 44.4 km. |
-| [133](../regions/sf-bay-delta/canals.toml#L133) | `canal.section[6]`<br>`diameter_in` | `[72, 54]` |  |
+| [133](../regions/sf-bay-delta/canals.toml#L133) | `canal.section[6]`<br>`diameter_in` | `[72, 54]` | Barker Slough to Cordelia Forebay: buried pipe, "72 inches at Barker Slough to 54 inches at Cordelia Forebay" (Solano County Water Agency, North Bay Aqueduct, [scwa_nba](references.md#scwa_nba)). Full, so speed is flow over its area. |
+| | **`canal.section[7]`** | | See the note on `canal.section[1]`. |
 | [137](../regions/sf-bay-delta/canals.toml#L137) | `canal.section[7]`<br>`diameter_in` | `36` | Cordelia to Napa: "a buried 4.2-mile, 36-inch, pretensioned-concrete cylinder pipe" (DWR Bulletin 200, Vol. II, p. 24, [dwr1974b200v2](references.md#dwr1974b200v2)). |
 
 ### dsm2.toml
@@ -96,11 +107,12 @@ Every number the model is set with: in each region's settings and among the mode
 | [55](../regions/sf-bay-delta/dsm2.toml#L55) | `live[1]`<br>`average_h` | `25` |  |
 | | **`live_gate[1]`** | | Live gate positions, inferred from measured flow through the gate. The Delta Cross Channel's gates open and close on their own schedule; DWR's 2024 schedule, checked 25 Nov 2026, was open on days the gauge showed them shut, and shut on days it showed them open. |
 | [162](../regions/sf-bay-delta/dsm2.toml#L162) | `live_gate[1]`<br>`open_above` | `30.0` | Open from the first to the last of a run of hourly flows reaching 30 m3/s either way, each within 8 hours of the last (fdmr_runner.delta.gate_states). Checked 25 Nov 2026 on July to November 2026: shut, the gates leak up to 16 m3/s; open, they carry 60 to 120 m3/s a day, swinging to 300 and through zero at slack tide. This finds 13 changes, the operations' own (weekend closures 2-6, 9-13 and from 23 November among them); the rule before it, 5 m3/s two hours running, found 80, opening the gates in the model for hours at a time while they were shut. |
-| [163](../regions/sf-bay-delta/dsm2.toml#L163) | `live_gate[1]`<br>`max_gap_h` | `8` |  |
+| [163](../regions/sf-bay-delta/dsm2.toml#L163) | `live_gate[1]`<br>`max_gap_h` | `8` | Open from the first to the last of a run of hourly flows reaching 30 m3/s either way, each within 8 hours of the last (fdmr_runner.delta.gate_states). Checked 25 Nov 2026 on July to November 2026: shut, the gates leak up to 16 m3/s; open, they carry 60 to 120 m3/s a day, swinging to 300 and through zero at slack tide. This finds 13 changes, the operations' own (weekend closures 2-6, 9-13 and from 23 November among them); the rule before it, 5 m3/s two hours running, found 80, opening the gates in the model for hours at a time while they were shut. |
 | [164](../regions/sf-bay-delta/dsm2.toml#L164) | `live_gate[1]`<br>`open` | `2.0` | DWR's value for both gates open (its rule halves it per direction) |
-| [165](../regions/sf-bay-delta/dsm2.toml#L165) | `live_gate[1]`<br>`closed` | `0.0` |  |
+| [165](../regions/sf-bay-delta/dsm2.toml#L165) | `live_gate[1]`<br>`closed` | `0.0` | Open from the first to the last of a run of hourly flows reaching 30 m3/s either way, each within 8 hours of the last (fdmr_runner.delta.gate_states). Checked 25 Nov 2026 on July to November 2026: shut, the gates leak up to 16 m3/s; open, they carry 60 to 120 m3/s a day, swinging to 300 and through zero at slack tide. This finds 13 changes, the operations' own (weekend closures 2-6, 9-13 and from 23 November among them); the rule before it, 5 m3/s two hours running, found 80, opening the gates in the model for hours at a time while they were shut. |
 | | **`fixed[1]`** | | Settings held fixed for the whole run. Clifton Court Forebay's gates open and close with the tide on a schedule set against that year's tides and pumping. DWR's 2024 schedule, put against 2026's pumping, let the forebay drain dry twice (25 Nov 2026). Held open instead, at their most common open setting in 2024 (all 5 gates, height 7.02 ft), the forebay refills as the pumps draw it down. It exchanges more water with Old River on each tide than the real schedule would. |
 | [239](../regions/sf-bay-delta/dsm2.toml#L239) | `fixed[1]`<br>`value` | `5.0` |  |
+| | **`fixed[2]`** | | See the note on `fixed[1]`. |
 | [243](../regions/sf-bay-delta/dsm2.toml#L243) | `fixed[2]`<br>`value` | `7.02` |  |
 | | **`temperature.scalars`** | | QUAL's heat-budget constants: the Delta's place (degrees, west positive, and the Pacific time zone's meridian), elevation (ft), and QUAL2E's textbook values for dust in the air and evaporation (ft/hr/inHg, and per mph of wind; [brown1987qual2e](references.md#brown1987qual2e)). |
 | [533](../regions/sf-bay-delta/dsm2.toml#L533) | `temperature.scalars`<br>`long_std_merid` | `120.0` |  |
@@ -118,17 +130,22 @@ Every number the model is set with: in each region's settings and among the mode
 | | **`sediment.water[1]`** | | Where each series comes from. Turbidity becomes SSC through Achete et al.'s relation for that part of the Delta (section 4.5), log10(SSC) = a log10(T) + b: north a = 0.85, b = 0.35; southern a = 1.16, b = 0.27. The relations are USGS's (personal communication to the authors, 2014) and the paper does not say whether its turbidity was FNU or NTU; each gauge's own unit is named below, and both are read as the paper's turbidity. Of USGS's Delta gauges only Freeport reports turbidity live (checked 26 Nov 2026: its "BGC PROJECT" sensor); the rest come from CDEC. The sea end uses USGS's own continuous SSC at Benicia Bridge, 4 km up from DSM2's Martinez boundary: the mean of its sensors 71 ft and 19 ft above the bed. |
 | [726](../regions/sf-bay-delta/dsm2.toml#L726) | `sediment.water[1]`<br>`relation.a` | `0.85` |  |
 | [726](../regions/sf-bay-delta/dsm2.toml#L726) | `sediment.water[1]`<br>`relation.b` | `0.35` |  |
+| | **`sediment.water[2]`** | | See the note on `sediment.water[1]`. |
 | [735](../regions/sf-bay-delta/dsm2.toml#L735) | `sediment.water[2]`<br>`relation.a` | `1.16` |  |
 | [735](../regions/sf-bay-delta/dsm2.toml#L735) | `sediment.water[2]`<br>`relation.b` | `0.27` |  |
 | | **`sediment_checks[1]`** | | Measured turbidity to check GTM's SSC against, through the same relations for each station's part of the Delta (Achete et al. 2015, section 4.5: central/western a = 0.91, b = 0.29; central/eastern a = 0.72, b = 0.26; eastern a = 0.914, b = 0.29). Which part each station is in is FDMR's reading of the paper's areas, not the paper's own list. Rio Vista and Mallard Island are two of the paper's own three check stations. |
 | [761](../regions/sf-bay-delta/dsm2.toml#L761) | `sediment_checks[1]`<br>`relation.a` | `0.85` |  |
 | [761](../regions/sf-bay-delta/dsm2.toml#L761) | `sediment_checks[1]`<br>`relation.b` | `0.35` |  |
+| | **`sediment_checks[2]`** | | See the note on `sediment_checks[1]`. |
 | [772](../regions/sf-bay-delta/dsm2.toml#L772) | `sediment_checks[2]`<br>`relation.a` | `0.91` |  |
 | [772](../regions/sf-bay-delta/dsm2.toml#L772) | `sediment_checks[2]`<br>`relation.b` | `0.29` |  |
+| | **`sediment_checks[3]`** | | See the note on `sediment_checks[1]`. |
 | [783](../regions/sf-bay-delta/dsm2.toml#L783) | `sediment_checks[3]`<br>`relation.a` | `0.72` |  |
 | [783](../regions/sf-bay-delta/dsm2.toml#L783) | `sediment_checks[3]`<br>`relation.b` | `0.26` |  |
+| | **`sediment_checks[4]`** | | See the note on `sediment_checks[1]`. |
 | [794](../regions/sf-bay-delta/dsm2.toml#L794) | `sediment_checks[4]`<br>`relation.a` | `1.16` |  |
 | [794](../regions/sf-bay-delta/dsm2.toml#L794) | `sediment_checks[4]`<br>`relation.b` | `0.27` |  |
+| | **`sediment_checks[5]`** | | See the note on `sediment_checks[1]`. |
 | [805](../regions/sf-bay-delta/dsm2.toml#L805) | `sediment_checks[5]`<br>`relation.a` | `0.914` |  |
 | [805](../regions/sf-bay-delta/dsm2.toml#L805) | `sediment_checks[5]`<br>`relation.b` | `0.29` |  |
 
@@ -137,13 +154,13 @@ Every number the model is set with: in each region's settings and among the mode
 | Where | Setting | Value | Note and source |
 | --- | --- | --- | --- |
 | [45](../regions/sf-bay-delta/fishing.toml#L45) | `white_sturgeon`<br>`monthly_catch_percent` | `[11.0, 13.5, 15.3, 10.7, 5.2, 2.9, 1.8, 1.4, 2.7, 8.4, 13.7, 13.0]` | Season: the share of the Report Card's white sturgeon catch in each month, 2007-2023 mean (Hause et al. 2024, [hause2024](references.md#hause2024), figure 12, read from the figure to about 0.3 percentage points), divided by its largest (March). Not corrected for effort, which CDFW does not publish (p. 15). Months the season is closed score 0. |
-| [46](../regions/sf-bay-delta/fishing.toml#L46) | `white_sturgeon`<br>`closed_months` | `[7, 8, 9]` |  |
+| [46](../regions/sf-bay-delta/fishing.toml#L46) | `white_sturgeon`<br>`closed_months` | `[7, 8, 9]` | Season: the share of the Report Card's white sturgeon catch in each month, 2007-2023 mean (Hause et al. 2024, [hause2024](references.md#hause2024), figure 12, read from the figure to about 0.3 percentage points), divided by its largest (March). Not corrected for effort, which CDFW does not publish (p. 15). Months the season is closed score 0. |
 | [61](../regions/sf-bay-delta/fishing.toml#L61) | `white_sturgeon`<br>`migration_months` | `[11, 12, 1, 2, 3, 4, 5]` | fresh water scores higher: the spawning run (Heublein et al. 2017, [heublein2017](references.md#heublein2017), pp. 12, 26) |
 | [65](../regions/sf-bay-delta/fishing.toml#L65) | `white_sturgeon`<br>`caught_temperature_c` | `[9.0, 24.0]` | Temperature: catches were made across 9-24 degC (Patton et al. 2020, results p. 5). Outside it the model does not score lower (no evidence of avoidance); the place is flagged "outside the temperatures fish were caught in". |
-| [73](../regions/sf-bay-delta/fishing.toml#L73) | `white_sturgeon`<br>`migration_rise_m3s` | `40.0` |  |
+| [73](../regions/sf-bay-delta/fishing.toml#L73) | `white_sturgeon`<br>`migration_rise_m3s` | `40.0` | The spawning run: upstream movement "often stimulated by small increases in river flow" (Schaffter 1997, [schaffter1997](references.md#schaffter1997)), and spawning followed increases of about 40 m3/s (Heublein et al. 2017, p. 28). A day whose mean flow at a river reach's end rises this much over the day before, in the migration months, is flagged. Weak evidence: the size and the day-over-day timescale are FDMR's reading; not calibrated. |
 | [83](../regions/sf-bay-delta/fishing.toml#L83) | `green_sturgeon`<br>`months` | `[2, 3, 4, 5, 6, 7, 8, 9, 10]` | In the estuary from spring through autumn (Kelly et al. 2007, [kelly2007](references.md#kelly2007)); in the lower estuary more often February-March and June-September, present all months (Chapman et al. 2019, [chapman2019](references.md#chapman2019)). FDMR flags April-October, and February-March. |
 | [88](../regions/sf-bay-delta/fishing.toml#L88) | `green_sturgeon`<br>`temperature_c` | `[11.9, 21.9]` | The ranges they were tracked in (Kelly et al. 2007; Moser and Lindley 2007, as compiled by Heublein et al. 2017, p. 21): 11.9-21.9 degC, 8.8-32.1 ppt. Ranges observed, not preferences: Kelly et al. found "no apparent preferences". |
-| [89](../regions/sf-bay-delta/fishing.toml#L89) | `green_sturgeon`<br>`salinity_psu` | `[8.8, 32.1]` |  |
+| [89](../regions/sf-bay-delta/fishing.toml#L89) | `green_sturgeon`<br>`salinity_psu` | `[8.8, 32.1]` | The ranges they were tracked in (Kelly et al. 2007; Moser and Lindley 2007, as compiled by Heublein et al. 2017, p. 21): 11.9-21.9 degC, 8.8-32.1 ppt. Ranges observed, not preferences: Kelly et al. found "no apparent preferences". |
 
 ### overlays.toml
 
@@ -165,37 +182,37 @@ Every number the model is set with: in each region's settings and among the mode
 
 | Where | Setting | Value | Note and source |
 | --- | --- | --- | --- |
-| [15](../regions/sf-bay-delta/region.toml#L15) | `reaches[1]`<br>`certainty.solid_days` | `5` |  |
-| [15](../regions/sf-bay-delta/region.toml#L15) | `reaches[1]`<br>`certainty.floor` | `0.2` |  |
-| [22](../regions/sf-bay-delta/region.toml#L22) | `reaches[2]`<br>`certainty.solid_days` | `5` |  |
-| [22](../regions/sf-bay-delta/region.toml#L22) | `reaches[2]`<br>`certainty.floor` | `0.2` |  |
-| [29](../regions/sf-bay-delta/region.toml#L29) | `reaches[3]`<br>`certainty.solid_days` | `2` |  |
-| [29](../regions/sf-bay-delta/region.toml#L29) | `reaches[3]`<br>`certainty.floor` | `0.2` |  |
-| [35](../regions/sf-bay-delta/region.toml#L35) | `reaches[4]`<br>`certainty.solid_days` | `5` |  |
-| [35](../regions/sf-bay-delta/region.toml#L35) | `reaches[4]`<br>`certainty.floor` | `0.2` |  |
+| [15](../regions/sf-bay-delta/region.toml#L15) | `reaches[1]`<br>`certainty.solid_days` | `5` | certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [15](../regions/sf-bay-delta/region.toml#L15) | `reaches[1]`<br>`certainty.floor` | `0.2` | certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [22](../regions/sf-bay-delta/region.toml#L22) | `reaches[2]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [22](../regions/sf-bay-delta/region.toml#L22) | `reaches[2]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [29](../regions/sf-bay-delta/region.toml#L29) | `reaches[3]`<br>`certainty.solid_days` | `2` | certainty 1 to the end of NOAA's 48-hour SFBOFS forecast (bay.toml forecast_hours), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [29](../regions/sf-bay-delta/region.toml#L29) | `reaches[3]`<br>`certainty.floor` | `0.2` | certainty 1 to the end of NOAA's 48-hour SFBOFS forecast (bay.toml forecast_hours), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [35](../regions/sf-bay-delta/region.toml#L35) | `reaches[4]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [35](../regions/sf-bay-delta/region.toml#L35) | `reaches[4]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
 | | **`reaches[5]`** | | The Delta's other rivers, from their dams (issue #4; gauges below). |
-| [45](../regions/sf-bay-delta/region.toml#L45) | `reaches[5]`<br>`certainty.solid_days` | `5` |  |
-| [45](../regions/sf-bay-delta/region.toml#L45) | `reaches[5]`<br>`certainty.floor` | `0.2` |  |
-| [56](../regions/sf-bay-delta/region.toml#L56) | `reaches[6]`<br>`certainty.solid_days` | `5` |  |
-| [56](../regions/sf-bay-delta/region.toml#L56) | `reaches[6]`<br>`certainty.floor` | `0.2` |  |
-| [63](../regions/sf-bay-delta/region.toml#L63) | `reaches[7]`<br>`certainty.solid_days` | `5` |  |
-| [63](../regions/sf-bay-delta/region.toml#L63) | `reaches[7]`<br>`certainty.floor` | `0.2` |  |
-| [70](../regions/sf-bay-delta/region.toml#L70) | `reaches[8]`<br>`certainty.solid_days` | `5` |  |
-| [70](../regions/sf-bay-delta/region.toml#L70) | `reaches[8]`<br>`certainty.floor` | `0.2` |  |
-| [77](../regions/sf-bay-delta/region.toml#L77) | `reaches[9]`<br>`certainty.solid_days` | `5` |  |
-| [77](../regions/sf-bay-delta/region.toml#L77) | `reaches[9]`<br>`certainty.floor` | `0.2` |  |
-| [85](../regions/sf-bay-delta/region.toml#L85) | `reaches[10]`<br>`certainty.solid_days` | `5` |  |
-| [85](../regions/sf-bay-delta/region.toml#L85) | `reaches[10]`<br>`certainty.floor` | `0.2` |  |
-| [93](../regions/sf-bay-delta/region.toml#L93) | `reaches[11]`<br>`certainty.solid_days` | `5` |  |
-| [93](../regions/sf-bay-delta/region.toml#L93) | `reaches[11]`<br>`certainty.floor` | `0.2` |  |
-| [106](../regions/sf-bay-delta/region.toml#L106) | `reaches[12]`<br>`certainty.solid_days` | `5` |  |
-| [106](../regions/sf-bay-delta/region.toml#L106) | `reaches[12]`<br>`certainty.floor` | `0.2` |  |
-| [114](../regions/sf-bay-delta/region.toml#L114) | `reaches[13]`<br>`certainty.solid_days` | `5` |  |
-| [114](../regions/sf-bay-delta/region.toml#L114) | `reaches[13]`<br>`certainty.floor` | `0.2` |  |
-| [122](../regions/sf-bay-delta/region.toml#L122) | `reaches[14]`<br>`certainty.solid_days` | `5` |  |
-| [122](../regions/sf-bay-delta/region.toml#L122) | `reaches[14]`<br>`certainty.floor` | `0.2` |  |
-| [130](../regions/sf-bay-delta/region.toml#L130) | `reaches[15]`<br>`certainty.solid_days` | `5` |  |
-| [130](../regions/sf-bay-delta/region.toml#L130) | `reaches[15]`<br>`certainty.floor` | `0.2` |  |
+| [45](../regions/sf-bay-delta/region.toml#L45) | `reaches[5]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [45](../regions/sf-bay-delta/region.toml#L45) | `reaches[5]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [56](../regions/sf-bay-delta/region.toml#L56) | `reaches[6]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [56](../regions/sf-bay-delta/region.toml#L56) | `reaches[6]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [63](../regions/sf-bay-delta/region.toml#L63) | `reaches[7]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [63](../regions/sf-bay-delta/region.toml#L63) | `reaches[7]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [70](../regions/sf-bay-delta/region.toml#L70) | `reaches[8]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [70](../regions/sf-bay-delta/region.toml#L70) | `reaches[8]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [77](../regions/sf-bay-delta/region.toml#L77) | `reaches[9]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [77](../regions/sf-bay-delta/region.toml#L77) | `reaches[9]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [85](../regions/sf-bay-delta/region.toml#L85) | `reaches[10]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [85](../regions/sf-bay-delta/region.toml#L85) | `reaches[10]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [93](../regions/sf-bay-delta/region.toml#L93) | `reaches[11]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [93](../regions/sf-bay-delta/region.toml#L93) | `reaches[11]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [106](../regions/sf-bay-delta/region.toml#L106) | `reaches[12]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [106](../regions/sf-bay-delta/region.toml#L106) | `reaches[12]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [114](../regions/sf-bay-delta/region.toml#L114) | `reaches[13]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [114](../regions/sf-bay-delta/region.toml#L114) | `reaches[13]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [122](../regions/sf-bay-delta/region.toml#L122) | `reaches[14]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [122](../regions/sf-bay-delta/region.toml#L122) | `reaches[14]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [130](../regions/sf-bay-delta/region.toml#L130) | `reaches[15]`<br>`certainty.solid_days` | `5` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [130](../regions/sf-bay-delta/region.toml#L130) | `reaches[15]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for 5 days, about as far as the river flow forecasts reach (never past what they actually cover), then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
 | [140](../regions/sf-bay-delta/region.toml#L140) | `reaches[16]`<br>`certainty.solid_days` | `5` | Ends past the Yolo gauge, above the Cache Creek Settling Basin: the Yolo Bypass it drains into is not modelled yet, so its water stops there. The bypass's flow reaches the Delta model as DSM2's measured inflows "yolo" (USGS Yolo Bypass near Woodland) and "yolo_toe" (Lisbon) (issue #15). |
 | [140](../regions/sf-bay-delta/region.toml#L140) | `reaches[16]`<br>`certainty.floor` | `0.2` | Ends past the Yolo gauge, above the Cache Creek Settling Basin: the Yolo Bypass it drains into is not modelled yet, so its water stops there. The bypass's flow reaches the Delta model as DSM2's measured inflows "yolo" (USGS Yolo Bypass near Woodland) and "yolo_toe" (Lisbon) (issue #15). |
 | | **`soil_moisture`** | | How wet the land is where rain runs off into the water unmeasured (issue #12; fdmr_runner.soil): NASA SMAP Level 4 soil moisture (9 km, three-hourly) over the land within `corridor_m` of each river below its dam, and over two boxes (west, south, east, north): the Delta's lowlands, drawn round the DSM2 grid's islands from Freeport and Vernalis to Chipps Island, and the land draining straight to the Bay, from the Golden Gate's headlands to Suisun Bay's shores. Boxes, not catchment boundaries: a record for the validation work (#9) before any use as an input. |
@@ -211,79 +228,79 @@ Every number the model is set with: in each region's settings and among the mode
 
 | Where | Setting | Value | Note and source |
 | --- | --- | --- | --- |
-| [22](../regions/test-colorado/region.toml#L22) | `reaches[1]`<br>`certainty.solid_days` | `5` |  |
-| [22](../regions/test-colorado/region.toml#L22) | `reaches[1]`<br>`certainty.floor` | `0.2` |  |
+| [22](../regions/test-colorado/region.toml#L22) | `reaches[1]`<br>`certainty.solid_days` | `5` | as the Sacramento's: about as far as the river forecasts reach, then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [22](../regions/test-colorado/region.toml#L22) | `reaches[1]`<br>`certainty.floor` | `0.2` | as the Sacramento's: about as far as the river forecasts reach, then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
 
 ## The model's own constants
 
 | Where | Constant | Value | Note and source |
 | --- | --- | --- | --- |
-| [python/fdmr_runner/bay.py:46](../python/fdmr_runner/bay.py#L46) | `HOUR` | `3600` |  |
-| [python/fdmr_runner/bay.py:47](../python/fdmr_runner/bay.py#L47) | `DAY` | `86_400` |  |
+| [python/fdmr_runner/bay.py:46](../python/fdmr_runner/bay.py#L46) | `HOUR` | `3600` | unit: seconds in an hour |
+| [python/fdmr_runner/bay.py:47](../python/fdmr_runner/bay.py#L47) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/bay.py:49](../python/fdmr_runner/bay.py#L49) | `ANOMALY_H` | `72` | Hours before the forecast's end over which the extension's non-tidal offset is taken. |
 | [python/fdmr_runner/bay.py:51](../python/fdmr_runner/bay.py#L51) | `MESH_VERSION` | `2` | Raised whenever the coarsening changes, so meshes and hours made the old way are made again. |
-| [python/fdmr_runner/bay.py:387](../python/fdmr_runner/bay.py#L387) | `MIN_SPLIT_DAYS` | `5` |  |
-| [python/fdmr_runner/calibrate.py:40](../python/fdmr_runner/calibrate.py#L40) | `STEP` | `900` |  |
-| [python/fdmr_runner/calibrate.py:47](../python/fdmr_runner/calibrate.py#L47) | `MIN_PAIR_M` | `40_000` |  |
+| [python/fdmr_runner/bay.py:387](../python/fdmr_runner/bay.py#L387) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
+| [python/fdmr_runner/calibrate.py:40](../python/fdmr_runner/calibrate.py#L40) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/calibrate.py:47](../python/fdmr_runner/calibrate.py#L47) | `MIN_PAIR_M` | `40_000` | m: a tracer pair at least this far apart, or weather swamps its travel time (below; FDMR's choice) |
 | [python/fdmr_runner/calibrate.py:48](../python/fdmr_runner/calibrate.py#L48) | `MIN_COVER` | `0.25` | a pair corrects only segments it covers at least this share of |
 | [python/fdmr_runner/calibrate.py:49](../python/fdmr_runner/calibrate.py#L49) | `MAX_OFF_LINE_M` | `1_500` | a station further than this from the river centreline is misplaced |
-| [python/fdmr_runner/canals.py:33](../python/fdmr_runner/canals.py#L33) | `FT` | `0.3048` |  |
-| [python/fdmr_runner/canals.py:34](../python/fdmr_runner/canals.py#L34) | `INCH` | `0.0254` |  |
+| [python/fdmr_runner/canals.py:33](../python/fdmr_runner/canals.py#L33) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
+| [python/fdmr_runner/canals.py:34](../python/fdmr_runner/canals.py#L34) | `INCH` | `0.0254` | unit: metres in an inch (exact) |
 | [python/fdmr_runner/canals.py:36](../python/fdmr_runner/canals.py#L36) | `SEGMENT_M` | `1000.0` | the longest channel a canal is cut into, so quality can change along it |
 | [python/fdmr_runner/canals.py:37](../python/fdmr_runner/canals.py#L37) | `SNAP_M` | `30.0` | ends of a source's pieces closer than this join |
 | [python/fdmr_runner/canals.py:40](../python/fdmr_runner/canals.py#L40) | `STEP_S` | `3600` | Published steps, s. The pumping behind the flow is measured daily and the water's quality changes over hours, so hourly is ample and keeps the files small. |
-| [python/fdmr_runner/delta.py:43](../python/fdmr_runner/delta.py#L43) | `STEP` | `900` |  |
-| [python/fdmr_runner/delta.py:44](../python/fdmr_runner/delta.py#L44) | `DAY` | `86_400` |  |
+| [python/fdmr_runner/delta.py:43](../python/fdmr_runner/delta.py#L43) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/delta.py:44](../python/fdmr_runner/delta.py#L44) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/delta.py:47](../python/fdmr_runner/delta.py#L47) | `BLEND` | `96` | forecasts join the measured series over a day |
 | [python/fdmr_runner/delta.py:274](../python/fdmr_runner/delta.py#L274) | `TO_DSS_M3S_CFS` | `0.3048**3` | m3/s per cfs |
-| [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` |  |
+| [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/geometry.py:28](../python/fdmr_runner/geometry.py#L28) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
 | [python/fdmr_runner/handoff.py:43](../python/fdmr_runner/handoff.py#L43) | `STEP_DEG` | `0.0002` | sample channel lines about every 20 m to find where they enter the mesh |
 | [python/fdmr_runner/isohaline.py:31](../python/fdmr_runner/isohaline.py#L31) | `KM_PER_DEG_LAT` | `111.195` | mean Earth radius 6371 km |
 | [python/fdmr_runner/land.py:36](../python/fdmr_runner/land.py#L36) | `MATCH_S` | `600` | a band and its airport count as the same pass within this |
 | [python/fdmr_runner/land.py:37](../python/fdmr_runner/land.py#L37) | `POINT_SPACING_M` | `200.0` | centreline points kept for the bands, about this far apart |
-| [python/fdmr_runner/ledger.py:42](../python/fdmr_runner/ledger.py#L42) | `HOUR` | `3600` |  |
+| [python/fdmr_runner/ledger.py:42](../python/fdmr_runner/ledger.py#L42) | `HOUR` | `3600` | unit: seconds in an hour |
 | [python/fdmr_runner/ledger.py:45](../python/fdmr_runner/ledger.py#L45) | `MATCH_S` | `30 * 60` | a reading counts for a prediction within this of its time |
-| [python/fdmr_runner/ledger.py:46](../python/fdmr_runner/ledger.py#L46) | `WINDOW_DAYS` | `30` |  |
-| [python/fdmr_runner/ledger.py:48](../python/fdmr_runner/ledger.py#L48) | `MODEL_NEAR_KM` | `1.0` |  |
-| [python/fdmr_runner/levels.py:32](../python/fdmr_runner/levels.py#L32) | `WINDOW_DAYS` | `7` |  |
-| [python/fdmr_runner/levels.py:33](../python/fdmr_runner/levels.py#L33) | `MODEL_NEAR_KM` | `1.0` |  |
-| [python/fdmr_runner/levels.py:34](../python/fdmr_runner/levels.py#L34) | `MAX_LAG_S` | `3 * 3600` |  |
+| [python/fdmr_runner/ledger.py:46](../python/fdmr_runner/ledger.py#L46) | `WINDOW_DAYS` | `30` | scores cover the last 30 days of kept cycles (FDMR's choice) |
+| [python/fdmr_runner/ledger.py:48](../python/fdmr_runner/ledger.py#L48) | `MODEL_NEAR_KM` | `1.0` | km: a station is compared with a reach it stands within this of (FDMR's choice) |
+| [python/fdmr_runner/levels.py:32](../python/fdmr_runner/levels.py#L32) | `WINDOW_DAYS` | `7` | days of the cycle's measured past checked (FDMR's choice) |
+| [python/fdmr_runner/levels.py:33](../python/fdmr_runner/levels.py#L33) | `MODEL_NEAR_KM` | `1.0` | km: a station is checked against a reach it stands within this of (FDMR's choice) |
+| [python/fdmr_runner/levels.py:34](../python/fdmr_runner/levels.py#L34) | `MAX_LAG_S` | `3 * 3600` | s: the largest shift searched when lining the tides up, 3 hours (FDMR's choice) |
 | [python/fdmr_runner/levels.py:35](../python/fdmr_runner/levels.py#L35) | `MIN_FRACTION` | `0.6` | of the window's steps with both values |
-| [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `DAY` | `86_400` |  |
-| [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `KEEP_LOGS` | `120` |  |
-| [python/fdmr_runner/ocean.py:26](../python/fdmr_runner/ocean.py#L26) | `DAY` | `86_400` |  |
+| [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
+| [python/fdmr_runner/ocean.py:26](../python/fdmr_runner/ocean.py#L26) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/ocean.py:27](../python/fdmr_runner/ocean.py#L27) | `ENSO_THRESHOLD` | `0.5` | degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index |
 | [python/fdmr_runner/overlays.py:36](../python/fdmr_runner/overlays.py#L36) | `LATEST_S` | `26 * 3600` | a reading older than this is not "latest" |
 | [python/fdmr_runner/overlays.py:59](../python/fdmr_runner/overlays.py#L59) | `CHECK_DAYS` | `14` | each station's readings against the model over this many days |
 | [python/fdmr_runner/overlays.py:60](../python/fdmr_runner/overlays.py#L60) | `MODEL_NEAR_KM` | `1.0` | a station further than this from every channel gets no model value |
-| [python/fdmr_runner/overlays.py:259](../python/fdmr_runner/overlays.py#L259) | `RESIDUAL_DAYS` | `7` |  |
+| [python/fdmr_runner/overlays.py:259](../python/fdmr_runner/overlays.py#L259) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
 | [python/fdmr_runner/overlays.py:260](../python/fdmr_runner/overlays.py#L260) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
-| [python/fdmr_runner/publish.py:39](../python/fdmr_runner/publish.py#L39) | `STEP` | `900` |  |
-| [python/fdmr_runner/publish.py:40](../python/fdmr_runner/publish.py#L40) | `DAY` | `86_400` |  |
+| [python/fdmr_runner/publish.py:39](../python/fdmr_runner/publish.py#L39) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/publish.py:40](../python/fdmr_runner/publish.py#L40) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/publish.py:61](../python/fdmr_runner/publish.py#L61) | `DEFAULT_SLOPE` | `3e-4` | a typical lowland river, used only where no gauge pair gives one |
-| [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` |  |
+| [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/soil.py:33](../python/fdmr_runner/soil.py#L33) | `POINT_SPACING_M` | `2_000.0` | centreline points kept for a corridor: far closer than its 9 km cells |
-| [python/fdmr_runner/water_extent.py:28](../python/fdmr_runner/water_extent.py#L28) | `PIXEL_KM2` | `0.03 * 0.03` |  |
-| [python/fdmr_plugins/dsm2/dss.py:15](../python/fdmr_plugins/dsm2/dss.py#L15) | `PST` | `8 * 3600` |  |
-| [python/fdmr_plugins/dsm2/dss.py:16](../python/fdmr_plugins/dsm2/dss.py#L16) | `MISSING` | `-901.0` |  |
-| [python/fdmr_plugins/dsm2/fields.py:36](../python/fdmr_plugins/dsm2/fields.py#L36) | `FT` | `0.3048` |  |
-| [python/fdmr_plugins/dsm2/fields.py:38](../python/fdmr_plugins/dsm2/fields.py#L38) | `DAY` | `86_400` |  |
-| [python/fdmr_plugins/dsm2/grid.py:17](../python/fdmr_plugins/dsm2/grid.py#L17) | `FT` | `0.3048` |  |
+| [python/fdmr_runner/water_extent.py:28](../python/fdmr_runner/water_extent.py#L28) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 |
+| [python/fdmr_plugins/dsm2/dss.py:15](../python/fdmr_plugins/dsm2/dss.py#L15) | `PST` | `8 * 3600` | s: DSM2's clock is Pacific Standard Time, UTC-8 all year |
+| [python/fdmr_plugins/dsm2/dss.py:16](../python/fdmr_plugins/dsm2/dss.py#L16) | `MISSING` | `-901.0` | HEC-DSS's missing-value flag |
+| [python/fdmr_plugins/dsm2/fields.py:36](../python/fdmr_plugins/dsm2/fields.py#L36) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
+| [python/fdmr_plugins/dsm2/fields.py:38](../python/fdmr_plugins/dsm2/fields.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_plugins/dsm2/grid.py:17](../python/fdmr_plugins/dsm2/grid.py#L17) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_plugins/dsm2/temperature.py:38](../python/fdmr_plugins/dsm2/temperature.py#L38) | `MPH` | `3600 / 1609.344` | m/s to mph |
 | [python/fdmr_plugins/dsm2/temperature.py:39](../python/fdmr_plugins/dsm2/temperature.py#L39) | `INHG` | `1 / 33.8639` | hPa to inches of mercury |
 | [python/fdmr_plugins/fvcom/correct.py:33](../python/fdmr_plugins/fvcom/correct.py#L33) | `MIN_H` | `0.5` | m: shoals that dry still pass a little water |
 | [python/fdmr_plugins/fvcom/extend.py:47](../python/fdmr_plugins/fvcom/extend.py#L47) | `EPOCH` | `946_684_800` | 2000-01-01T00:00Z: phases are reckoned from here |
 | [python/fdmr_plugins/fvcom/extend.py:48](../python/fdmr_plugins/fvcom/extend.py#L48) | `Q_SCALE` | `1000.0` | outflow in thousands of m3/s, so the columns are of a size |
-| [python/fdmr_plugins/river_routing/calibration.py:30](../python/fdmr_plugins/river_routing/calibration.py#L30) | `DAY` | `86_400` |  |
+| [python/fdmr_plugins/river_routing/calibration.py:30](../python/fdmr_plugins/river_routing/calibration.py#L30) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/river_routing/calibration.py:32](../python/fdmr_plugins/river_routing/calibration.py#L32) | `MAX_SPREAD` | `0.4` | the middle half of the events must lie within this fraction of their median |
-| [python/fdmr_plugins/river_routing/centreline.py:15](../python/fdmr_plugins/river_routing/centreline.py#L15) | `EARTH_RADIUS_M` | `6_371_008.8` |  |
+| [python/fdmr_plugins/river_routing/centreline.py:15](../python/fdmr_plugins/river_routing/centreline.py#L15) | `EARTH_RADIUS_M` | `6_371_008.8` | m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, [moritz2000grs80](references.md#moritz2000grs80)) |
 | [python/fdmr_plugins/river_routing/heat.py:35](../python/fdmr_plugins/river_routing/heat.py#L35) | `SIGMA` | `5.670374e-8` | W/m2/K4 |
 | [python/fdmr_plugins/river_routing/heat.py:36](../python/fdmr_plugins/river_routing/heat.py#L36) | `RHO_CP` | `1000.0 * 4186.0` | J/m3/K |
-| [python/fdmr_plugins/river_routing/heat.py:38](../python/fdmr_plugins/river_routing/heat.py#L38) | `ALBEDO` | `0.06` |  |
-| [python/fdmr_plugins/river_routing/heat.py:39](../python/fdmr_plugins/river_routing/heat.py#L39) | `EMISSIVITY` | `0.97` |  |
+| [python/fdmr_plugins/river_routing/heat.py:38](../python/fdmr_plugins/river_routing/heat.py#L38) | `ALBEDO` | `0.06` | share of sunlight the water reflects, about 6 % (Chapra 1997, Lecture 30, [chapra1997](references.md#chapra1997)) |
+| [python/fdmr_plugins/river_routing/heat.py:39](../python/fdmr_plugins/river_routing/heat.py#L39) | `EMISSIVITY` | `0.97` | water's long-wave emissivity (Chapra 1997, Lecture 30, [chapra1997](references.md#chapra1997)) |
 | [python/fdmr_plugins/river_routing/heat.py:41](../python/fdmr_plugins/river_routing/heat.py#L41) | `BOWEN` | `0.47` | mmHg/degC |
-| [python/fdmr_plugins/river_routing/heat.py:42](../python/fdmr_plugins/river_routing/heat.py#L42) | `CLOUD_LONGWAVE` | `0.17` |  |
+| [python/fdmr_plugins/river_routing/heat.py:42](../python/fdmr_plugins/river_routing/heat.py#L42) | `CLOUD_LONGWAVE` | `0.17` | sky long-wave times (1 + 0.17 C^2) for cloud C (QUAL2K, [chapra2008qual2k](references.md#chapra2008qual2k), after TVA 1972, [tva1972](references.md#tva1972)) |
 | [python/fdmr_plugins/river_routing/heat.py:43](../python/fdmr_plugins/river_routing/heat.py#L43) | `WIND_7M` | `(7.0 / 10.0) ** (1 / 7)` | wind measured 10 m up, at 7 m (one-seventh power law) |
 | [python/fdmr_plugins/river_routing/heat.py:44](../python/fdmr_plugins/river_routing/heat.py#L44) | `GSC` | `1367.0` | W/m2, solar constant |
-| [python/fdmr_plugins/river_routing/model.py:26](../python/fdmr_plugins/river_routing/model.py#L26) | `WAVE_TO_WATER` | `1.5` |  |
+| [python/fdmr_plugins/river_routing/model.py:26](../python/fdmr_plugins/river_routing/model.py#L26) | `WAVE_TO_WATER` | `1.5` | a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, [chow1959](references.md#chow1959)); refitted nightly per segment |

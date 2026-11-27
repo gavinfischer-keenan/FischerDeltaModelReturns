@@ -36,7 +36,7 @@ from fdmr_store import Store
 from . import forecast
 from .region import load_region
 
-STEP = 900
+STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
 DAY = 86_400
 BLEND_S = DAY  # the gap between forecast and measurement at now closes over a day
 

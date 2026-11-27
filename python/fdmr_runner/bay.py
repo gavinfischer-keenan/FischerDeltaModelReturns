@@ -384,7 +384,7 @@ def compare_days(model: dict[int, float], measured: dict[int, float], dry: dict[
             "wet": summary([d for d in both if dry.get(d) is False], MIN_SPLIT_DAYS)}
 
 
-MIN_SPLIT_DAYS = 5
+MIN_SPLIT_DAYS = 5  # a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice)
 
 
 def outflow_checks(cfg: dict, delta_dir: Path, jn: dict, store_path: str, now: int) -> list[dict]:

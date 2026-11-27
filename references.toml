@@ -804,3 +804,13 @@ in = "Environmental Data Initiative; package edi.1479.2; Creative Commons Attrib
 doi = "10.6073/pasta/fdd183bb7ddec813400a924ae2d4f0ad"
 note = "Trammel-net sets with catch, water temperature and (2021-2022 only) salinity; used to check the sturgeon forecast's salinity, temperature and month rules (tools/validation/cdfw_sturgeon)."
 checked = "The data tables' SHA-1 checksums against the DataONE system metadata; the EDI data package summary, 27 Nov 2026"
+
+[moritz2000grs80]
+authors = "Moritz, H."
+year = 2000
+title = "Geodetic Reference System 1980"
+kind = "paper"
+in = "Journal of Geodesy 74(1), 128-133"
+doi = "10.1007/s001900050278"
+note = "The GRS 80 ellipsoid's derived constants, among them the mean Earth radius R1 = 6 371 008.7714 m."
+checked = "Crossref record of the DOI, 27 Nov 2026"
