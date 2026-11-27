@@ -18,6 +18,13 @@
 //! release this spreads at Fischer's K; near it, the cloud is as drawn out and
 //! lopsided as the shear makes it (Fischer 1966, ref:fischer1966). A release
 //! starts spread evenly across the channel, Fischer's plane source.
+//!
+//! Where the reach publishes a dead-zone storage ratio (`storage_ratio`, β,
+//! groyne fields; issue #27), a parcel in the flow is taken into storage at
+//! the rate `fdmr_math::dispersion::DEAD_ZONE_EXCHANGE` and leaves at that rate
+//! over β. A stored parcel stays where it is (it still decays) and comes back
+//! anywhere across the flow. A cloud then travels at U/(1 + β), its lag
+//! behind the water β (van Mazijk 1996, ref:vanmazijk1996).
 
 use fdmr_format::{FieldFile, FormatError};
 use fdmr_math::{decay, dispersion, parcel, rng::Rng};
@@ -58,6 +65,8 @@ struct Day {
     dispersion: Vec<f32>,
     /// Lateral mixing ε, m²/s, where published.
     lateral: Option<Vec<f32>>,
+    /// Dead-zone storage ratio β, where published.
+    storage: Option<Vec<f32>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -84,6 +93,8 @@ struct Parcel {
     mass: f64,
     release: usize,
     in_water: bool,
+    /// In dead-zone storage (a groyne field): held where it is.
+    stored: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -251,6 +262,7 @@ impl Engine {
             volume: take("volume")?,
             dispersion: take("dispersion")?,
             lateral: f.field("lateral_mixing").map(|x| x.values.clone()),
+            storage: f.field("storage_ratio").map(|x| x.values.clone()),
         };
         let at = self.days.partition_point(|d| d.t0 < day.t0);
         self.days.insert(at, day);
@@ -320,6 +332,14 @@ impl Engine {
         Some(self.value(|d| d.lateral.as_deref().unwrap_or(&[]), self.element(x), t))
     }
 
+    /// The dead-zone storage ratio β at x and t, where every day holds it.
+    fn storage_ratio(&self, x: f64, t: f64) -> Option<f64> {
+        if self.days.is_empty() || self.days.iter().any(|d| d.storage.is_none()) {
+            return None;
+        }
+        Some(self.value(|d| d.storage.as_deref().unwrap_or(&[]), self.element(x), t))
+    }
+
     /// Add a release. Returns its index.
     pub fn add_release(&mut self, r: Release) -> usize {
         self.releases.push((r, 0));
@@ -356,6 +376,7 @@ impl Engine {
                     mass: each,
                     release: idx,
                     in_water: true,
+                    stored: false,
                 });
                 self.balance.released += each;
                 self.balance.in_water += each;
@@ -376,8 +397,34 @@ impl Engine {
                 if !p.in_water {
                     continue;
                 }
-                let u = self.velocity(p.x, now);
+                // Dead-zone storage: into it at the exchange rate, out at that rate over β.
+                let beta = self.storage_ratio(p.x, now).unwrap_or(0.0).max(0.0);
+                let mut stored = p.stored && beta > 0.0;
                 let mut lat = p.lat;
+                if beta > 0.0 {
+                    let rate = if stored {
+                        dispersion::DEAD_ZONE_EXCHANGE / beta
+                    } else {
+                        dispersion::DEAD_ZONE_EXCHANGE
+                    };
+                    if self.rng.uniform() < 1.0 - (-rate * dt).exp() {
+                        stored = !stored;
+                        if !stored {
+                            lat = self.rng.uniform() * 2.0 - 1.0;
+                        }
+                    }
+                }
+                if stored {
+                    let half_life = self.releases[p.release].0.half_life;
+                    let kept = p.mass * decay::remaining_fraction(dt, half_life);
+                    self.balance.decayed += p.mass - kept;
+                    self.balance.in_water -= p.mass - kept;
+                    let q = &mut self.parcels[i];
+                    q.mass = kept;
+                    q.stored = true;
+                    continue;
+                }
+                let u = self.velocity(p.x, now);
                 let mut x = match (self.lateral_mixing(p.x, now), &self.widths) {
                     (Some(eps), Some(widths)) => {
                         // Downstream at the speed across the channel where it is,
@@ -410,6 +457,7 @@ impl Engine {
                 q.mass = kept;
                 q.x = x;
                 q.lat = lat;
+                q.stored = false;
                 if x >= len {
                     q.in_water = false;
                     self.balance.in_water -= kept;
@@ -569,6 +617,64 @@ mod tests {
         let mut b = Vec::new();
         file.write_to(&mut b).unwrap();
         b
+    }
+
+    /// A uniform reach as `uniform_day`, with a dead-zone storage ratio published too.
+    fn storage_day(n: u32, t0: i64, u: f32, beta: f32) -> Vec<u8> {
+        let mut file = FieldFile::read_from(&mut &uniform_day(n, t0, u, 0.0)[..]).unwrap();
+        let len = file.fields[0].values.len();
+        file.fields.push(Field {
+            name: "storage_ratio".into(),
+            unit: "1".into(),
+            encoding: Encoding::F32,
+            values: vec![beta; len],
+        });
+        let mut b = Vec::new();
+        file.write_to(&mut b).unwrap();
+        b
+    }
+
+    #[test]
+    fn dead_zone_storage_delays_a_cloud_by_beta() {
+        // Every parcel starts in the flow; the share in storage tends to
+        // β/(1+β) over τ = β / (a (1+β)). The centre then moves
+        // U (t/(1+β) + β τ/(1+β) (1 − e^(−t/τ))): in the long run at U/(1+β),
+        // a lag coefficient of β. No dispersion, so the centre is exact.
+        let (n, u, beta) = (300u32, 0.5_f64, 0.25_f64);
+        let els: Vec<(f64, f64)> = (0..n)
+            .map(|i| (f64::from(i) * 1000.0, f64::from(i + 1) * 1000.0))
+            .collect();
+        let mut e = Engine::new(&els, 0.0, 21);
+        #[allow(clippy::cast_possible_truncation)]
+        for d in 0..6 {
+            e.load_day(&storage_day(n, d * 86_400, u as f32, beta as f32))
+                .unwrap();
+        }
+        e.add_release(Release {
+            x: 1_000.0,
+            start: 0.0,
+            duration: 0.0,
+            mass: 1000.0,
+            half_life: None,
+            parcels: 10_000,
+        });
+        let t = 400_000.0;
+        e.step_to(t);
+        let (mean, _, skew) = moments(&e.parcel_snapshot().0);
+        let a = dispersion::DEAD_ZONE_EXCHANGE;
+        let tau = beta / (a * (1.0 + beta));
+        let expected =
+            1_000.0 + u * (t / (1.0 + beta) + beta * tau / (1.0 + beta) * (1.0 - (-t / tau).exp()));
+        assert!(
+            (mean / expected - 1.0).abs() < 0.01,
+            "centre {mean} against {expected}"
+        );
+        assert!(skew < 0.0, "a stored tail behind the cloud: skew {skew}");
+        let m = e.mass_balance();
+        assert!(
+            (m.in_water - 1000.0).abs() < 1e-6,
+            "stored parcels are still in the water"
+        );
     }
 
     fn moments(xs: &[f64]) -> (f64, f64, f64) {

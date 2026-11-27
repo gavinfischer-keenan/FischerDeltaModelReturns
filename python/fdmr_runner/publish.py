@@ -153,6 +153,33 @@ def lateral_field(field, records, slopes):
     return out
 
 
+def storage_field(store: Store, cfg: dict | None, field, t0: int, now: int, n: int, i_now: int, hindcast: bool,
+                  assumed: list[dict]):
+    """The dead-zone storage ratio for every element and step where the reach
+    has groyne fields (issue #27; fdmr_plugins.river_routing.storage): the
+    place's beta and velocity head at its gauge's discharge, measured, then
+    Rijkswaterstaat's forecast where it has one, then held. None elsewhere."""
+    if not cfg:
+        return None
+    from fdmr_plugins.river_routing import storage
+
+    vals = store.values(cfg["source"], cfg["site"], "discharge", t0, now + STEP)
+    if not vals:
+        assumed.append({"input": f"{cfg['source']} {cfg['site']} discharge (groyne fields)", "how": "no reading: no storage"})
+        return None
+    measured = regular([(v.t, v.value) for v in vals], t0, STEP, i_now + 1)
+    fc = None
+    if cfg["source"] == "rws" and not hindcast:
+        fv = store.values("rws", cfg["site"], "discharge_forecast", now - DAY, now + 30 * DAY)
+        fc = forecast.on_grid([(v.t, v.value) for v in fv if v.t > now - 3 * 3600], t0, STEP, n) if fv else None
+    q, _ = forecast.extend(measured, fc, i_now, n, BLEND_S // STEP)
+    assumed.append({"input": f"{cfg['source']} {cfg['site']} discharge (groyne fields)",
+                    "how": "Rijkswaterstaat's forecast, joined over a day, then held" if fc is not None else "held at its last value",
+                    "last_reading": min(vals[-1].t, now)})
+    m = len(field.elements)
+    return [[storage.ratio(cfg, float(q[i]))] * m for i in range(field.steps)]
+
+
 def element_fickian(field, records, slopes) -> list[float]:
     """How far below a release in each element Fischer's dispersion holds, m,
     at the element's median flow: U times six of Fischer's Lagrangian time
@@ -336,6 +363,8 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
     chosen = next((r.get("maths") for r in region.reaches if r["id"] == reach), None)
     shear = registry.choices("river-routing", chosen)["dispersion"].name == "cross-channel-shear"
     lateral = lateral_field(field, records, slopes) if shear else None
+    storage = storage_field(store, next((r.get("groyne_fields") for r in region.reaches if r["id"] == reach), None),
+                            field, t0, now, n, i_now, hindcast, assumed)
     # The solid forecast lasts the reach's set days, or as far as every gauge's
     # forecast reaches, whichever is shorter; with no forecast, nothing is solid.
     rc = next((r.get("certainty", {}) for r in region.reaches if r["id"] == reach), {})
@@ -395,6 +424,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                 ("volume", "m3", True, [float(field.area[i][e] * els[e].length) for i in rows for e in range(len(els))]),
                 ("dispersion", "m2/s", True, flat(dispersion)),
                 *([("lateral_mixing", "m2/s", True, flat(lateral))] if lateral is not None else []),
+                *([("storage_ratio", "1", True, flat(storage))] if storage is not None else []),
             ],
         )
         if temperature is not None:
@@ -406,7 +436,8 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
               else store.latest(g.forecast["source"], g.site, f"{g.parameter}_forecast") for g in gauges if g.forecast]
     entry = {
         "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
-        "fields": ["flow", "area", "velocity", "volume", "dispersion", *(["lateral_mixing"] if lateral is not None else [])],
+        "fields": ["flow", "area", "velocity", "volume", "dispersion", *(["lateral_mixing"] if lateral is not None else []),
+                   *(["storage_ratio"] if storage is not None else [])],
         "certainty": certainty,
         **({"quality_fields": ["temperature"], "temperature_checks": temp_checks} if temperature is not None else {}),
         **({"swot_checks": sw} if (sw := swot_checks(region_dir, store, reach, line, els, widths, now)) else {}),

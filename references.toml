@@ -914,3 +914,13 @@ in = "California Natural Resources Agency Open Data"
 url = "https://data.cnra.ca.gov/dataset/dsm2-input-2026-04-16-historical-update"
 note = "DWR's historical DSM2 study, September 2014 to December 2024: boundary flows and salinity, island water use, and every gate's operation (gates.dss), with the West False River barrier as a time series (in from 1 June 2021 to 15 November 2022). The live Delta run uses its input files unchanged; the experiments run it as it is, with a gate setting changed in a scenario's own copy."
 checked = "Release notes and the barrier's and the Suisun gates' series read from the runner's copy, 27 Nov 2026"
+
+[vanmazijk1996]
+authors = "van Mazijk, A."
+year = 1996
+title = "One-dimensional approach of transport phenomena of dissolved matter in rivers"
+kind = "report"
+in = "PhD thesis, Delft University of Technology; Communications on Hydraulic and Geotechnical Engineering 96-3"
+url = "https://repository.tudelft.nl/record/uuid:789593e2-fd72-4800-9abe-3163d09e2179"
+note = "The Rhine branches' tracer releases (1989, 1990, 1991 and the 1986 Sandoz spill): measured clouds (Figs 4.4.20-21, digitized in tools/validation/rhine_dye), lag coefficients (Tables 4.4.6-4.4.7), dead-zone ratios against discharge (Figs 4.4.10-4.4.13) and velocity heads (Fig. 4.4.15). The groyne-field storage piece (#27) takes its physics and the Rhine branches' place values from here."
+checked = "Scan read from TU Delft's repository: pages 207-220 and 224-225, 27 Nov 2026"

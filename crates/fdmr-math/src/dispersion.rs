@@ -65,6 +65,17 @@ pub fn shear_profile_c() -> f64 {
     (0.011 * 472.5 * ELDER_LATERAL).sqrt()
 }
 
+/// The rate, per second, at which a parcel in the flow is taken into
+/// dead-zone storage (groyne fields) where the reach publishes a storage
+/// ratio β; a stored parcel leaves at rate `DEAD_ZONE_EXCHANGE / β`, so in the
+/// long run a share β/(1 + β) is stored and a cloud travels at U/(1 + β): its
+/// lag coefficient is β, as van Mazijk's dead-zone model has it (1996,
+/// ref:vanmazijk1996, section 4.4). The rate sets only the cloud's shape (how
+/// long its tail is), not its lag. Empirical (FDMR): fitted on one measured
+/// cloud and judged on another branch's, held out
+/// (`tools/validation/rhine_dye/simulate.py`).
+pub const DEAD_ZONE_EXCHANGE: f64 = 1.0e-5;
+
 /// Dispersion coefficient from the change of temporal moments of a tracer
 /// passing two stations (Fischer's change-of-moment method), m²/s:
 ///

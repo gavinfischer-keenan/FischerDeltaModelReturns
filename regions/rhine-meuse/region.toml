@@ -67,6 +67,10 @@ line = { source = "pdok", names = ["Waal"], end = [4.975, 51.830], bbox = [4.9, 
 mouth = [4.975, 51.830]   # where the Waal becomes the Boven-Merwede, at Gorinchem: tidal below
 certainty = { solid_days = 1, floor = 0.2 }   # certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2)
 maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
+# Groyne fields (issue #27; fdmr_plugins.river_routing.storage): the branch's dead-zone ratio beta and its mean
+# velocity head u^2/2g, m, against the discharge at Lobith, read from van Mazijk 1996 (ref:vanmazijk1996), Figs
+# 4.4.10/4.4.12/4.4.13 (solid lines, the restriction beta_i <= 0.5, +-0.005) and Fig. 4.4.15 (+-0.001 m).
+groyne_fields = { source = "rws", site = "lobith.bovenrijn.tolkamer", beta = [[900, 0.160], [1700, 0.185], [2100, 0.205], [2300, 0.212], [2500, 0.228], [2750, 0.252], [2950, 0.262], [3250, 0.255]], velocity_head_m = [[900, 0.030], [1000, 0.033], [1400, 0.044], [1800, 0.052], [2300, 0.059], [2400, 0.061], [2750, 0.068], [3000, 0.071]] }
 
 [[reaches]]
 id = "nederrijn"
@@ -81,6 +85,10 @@ line = { source = "osm", names = ["Nederrijn", "Lek"], end = [5.1352, 51.9895], 
 mouth = [5.1352, 51.9895]  # the Hagestein weir: tidal below
 certainty = { solid_days = 1, floor = 0.2 }
 maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
+# Groyne fields (issue #27; fdmr_plugins.river_routing.storage): the branch's dead-zone ratio beta and its mean
+# velocity head u^2/2g, m, against the discharge at Lobith, read from van Mazijk 1996 (ref:vanmazijk1996), Figs
+# 4.4.10/4.4.12/4.4.13 (solid lines, the restriction beta_i <= 0.5, +-0.005) and Fig. 4.4.15 (+-0.001 m).
+groyne_fields = { source = "rws", site = "lobith.bovenrijn.tolkamer", beta = [[900, 0.290], [1700, 0.300], [2100, 0.310], [2400, 0.320], [2800, 0.338], [3000, 0.340], [3250, 0.330]], velocity_head_m = [[900, 0.003], [1000, 0.003], [1400, 0.004], [1800, 0.008], [2300, 0.030], [2400, 0.032], [2750, 0.040], [3000, 0.043]] }
 
 [[reaches]]
 id = "ijssel"
@@ -90,6 +98,11 @@ line = { source = "pdok", names = ["Geldersche IJssel"], end = [5.84, 52.59], bb
 mouth = [5.84, 52.59]      # the Ketelmeer
 certainty = { solid_days = 1, floor = 0.2 }
 maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
+# Groyne fields (issue #27; fdmr_plugins.river_routing.storage): the branch's dead-zone ratio beta and its mean
+# velocity head u^2/2g, m, against the discharge at Lobith, read from van Mazijk 1996 (ref:vanmazijk1996), Figs
+# 4.4.10/4.4.12/4.4.13 (solid lines, the restriction beta_i <= 0.5, +-0.005) and Fig. 4.4.15 (+-0.001 m). Its measured lags
+# are about zero (Tables 4.4.6-4.4.7), so the piece runs 0.25 late here: kept, as everywhere, not tuned for one branch.
+groyne_fields = { source = "rws", site = "lobith.bovenrijn.tolkamer", beta = [[900, 0.200], [1700, 0.208], [2300, 0.220], [2500, 0.235], [2900, 0.280], [3250, 0.280]], velocity_head_m = [[900, 0.016], [1000, 0.018], [1400, 0.025], [1800, 0.029], [2300, 0.032], [2400, 0.033], [2750, 0.037], [3000, 0.039]] }
 
 # The Meuse (Eijsden to Lith) waits: no verified main-channel width was found
 # for its Grensmaas and Bedijkte Maas stretches (issue #23).

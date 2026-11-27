@@ -7,7 +7,7 @@ groyne fields' share of the cross-section (van Mazijk 1996, ref:vanmazijk1996,
 section 4.4). The eddy that exchanges the groyne field's water with the flow
 needs a velocity head u^2/2g above the head lost along a groyne field: below
 0.01-0.02 m "the strength of the eddy as a mixing tool will reduce" (p. 217),
-and at the weir-controlled low flows of the Lek, 0.003 m, the clouds travel at
+and where weirs hold the water at low flow, about 0.003 m, the clouds travel at
 the water's speed. So the piece's ratio is beta switched by the velocity head,
 off below 0.01 m and fully on above 0.02 m, linear between. The engine holds
 a share beta/(1+beta) of the parcels in storage (crates/fdmr-compute).
@@ -17,9 +17,9 @@ a named gauge, with their source (region.toml `groyne_fields`). A reach
 without groyne fields has none, and the piece does nothing there.
 
 Judged on every measured lag the source tabulates (15 reach-releases, 1986-
-1991; tools/validation/rhine_dye/lag_rule.py): the Waal and the Lek within
-the measurement uncertainty in 11 of 11 (none fitted), the IJssel not (its
-measured lags are about zero).
+1991; tools/validation/rhine_dye/lag_rule.py): within the measurement
+uncertainty in 11 of 11 on two of the three branches (none fitted), not on
+the third, whose measured lags are about zero.
 """
 
 from __future__ import annotations

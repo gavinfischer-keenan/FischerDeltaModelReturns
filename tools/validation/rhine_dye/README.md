@@ -51,3 +51,25 @@ This is the signature of storage in the groyne fields (van Mazijk Table 4.4.10, 
 **Next tests:**
 - The 1989 and 1990 releases as further held-out reaches (Figs 3.4.23, 4.4.2).
 - Storage exchanging with the near-bank flow, which may bring the peak earlier.
+
+## Every measured lag: storage switched by the velocity head (27 Nov 2026), adopted
+
+**Data** (van Mazijk 1996, ref:vanmazijk1996, read from the scan):
+- **Lag coefficients** for every release the thesis tabulates: April 1989, September 1990, June 1991 and the November 1986 Sandoz spill (Tables 4.4.6–4.4.7). That is 15 reach-releases on the Waal, the Nederrijn–Lek and the IJssel. Each lag is given twice, against the Rhine Alarm Model's flow time and against SOBEK's. Their spread, together with the thesis's own σ, is the uncertainty.
+- **Each branch's dead-zone ratio β** against the Lobith discharge (Figs 4.4.10, 4.4.12, 4.4.13; solid lines, β_i ≤ 0.5).
+- **Each branch's mean velocity head** u²/2g against the Lobith discharge (Fig. 4.4.15).
+
+**The piece.** The predicted lag is β(Q) × s(h_v(Q)). The switch s is 0 below a velocity head of 0.01 m and 1 above 0.02 m: below that, the thesis says, "the strength of the eddy as a mixing tool will reduce" (p. 217). **Nothing is fitted.** β and h_v are the branches' published values and the thresholds are the thesis's, so every release is out of sample. Run `lag_rule.py`.
+
+| | No storage (the model before) | One β per branch | β(Q) switched by velocity head |
+|---|---|---|---|
+| Waal and Lek, 11 | MAE 0.235, within uncertainty 3/11 | MAE 0.075, 10/11 | **MAE 0.056, 11/11** (mean error +0.005) |
+| IJssel, 4 | MAE 0.056, 3/4 | MAE 0.264, 0/4 | MAE 0.251, 0/4 |
+| All 15 | MAE 0.187, 6/15 | MAE 0.126, 10/15 | **MAE 0.108, 11/15** |
+
+**Adopted** (`groyne-field-storage` in the register; `fdmr_plugins.river_routing.storage`, the engine's `storage_ratio`):
+- **The physics is global:** exchange at 1e-5/s, as fitted above; stored parcels held; the switch by velocity head.
+- **The place is local:** each branch's β and velocity head against Lobith, in `regions/rhine-meuse/region.toml`. A reach without groyne fields has none, so nothing changes in the Bay-Delta.
+- **It is kept on the IJssel too.** Its measured lags are about zero although its groyne fields give β 0.20–0.28. Tuning one branch would break the rule that a piece is judged everywhere it applies.
+  - The thesis's own reading: the IJssel's clouds have long tails that the centroid misses. Counting the tail gives 0.21/0.14 in 1989 and 0.16/0.10 in 1990 (Table 4.4.6, note 5). A stricter restriction (β_i ≤ 0.3) then matches.
+  - So the IJssel is an open misfit, not a reason to drop the piece.

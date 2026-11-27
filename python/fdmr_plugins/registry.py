@@ -87,6 +87,14 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                              "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
                              "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
                              "crates/fdmr-math dispersion.rs")],
+        "dead-zone-storage": [Maths("groyne-field-storage",
+                                    "Where the region gives a reach groyne fields: parcels are held in the water between the groynes, "
+                                    "into it at a fixed exchange rate and out at that rate over the dead-zone ratio beta, so a cloud lags "
+                                    "the water by beta; beta and the velocity head follow the discharge at the place's gauge, and the "
+                                    "exchange is switched off below a velocity head of 0.01 m, fully on above 0.02 m. Does nothing elsewhere",
+                                    "van Mazijk 1996, section 4.4, Figs 4.4.10-4.4.15, p. 217 (ref:vanmazijk1996); the exchange rate "
+                                    "1e-5/s empirical, FDMR (fitted on one measured cloud, judged on another branch's: tools/validation/rhine_dye)",
+                                    "fdmr_plugins.river_routing.storage, fdmr_runner.publish storage_field, crates/fdmr-compute lib.rs")],
         "release": [Maths("held-or-rule",
                           "A dam's release ahead: the River Forecast Center's forecast where given; else following its release forecast "
                           "upstream; else the flood-control rule (storage against the Corps' top of conservation); else held",
@@ -202,6 +210,12 @@ CHECKS: dict[str, tuple[str, ...]] = {
         "crates/fdmr-math/src/dispersion.rs::fickian_distance_fischer_example",
         "crates/fdmr-math/src/parcel.rs::moment_method_recovers_k_from_parcels",
     ),
+    "groyne-field-storage": (
+        "crates/fdmr-compute/src/lib.rs::dead_zone_storage_delays_a_cloud_by_beta",
+        "python/tests/test_storage.py::test_the_switch_follows_the_velocity_head",
+        "python/tests/test_storage.py::test_every_branchs_tables_are_sourced_and_sane",
+        "check: every measured lag of the Rhine branches, 1986-1991 (tools/validation/rhine_dye/lag_rule.py)",
+    ),
     "held-or-rule": (
         "python/tests/test_releases.py::test_flood_rule_raises_the_release_once_the_top_is_reached",
         "python/tests/test_releases.py::test_flood_rule_holds_while_there_is_room",
@@ -291,12 +305,6 @@ CANDIDATES: tuple[Candidate, ...] = (
               "33 rivers' measured mixing on (U/u*)(d/R)",
               "raising the mixing in bends lowers the long-range spreading below Fischer's K; it needs a held-out "
               "test against measured dye clouds", "#27"),
-    Candidate("river-routing", "dispersion", "groyne-field-storage",
-              "van Mazijk 1996 (TU Delft thesis): measured dye clouds lag behind the water in groyne fields "
-              "(its dead-zone ratios per reach); with storage at a = 1e-5/s fitted on one reach, a held-out reach's "
-              "centroid is right and its spread closer (tools/validation/rhine_dye)",
-              "on the held-out reach the peak comes 4 hours late and the whole shape is only 5% better; needs "
-              "further releases as tests", "#27"),
     Candidate("fishing", "white-sturgeon", "salinity-bands",
               "FDMR's reading of Sellheim et al. 2022's habitat classes; CDFW's trammel-net survey agrees above "
               "16 psu, where salinity follows place",

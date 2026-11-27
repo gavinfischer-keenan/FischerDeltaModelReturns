@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_the_switch_follows_the_velocity_head():
     assert storage.switch(0.003) == 0.0  # the Lek's weir pools at low flow
-    assert storage.switch(0.015) == 0.5
+    assert abs(storage.switch(0.015) - 0.5) < 1e-12
     assert storage.switch(0.06) == 1.0
     cfg = {"beta": [[900, 0.2], [3000, 0.3]], "velocity_head_m": [[900, 0.005], [3000, 0.05]]}
     assert storage.ratio(cfg, 900) == 0.0

@@ -10,38 +10,38 @@ Every number the model is set with: in each region's settings and among the mode
 | --- | --- | --- | --- |
 | [68](../regions/rhine-meuse/region.toml#L68) | `reaches[1]`<br>`certainty.solid_days` | `1` | certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
 | [68](../regions/rhine-meuse/region.toml#L68) | `reaches[1]`<br>`certainty.floor` | `0.2` | certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
-| [82](../regions/rhine-meuse/region.toml#L82) | `reaches[2]`<br>`certainty.solid_days` | `1` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
-| [82](../regions/rhine-meuse/region.toml#L82) | `reaches[2]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
-| [91](../regions/rhine-meuse/region.toml#L91) | `reaches[3]`<br>`certainty.solid_days` | `1` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
-| [91](../regions/rhine-meuse/region.toml#L91) | `reaches[3]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [86](../regions/rhine-meuse/region.toml#L86) | `reaches[2]`<br>`certainty.solid_days` | `1` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [86](../regions/rhine-meuse/region.toml#L86) | `reaches[2]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [99](../regions/rhine-meuse/region.toml#L99) | `reaches[3]`<br>`certainty.solid_days` | `1` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
+| [99](../regions/rhine-meuse/region.toml#L99) | `reaches[3]`<br>`certainty.floor` | `0.2` | As in `reaches[1]`: certainty 1 for a day: Rijkswaterstaat's discharge forecasts reached about 27 hours ahead when this was set (27 Nov 2026), and never past what they actually cover; then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2) |
 | | **`gauges[1]`** | | Discharge gauges (Rijkswaterstaat; ETRS89 positions from its catalogue), each with its channel: width (Visser 2000, [visser2000](references.md#visser2000), table 2.1 and pp. 42-49), bed slope (Visser 2000, citing Rijkswaterstaat 2000) and main-channel Chezy C, m^0.5/s (Huyskens and Barneveld 1994, tables 3.6, 3.13, 3.22: the middle of each branch's range from low flow to bankfull). |
-| [114](../regions/rhine-meuse/region.toml#L114) | `gauges[1]`<br>`channel.width_m` | `260` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
-| [114](../regions/rhine-meuse/region.toml#L114) | `gauges[1]`<br>`channel.slope` | `1.1e-4` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
-| [114](../regions/rhine-meuse/region.toml#L114) | `gauges[1]`<br>`channel.chezy` | `45` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [127](../regions/rhine-meuse/region.toml#L127) | `gauges[1]`<br>`channel.width_m` | `260` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [127](../regions/rhine-meuse/region.toml#L127) | `gauges[1]`<br>`channel.slope` | `1.1e-4` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [127](../regions/rhine-meuse/region.toml#L127) | `gauges[1]`<br>`channel.chezy` | `45` | Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
 | | **`gauges[2]`** | | See the note on `gauges[1]`. |
-| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.width_m` | `260` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
-| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.slope` | `1.1e-4` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
-| [124](../regions/rhine-meuse/region.toml#L124) | `gauges[2]`<br>`channel.chezy` | `45` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [137](../regions/rhine-meuse/region.toml#L137) | `gauges[2]`<br>`channel.width_m` | `260` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [137](../regions/rhine-meuse/region.toml#L137) | `gauges[2]`<br>`channel.slope` | `1.1e-4` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
+| [137](../regions/rhine-meuse/region.toml#L137) | `gauges[2]`<br>`channel.chezy` | `45` | As in `gauges[1]`: Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6) |
 | | **`gauges[3]`** | | See the note on `gauges[1]`. |
-| [135](../regions/rhine-meuse/region.toml#L135) | `gauges[3]`<br>`channel.width_m` | `130` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
-| [135](../regions/rhine-meuse/region.toml#L135) | `gauges[3]`<br>`channel.slope` | `1.26e-4` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
-| [135](../regions/rhine-meuse/region.toml#L135) | `gauges[3]`<br>`channel.chezy` | `42` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [148](../regions/rhine-meuse/region.toml#L148) | `gauges[3]`<br>`channel.width_m` | `130` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [148](../regions/rhine-meuse/region.toml#L148) | `gauges[3]`<br>`channel.slope` | `1.26e-4` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [148](../regions/rhine-meuse/region.toml#L148) | `gauges[3]`<br>`channel.chezy` | `42` | Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
 | | **`gauges[4]`** | | See the note on `gauges[1]`. |
-| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.width_m` | `130` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
-| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.slope` | `1.26e-4` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
-| [146](../regions/rhine-meuse/region.toml#L146) | `gauges[4]`<br>`channel.chezy` | `42` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [159](../regions/rhine-meuse/region.toml#L159) | `gauges[4]`<br>`channel.width_m` | `130` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [159](../regions/rhine-meuse/region.toml#L159) | `gauges[4]`<br>`channel.slope` | `1.26e-4` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
+| [159](../regions/rhine-meuse/region.toml#L159) | `gauges[4]`<br>`channel.chezy` | `42` | As in `gauges[3]`: Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22) |
 | | **`gauges[5]`** | | See the note on `gauges[1]`. |
-| [157](../regions/rhine-meuse/region.toml#L157) | `gauges[5]`<br>`channel.width_m` | `130` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
-| [157](../regions/rhine-meuse/region.toml#L157) | `gauges[5]`<br>`channel.slope` | `1.26e-4` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
-| [157](../regions/rhine-meuse/region.toml#L157) | `gauges[5]`<br>`channel.chezy` | `42` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
+| [170](../regions/rhine-meuse/region.toml#L170) | `gauges[5]`<br>`channel.width_m` | `130` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
+| [170](../regions/rhine-meuse/region.toml#L170) | `gauges[5]`<br>`channel.slope` | `1.26e-4` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
+| [170](../regions/rhine-meuse/region.toml#L170) | `gauges[5]`<br>`channel.chezy` | `42` | the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein |
 | | **`gauges[6]`** | | See the note on `gauges[1]`. |
-| [167](../regions/rhine-meuse/region.toml#L167) | `gauges[6]`<br>`channel.width_m` | `80` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
-| [167](../regions/rhine-meuse/region.toml#L167) | `gauges[6]`<br>`channel.slope` | `1.0e-4` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
-| [167](../regions/rhine-meuse/region.toml#L167) | `gauges[6]`<br>`channel.chezy` | `41` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
+| [180](../regions/rhine-meuse/region.toml#L180) | `gauges[6]`<br>`channel.width_m` | `80` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
+| [180](../regions/rhine-meuse/region.toml#L180) | `gauges[6]`<br>`channel.slope` | `1.0e-4` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
+| [180](../regions/rhine-meuse/region.toml#L180) | `gauges[6]`<br>`channel.chezy` | `41` | IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13) |
 | | **`gauges[7]`** | | See the note on `gauges[1]`. |
-| [177](../regions/rhine-meuse/region.toml#L177) | `gauges[7]`<br>`channel.width_m` | `110` | Olst: 110 m (Visser p. 42) |
-| [177](../regions/rhine-meuse/region.toml#L177) | `gauges[7]`<br>`channel.slope` | `1.0e-4` | Olst: 110 m (Visser p. 42) |
-| [177](../regions/rhine-meuse/region.toml#L177) | `gauges[7]`<br>`channel.chezy` | `41` | Olst: 110 m (Visser p. 42) |
+| [190](../regions/rhine-meuse/region.toml#L190) | `gauges[7]`<br>`channel.width_m` | `110` | Olst: 110 m (Visser p. 42) |
+| [190](../regions/rhine-meuse/region.toml#L190) | `gauges[7]`<br>`channel.slope` | `1.0e-4` | Olst: 110 m (Visser p. 42) |
+| [190](../regions/rhine-meuse/region.toml#L190) | `gauges[7]`<br>`channel.chezy` | `41` | Olst: 110 m (Visser p. 42) |
 
 ## Region sf-bay-delta
 
@@ -329,3 +329,5 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/river_routing/heat.py:43](../python/fdmr_plugins/river_routing/heat.py#L43) | `WIND_7M` | `(7.0 / 10.0) ** (1 / 7)` | wind measured 10 m up, at 7 m (one-seventh power law) |
 | [python/fdmr_plugins/river_routing/heat.py:44](../python/fdmr_plugins/river_routing/heat.py#L44) | `GSC` | `1367.0` | W/m2, solar constant |
 | [python/fdmr_plugins/river_routing/model.py:26](../python/fdmr_plugins/river_routing/model.py#L26) | `WAVE_TO_WATER` | `1.5` | a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, [chow1959](references.md#chow1959)); refitted nightly per segment |
+| [python/fdmr_plugins/river_routing/storage.py:29](../python/fdmr_plugins/river_routing/storage.py#L29) | `HEAD_OFF_M` | `0.01` | m: below this velocity head the groyne fields' eddies do not exchange (van Mazijk 1996, p. 217) |
+| [python/fdmr_plugins/river_routing/storage.py:30](../python/fdmr_plugins/river_routing/storage.py#L30) | `HEAD_ON_M` | `0.02` | m: above this they exchange fully (van Mazijk 1996, p. 217) |
