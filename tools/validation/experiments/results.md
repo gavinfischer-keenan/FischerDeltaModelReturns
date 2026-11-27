@@ -170,7 +170,9 @@ False River's flow gauge reads only at the two ends of the window: 14–21 May, 
 - They do not test the spreading maths written here. Measured dye clouds test that (`tools/validation/rhine_dye`).
 
 **Standing misfits.** Each is now seen in two years, so none is a feature of one year:
-- Old River at the San Joaquin's net flow: −61 to −66 m³/s modelled against −14 to −16 measured, in 2015 and 2021, with or without the barrier.
-- Franks Tract to Bethel Island reading fresh with the barrier in, in 2015 and 2021. The model overstates the barrier's protection by about 200 µS/cm at Bethel Island.
-- The western marsh (Suisun Slough) reading 1.9–2.5 mS/cm fresh with the gates operating, in 2018 and 2023.
+- Old River at the San Joaquin's net flow: −61 to −66 m³/s modelled against −14 to −16 measured, in 2015 and 2021, with or without the barrier (#41).
+- Franks Tract to Bethel Island reading fresh with the barrier in, in 2015 and 2021. The model overstates the barrier's protection by about 200 µS/cm at Bethel Island (#42).
+- The western marsh (Suisun Slough) reading 1.9–2.5 mS/cm fresh with the gates operating, in 2018 and 2023 (#43).
+- The Sacramento River below Rio Vista reading 400–700 µS/cm salty, and Ryer Island about 1 mS/cm fresh, in 2018 and 2023 (#44, #45).
+- In October 2015 False River's flow gauge reads large flows while DWR's inputs have the barrier closed. This is not yet explained (#46).
 - All are recorded here, not tuned away: DWR's own inputs and grid are used unchanged.

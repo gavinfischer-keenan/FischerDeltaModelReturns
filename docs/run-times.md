@@ -20,6 +20,20 @@ What takes the time on the runner (CT 705), measured on 27 November 2026, to cho
 - **Delta cycle:** about 19.5 min of wall-clock time for 563 s of CPU, with a memory peak of 6.0 GB of the container's 8 GB.
 - **Nightly cycle:** about 19 min of wall-clock time for 578 s of CPU, with a memory peak of 3.9 GB.
 
+## Issues
+
+Each optimisation has its own issue:
+
+| Issue | What it covers |
+|---|---|
+| #34 | Fetch: pause per host, and fetch hosts side by side |
+| #35 | Publish: profile it, and skip reaches that have not changed |
+| #36 | Memory: the Delta cycle's 6.0 GB peak |
+| #37 | DSM2: run the QUAL and GTM runs side by side |
+| #38 | GTM sediment |
+| #39 | The experiments' hold on the cycle lock |
+| #40 | The Bay step and the nightly hindcast |
+
 ## What this says
 
 - **Fetching is the largest cost.** Its requests run one after another, and in the hourly cycle that is about 160 minutes a day of waiting. Running requests side by side, within each source's published rate limits, is the largest single saving, and it changes no maths.
