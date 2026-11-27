@@ -614,7 +614,10 @@ def main(argv: list[str] | None = None) -> int:
             assumed.append({"input": f"inflow sediment {f['name']} ({f['source']} {f['site']})", "how": h, "last_reading": last_reading(f)})
         outputs = [(c["output"], c["channel"], str(c["distance"])) for c in cfg.get("sediment_checks", [])]
         counts = sediment.write_study(run_dir, settings.mains[1], summary["env"], settings.tool, t0, water,
-                                      scfg["inflows"], scfg["scalars"], scfg["diameter_mm"], outputs)
+                                      scfg["inflows"], scfg["scalars"], scfg["diameter_mm"], outputs, scfg.get("constants"))
+        for name, v in (scfg.get("constants") or {}).items():
+            if counts.get(name):
+                assumed.append({"input": f"inflow sediment, {name}", "how": f"{counts[name]} inflows at a fixed {v:g} mg/L (dsm2.toml [sediment.constants])"})
         if counts.get("none"):
             assumed.append({"input": "inflow sediment, other inflows",
                             "how": f"{counts['none']} inflows (eastside streams, farm drains, treatment plants) bring no sediment: no live gauge"})

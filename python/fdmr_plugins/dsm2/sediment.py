@@ -59,11 +59,14 @@ def study_text(
     scalars: Mapping[str, object],
     diameter_mm: float,
     outputs: Sequence[tuple[str, int, str]],
+    constants: Mapping[str, float] | None = None,
 ) -> tuple[str, dict[str, int]]:
     """GTM's main file for the sediment run, and how many inflows each series
     took. `assign` maps a series name to inflow names (regular expressions), the
-    first match winning; the series "none" brings no sediment, and "*" takes
-    whatever no other pattern matches. `outputs` are (name, channel, distance ft)."""
+    first match winning; the series "none" brings no sediment, a series in
+    `constants` brings that fixed SSC (mg/L), and "*" takes whatever no other
+    pattern matches. `outputs` are (name, channel, distance ft)."""
+    constants = dict(constants or {})
     f = f"${{STUDYDIR}}/{DSS_FILE}"
     rules = [(name, re.compile(p)) for name, pats in assign.items() for p in pats if p != "*"]
     rules += [(name, re.compile(".*")) for name, pats in assign.items() if "*" in pats]
@@ -73,7 +76,8 @@ def study_text(
         if series is None:
             raise ValueError(f"no sediment concentration for inflow {flow}")
         counts[series] += 1
-        file, path = ("constant", "0") if series == "none" else (f, water_path(series))
+        file, path = (("constant", "0") if series == "none" else ("constant", f"{constants[series]:g}") if series in constants
+                      else (f, water_path(series)))
         if kind == "node":
             node_rows.append(f"{flow:24s} {where:>8s}  ssc   last  {file}  {path}")
         else:
@@ -162,6 +166,7 @@ def write_study(
     scalars: Mapping[str, object],
     diameter_mm: float,
     outputs: Sequence[tuple[str, int, str]],
+    constants: Mapping[str, float] | None = None,
 ) -> dict[str, int]:
     """Write the sediment run's main file and its inflow series (SSC, mg/L, on
     the 15-minute grid from t0) into a run folder beside the salinity study,
@@ -169,11 +174,11 @@ def write_study(
     d = dss.Dss(tool)
     out = str(run_dir / DSS_FILE)
     for name in assign:
-        if name == "none":
+        if name == "none" or name in (constants or {}):
             continue
         if name not in water:
             raise ValueError(f"no series for sediment {name}")
         d.write(out, water_path(name), t0, [dss.safe(v) for v in water[name]], "MG/L", "INST-VAL")
-    main, counts = study_text(inflows(run_dir / qual_main, env), assign, scalars, diameter_mm, outputs)
+    main, counts = study_text(inflows(run_dir / qual_main, env), assign, scalars, diameter_mm, outputs, constants)
     (run_dir / MAIN).write_text(main, encoding="utf-8")
     return counts

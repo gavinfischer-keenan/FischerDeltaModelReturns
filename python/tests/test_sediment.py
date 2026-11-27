@@ -42,3 +42,11 @@ def test_study_assigns_every_inflow_and_names_its_class():
 def test_an_inflow_nothing_assigns_is_refused():
     with pytest.raises(ValueError, match="no sediment concentration for inflow vernalis"):
         sediment.study_text(FLOWS, {"sac": ["sac"], "sea": ["mtz"], "none": ["dicu_.*"]}, {}, 0.019, [])
+
+
+def test_a_constant_series_brings_its_fixed_concentration():
+    main, counts = sediment.study_text(
+        FLOWS, {"sac": ["sac"], "sjr": ["vernalis"], "sea": ["mtz"], "drainage": ["dicu_.*"]},
+        {}, 0.019, [], constants={"drainage": 20.0})
+    assert counts["drainage"] == 2
+    assert "dicu_drain_1                    1  ssc   last  constant  20" in main

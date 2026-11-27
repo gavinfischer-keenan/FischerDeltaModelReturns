@@ -28,7 +28,7 @@ from pathlib import Path
 import fdmr_py
 from fdmr_adapters import cnrfc
 from fdmr_adapters.usgs import SOURCE, UsgsAdapter
-from fdmr_plugins.river_routing import channel, model
+from fdmr_plugins.river_routing import channel, form, model
 from fdmr_plugins.river_routing.centreline import Centreline
 from fdmr_plugins.river_routing.wave import regular
 from fdmr_store import Store
@@ -316,6 +316,8 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         "dims": 1,
         "elements": [{"start_m": round(e.start, 1), "end_m": round(e.end, 1), "width_m": w} for e, w in zip(els, widths)],
         "lines": element_lines(line, els),
+        # Each element's form from its line: turn, bending, sinuosity (#27).
+        "form": form.forms(line.point_at, [(e.start, e.end) for e in els]),
     }, separators=(",", ":")), encoding="utf-8")
 
     for name, d0, i0, i1 in river_days(t0, end, n):

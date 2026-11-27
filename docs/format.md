@@ -91,6 +91,8 @@ A river reach whose temperature is modelled also has `<day>.quality.fdf` per day
 
 `start_m` and `end_m` are distances along the reach (chainage). `width_m` (optional) is the element's water-surface width at its median flow over the published steps: a reader spreads flow particles across it, and seeds them evenly over the water's surface, as for a network. `lines` holds a short polyline per element, longitude and latitude, from its upstream end to its downstream end.
 
+`form` (optional; river reaches, issue #27): each element's shape from its line, sampled every 100 m, as lists in element order: `turn_deg`, the net change of heading over the element, degrees, positive to the left; `abs_turn_deg`, the sum of its absolute changes of heading (its bending, however it alternates); and `sinuosity`, its length along the line over the straight distance between its ends. For matching maths modifiers for a kind of place to every place of that kind.
+
 ### Network geometry (1D, version 1.1)
 
 A channel network, such as a tidal delta, is many short channels meeting at junctions. Each element is one channel:
