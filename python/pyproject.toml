@@ -1,6 +1,6 @@
 [project]
 name = "fdmr"
-version = "0.1.0"
+version = "0.5.0"
 description = "Fischer Delta Model Returns: model runner, model-kind plug-ins, data adapters and local data store"
 requires-python = ">=3.11"
 license = { text = "PolyForm-Noncommercial-1.0.0" }

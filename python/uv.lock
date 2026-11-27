@@ -17,7 +17,7 @@ wheels = [
 
 [[package]]
 name = "fdmr"
-version = "0.1.0"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "h5py" },

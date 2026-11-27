@@ -1,6 +1,6 @@
 [project]
 name = "fdmr-py"
-version = "0.1.0"
+version = "0.5.0"
 description = "Python bindings to the Fischer Delta Model Returns math library"
 requires-python = ">=3.11"
 
