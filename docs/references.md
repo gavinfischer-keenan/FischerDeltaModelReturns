@@ -321,7 +321,7 @@ Checked: The reprint's publisher page, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/registry.py:64`: "Chow 1959, Open-Channel Hydraulics, chapters 5-6 (ref:chow1959); each region's width, slope and roughness "
-- `python/fdmr_plugins/river_routing/channel.py:133`: (wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,
+- `python/fdmr_plugins/river_routing/channel.py:147`: (wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,
 - `python/fdmr_plugins/river_routing/model.py:26`: WAVE_TO_WATER = 1.5  # a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, ref:chow1959); refitted nightly per segment
 - `regions/sf-bay-delta/canals.toml:76`: 1959, Open-Channel Hydraulics, Table 5-6, ref:chow1959), and the canal's grade of 3 inches
 
@@ -389,9 +389,9 @@ Used in:
 - `docs/maths.md:23`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
 - `python/fdmr_plugins/registry.py:82`: "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
 - `python/fdmr_plugins/registry.py:87`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
-- `python/fdmr_runner/publish.py:144`: ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
-- `python/fdmr_runner/publish.py:149`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
-- `python/fdmr_runner/publish.py:216`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
+- `python/fdmr_runner/publish.py:147`: ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
+- `python/fdmr_runner/publish.py:152`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
+- `python/fdmr_runner/publish.py:221`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
 
 ## fischer1979
 
@@ -543,7 +543,7 @@ Used in:
 
 - `python/fdmr_plugins/registry.py:57`: "evidence threshold Kass and Raftery 1995 (ref:kassraftery1995), adopted on held-out measurements "
 - `python/fdmr_plugins/river_routing/channel.py:14`: ref:kassraftery1995), on the pooled log residuals of area and width. Empirical
-- `python/fdmr_plugins/river_routing/channel.py:66`: HINGE_MIN_BIC = 10.0  # "very strong" evidence for the hinged fit (Kass and Raftery 1995, ref:kassraftery1995)
+- `python/fdmr_plugins/river_routing/channel.py:80`: HINGE_MIN_BIC = 10.0  # "very strong" evidence for the hinged fit (Kass and Raftery 1995, ref:kassraftery1995)
 - `tools/validation/channel_hinge/README.md:3`: `fdmr_plugins.river_routing.channel.fit` gives a gauge's cross-section area and top width against flow as a power law. Where the field measurements show two regimes, such as a channel spilling onto it
 
 ## kelly2007

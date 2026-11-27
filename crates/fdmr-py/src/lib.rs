@@ -101,6 +101,34 @@ fn fischer_k(velocity: f64, width: f64, depth: f64, shear_velocity: f64) -> f64 
     dispersion::fischer_k(velocity, width, depth, shear_velocity)
 }
 
+/// `shear_velocity` for every depth at once (one slope), m/s.
+#[pyfunction]
+fn shear_velocities(depths: Vec<f64>, slope: f64) -> Vec<f64> {
+    depths
+        .iter()
+        .map(|&d| dispersion::shear_velocity(d, slope))
+        .collect()
+}
+
+/// `fischer_k` for every step at once, m²/s: the four lists the same length.
+#[pyfunction]
+fn fischer_ks(
+    velocity: Vec<f64>,
+    width: Vec<f64>,
+    depth: Vec<f64>,
+    shear_velocity: Vec<f64>,
+) -> PyResult<Vec<f64>> {
+    let n = velocity.len();
+    if width.len() != n || depth.len() != n || shear_velocity.len() != n {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "velocity, width, depth and shear_velocity must be the same length",
+        ));
+    }
+    Ok((0..n)
+        .map(|i| dispersion::fischer_k(velocity[i], width[i], depth[i], shear_velocity[i]))
+        .collect())
+}
+
 /// How far below a release Fischer's dispersion holds, m (Fischer 1966, eq. 57, t/T > 6).
 #[pyfunction]
 fn fickian_distance(velocity: f64, length: f64, hydraulic_radius: f64, shear_velocity: f64) -> f64 {
@@ -198,6 +226,8 @@ fn practical_salinity(specific_conductance: Vec<f64>) -> Vec<f64> {
 fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(shear_velocity, m)?)?;
     m.add_function(wrap_pyfunction!(fischer_k, m)?)?;
+    m.add_function(wrap_pyfunction!(shear_velocities, m)?)?;
+    m.add_function(wrap_pyfunction!(fischer_ks, m)?)?;
     m.add_function(wrap_pyfunction!(fickian_distance, m)?)?;
     m.add_function(wrap_pyfunction!(change_of_moment_k, m)?)?;
     m.add_function(wrap_pyfunction!(fit_power_law, m)?)?;

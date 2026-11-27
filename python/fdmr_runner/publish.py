@@ -129,15 +129,18 @@ def shape_at(records, x: float):
 def dispersion_field(field, records, slopes):
     """Fischer's longitudinal dispersion for every element and step, m2/s
     (specification section 7.1): K = 0.011 U^2 W^2 / (d u*), u* = sqrt(g d S).
-    A reach with no gauge pair to give a slope takes the default."""
-    out = [[0.0] * len(field.elements) for _ in range(field.steps)]
+    A reach with no gauge pair to give a slope takes the default. Each
+    element's steps are worked out together (#35), by the same maths."""
+    import numpy as np
+
+    flow, vel = np.asarray(field.flow, dtype=float), np.asarray(field.velocity, dtype=float)
+    out = np.zeros((field.steps, len(field.elements)))
     for e, el in enumerate(field.elements):
         k, shape = shape_at(records, el.mid)
         slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
-        for i in range(field.steps):
-            q = field.flow[i][e]
-            d, w, u = shape.depth(q), shape.width(q), field.velocity[i][e]
-            out[i][e] = fdmr_py.fischer_k(u, w, d, fdmr_py.shear_velocity(d, slope))
+        q = flow[:, e]
+        d, w = shape.depth(q), shape.width(q)
+        out[:, e] = fdmr_py.fischer_ks(vel[:, e].tolist(), w.tolist(), d.tolist(), fdmr_py.shear_velocities(d.tolist(), slope))
     return out
 
 
@@ -150,13 +153,15 @@ def lateral_field(field, records, slopes):
     depth and slope as the dispersion coefficient. With the element's width it
     sets how fast a parcel wanders across the channel (the engine's shear
     spreading, issue #29)."""
-    out = [[0.0] * len(field.elements) for _ in range(field.steps)]
+    import numpy as np
+
+    flow = np.asarray(field.flow, dtype=float)
+    out = np.zeros((field.steps, len(field.elements)))
     for e, el in enumerate(field.elements):
         k, shape = shape_at(records, el.mid)
         slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
-        for i in range(field.steps):
-            d = shape.depth(max(field.flow[i][e], 1e-3))
-            out[i][e] = ELDER_LATERAL * d * fdmr_py.shear_velocity(d, slope)
+        d = shape.depth(np.maximum(flow[:, e], 1e-3))
+        out[:, e] = ELDER_LATERAL * d * np.asarray(fdmr_py.shear_velocities(d.tolist(), slope))
     return out
 
 
@@ -469,16 +474,21 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         "form": form.forms(line.point_at, [(e.start, e.end) for e in els]),
     }, separators=(",", ":")), encoding="utf-8")
 
+    import numpy as np
+
+    # Each field as one array, read a day at a time below (#35).
+    arrays = {id(m): np.asarray(m, dtype=float) for m in (field.flow, field.area, field.velocity, dispersion, lateral, storage)
+              if m is not None}
+    lengths = np.array([e.length for e in els])
     for name, d0, i0, i1 in river_days(t0, end, n):
-        rows = range(i0, i1)
-        flat = lambda m: [float(m[i][e]) for i in rows for e in range(len(els))]  # noqa: E731
+        flat = lambda m: arrays[id(m)][i0:i1].ravel().tolist()  # noqa: E731  (step by step, every element)
         fdmr_py.write_field_file(
             str(cdir / reach / f"{name}.fdf"), reach, 1, len(els), 1, i1 - i0, d0, STEP,
             [
                 ("flow", "m3/s", True, flat(field.flow)),
                 ("area", "m2", True, flat(field.area)),
                 ("velocity", "m/s", True, flat(field.velocity)),
-                ("volume", "m3", True, [float(field.area[i][e] * els[e].length) for i in rows for e in range(len(els))]),
+                ("volume", "m3", True, (arrays[id(field.area)][i0:i1] * lengths).ravel().tolist()),
                 ("dispersion", "m2/s", True, flat(dispersion)),
                 *([("lateral_mixing", "m2/s", True, flat(lateral))] if lateral is not None else []),
                 *([("storage_ratio", "1", True, flat(storage))] if storage is not None else []),

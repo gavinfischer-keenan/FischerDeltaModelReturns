@@ -45,12 +45,26 @@ class ChannelShape:
     area_b2: float = 0.0
     width_b2: float = 0.0
 
-    def area(self, q: float) -> float:
+    def area(self, q):
+        """Cross-section area, m2, at flow q (m3/s): a number, or an array of flows."""
+        if not isinstance(q, (float, int)) and np.ndim(q):  # an array of flows (a plain number is the common, quick case)
+            q = np.asarray(q, dtype=float)
+            if self.q_break > 0:
+                return np.where(q > self.q_break, self.area_a * self.q_break**self.area_b * (q / self.q_break) ** self.area_b2,
+                                self.area_a * q**self.area_b)
+            return self.area_a * q**self.area_b
         if self.q_break > 0 and q > self.q_break:
             return self.area_a * self.q_break**self.area_b * (q / self.q_break) ** self.area_b2
         return self.area_a * q**self.area_b
 
-    def width(self, q: float) -> float:
+    def width(self, q):
+        """Water-surface width, m, at flow q (m3/s): a number, or an array of flows."""
+        if not isinstance(q, (float, int)) and np.ndim(q):  # an array of flows (a plain number is the common, quick case)
+            q = np.asarray(q, dtype=float)
+            if self.q_break > 0:
+                return np.where(q > self.q_break, self.width_a * self.q_break**self.width_b * (q / self.q_break) ** self.width_b2,
+                                self.width_a * q**self.width_b)
+            return self.width_a * q**self.width_b
         if self.q_break > 0 and q > self.q_break:
             return self.width_a * self.q_break**self.width_b * (q / self.q_break) ** self.width_b2
         return self.width_a * q**self.width_b
@@ -154,10 +168,14 @@ class Blend:
     down: "ChannelShape | Blend"
     f: float
 
-    def area(self, q: float) -> float:
+    def area(self, q):
+        if not isinstance(q, (float, int)) and np.ndim(q):  # an array of flows (a plain number is the common, quick case)
+            return np.exp(np.log(self.up.area(q)) * (1 - self.f) + np.log(self.down.area(q)) * self.f)
         return math.exp(math.log(self.up.area(q)) * (1 - self.f) + math.log(self.down.area(q)) * self.f)
 
-    def width(self, q: float) -> float:
+    def width(self, q):
+        if not isinstance(q, (float, int)) and np.ndim(q):  # an array of flows (a plain number is the common, quick case)
+            return np.exp(np.log(self.up.width(q)) * (1 - self.f) + np.log(self.down.width(q)) * self.f)
         return math.exp(math.log(self.up.width(q)) * (1 - self.f) + math.log(self.down.width(q)) * self.f)
 
     def depth(self, q: float) -> float:

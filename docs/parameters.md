@@ -300,7 +300,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/publish.py:41](../python/fdmr_runner/publish.py#L41) | `STALE_REACH_S` | `13 * 3600` | a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice) |
 | [python/fdmr_runner/publish.py:42](../python/fdmr_runner/publish.py#L42) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/publish.py:68](../python/fdmr_runner/publish.py#L68) | `DEFAULT_SLOPE` | `3e-4` | a typical lowland river, used only where no gauge pair gives one |
-| [python/fdmr_runner/publish.py:144](../python/fdmr_runner/publish.py#L144) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
+| [python/fdmr_runner/publish.py:147](../python/fdmr_runner/publish.py#L147) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
 | [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/soil.py:33](../python/fdmr_runner/soil.py#L33) | `POINT_SPACING_M` | `2_000.0` | centreline points kept for a corridor: far closer than its 9 km cells |
 | [python/fdmr_runner/trial.py:39](../python/fdmr_runner/trial.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
@@ -321,8 +321,8 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/river_routing/calibration.py:30](../python/fdmr_plugins/river_routing/calibration.py#L30) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/river_routing/calibration.py:32](../python/fdmr_plugins/river_routing/calibration.py#L32) | `MAX_SPREAD` | `0.4` | the middle half of the events must lie within this fraction of their median |
 | [python/fdmr_plugins/river_routing/centreline.py:15](../python/fdmr_plugins/river_routing/centreline.py#L15) | `EARTH_RADIUS_M` | `6_371_008.8` | m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, [moritz2000grs80](references.md#moritz2000grs80)) |
-| [python/fdmr_plugins/river_routing/channel.py:65](../python/fdmr_plugins/river_routing/channel.py#L65) | `HINGE_MIN_SIDE` | `5` | measurements needed on each side of a break (FDMR's choice) |
-| [python/fdmr_plugins/river_routing/channel.py:66](../python/fdmr_plugins/river_routing/channel.py#L66) | `HINGE_MIN_BIC` | `10.0` | "very strong" evidence for the hinged fit (Kass and Raftery 1995, [kassraftery1995](references.md#kassraftery1995)) |
+| [python/fdmr_plugins/river_routing/channel.py:79](../python/fdmr_plugins/river_routing/channel.py#L79) | `HINGE_MIN_SIDE` | `5` | measurements needed on each side of a break (FDMR's choice) |
+| [python/fdmr_plugins/river_routing/channel.py:80](../python/fdmr_plugins/river_routing/channel.py#L80) | `HINGE_MIN_BIC` | `10.0` | "very strong" evidence for the hinged fit (Kass and Raftery 1995, [kassraftery1995](references.md#kassraftery1995)) |
 | [python/fdmr_plugins/river_routing/heat.py:35](../python/fdmr_plugins/river_routing/heat.py#L35) | `SIGMA` | `5.670374e-8` | W/m2/K4 |
 | [python/fdmr_plugins/river_routing/heat.py:36](../python/fdmr_plugins/river_routing/heat.py#L36) | `RHO_CP` | `1000.0 * 4186.0` | J/m3/K |
 | [python/fdmr_plugins/river_routing/heat.py:38](../python/fdmr_plugins/river_routing/heat.py#L38) | `ALBEDO` | `0.06` | share of sunlight the water reflects, about 6 % (Chapra 1997, Lecture 30, [chapra1997](references.md#chapra1997)) |
