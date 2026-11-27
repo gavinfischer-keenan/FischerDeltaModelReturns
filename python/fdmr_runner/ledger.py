@@ -49,25 +49,56 @@ MODEL_NEAR_KM = 1.0  # km: a station is compared with a reach it stands within t
 BIG_KEYS = ("certainty", "lines")  # index.json arrays too large to keep with every cycle
 
 SCHEMA = """
-CREATE TABLE IF NOT EXISTS cycles (cycle INTEGER PRIMARY KEY, recorded INTEGER NOT NULL, made TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'live');
+CREATE TABLE IF NOT EXISTS cycles (
+    cycle INTEGER NOT NULL, kind TEXT NOT NULL DEFAULT 'live', recorded INTEGER NOT NULL, made TEXT NOT NULL,
+    PRIMARY KEY (cycle, kind));
 CREATE TABLE IF NOT EXISTS points (
     id INTEGER PRIMARY KEY, reach TEXT NOT NULL, source TEXT NOT NULL, site TEXT NOT NULL,
     parameter TEXT NOT NULL, field TEXT NOT NULL, element INTEGER NOT NULL, name TEXT,
     UNIQUE (reach, source, site, parameter, field, element));
 CREATE TABLE IF NOT EXISTS predictions (
-    cycle INTEGER NOT NULL, point INTEGER NOT NULL, t INTEGER NOT NULL, value REAL NOT NULL,
-    PRIMARY KEY (cycle, point, t)) WITHOUT ROWID;
+    cycle INTEGER NOT NULL, kind TEXT NOT NULL DEFAULT 'live', point INTEGER NOT NULL, t INTEGER NOT NULL, value REAL NOT NULL,
+    PRIMARY KEY (cycle, kind, point, t)) WITHOUT ROWID;
 """
+# A cycle is keyed by its time and its kind, so a hindcast made as of a past
+# time never replaces the live cycle kept at that same time (#54).
 
 
 def connect(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(str(path))
     db.executescript(SCHEMA)
-    if "kind" not in [r[1] for r in db.execute("PRAGMA table_info(cycles)")]:  # a ledger from before hindcasts
-        db.execute("ALTER TABLE cycles ADD COLUMN kind TEXT NOT NULL DEFAULT 'live'")
-        db.commit()
+    _migrate(db)
     return db
+
+
+def _migrate(db: sqlite3.Connection) -> None:
+    """Bring a ledger from before #54 (cycles keyed by time alone) to the
+    schema above, keeping everything in it: each prediction takes its cycle's kind."""
+    cols = lambda t: [r[1] for r in db.execute(f"PRAGMA table_info({t})")]  # noqa: E731
+    if "kind" not in cols("cycles"):  # a ledger from before hindcasts
+        db.execute("ALTER TABLE cycles ADD COLUMN kind TEXT NOT NULL DEFAULT 'live'")
+    if "kind" in cols("predictions"):
+        db.commit()
+        return
+    db.commit()
+    db.executescript("""
+        BEGIN;
+        CREATE TABLE predictions_k (
+            cycle INTEGER NOT NULL, kind TEXT NOT NULL DEFAULT 'live', point INTEGER NOT NULL, t INTEGER NOT NULL, value REAL NOT NULL,
+            PRIMARY KEY (cycle, kind, point, t)) WITHOUT ROWID;
+        INSERT INTO predictions_k SELECT p.cycle, COALESCE(c.kind, 'live'), p.point, p.t, p.value
+            FROM predictions p LEFT JOIN cycles c ON c.cycle = p.cycle;
+        DROP TABLE predictions;
+        ALTER TABLE predictions_k RENAME TO predictions;
+        CREATE TABLE cycles_k (
+            cycle INTEGER NOT NULL, kind TEXT NOT NULL DEFAULT 'live', recorded INTEGER NOT NULL, made TEXT NOT NULL,
+            PRIMARY KEY (cycle, kind));
+        INSERT INTO cycles_k SELECT cycle, kind, recorded, made FROM cycles;
+        DROP TABLE cycles;
+        ALTER TABLE cycles_k RENAME TO cycles;
+        COMMIT;
+    """)
 
 
 def stamp(t: str | int) -> int:
@@ -213,10 +244,10 @@ def record(db: sqlite3.Connection, region_dir: Path, cdir: Path, index: dict, st
             continue
         vals = at_times(*got, ts)
         for col, i in enumerate(members):
-            rows += [(now, ids[i], int(t), float(v)) for t, v in zip(ts, vals[:, col]) if np.isfinite(v)]
-    db.execute("INSERT OR REPLACE INTO cycles (cycle, recorded, made, kind) VALUES (?,?,?,?)",
-               (now, int(time.time()), zlib.compress(json.dumps(made_of(index), separators=(",", ":")).encode()).hex(), kind))
-    db.executemany("INSERT OR REPLACE INTO predictions VALUES (?,?,?,?)", rows)
+            rows += [(now, kind, ids[i], int(t), float(v)) for t, v in zip(ts, vals[:, col]) if np.isfinite(v)]
+    db.execute("INSERT OR REPLACE INTO cycles (cycle, kind, recorded, made) VALUES (?,?,?,?)",
+               (now, kind, int(time.time()), zlib.compress(json.dumps(made_of(index), separators=(",", ":")).encode()).hex()))
+    db.executemany("INSERT OR REPLACE INTO predictions (cycle, kind, point, t, value) VALUES (?,?,?,?,?)", rows)
     db.commit()
     return len(rows)
 
@@ -252,10 +283,9 @@ def score(db: sqlite3.Connection, store: Store, now: int, days: int = WINDOW_DAY
     t_from = now - days * 86_400
     by_group: dict[tuple, list] = {}
     per_point = []
-    kinds = dict(db.execute("SELECT cycle, kind FROM cycles").fetchall())
     for pid, reach, source, site, parameter, name in db.execute(
             "SELECT id, reach, source, site, parameter, name FROM points ORDER BY reach, name").fetchall():
-        preds = db.execute("SELECT cycle, t, value FROM predictions WHERE point=? AND t>=? AND t<=?", (pid, t_from, now)).fetchall()
+        preds = db.execute("SELECT cycle, kind, t, value FROM predictions WHERE point=? AND t>=? AND t<=?", (pid, t_from, now)).fetchall()
         if not preds:
             continue
         vs = [(v.t, v.value) for v in store.values(source, site, parameter, t_from - 30 * 86_400, now + MATCH_S) if v.value is not None]
@@ -264,7 +294,7 @@ def score(db: sqlite3.Connection, store: Store, now: int, days: int = WINDOW_DAY
         mt = np.array([t for t, _ in vs])
         mv = np.array([v for _, v in vs])
         bands: dict[tuple[str, str], list] = {}
-        for cycle, t, value in preds:
+        for cycle, kind, t, value in preds:
             j = int(np.searchsorted(mt, t))
             cand = [k for k in (j - 1, j) if 0 <= k < len(mt)]
             k = min(cand, key=lambda k: abs(mt[k] - t))
@@ -272,7 +302,6 @@ def score(db: sqlite3.Connection, store: Store, now: int, days: int = WINDOW_DAY
             if abs(mt[k] - t) <= MATCH_S and band:
                 c = int(np.searchsorted(mt, cycle, side="right")) - 1  # persistence: the last reading at the cycle's time
                 persist = float(mv[k]) - float(mv[c]) if c >= 0 and cycle - mt[c] <= 6 * 3600 else None
-                kind = kinds.get(cycle, "live")
                 bands.setdefault((kind, band), []).append((float(mv[k]) - value, persist))
                 by_group.setdefault((kind, reach, parameter, band), []).append((float(mv[k]) - value, persist))
         if bands:
