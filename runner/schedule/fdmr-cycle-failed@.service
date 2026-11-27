@@ -1,0 +1,13 @@
+# When a cycle's unit fails (runner/schedule/fdmr-cycle@.service: a timeout,
+# a crash, or a failed step), record it beside the published cycles, for
+# check.html (fdmr_runner.cycle_runs, #55). A failed step is already recorded
+# by cycle.sh itself; this covers the cycle that systemd had to end.
+[Unit]
+Description=FDMR model runner cycle failed (%i)
+
+[Service]
+Type=oneshot
+User=fdmr
+Group=fdmr
+WorkingDirectory=/home/fdmr/fdmr/python
+ExecStart=/home/fdmr/venv/bin/python -m fdmr_runner.cycle_runs /srv/fdmr-data/publish/cycle-runs.json %i 0 unit-failed

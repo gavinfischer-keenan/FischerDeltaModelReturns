@@ -829,6 +829,7 @@ def main(argv: list[str] | None = None) -> int:
     hours = gather(cfg, work, layout, coarse, now, latest, args.days or cfg.get("days_back", 14))
     print(f"gathered in {time.time() - t:.0f} s", flush=True)
     extras: dict = {}
+    problems: list[dict] = []  # what failed in this run, published with it (#55)
     if args.delta and (Path(args.delta) / "geometry" / "delta.json").exists() and hours:
         try:
             ov = overlap(coarse, edges, hours, Path(args.delta).resolve(), cfg["reach"], now)
@@ -839,6 +840,7 @@ def main(argv: list[str] | None = None) -> int:
                 extras["outflow_checks"] = outflow_checks(cfg, Path(args.delta).resolve(), jn, args.store, now)
         except Exception as e:
             print(f"overlap FAILED {e}", flush=True)
+            problems.append({"step": "overlap", "error": str(e)[:300]})
     if args.store and "extension" in cfg and hours:
         try:
             fit = refit(cfg, work, args.store, now)
@@ -850,6 +852,7 @@ def main(argv: list[str] | None = None) -> int:
                                                     Path(args.delta).resolve() if args.delta else None, coarse, edges)}
         except Exception as e:  # without the extension the Bay still has NOAA's 48 hours
             print(f"extension FAILED {e}", flush=True)
+            problems.append({"step": "extension", "error": str(e)[:300]})
     assumed: list[dict] = [{"input": "NOAA's own forecast of the mesh", "how": "used as NOAA gives it, to its 48th hour"}]
     if any(isinstance(p, dict) for p in hours.values()):
         extras["extension_from"] = datetime.fromtimestamp(min(t for t, p in hours.items() if isinstance(p, dict)), timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
@@ -859,12 +862,14 @@ def main(argv: list[str] | None = None) -> int:
             hours, extras["outflow_correction"] = correct_outflow(coarse, edges, hours, Path(args.delta).resolve(), cfg["reach"])
         except Exception as e:  # uncorrected, the Bay still has NOAA's own currents
             print(f"outflow correction FAILED {e}", flush=True)
+            problems.append({"step": "outflow correction", "error": str(e)[:300]})
     if args.store and "quality" in cfg and hours:
         assumed.append({"input": "the Bay's salinity and temperature correction", "how": "each station's misfit spread along the water; past the last measured day, held at each station's mean misfit over its last three days"})
         try:
             hours, extras["quality_correction"] = correct_quality(cfg, coarse, hours, args.store)
         except Exception as e:  # uncorrected, the Bay keeps NOAA's own salinity and temperature
             print(f"quality correction FAILED {e}", flush=True)
+            problems.append({"step": "quality correction", "error": str(e)[:300]})
     if delta_dir is not None and hours:
         try:
             hours = {tt: (p if isinstance(p, dict) else dict(np.load(p))) for tt, p in hours.items()}
@@ -872,13 +877,17 @@ def main(argv: list[str] | None = None) -> int:
                                                   ("salinity", "temperature"), cfg.get("join", {}).get("seam_m", 2000.0))
         except Exception as e:  # the mesh keeps its own values at the join
             print(f"quality seam FAILED {e}", flush=True)
+            problems.append({"step": "quality seam", "error": str(e)[:300]})
     if hours and cfg.get("currents_check"):
         try:
             extras["currents_check"] = currents_check(cfg, coarse, hours, now)
             print(f"currents check: {extras['currents_check']}", flush=True)
         except Exception as e:  # a check; the currents are published whatever it says
             print(f"currents check FAILED {e}", flush=True)
+            problems.append({"step": "currents check", "error": str(e)[:300]})
     extras["assumptions"] = assumed
+    if problems:
+        extras["problems"] = problems
     if args.publish:
         pub = publish(cfg, region_dir, coarse, edges, hours, now, latest, Path(args.publish), extras=extras)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())

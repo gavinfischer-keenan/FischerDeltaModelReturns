@@ -1,7 +1,10 @@
-# One model-runner cycle: `hourly` or `nightly` (runner/schedule/cycle.sh).
-# Low priority on top of the container's own limits: Electric Eel comes first.
+# One model-runner cycle: `hourly`, `delta` or `nightly` (runner/schedule/cycle.sh).
+# Low priority on top of the container's own limits: the host's other work comes first.
+# A cycle systemd has to end (a timeout, a crash) is recorded for check.html
+# by fdmr-cycle-failed@.service (#55).
 [Unit]
 Description=FDMR model runner cycle (%i)
+OnFailure=fdmr-cycle-failed@%i.service
 Wants=network-online.target
 After=network-online.target
 

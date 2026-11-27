@@ -38,12 +38,13 @@ from .region import load_region
 
 DAY = 86_400
 KEEP_LOGS = 120  # nightly review logs kept: the last 120 nights
+TAIL_LINES = 60  # each step's last lines of output kept in the log: enough for every check's result (FDMR's choice)
 
 
 def run(cmd: list[str], log: list[dict], what: str) -> bool:
     t0 = time.time()
     p = subprocess.run(cmd, capture_output=True, text=True)
-    tail = (p.stdout + p.stderr).strip().splitlines()[-6:]
+    tail = (p.stdout + p.stderr).strip().splitlines()[-TAIL_LINES:]
     log.append({"step": what, "ok": p.returncode == 0, "seconds": round(time.time() - t0), "tail": tail})
     print(f"{what}: {'ok' if p.returncode == 0 else 'FAILED'} in {time.time() - t0:.0f} s", flush=True)
     return p.returncode == 0

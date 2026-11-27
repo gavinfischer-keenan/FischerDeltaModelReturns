@@ -99,3 +99,33 @@ def test_the_same_now_published_again_never_writes_over_the_live_cycle(cycle, tm
     assert os.readlink(out / "current") == second.name
     assert {f: f.stat().st_mtime_ns for f in first.rglob("*") if f.is_file()} == before
     assert not list(out.glob(".building-*"))
+
+
+def test_a_cycle_says_what_failed_and_is_degraded(cycle, tmp_path):
+    """A reach that should be linked in and is not, and a failed step before
+    publish, are reported, and the cycle's status says so (#55)."""
+    now, out, first = cycle
+    assert json.loads((first / "index.json").read_text(encoding="utf-8"))["status"] == "ok"
+    store_dir = tmp_path / "store"
+    (store_dir / "cycle-steps-test-colorado.json").write_text(
+        json.dumps([{"step": "fetch", "ok": True, "seconds": 3}, {"step": "dsm2", "ok": False, "seconds": 9}]), encoding="utf-8")
+    cdir = publish.publish(REGION, Store(store_dir / "fdmr.sqlite"), out, days=2, datums={}, ahead=2,
+                           extra_reaches=[tmp_path / "no-such-reach"])
+    index = json.loads((cdir / "index.json").read_text(encoding="utf-8"))
+    assert index["status"] == "degraded"
+    steps = [p["step"] for p in index["problems"]]
+    assert any("no-such-reach" in s for s in steps) and "dsm2" in steps
+    assert index["cycle_steps"][1] == {"step": "dsm2", "ok": False, "seconds": 9}
+
+
+def test_each_modes_last_run_is_kept_and_systemd_does_not_overwrite_a_fresh_record(tmp_path):
+    from fdmr_runner import cycle_runs
+
+    f = tmp_path / "cycle-runs.json"
+    cycle_runs.record(f, "hourly", 1000, "0", now=1600)
+    cycle_runs.record(f, "delta", 2000, "1", now=3000)
+    runs = cycle_runs.record(f, "delta", 0, "unit-failed", now=3050)  # cycle.sh recorded it a moment ago
+    assert runs["delta"]["status"] == "a step failed" and runs["hourly"]["status"] == "ok"
+    runs = cycle_runs.record(f, "nightly", 0, "unit-failed", now=9000)  # nothing recorded: systemd ended it
+    assert runs["nightly"]["status"] == "ended by systemd (timeout or crash)"
+    assert json.loads(f.read_text(encoding="utf-8")) == runs

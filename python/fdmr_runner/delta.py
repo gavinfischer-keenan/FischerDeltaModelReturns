@@ -414,7 +414,7 @@ def _compare(c: dict, model: list[float | None], meas: list[float | None]) -> di
 
 def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, out_root: Path, keep: int = 3,
                 net_checks: list[dict] | None = None, assumptions: list[dict] | None = None,
-                sediment_checks: list[dict] | None = None) -> Path:
+                sediment_checks: list[dict] | None = None, problems: list[dict] | None = None) -> Path:
     """Publish a finished run as a network reach (docs/format.md): geometry,
     daily field files from 14 days before now to the end of the forecast, and
     the reach's entry for index.json. Points out_root/latest at it."""
@@ -480,6 +480,8 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         **({"sediment_checks": sediment_checks} if sediment_checks else {}),
         # How each input was carried past its last reading (#22).
         **({"assumptions": assumptions} if assumptions else {}),
+        # What failed in this run (#55): the cycle that links it in reports it.
+        **({"problems": problems} if problems else {}),
     }
     (pub / "reach.json").write_text(json.dumps(entry, separators=(",", ":")), encoding="utf-8")
     tmp = out_root / ".latest.tmp"
@@ -531,6 +533,7 @@ def main(argv: list[str] | None = None) -> int:
     n = (end + DAY - t0) // STEP + 1
     live: list[study.LiveSeries | study.LiveSetting] = []
     assumed: list[dict] = []  # how each input was carried past its last reading (index.json `assumptions`)
+    problems: list[dict] = []  # what failed in this run, published with it (#55)
 
     def last_reading(f: dict) -> int | None:
         x = store.latest(f["source"], f["site"], f["parameter"])
@@ -628,6 +631,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"gtm (sediment: {', '.join(f'{g} {k} inflows' for g, k in counts.items())}): {secs:.0f} s")
         except RuntimeError as e:
             print(f"gtm (sediment) FAILED: {e}", flush=True)
+            problems.append({"step": "GTM sediment run", "error": str(e)[:300]})
     kinds = [(c, "flow") for c in cfg.get("checks", [])]
     if len(settings.mains) > 1:
         kinds += [(c, "ec") for c in cfg.get("ec_checks", [])]
@@ -635,30 +639,31 @@ def main(argv: list[str] | None = None) -> int:
         kinds += [(c, "ssc") for c in cfg.get("sediment_checks", []) if (run_dir / "output" / "gtm_sed.h5").exists()]
     sediment_checks = []
     for c, kind in kinds:
-        try:
+        try:  # one check's failure, any part of it, does not stop the run
             r = check(store, run_dir, cfg, c, start + 7 * DAY, now // STEP * STEP, kind)
-        except Exception as e:  # one check's failure does not stop the run
+            print("past    ", json.dumps(r))
+            if kind == "ssc":
+                r14 = check(store, run_dir, cfg, c, today - 14 * DAY, now // STEP * STEP, kind)
+                sediment_checks.append({**r14, "site": f"{c['source']} {c['site']}", "channel": c["channel"],
+                                        "relation": c["relation"]["area"], "unit": "mg/L"})
+            if hindcast:
+                print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP, kind)))
+        except Exception as e:
             print(f"check {c['name']} ({kind}) FAILED {e}", flush=True)
-            continue
-        print("past    ", json.dumps(r))
-        if kind == "ssc":
-            r14 = check(store, run_dir, cfg, c, today - 14 * DAY, now // STEP * STEP, kind)
-            sediment_checks.append({**r14, "site": f"{c['source']} {c['site']}", "channel": c["channel"],
-                                    "relation": c["relation"]["area"], "unit": "mg/L"})
-        if hindcast:
-            print("forecast", json.dumps(check(store, run_dir, cfg, c, now // STEP * STEP, min(end, int(time.time())) // STEP * STEP, kind)))
+            problems.append({"step": f"check {c['name']} ({kind})", "error": str(e)[:300]})
     nets = []
     for c in cfg.get("net_checks", []):
         try:
             nets.append(net_check(store, run_dir, c, today - 14 * DAY, today))
         except Exception as e:  # one check's failure does not stop the run
             print(f"net check {c['name']} FAILED {e}", flush=True)
+            problems.append({"step": f"net check {c['name']}", "error": str(e)[:300]})
     for r in nets:
         print("net     ", json.dumps(r))
     store.close()
     if args.publish:  # a hindcast publishes too, wherever it is told (fdmr_runner.nightly)
         pub = publish_run(run_dir, cfg, region_dir, now // STEP * STEP, end, Path(args.publish), net_checks=nets, assumptions=assumed,
-                          sediment_checks=sediment_checks)
+                          sediment_checks=sediment_checks, problems=problems)
         size = sum(p.stat().st_size for p in pub.rglob("*") if p.is_file())
         print(f"published {pub} ({size / 1e6:.1f} MB)")
         prune_runs(Path(args.work))

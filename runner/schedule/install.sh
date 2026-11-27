@@ -4,7 +4,7 @@
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
 chmod 755 "$HERE/cycle.sh"
-for u in fdmr-cycle@.service fdmr-hourly.timer fdmr-nightly.timer fdmr-delta.timer fdmr-dev-server.service; do
+for u in fdmr-cycle@.service fdmr-cycle-failed@.service fdmr-hourly.timer fdmr-nightly.timer fdmr-delta.timer fdmr-dev-server.service; do
   install -m 644 "$HERE/$u" /etc/systemd/system/$u
 done
 systemctl daemon-reload

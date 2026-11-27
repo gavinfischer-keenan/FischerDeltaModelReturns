@@ -58,6 +58,21 @@ async function get(name) {
   const skill = index.skill ? await get(index.skill) : null;
   let h = `<p>Region <b>${esc(index.region)}</b>, cycle <b>${esc(index.cycle)}</b>, status ${esc(index.status)}, newest data by source: ${esc(Object.entries(index.data_age_s || {}).map(([k, s]) => `${k} ${Math.round(s / 60)} min old`).join(", "))}. Files: <a href="${base}index.json">index.json</a> · <a href="${base}overlays.json">overlays.json</a> · <a href="${base}skill.json">skill.json</a></p>`;
 
+  // What failed or was left out this cycle, and how each step went (#55).
+  if (index.problems && index.problems.length) {
+    h += `<p><b>This cycle is degraded:</b> ${fmt(index.problems.length)} problem${index.problems.length > 1 ? "s" : ""}.</p>` + table(index.problems);
+  }
+  if (index.cycle_steps) h += `<p>Steps before this publish (cycle.sh):</p>` + table(index.cycle_steps);
+  if (index.reach_age_s) {
+    h += `<p>Reaches published on their own schedule, last run: ${esc(Object.entries(index.reach_age_s).map(([k, s]) => `${k} ${Math.round(s / 360) / 10} h ago`).join(", "))}.</p>`;
+  }
+  const runs = await get("../../cycle-runs.json");  // data/cycle-runs.json, beside every region
+  if (runs) {
+    h += `<p>Each kind of cycle's last run:</p>` + table(Object.entries(runs).map(([mode, r]) => ({ cycle: mode, status: r.status,
+      finished: r.finished ? new Date(r.finished * 1000).toISOString().slice(0, 16) + "Z" : "",
+      minutes: r.started && r.finished ? Math.round((r.finished - r.started) / 60) : "" })));
+  }
+
   const fsx = index.fetch_status;
   if (fsx) {
     h += `<p>Last fetch: ${fmt(fsx.attempts)} fetches, <b>${fmt(fsx.failures)} failed</b>, finished ${new Date(fsx.finished * 1000).toISOString().slice(0, 16)}Z.</p>`;

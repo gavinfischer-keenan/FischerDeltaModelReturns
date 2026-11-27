@@ -38,12 +38,18 @@ from . import forecast
 from .region import load_region
 
 STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
+STALE_REACH_S = 13 * 3600  # a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice)
 DAY = 86_400
 BLEND_S = DAY  # the gap between forecast and measurement at now closes over a day
 
 
 def utc(t: float, fmt: str = "%Y-%m-%dT%H:%MZ") -> str:
     return datetime.fromtimestamp(t, timezone.utc).strftime(fmt)
+
+
+def stamp(t: str) -> int:
+    """A published time ("2026-11-26T17:45Z") as UTC seconds."""
+    return int(datetime.strptime(t, "%Y-%m-%dT%H:%MZ").replace(tzinfo=timezone.utc).timestamp())
 
 
 def element_lines(line: Centreline, elements: list[model.Element], max_points: int = 16) -> list[list[list[float]]]:
@@ -314,7 +320,8 @@ def river_days(t0: int, end: int, n: int) -> list[tuple[str, int, int, int]]:
 
 def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str, t0: int, now: int, end: int,
                   ahead: int, datums: dict | None, calibration: dict | None,
-                  weather_cache: dict | None = None, done: dict | None = None, hindcast: bool = False) -> tuple[dict, list[int]]:
+                  weather_cache: dict | None = None, done: dict | None = None, hindcast: bool = False,
+                  problems: list[dict] | None = None) -> tuple[dict, list[int]]:
     """One river-routing reach's geometry and day files in `cdir`: its index entry,
     and the issue times of the river forecasts it used. `done` holds each reach
     already published, with its outflow and its water's temperature there, for
@@ -417,6 +424,8 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
             assumed.append({"input": "weather (nearest airport's)", "how": "Weather Service forecast joined over a day, then its last day again; air pressure held at its 25 h mean"})
     except Exception as e:  # noqa: BLE001 - the flow is published whatever happens to the temperature
         print(f"{reach}: temperature FAILED {e}", flush=True)
+        if problems is not None:
+            problems.append({"step": f"{reach} temperature", "error": str(e)[:300]})
     if done is not None:
         import numpy as np
 
@@ -744,14 +753,18 @@ def publish(
 
     weather_cache: dict = {}
     done: dict = {}
+    # Everything that failed or was left out this cycle (#55): published in
+    # index.json, and the cycle's status is "degraded" if there is any.
+    problems: list[dict] = []
     for rid in sorted([reach, *others], key=hops, reverse=True):  # upstream reaches first
         try:
             entry, issued = publish_river(region_dir, region, store, cdir, rid, t0, now, end, ahead, datums, calibration,
-                                          weather_cache, done, hindcast=hindcast)
+                                          weather_cache, done, hindcast=hindcast, problems=problems)
         except Exception as e:  # noqa: BLE001
             if rid == reach:
                 raise
             print(f"{rid}: FAILED {e}", flush=True)
+            problems.append({"step": f"{rid} (left out of this cycle)", "error": str(e)[:300]})
             continue
         entries.append(entry)
         fetched += issued
@@ -775,8 +788,19 @@ def publish(
         "reaches": entries,
         "status": "ok",
     }
+    reach_age: dict[str, int] = {}
     for extra in extra_reaches or []:
+        if not (extra / "reach.json").exists():
+            problems.append({"step": f"linked reach {extra}", "error": "not published: no reach.json there"})
+            continue
         add_reach(cdir, extra, index)
+        linked = index["reaches"][-1]
+        reach_age[linked["id"]] = age = int(time.time()) - stamp(linked["now"])
+        if age > STALE_REACH_S and not hindcast:
+            problems.append({"step": f"linked reach {linked['id']}", "error": f"last run {age // 3600} h ago"})
+        problems += [{"step": f"{linked['id']} {p['step']}", "error": p["error"]} for p in linked.get("problems", [])]
+    if reach_age:
+        index["reach_age_s"] = reach_age  # how old each reach published on its own schedule is
     # The maths each reach ran, from the register (fdmr_plugins.registry, #10):
     # a region's unknown choice stops the cycle rather than being swapped.
     from fdmr_plugins import registry
@@ -825,6 +849,7 @@ def publish(
         pass
     except Exception as e:  # the water is published whatever happens to its overlays
         print(f"overlays FAILED {e}", flush=True)
+        problems.append({"step": "overlays", "error": str(e)[:300]})
     # The sturgeon forecast (fdmr_runner.fishing, issue #19): the region's
     # published-evidence rules applied to this cycle's water.
     if not hindcast:
@@ -837,6 +862,7 @@ def publish(
                 index["fishing"] = "fishing.json"
         except Exception as e:  # the water is published whatever happens to its forecast
             print(f"fishing FAILED {e}", flush=True)
+            problems.append({"step": "fishing forecast", "error": str(e)[:300]})
         # The bloom forecast (fdmr_runner.blooms, issue #28), likewise.
         try:
             from . import blooms
@@ -847,10 +873,20 @@ def publish(
                 index["blooms"] = "blooms.json"
         except Exception as e:  # the water is published whatever happens to its forecast
             print(f"blooms FAILED {e}", flush=True)
+            problems.append({"step": "bloom forecast", "error": str(e)[:300]})
     # The last fetch's own account of what it could not get (fdmr_runner.fetch).
     fs = store.path.parent / f"fetch-status-{index['region']}.json" if store.path.name != ":memory:" else None
     if fs and fs.exists():
         index["fetch_status"] = json.loads(fs.read_text(encoding="utf-8"))
+    # The cycle's own steps before this one, as cycle.sh recorded them (runner/schedule).
+    cs = store.path.parent / f"cycle-steps-{index['region']}.json" if store.path.name != ":memory:" else None
+    if cs and cs.exists() and not hindcast:
+        try:
+            steps = json.loads(cs.read_text(encoding="utf-8"))
+            index["cycle_steps"] = steps
+            problems += [{"step": s["step"], "error": "failed"} for s in steps if not s.get("ok")]
+        except ValueError as e:
+            problems.append({"step": "cycle steps", "error": f"unreadable: {e}"})
     # The prediction ledger (fdmr_runner.ledger): this cycle's predictions kept
     # when due, and every kept prediction scored against what was measured.
     if store.path.name != ":memory:" and not hindcast:
@@ -863,6 +899,10 @@ def publish(
             print(f"ledger: kept {skill['kept_this_cycle']} values; {skill['cycles']} cycles scored", flush=True)
         except Exception as e:  # a record; the water is published whatever happens to it
             print(f"ledger FAILED {e}", flush=True)
+            problems.append({"step": "prediction ledger", "error": str(e)[:300]})
+    if problems:
+        index["problems"] = problems
+        index["status"] = "degraded"
     (cdir / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
 
     final, k = out_dir / cycle, 1
@@ -924,7 +964,7 @@ def main(argv: list[str] | None = None) -> int:
     datums = held_datums(region, store)
     cal_path = Path(args.calibration) if args.calibration else None
     calibration = json.loads(cal_path.read_text(encoding="utf-8")) if cal_path and cal_path.exists() else None
-    extra = [Path(p) for p in args.with_reach if (Path(p) / "reach.json").exists()]
+    extra = [Path(p) for p in args.with_reach]  # one not there is a problem the cycle reports (#55)
     cdir = publish(Path(args.region), store, out, args.days, datums=datums, ahead=args.ahead,
                    calibration=calibration, extra_reaches=extra,
                    as_of=int(datetime.fromisoformat(args.as_of).replace(tzinfo=timezone.utc).timestamp()) if args.as_of else None)
