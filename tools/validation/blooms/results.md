@@ -22,3 +22,23 @@
 - Below 5 psu (287 samples): median cells 4,310/mL, microcystin detected in 46%.
 
 Fewer cells at higher salinity, but on few samples.
+
+# The rules against the surveys' visual index, 2007–2021 (27 Nov 2026)
+
+**Data.** Bashevkin et al. (2023), EDI edi.539.4, `environment.csv` (ref:bashevkin2023; MD5 checked).
+
+**Samples.** 7,523 samples rated for *Microcystis* (1 absent to 5 very high), each with surface temperature and salinity. They come from five surveys (DOP, FMWT, FRP, STN, YBFMP), on 1,051 days. Run `check_539.py`. Intervals are 95%, from 2000 bootstrap resamples of sampling days.
+
+| Class | n | Present (2+) | Medium or more (3+) | High or more (4+) |
+|---|---|---|---|---|
+| Unlikely | 3,588 | 0.196 [0.173, 0.219] | 0.049 [0.037, 0.061] | 0.015 [0.010, 0.021] |
+| Possible | 3,716 | 0.416 [0.380, 0.452] | 0.171 [0.147, 0.197] | 0.066 [0.052, 0.081] |
+| Likely | 219 | 0.662 [0.578, 0.741] | 0.402 [0.301, 0.495] | 0.196 [0.119, 0.280] |
+
+**Classes.** Each step up multiplies the chance of a medium or worse bloom by about 3 and 2, with no overlap between the intervals.
+
+**The salinity mask, in warm water (≥ 19 °C):**
+- Below 5 psu (3,935 samples): present 0.430, medium or more 0.184.
+- At or above 5 psu (1,265 samples): present 0.334, medium or more 0.096.
+
+So the mask halves blooms but does not remove them. Blooms are carried seaward from fresher water.

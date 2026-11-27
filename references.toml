@@ -874,3 +874,13 @@ in = "Environmental Data Initiative; package edi.1076.1; Creative Commons Attrib
 doi = "10.6073/pasta/b4e180cb925266171285375a3e202635"
 note = "424 samples July-November 2014-2019 with Microcystis cells (qPCR), colony biovolume, microcystin, water temperature and salinity; used to check the bloom forecast's rules (tools/validation/blooms)."
 checked = "The data table's MD5 against the EML's authentication value; the package's EML read, 27 Nov 2026"
+
+[bashevkin2023]
+authors = "Bashevkin, S. M., Hartman, R., Thomas, M., Barros, A., Burdi, C. E., Hennessy, A., Tempel, T., Kayfetz, K., Alstad, K., and Pien, C."
+year = 2023
+title = "Interagency Ecological Program: Zooplankton abundance in the Upper San Francisco Estuary from 1972-2021, an integration of 7 long-term monitoring programs, ver 4"
+kind = "data"
+in = "Environmental Data Initiative; package edi.539.4; Creative Commons Attribution (CC BY 4.0)"
+doi = "10.6073/pasta/8b646dfbeb625e308212a39f1e46f69b"
+note = "environment.csv: 7,523 samples 2007-2021 with a visual Microcystis rating (1-5), surface temperature and salinity; used to check the bloom forecast's rules (tools/validation/blooms)."
+checked = "The table's MD5 against the EML's authentication value; the package's EML read, 27 Nov 2026"

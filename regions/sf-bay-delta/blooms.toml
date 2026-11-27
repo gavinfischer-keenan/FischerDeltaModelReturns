@@ -27,8 +27,11 @@
 # 74,700 for unlikely, possible and likely) and microcystin detection (12%,
 # 45%, 56%), but not mere presence (cells in over 80% of samples in every
 # class). In warm water, samples at or above 5 psu held about 5 times fewer
-# cells (12 samples). The daily forecast itself is not scored: no live bloom
-# measurements exist in the Delta's channels.
+# cells (12 samples). Against the surveys' visual index 2007-2021 (Bashevkin
+# et al. 2023, ref:bashevkin2023; 7,523 samples): a medium or worse bloom in
+# 4.9%, 17.1% and 40.2% of samples classed unlikely, possible and likely; in
+# warm water at or above 5 psu, 9.6% against 18.4% below. The daily forecast
+# itself is not scored: no live bloom measurements exist in the Delta's channels.
 
 reaches = ["delta"]
 

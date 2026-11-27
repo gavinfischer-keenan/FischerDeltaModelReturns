@@ -32,6 +32,19 @@ Used in:
 - `python/fdmr_plugins/registry.py:74`: "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
 - `python/fdmr_plugins/river_routing/heat.py:18`: the surface is FAO-56's clear-sky radiation (Allen et al. 1998, ref:allen1998fao56, Crop
 
+## bashevkin2023
+
+Bashevkin, S. M., Hartman, R., Thomas, M., Barros, A., Burdi, C. E., Hennessy, A., Tempel, T., Kayfetz, K., Alstad, K., and Pien, C. (2023). Interagency Ecological Program: Zooplankton abundance in the Upper San Francisco Estuary from 1972-2021, an integration of 7 long-term monitoring programs, ver 4. Environmental Data Initiative; package edi.539.4; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/8b646dfbeb625e308212a39f1e46f69b
+
+*environment.csv: 7,523 samples 2007-2021 with a visual Microcystis rating (1-5), surface temperature and salinity; used to check the bloom forecast's rules (tools/validation/blooms).*
+
+Checked: The table's MD5 against the EML's authentication value; the package's EML read, 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/blooms.toml:31`: et al. 2023, ref:bashevkin2023; 7,523 samples): a medium or worse bloom in
+- `tools/validation/blooms/results.md:28`: Data.** Bashevkin et al. (2023), EDI edi.539.4, `environment.csv` (ref:bashevkin2023; MD5 checked).
+
 ## bergsutula2015
 
 Berg, M., and Sutula, M. (2015). Factors Affecting the Growth of Cyanobacteria with Special Emphasis on the Sacramento-San Joaquin Delta. Southern California Coastal Water Research Project, Technical Report 869; prepared for the Central Valley Regional Water Quality Control Board and the State Water Resources Control Board; August 2015. https://amarine.com/documents/factors-affecting-the-growth-of-cyanobacteria-with-special-emphasis-on-the-sacramento-san-joaquin-delta/
@@ -42,7 +55,7 @@ Checked: The report read (Table 5.1 and section 5), 27 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/blooms.toml:38`: ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:
+- `regions/sf-bay-delta/blooms.toml:41`: ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:
 
 ## boumagregson2024
 
@@ -509,7 +522,7 @@ Checked: Crossref record of the DOI; the paper read for FDMR (pp. 93-94), 27 Nov
 
 Used in:
 
-- `regions/sf-bay-delta/blooms.toml:46`: ref:lehman2005, pp. 93-94); salinity sets how far seaward blooms reach, not
+- `regions/sf-bay-delta/blooms.toml:49`: ref:lehman2005, pp. 93-94); salinity sets how far seaward blooms reach, not
 
 ## leopold1953
 
