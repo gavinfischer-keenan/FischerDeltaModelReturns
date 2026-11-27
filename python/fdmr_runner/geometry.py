@@ -1,5 +1,7 @@
 """Build a region's river geometry from a river network, once: the USGS's
-(NLDI) in the United States, OpenStreetMap's elsewhere (a reach's `line`).
+(NLDI) in the United States, OpenStreetMap's or Rijkswaterstaat's elsewhere,
+or NHD's named flowlines where NLDI's network does not follow the water (a
+reach's `line`: source osm, pdok or nhd).
 
     python -m fdmr_runner.geometry REGION_DIR [--reach river] [--extra-km 2]
 
@@ -240,6 +242,21 @@ def main(argv: list[str] | None = None) -> int:
             out["bridged_gaps"] = [{"lon": x, "lat": y, "m": d} for x, y, d in bridges]
         out["river_km_check"] = river_km_check(out, load_region(args.region).gauges_for(args.reach),
                                                pdok.km_markers(tuple(ln.get("bbox", (3.0, 50.5, 7.5, 53.5)))))
+    elif cfg.get("line", {}).get("source") == "nhd":
+        # Where NLDI's network does not follow the water (a floodway's low
+        # channel): NHD's flowlines by name, joined and walked.
+        from fdmr_adapters import nhd
+
+        ln = cfg["line"]
+        rel = next(g for g in load_region(args.region).gauges_for(args.reach) if g.role == "release")
+        start = tuple(ln.get("start", (rel.lon, rel.lat)))
+        bridges = []
+        coords = nhd.line_between(nhd.flowlines(ln["names"], tuple(ln["bbox"])), start, tuple(ln["end"]),
+                                  join_m=ln.get("join_m", 25.0), bridges=bridges)
+        out = build_from_line(Path(args.region), args.reach, coords, f"NHD flowlines {', '.join(ln['names'])}; {nhd.ATTRIBUTION}",
+                              max_snap_m=ln.get("max_snap_m", MAX_SNAP_M))
+        if bridges:
+            out["bridged_gaps"] = [{"lon": x, "lat": y, "m": d} for x, y, d in bridges]
     else:
         out = build(Path(args.region), args.reach, args.extra_km, NldiAdapter())
     path = Path(args.region) / f"{args.reach}.json"

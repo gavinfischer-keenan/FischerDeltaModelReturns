@@ -36,8 +36,11 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                        "Specification 7.1; lag-and-route as in standard hydrological routing texts (e.g. Chow, Maidment and Mays 1988, Applied Hydrology, ch. 8; ref:chow1988)",
                        "fdmr_plugins.river_routing.model, crates/fdmr-math routing.rs")],
         "channel": [Maths("power-law-hydraulic-geometry",
-                          "Cross-section area and top width as power laws of flow, fitted to each gauge's recent USGS channel measurements",
-                          "Leopold and Maddock 1953, USGS Professional Paper 252 (hydraulic geometry; ref:leopold1953)",
+                          "Cross-section area and top width as power laws of flow, fitted to each gauge's recent USGS channel measurements; "
+                          "a hinged power law (two regimes joined at a break flow) where the measurements show one by more than 10 in BIC",
+                          "Leopold and Maddock 1953, USGS Professional Paper 252 (hydraulic geometry; ref:leopold1953); the hinge's "
+                          "evidence threshold Kass and Raftery 1995 (ref:kassraftery1995), adopted on held-out measurements "
+                          "(empirical, FDMR: tools/validation/channel_hinge)",
                           "fdmr_plugins.river_routing.channel"),
                     Maths("wide-channel-uniform-flow",
                           "Where no field measurements are published: a main channel of sourced width, water-surface slope and "

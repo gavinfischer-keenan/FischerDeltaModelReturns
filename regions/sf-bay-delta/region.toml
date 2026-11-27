@@ -133,10 +133,31 @@ certainty = { solid_days = 5, floor = 0.2 }
 id = "cache"
 name = "Cache Creek, Clear Lake to Yolo"
 kind = "river-routing"
-# Ends past the Yolo gauge, above the Cache Creek Settling Basin: the Yolo
-# Bypass it drains into is not modelled yet, so its water stops there. The
-# bypass's flow reaches the Delta model as DSM2's measured inflows "yolo"
-# (USGS Yolo Bypass near Woodland) and "yolo_toe" (Lisbon) (issue #15).
+# Ends past the Yolo gauge, above the Cache Creek Settling Basin, whose outlet
+# drains into the Yolo Bypass just above the Woodland gauge: its water is
+# handed on to the bypass reach there (issue #15).
+certainty = { solid_days = 5, floor = 0.2 }
+
+[[reaches]]
+id = "yolo"
+name = "Yolo Bypass, Woodland to Lisbon"
+kind = "river-routing"
+# The bypass's low channel, Tule Canal into the toe drain, as NHD maps them
+# (NLDI's network does not follow the bypass: issue #15), from the USGS gauge
+# near Woodland, just below Cache Creek's settling basin, to Lisbon, DSM2 node
+# 710, where DSM2's own toe drain channel begins (DWR's grid, FC.2023.01).
+# Its flow is the Woodland gauge's, all of the bypass's flow at that point,
+# Fremont Weir's spill and Cache Creek's among it. No gauge below measures
+# the whole bypass (Lisbon's is the toe drain alone), so the reach has one
+# gauge, and the Sacramento Weir's spill, which joins below Woodland in
+# large floods, is not added. In a flood most of the water crosses the
+# floodplain to Liberty Island, where DSM2 takes it (its inflow "yolo", node
+# 316); handed to DSM2 here at Lisbon, a flood's water follows the toe drain
+# instead and reaches Cache Slough later than the real flood. The channel's
+# shape is fitted from Woodland's field measurements, the floodplain as its
+# hinged regime (fdmr_plugins.river_routing.channel).
+line = { source = "nhd", names = ["Tule Canal", "Toe Drain"], end = [-121.58872, 38.47485], bbox = [-121.75, 38.40, -121.55, 38.80] }
+mouth = [-121.58872, 38.47485]   # DSM2 node 710, the toe drain at Lisbon
 certainty = { solid_days = 5, floor = 0.2 }
 
 [[handoffs]]
@@ -145,6 +166,18 @@ to = "delta"
 at = "Sacramento River inflow to DSM2"
 node = 330   # DSM2's junction where the Sacramento enters, at Freeport (its boundary flow "sac")
 source = "sac"   # the water-source group (dsm2.toml [fingerprint]) the river's water belongs to
+
+[[handoffs]]
+from = "yolo"
+to = "delta"
+at = "the toe drain at Lisbon, where DSM2's toe drain channel begins"
+node = 710
+source = "sac"
+
+[[handoffs]]
+from = "cache"
+to = "yolo"
+at = "the Cache Creek Settling Basin's outlet, above Woodland"
 
 [[handoffs]]
 from = "delta"
@@ -578,6 +611,14 @@ site = "11452500"
 name = "Cache C at Yolo"
 role = "main"
 forecast = { source = "cnrfc", group = "CachePutah", point = "YLOC1" }
+
+[[gauges]]
+reach = "yolo"
+site = "11453000"
+name = "Yolo Bypass near Woodland"
+role = "release"   # the reach's top: no dam, no forecast (River Forecast Center forecasts Fremont Weir and Lisbon, not Woodland)
+lon = -121.6440924   # USGS's position, 27 m from NHD's Tule Canal
+lat = 38.6776572
 
 # Tracer stations: sensors that record a natural tracer but not flow, used to
 # calibrate how fast the water moves (specification 9.1). CDEC station ids and

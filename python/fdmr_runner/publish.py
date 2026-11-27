@@ -297,7 +297,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
             records.append(model.GaugeRecord(chainage[g.site], shape, flow))
             continue
         if fc is None:
-            how = "held at its last value" + (" (a dam's release: no schedule is published)" if g.role == "release" and not g.channel
+            how = "held at its last value" + (" (the reach's top: no forecast or release schedule is published for it)" if g.role == "release" and not g.channel
                                               else " (no forecast is published for this gauge)" if g.channel else "")
         else:
             who = "Rijkswaterstaat's forecast" if g.forecast.get("source") == "rws" else f"River Forecast Center {g.forecast['point']}"
@@ -474,9 +474,9 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
     q = np.array(field.flow, dtype=float)
     a = np.array(field.area, dtype=float)
     u = np.array(field.velocity, dtype=float)
-    wa = np.array([shape_at(records, e.mid)[1].width_a for e in els])
-    wb = np.array([shape_at(records, e.mid)[1].width_b for e in els])
-    depth = a / np.clip(wa * np.clip(q, 1e-3, None) ** wb, 1.0, None)
+    shapes = [shape_at(records, e.mid)[1] for e in els]
+    width = np.array([[shapes[j].width(max(float(q[i, j]), 1e-3)) for j in range(len(els))] for i in range(q.shape[0])])
+    depth = a / np.clip(width, 1.0, None)
 
     # Stations on the reach that measure water temperature (region.toml [[stations]]).
     stations, names = [], []

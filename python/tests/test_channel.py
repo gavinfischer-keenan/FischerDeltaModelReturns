@@ -54,3 +54,41 @@ def test_wide_channel_is_uniform_flow_in_a_fixed_width():
     dm = (300 * 0.03 / (100.0 * math.sqrt(2e-4))) ** 0.6  # Q = (1/n) W d^(5/3) S^0.5
     assert math.isclose(m.depth(300.0), dm, rel_tol=1e-9)
     assert math.isclose(m.velocity(300.0), 300.0 / (100.0 * dm), rel_tol=1e-9)
+
+
+def floodplain(n=40, qb=300.0, noise=0.03):
+    """A channel 40 m wide that spills onto a floodplain above `qb`: width
+    grows fast above it. Small deterministic scatter, as real measurements."""
+    out = []
+    for i in range(n):
+        q = 10.0 * 1.15**i
+        a = 3.0 * q**0.6 if q <= qb else 3.0 * qb**0.6 * (q / qb) ** 1.3
+        w = 40.0 * q**0.1 if q <= qb else 40.0 * qb**0.1 * (q / qb) ** 1.8
+        e = noise * (1 if i % 2 else -1)
+        out.append(ChannelMeasurement(t=i, flow=q, area=a * (1 + e), width=w * (1 - e), velocity=None))
+    return out
+
+
+def test_a_floodplain_is_fitted_with_a_hinge():
+    s = channel.fit(floodplain())
+    assert s.q_break > 0
+    assert 200 < s.q_break < 450
+    assert s.area_b == pytest.approx(0.6, abs=0.1) and s.area_b2 == pytest.approx(1.3, abs=0.15)
+    assert s.width_b2 > 1.2
+    # continuous at the break, and the floodplain flow is slow, not extrapolated fast
+    qb = s.q_break
+    assert s.area(qb * 0.9999) == pytest.approx(s.area(qb * 1.0001), rel=1e-3)
+    assert s.velocity(3000.0) < channel.fit(floodplain()[:15]).velocity(3000.0)
+
+
+def test_one_regime_stays_a_single_power_law():
+    assert channel.fit(synthetic(n=30)).q_break == 0.0
+
+
+def test_between_a_hinged_and_a_plain_shape_blends_log_area():
+    up = channel.fit(floodplain())
+    down = channel.ChannelShape(8.0, 0.6, 40.0, 0.25, 1.0, 1.0, 20)
+    mid = channel.between(up, down, 0.5)
+    q = 1000.0
+    assert mid.area(q) == pytest.approx((up.area(q) * down.area(q)) ** 0.5)
+    assert channel.between(up, down, 0.0) is up and channel.between(up, down, 1.0) is down

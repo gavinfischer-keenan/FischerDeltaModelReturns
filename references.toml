@@ -814,3 +814,13 @@ in = "Journal of Geodesy 74(1), 128-133"
 doi = "10.1007/s001900050278"
 note = "The GRS 80 ellipsoid's derived constants, among them the mean Earth radius R1 = 6 371 008.7714 m."
 checked = "Crossref record of the DOI, 27 Nov 2026"
+
+[kassraftery1995]
+authors = "Kass, R. E., and Raftery, A. E."
+year = 1995
+title = "Bayes Factors"
+kind = "paper"
+in = "Journal of the American Statistical Association 90(430), 773-795"
+doi = "10.1080/01621459.1995.10476572"
+note = "Their scale of evidence: twice the log Bayes factor (which a difference in the Bayesian information criterion approximates) above 10 is very strong evidence."
+checked = "Crossref record of the DOI, 27 Nov 2026"
