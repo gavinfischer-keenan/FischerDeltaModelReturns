@@ -656,7 +656,8 @@ parameter = "water_temperature"
 # whose Delta model is the closest published to this one:
 #   settling velocity ws        0.25 mm/s   (their sensitivity range 0.15-0.38)
 #   critical shear for erosion  0.25 Pa     (range 0.125-0.5; the parameter
-#                                            their results were most sensitive to)
+#                                            their results were most sensitive to;
+#                                            replaced below by the Delta's own cores)
 #   erosion rate M              1e-4 kg/m2/s (range 2.5e-5 to 1e-2; least sensitive),
 #                               in Partheniades' form (ref:partheniades1965)
 #   deposition at any shear stress (their section 2.1), and a bed that starts
@@ -666,21 +667,46 @@ parameter = "water_temperature"
 # sqrt(18 nu ws / ((s - 1) g)) = 0.019 mm, so GTM's own sums agree.
 [sediment]
 diameter_mm = 0.019
-scalars = { ero_coef = 0.0001, sed_settling = 0.00025, sed_tau_erosion = 0.25, sed_deposit_always = true, sed_bed_initial = 0.0 }
+
+[sediment.scalars]
+# Achete et al.'s erosion rate M, kg/m2/s (above).
+ero_coef = 0.0001
+# Achete et al.'s settling velocity ws, m/s (above).
+sed_settling = 0.00025
+# The bed's critical shear stress for erosion: 0.13 Pa, the mean of
+# Schoellhamer et al.'s erosion-chamber cores in the Delta's own bed
+# (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
+# in upper Cache Slough, 10 cores; (15 x 0.14 + 10 x 0.11) / 25 = 0.128), in
+# place of Achete et al.'s 0.25 Pa (calibrated for the whole Bay-Delta).
+# Checked 27 Nov 2026 over 14 days against all five sediment checks below:
+# better at every one (#24).
+sed_tau_erosion = 0.13
+# Achete et al.'s deposition at any shear stress (above).
+sed_deposit_always = true
+# A bare bed at the start, kg/m2 (Achete et al., above).
+sed_bed_initial = 0.0
 
 # Each inflow's sediment concentration, by DSM2's own names. The Sacramento
 # brings about 85% of the Delta's sediment and the San Joaquin 13% (Wright and
 # Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section
 # 2.2). The Yolo
 # Bypass takes the Sacramento's: its flood water is the Sacramento's, over the
-# Fremont and Sacramento weirs, and it has no live sediment gauge. The eastside
-# streams, farm drains and treatment plants, the rest, have none either and
+# Fremont and Sacramento weirs, and it has no live sediment gauge. The Delta
+# islands' drainage returns bring a constant 20 mg/L, DWR's own figure for its
+# DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov
+# 2026 with the 0.13 Pa above, better again at all five checks (#24). The
+# eastside streams and treatment plants, the rest, have no live gauge and
 # bring none here ("none").
 [sediment.inflows]
 sac = ["sac", "yolo", "yolo_toe"]
 sjr = ["vernalis"]
 sea = ["mtz"]
+drainage = ["dicu_drain_.*", "bc_150", "bc_151"]
 none = ["*"]
+
+[sediment.constants]
+# DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above).
+drainage = 20
 
 # Where each series comes from. Turbidity becomes SSC through Achete et al.'s
 # relation for that part of the Delta (section 4.5), log10(SSC) =

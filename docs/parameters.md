@@ -108,28 +108,29 @@ Every number the model is set with: in each region's settings and among the mode
 | [535](../regions/sf-bay-delta/dsm2.toml#L535) | `temperature.scalars`<br>`dust_attcoeff` | `0.06` |  |
 | [536](../regions/sf-bay-delta/dsm2.toml#L536) | `temperature.scalars`<br>`evapcoeff_a` | `0.00068` |  |
 | [537](../regions/sf-bay-delta/dsm2.toml#L537) | `temperature.scalars`<br>`evapcoeff_b` | `0.00027` |  |
-| | **`sediment`** | | Suspended sediment (issue #16): DSM2's General Transport Model on HYDRO's flows (fdmr_plugins.dsm2.sediment, runner/dsm2/gtm-sediment.patch). One class of mud, with the calibrated values of Achete, van der Wegen, Roelvink and Jaffe (2015, [achete2015](references.md#achete2015), section 3.1 and table 1), whose Delta model is the closest published to this one: settling velocity ws        0.25 mm/s   (their sensitivity range 0.15-0.38) critical shear for erosion  0.25 Pa     (range 0.125-0.5; the parameter their results were most sensitive to) erosion rate M              1e-4 kg/m2/s (range 2.5e-5 to 1e-2; least sensitive), in Partheniades' form ([partheniades1965](references.md#partheniades1965)) deposition at any shear stress (their section 2.1), and a bed that starts bare (their section 3.4: mud laid everywhere at the start takes years to rework). GTM's grain size only enters through its formulas the settings replace; it is the Stokes diameter of that settling velocity in 10 degC water, sqrt(18 nu ws / ((s - 1) g)) = 0.019 mm, so GTM's own sums agree. |
-| [668](../regions/sf-bay-delta/dsm2.toml#L668) | `sediment`<br>`diameter_mm` | `0.019` |  |
-| [669](../regions/sf-bay-delta/dsm2.toml#L669) | `sediment`<br>`scalars.ero_coef` | `0.0001` |  |
-| [669](../regions/sf-bay-delta/dsm2.toml#L669) | `sediment`<br>`scalars.sed_settling` | `0.00025` |  |
-| [669](../regions/sf-bay-delta/dsm2.toml#L669) | `sediment`<br>`scalars.sed_tau_erosion` | `0.25` |  |
-| [669](../regions/sf-bay-delta/dsm2.toml#L669) | `sediment`<br>`scalars.sed_bed_initial` | `0.0` |  |
+| | **`sediment`** | | Suspended sediment (issue #16): DSM2's General Transport Model on HYDRO's flows (fdmr_plugins.dsm2.sediment, runner/dsm2/gtm-sediment.patch). One class of mud, with the calibrated values of Achete, van der Wegen, Roelvink and Jaffe (2015, [achete2015](references.md#achete2015), section 3.1 and table 1), whose Delta model is the closest published to this one: settling velocity ws        0.25 mm/s   (their sensitivity range 0.15-0.38) critical shear for erosion  0.25 Pa     (range 0.125-0.5; the parameter their results were most sensitive to; replaced below by the Delta's own cores) erosion rate M              1e-4 kg/m2/s (range 2.5e-5 to 1e-2; least sensitive), in Partheniades' form ([partheniades1965](references.md#partheniades1965)) deposition at any shear stress (their section 2.1), and a bed that starts bare (their section 3.4: mud laid everywhere at the start takes years to rework). GTM's grain size only enters through its formulas the settings replace; it is the Stokes diameter of that settling velocity in 10 degC water, sqrt(18 nu ws / ((s - 1) g)) = 0.019 mm, so GTM's own sums agree. |
+| [669](../regions/sf-bay-delta/dsm2.toml#L669) | `sediment`<br>`diameter_mm` | `0.019` |  |
+| [673](../regions/sf-bay-delta/dsm2.toml#L673) | `sediment.scalars`<br>`ero_coef` | `0.0001` | Achete et al.'s erosion rate M, kg/m2/s (above). |
+| [675](../regions/sf-bay-delta/dsm2.toml#L675) | `sediment.scalars`<br>`sed_settling` | `0.00025` | Achete et al.'s settling velocity ws, m/s (above). |
+| [683](../regions/sf-bay-delta/dsm2.toml#L683) | `sediment.scalars`<br>`sed_tau_erosion` | `0.13` | The bed's critical shear stress for erosion: 0.13 Pa, the mean of Schoellhamer et al.'s erosion-chamber cores in the Delta's own bed ([schoellhamer2017](references.md#schoellhamer2017), Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa in upper Cache Slough, 10 cores; (15 x 0.14 + 10 x 0.11) / 25 = 0.128), in place of Achete et al.'s 0.25 Pa (calibrated for the whole Bay-Delta). Checked 27 Nov 2026 over 14 days against all five sediment checks below: better at every one (#24). |
+| [687](../regions/sf-bay-delta/dsm2.toml#L687) | `sediment.scalars`<br>`sed_bed_initial` | `0.0` | A bare bed at the start, kg/m2 (Achete et al., above). |
+| [709](../regions/sf-bay-delta/dsm2.toml#L709) | `sediment.constants`<br>`drainage` | `20` | DWR's 20 mg/L in the islands' drainage returns ([dwr2019ar](references.md#dwr2019ar), chapter 4; above). |
 | | **`sediment.water[1]`** | | Where each series comes from. Turbidity becomes SSC through Achete et al.'s relation for that part of the Delta (section 4.5), log10(SSC) = a log10(T) + b: north a = 0.85, b = 0.35; southern a = 1.16, b = 0.27. The relations are USGS's (personal communication to the authors, 2014) and the paper does not say whether its turbidity was FNU or NTU; each gauge's own unit is named below, and both are read as the paper's turbidity. Of USGS's Delta gauges only Freeport reports turbidity live (checked 26 Nov 2026: its "BGC PROJECT" sensor); the rest come from CDEC. The sea end uses USGS's own continuous SSC at Benicia Bridge, 4 km up from DSM2's Martinez boundary: the mean of its sensors 71 ft and 19 ft above the bed. |
-| [700](../regions/sf-bay-delta/dsm2.toml#L700) | `sediment.water[1]`<br>`relation.a` | `0.85` |  |
-| [700](../regions/sf-bay-delta/dsm2.toml#L700) | `sediment.water[1]`<br>`relation.b` | `0.35` |  |
-| [709](../regions/sf-bay-delta/dsm2.toml#L709) | `sediment.water[2]`<br>`relation.a` | `1.16` |  |
-| [709](../regions/sf-bay-delta/dsm2.toml#L709) | `sediment.water[2]`<br>`relation.b` | `0.27` |  |
+| [726](../regions/sf-bay-delta/dsm2.toml#L726) | `sediment.water[1]`<br>`relation.a` | `0.85` |  |
+| [726](../regions/sf-bay-delta/dsm2.toml#L726) | `sediment.water[1]`<br>`relation.b` | `0.35` |  |
+| [735](../regions/sf-bay-delta/dsm2.toml#L735) | `sediment.water[2]`<br>`relation.a` | `1.16` |  |
+| [735](../regions/sf-bay-delta/dsm2.toml#L735) | `sediment.water[2]`<br>`relation.b` | `0.27` |  |
 | | **`sediment_checks[1]`** | | Measured turbidity to check GTM's SSC against, through the same relations for each station's part of the Delta (Achete et al. 2015, section 4.5: central/western a = 0.91, b = 0.29; central/eastern a = 0.72, b = 0.26; eastern a = 0.914, b = 0.29). Which part each station is in is FDMR's reading of the paper's areas, not the paper's own list. Rio Vista and Mallard Island are two of the paper's own three check stations. |
-| [735](../regions/sf-bay-delta/dsm2.toml#L735) | `sediment_checks[1]`<br>`relation.a` | `0.85` |  |
-| [735](../regions/sf-bay-delta/dsm2.toml#L735) | `sediment_checks[1]`<br>`relation.b` | `0.35` |  |
-| [746](../regions/sf-bay-delta/dsm2.toml#L746) | `sediment_checks[2]`<br>`relation.a` | `0.91` |  |
-| [746](../regions/sf-bay-delta/dsm2.toml#L746) | `sediment_checks[2]`<br>`relation.b` | `0.29` |  |
-| [757](../regions/sf-bay-delta/dsm2.toml#L757) | `sediment_checks[3]`<br>`relation.a` | `0.72` |  |
-| [757](../regions/sf-bay-delta/dsm2.toml#L757) | `sediment_checks[3]`<br>`relation.b` | `0.26` |  |
-| [768](../regions/sf-bay-delta/dsm2.toml#L768) | `sediment_checks[4]`<br>`relation.a` | `1.16` |  |
-| [768](../regions/sf-bay-delta/dsm2.toml#L768) | `sediment_checks[4]`<br>`relation.b` | `0.27` |  |
-| [779](../regions/sf-bay-delta/dsm2.toml#L779) | `sediment_checks[5]`<br>`relation.a` | `0.914` |  |
-| [779](../regions/sf-bay-delta/dsm2.toml#L779) | `sediment_checks[5]`<br>`relation.b` | `0.29` |  |
+| [761](../regions/sf-bay-delta/dsm2.toml#L761) | `sediment_checks[1]`<br>`relation.a` | `0.85` |  |
+| [761](../regions/sf-bay-delta/dsm2.toml#L761) | `sediment_checks[1]`<br>`relation.b` | `0.35` |  |
+| [772](../regions/sf-bay-delta/dsm2.toml#L772) | `sediment_checks[2]`<br>`relation.a` | `0.91` |  |
+| [772](../regions/sf-bay-delta/dsm2.toml#L772) | `sediment_checks[2]`<br>`relation.b` | `0.29` |  |
+| [783](../regions/sf-bay-delta/dsm2.toml#L783) | `sediment_checks[3]`<br>`relation.a` | `0.72` |  |
+| [783](../regions/sf-bay-delta/dsm2.toml#L783) | `sediment_checks[3]`<br>`relation.b` | `0.26` |  |
+| [794](../regions/sf-bay-delta/dsm2.toml#L794) | `sediment_checks[4]`<br>`relation.a` | `1.16` |  |
+| [794](../regions/sf-bay-delta/dsm2.toml#L794) | `sediment_checks[4]`<br>`relation.b` | `0.27` |  |
+| [805](../regions/sf-bay-delta/dsm2.toml#L805) | `sediment_checks[5]`<br>`relation.a` | `0.914` |  |
+| [805](../regions/sf-bay-delta/dsm2.toml#L805) | `sediment_checks[5]`<br>`relation.b` | `0.29` |  |
 
 ### fishing.toml
 

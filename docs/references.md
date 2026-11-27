@@ -103,6 +103,19 @@ Used in:
 
 - `regions/sf-bay-delta/canals.toml:50`: Subsidence Study, 2017, p. 5-4, ref:dwr2017cass), so speed is flow over this section: 4 ft/s
 
+## dwr2019ar
+
+California Department of Water Resources (2019). Methodology for Flow and Salinity Estimates in the Sacramento-San Joaquin Delta and Suisun Marsh: 40th Annual Progress Report to the State Water Resources Control Board in Accordance with Water Right Decisions 1485 and 1641. California Department of Water Resources, Sacramento; December 2019. https://water.ca.gov/-/media/DWR-Website/Web-Pages/Library/Modeling-And-Analysis/Files/Modeling-and-Analysis-PDFs/2019-Annual-Report_a_y19.pdf
+
+*Chapter 4, DWR's DSM2 GTM sediment calibration: a constant 20 mg/L of suspended sediment in the Delta islands' drainage returns (DCD flow).*
+
+Checked: The report read (chapter 4, the erosion-coefficient calibration), 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/dsm2.toml:696`: DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov
+- `regions/sf-bay-delta/dsm2.toml:708`: DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above).
+
 ## dwr_i17_swp
 
 California Department of Water Resources (2025). i17_StateWaterProject_Centerline. California Natural Resources Agency Open Data portal; current as of 20 May 2025; licence Creative Commons Attribution. https://gis.data.cnra.ca.gov/datasets/0c1e0a5ca1ba488ea740fa0d654df4c8_0
@@ -638,7 +651,7 @@ Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:7`: (Partheniades 1965, ref:partheniades1965), no more
 - `python/fdmr_plugins/registry.py:81`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
-- `regions/sf-bay-delta/dsm2.toml:661`: in Partheniades' form (ref:partheniades1965)
+- `regions/sf-bay-delta/dsm2.toml:662`: in Partheniades' form (ref:partheniades1965)
 - `runner/dsm2/gtm-sediment.patch:20`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
 
 ## patton2020
@@ -704,6 +717,18 @@ Checked: Consensus's record (title, author, year, volume 83), 26 Nov 2026
 Used in:
 
 - `regions/sf-bay-delta/fishing.toml:47`: river flow" (Schaffter 1997, ref:schaffter1997), and spawning followed
+
+## schoellhamer2017
+
+Schoellhamer, D. H., Manning, A. J., and Work, P. A. (2017). Erosion characteristics and horizontal variability for small erosion depths in the Sacramento-San Joaquin River Delta, California, USA. Ocean Dynamics 67(6), 799-811. https://doi.org/10.1007/s10236-017-1047-2
+
+*Erosion-chamber cores at five Delta sites, 2011-2014. Table 3: initial critical shear stress for erosion, mean 0.14 Pa at Franks Tract (15 cores) and 0.11 Pa in upper Cache Slough (10 cores).*
+
+Checked: Crossref record of the DOI; the paper read (Table 3, sections 2.1 and 5.1), 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/dsm2.toml:678`: (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
 
 ## schureman1958
 
@@ -933,4 +958,4 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/dsm2.toml:673`: Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section
+- `regions/sf-bay-delta/dsm2.toml:691`: Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section

@@ -620,7 +620,7 @@ def main(argv: list[str] | None = None) -> int:
                 assumed.append({"input": f"inflow sediment, {name}", "how": f"{counts[name]} inflows at a fixed {v:g} mg/L (dsm2.toml [sediment.constants])"})
         if counts.get("none"):
             assumed.append({"input": "inflow sediment, other inflows",
-                            "how": f"{counts['none']} inflows (eastside streams, farm drains, treatment plants) bring no sediment: no live gauge"})
+                            "how": f"{counts['none']} inflows (eastside streams, treatment plants and any others) bring no sediment: no live gauge"})
         try:  # a failed sediment run leaves the rest of the run as it is
             secs = study.run(str(gtm), sediment.MAIN, run_dir, unlimited_stack=True)
             print(f"gtm (sediment: {', '.join(f'{g} {k} inflows' for g, k in counts.items())}): {secs:.0f} s")
