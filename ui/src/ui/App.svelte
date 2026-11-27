@@ -36,6 +36,7 @@
   let hoursPerSecond = $state(2);
   let t = $state(0);
   let balance = $state<number[]>([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  let fickianM = $state<number | null>(null);
   const LAYERS: Layer[] = ["plain", "contaminant", "speed", "temperature", "salinity", "level", "source"];
   let layer = $state<Layer>("plain");
   let sources = $state<string[]>([]);
@@ -142,6 +143,7 @@
       t = f.t;
     }
     balance = Array.from(f.massBalance);
+    fickianM = f.fickianM;
     sources = f.sources;
     words = f.words;
     if (map && reach) drawFrame(map, reach, f, nets, meshes, lineReaches);
@@ -411,6 +413,9 @@
           {#if balance[2] > 0} · {text.mass_past_end}: {balance[2].toFixed(1)} kg{/if}
           · {text.mass_decayed}: {balance[3].toFixed(1)} kg
         </div>
+        {#if fickianM !== null}
+          <div class="balance">{text.fickian_note.replace("{km}", fickianM >= 10_000 ? (fickianM / 1000).toFixed(0) : (fickianM / 1000).toFixed(1))}</div>
+        {/if}
       {/if}
       <div class="layer">
         <label>{text.colour_by}

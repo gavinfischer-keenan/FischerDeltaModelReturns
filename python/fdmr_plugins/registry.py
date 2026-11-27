@@ -56,7 +56,9 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                               "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
                               "fdmr_plugins.river_routing.heat, fdmr_runner.publish river_temperature")],
         "dispersion": [Maths("fischer-longitudinal",
-                             "Longitudinal dispersion coefficient from width, depth, velocity and shear velocity",
+                             "Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; "
+                             "each element also publishes how far below a release it holds (fickian_m: six Lagrangian "
+                             "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
                              "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
                              "crates/fdmr-math dispersion.rs")],
         "release": [Maths("held-or-rule",

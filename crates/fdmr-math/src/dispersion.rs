@@ -24,6 +24,27 @@ pub fn fischer_k(velocity: f64, width: f64, depth: f64, shear_velocity: f64) -> 
     0.011 * velocity * velocity * width * width / (depth * shear_velocity)
 }
 
+/// How far below a release Fischer's (Taylor's) one-dimensional dispersion
+/// holds, m: x = U · 6T, with T = 0.30 l² / (r u*) the Lagrangian time scale
+/// (Fischer 1966, ref:fischer1966, eq. 57). Taylor's theory "should be applied
+/// only in the diffusive period", t/T > 6 (the same, summary item 5); nearer,
+/// the cloud is still being sheared out and more lopsided than a dispersion
+/// coefficient gives.
+///
+/// `velocity` U (m/s); `length` l (m), the surface distance from the thread of
+/// maximum velocity to the furthest bank, the half width for a symmetric
+/// channel; `hydraulic_radius` r (m); `shear_velocity` u* (m/s).
+#[must_use]
+pub fn fickian_distance(
+    velocity: f64,
+    length: f64,
+    hydraulic_radius: f64,
+    shear_velocity: f64,
+) -> f64 {
+    debug_assert!(hydraulic_radius > 0.0 && shear_velocity > 0.0);
+    6.0 * 0.30 * velocity * length * length / (hydraulic_radius * shear_velocity)
+}
+
 /// Dispersion coefficient from the change of temporal moments of a tracer
 /// passing two stations (Fischer's change-of-moment method), m²/s:
 ///
@@ -59,6 +80,17 @@ mod tests {
         let k = fischer_k(0.5, 50.0, 2.0, 0.05);
         assert!((fischer_k(1.0, 50.0, 2.0, 0.05) / k - 4.0).abs() < 1e-12);
         assert!((fischer_k(0.5, 100.0, 2.0, 0.05) / k - 4.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn fickian_distance_fischer_example() {
+        // Fischer 1966 p. 215: a river a mile wide and 25 ft deep, u* = 0.1 ft/s,
+        // has a convective period of "the first 1200 hours". With l the half
+        // width, 6T = 1.8 * 2640^2 / (25 * 0.1) s = 1394 h, as approximate as his.
+        let ft = 0.3048;
+        let six_t = fickian_distance(1.0, 2640.0 * ft, 25.0 * ft, 0.1 * ft) / 3600.0;
+        assert!((six_t - 1393.9).abs() < 0.1);
+        assert!((six_t / 1200.0 - 1.0).abs() < 0.2);
     }
 
     #[test]

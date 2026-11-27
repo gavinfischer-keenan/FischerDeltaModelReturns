@@ -15,8 +15,8 @@ Checked: Crossref record of the DOI, 26 Nov 2026; parameters read from the full 
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:16`: Roelvink and Jaffe (2015, ref:achete2015), whose calibrated values the region gives
-- `python/fdmr_plugins/registry.py:80`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
-- `python/fdmr_plugins/registry.py:88`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
+- `python/fdmr_plugins/registry.py:82`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
+- `python/fdmr_plugins/registry.py:90`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
 - `python/fdmr_runner/delta.py:162`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
 - `regions/sf-bay-delta/dsm2.toml:655`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
 - `runner/dsm2/gtm-sediment.patch:21`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
@@ -148,11 +148,11 @@ Checked: GitHub release DSM2 v8.5.1, published 2 Jun 2026; built from its tag 26
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:1`: """Suspended sediment with DSM2's General Transport Model (issue #16; ref:dsm2).
-- `python/fdmr_plugins/registry.py:69`: "California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs", "fdmr_plugins.dsm2.study, fdmr_runner.delta")],
-- `python/fdmr_plugins/registry.py:71`: "California DWR, DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.study")],
-- `python/fdmr_plugins/registry.py:73`: "California DWR, DSM2 QUAL (heat; ref:dsm2)", "fdmr_plugins.dsm2.temperature")],
-- `python/fdmr_plugins/registry.py:75`: "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
-- `python/fdmr_plugins/registry.py:81`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
+- `python/fdmr_plugins/registry.py:71`: "California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs", "fdmr_plugins.dsm2.study, fdmr_runner.delta")],
+- `python/fdmr_plugins/registry.py:73`: "California DWR, DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.study")],
+- `python/fdmr_plugins/registry.py:75`: "California DWR, DSM2 QUAL (heat; ref:dsm2)", "fdmr_plugins.dsm2.temperature")],
+- `python/fdmr_plugins/registry.py:77`: "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
+- `python/fdmr_plugins/registry.py:83`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:1`: DSM2 for the Delta reach (specification 7.2; ref:dsm2): DWR's own historical study, run
 - `runner/dsm2/gtm-sediment.patch:1`: FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
 
@@ -220,7 +220,7 @@ Used in:
 
 - `crates/fdmr-compute/src/network.rs:601`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
 - `python/fdmr_plugins/registry.py:55`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
-- `python/fdmr_plugins/registry.py:87`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
+- `python/fdmr_plugins/registry.py:89`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
 
 ## chapra2008qual2k
@@ -244,7 +244,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:93`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
+- `python/fdmr_plugins/registry.py:95`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
 
 ## chow1959
 
@@ -277,7 +277,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:17`: Shelf Science 37:99-110, ref:dimou1993; Visser 1997, Marine Ecology Progress
-- `python/fdmr_plugins/registry.py:110`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
+- `python/fdmr_plugins/registry.py:112`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## elder1959
 
@@ -300,6 +300,10 @@ Checked: DataCite record of the DOI; CaltechAUTHORS record, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-math/src/dispersion.rs:6`: ref:fischer1966).
+- `crates/fdmr-math/src/dispersion.rs:29`: (Fischer 1966, ref:fischer1966, eq. 57). Taylor's theory "should be applied
+- `docs/maths.md:20`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
+- `python/fdmr_plugins/registry.py:61`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
+- `python/fdmr_runner/publish.py:122`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
 
 ## fischer1979
 
@@ -310,8 +314,8 @@ Checked: Crossref record of the DOI (title, 1979); Open Library ISBN record, 26 
 Used in:
 
 - `crates/fdmr-math/src/dispersion.rs:4`: Coastal Waters* (Academic Press, 1979; ref:fischer1979), chapter 5; Fischer,
-- `python/fdmr_plugins/registry.py:60`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
-- `python/fdmr_plugins/registry.py:109`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
+- `python/fdmr_plugins/registry.py:62`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
+- `python/fdmr_plugins/registry.py:111`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
 - `ui/src/compute/worker.ts:137`: Waters, ref:fischer1979).
 
 ## gensen2022
@@ -567,7 +571,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/noaa_ofs.py:17`: References: ref:noaa_ofs (references.toml).
-- `python/fdmr_plugins/registry.py:93`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
+- `python/fdmr_plugins/registry.py:95`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
 
 ## nws_api
 
@@ -598,7 +602,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/cnrfc.py:11`: References: ref:cnrfc (references.toml).
-- `python/fdmr_plugins/registry.py:65`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
+- `python/fdmr_plugins/registry.py:67`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
 
 ## okubo1971
 
@@ -650,7 +654,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:7`: (Partheniades 1965, ref:partheniades1965), no more
-- `python/fdmr_plugins/registry.py:81`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
+- `python/fdmr_plugins/registry.py:83`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:662`: in Partheniades' form (ref:partheniades1965)
 - `runner/dsm2/gtm-sediment.patch:20`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
 
@@ -672,7 +676,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:97`: "Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; "
+- `python/fdmr_plugins/registry.py:99`: "Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; "
 
 ## smap_l4
 
@@ -741,7 +745,7 @@ Checked: NOAA's PDF, title page read, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/extend.py:14`: hour; Schureman 1958, ref:schureman1958, *Manual of Harmonic Analysis and Prediction of Tides*,
-- `python/fdmr_plugins/registry.py:98`: "constituent speeds from Schureman 1958 (ref:schureman1958)",
+- `python/fdmr_plugins/registry.py:100`: "constituent speeds from Schureman 1958 (ref:schureman1958)",
 
 ## sellheim2022
 
@@ -828,7 +832,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/usace_spk.py:17`: References: ref:usace_fcr (references.toml).
-- `python/fdmr_plugins/registry.py:65`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
+- `python/fdmr_plugins/registry.py:67`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
 
 ## usbr2007ea1589
 
@@ -913,7 +917,7 @@ Checked: UNESDOC's record of the report (series 36, 1981), 26 Nov 2026; the full
 Used in:
 
 - `crates/fdmr-math/src/salinity.rs:4`: is the Practical Salinity Scale of 1978 (PSS-78; UNESCO 1981, ref:unesco1981), applied to
-- `python/fdmr_plugins/registry.py:111`: "salinity-from-conductance": [Maths("pss-78", "Practical salinity from specific conductance", "UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)",
+- `python/fdmr_plugins/registry.py:113`: "salinity-from-conductance": [Maths("pss-78", "Practical salinity from specific conductance", "UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)",
 
 ## vanrijn1984
 
@@ -934,7 +938,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:18`: Series 158:275-281, ref:visser1997). The flow part is taken with a midpoint (second-order
-- `python/fdmr_plugins/registry.py:110`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
+- `python/fdmr_plugins/registry.py:112`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## visser2000
 

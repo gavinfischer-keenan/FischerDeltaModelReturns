@@ -62,7 +62,7 @@ interface Index {
   handoffs?: Handoff[];
 }
 interface LineGeometry {
-  elements: { start_m: number; end_m: number; width_m?: number }[];
+  elements: { start_m: number; end_m: number; width_m?: number; fickian_m?: number }[];
 }
 interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
@@ -153,6 +153,10 @@ let days: Uint8Array[] = [];
 let riverQuality: Uint8Array[] | null = null;
 let starts = new Float64Array();
 let ends = new Float64Array();
+/** Each river element's published distance below a release before Fischer's dispersion holds, m. */
+let fickian: (number | null)[] = [];
+/** That distance for the latest river release, m, or null (a network or mesh release, or none). */
+let releaseFickian: number | null = null;
 let particles = 0;
 let riverReleases: RiverRelease[] = [];
 let certainty: number[] = [];
@@ -215,6 +219,7 @@ interface Line {
   quality: Uint8Array[] | null;
   starts: Float64Array;
   ends: Float64Array;
+  fickian: (number | null)[];
   days: Uint8Array[];
   releases: RiverRelease[];
   engine: Engine | null;
@@ -263,6 +268,7 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   sources = [...new Set(ix.reaches.flatMap((r) => (r.quality_fields ?? []).filter((f) => f.startsWith("source:")).map((f) => f.slice(7))))];
   starts = Float64Array.from(geometry.elements.map((e) => e.start_m));
   ends = Float64Array.from(geometry.elements.map((e) => e.end_m));
+  fickian = geometry.elements.map((e) => e.fickian_m ?? null);
   days = present(await Promise.all(ix.time.days.map((d) => bytes(`${cycle}/${reach}/${d}.fdf`))));
   // As dense over the water's surface as every other reach, where the river's widths are published.
   particles = lineCount(geometry, n);
@@ -297,6 +303,13 @@ function rebuildSoon(): void {
 }
 
 /** Flow particles for a line reach: as dense over its water as every reach, or `n` without widths. */
+/** The published Fickian distance of the element holding chainage x, m. */
+function fickianAt(st: Float64Array, fk: (number | null)[], x: number): number | null {
+  let i = 0;
+  while (i + 1 < st.length && st[i + 1] <= x) i++;
+  return fk[i] ?? null;
+}
+
 function lineCount(g: LineGeometry, n: number): number {
   return g.elements.every((x) => x.width_m !== undefined)
     ? Math.round((PARTICLES_PER_KM2 * g.elements.reduce((s, x) => s + Math.max(x.width_m!, MIN_COUNTED_WIDTH_M) * (x.end_m - x.start_m), 0)) / 1e6)
@@ -309,6 +322,7 @@ async function loadLine(cycle: string, id: string): Promise<void> {
     id,
     starts: Float64Array.from(g.elements.map((e) => e.start_m)),
     ends: Float64Array.from(g.elements.map((e) => e.end_m)),
+    fickian: g.elements.map((e) => e.fickian_m ?? null),
     days: present(await Promise.all((index?.time.days ?? []).map((d) => bytes(`${cycle}/${id}/${d}.fdf`)))),
     releases: [],
     engine: null,
@@ -896,6 +910,7 @@ function frame(seq?: number): void {
     meshes: meshFrames,
     layer,
     sources,
+    fickianM: releaseFickian,
     ...riverLayer(riverN),
   };
   const transfer: Transferable[] = [f.particleX.buffer, f.particleLateral.buffer, f.particleSpeed.buffer, f.parcelX.buffer, f.parcelConcentration.buffer];
@@ -943,14 +958,18 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         if (r.mesh && mesh) {
           mesh.releases.push({ ...base, triangle: r.mesh.triangle, w1: r.mesh.w1, w2: r.mesh.w2, parcels: PARCELS_PER_RELEASE });
         } else if (r.line && lines.some((l) => l.id === r.line!.id)) {
-          lines.find((l) => l.id === r.line!.id)!.releases.push({ ...base, x: r.line.x });
+          const l = lines.find((l) => l.id === r.line!.id)!;
+          l.releases.push({ ...base, x: r.line.x });
+          releaseFickian = fickianAt(l.starts, l.fickian, r.line.x);
         } else if (r.network && net) {
           // A pollutant that sticks to sediment needs the sediment fields where it is released.
           if (r.kd && !net.quality) await loadQuality();
           net.releases.push({ ...base, element: r.network.element, fraction: r.network.fraction, parcels: PARCELS_PER_RELEASE, kd: r.kd ?? null });
         } else {
           riverReleases.push({ ...base, x: r.x });
+          releaseFickian = fickianAt(starts, fickian, r.x);
         }
+        if (r.mesh || r.network) releaseFickian = null;
         build(engine ? engine.time() : r.start);
         break;
       }
@@ -966,6 +985,8 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         break;
       case "clear":
         riverReleases = [];
+        releaseFickian = null;
+        for (const l of lines) l.releases = [];
         for (const net of nets) net.releases = [];
         for (const m of meshes) m.releases = [];
         build(engine ? engine.time() : 0);

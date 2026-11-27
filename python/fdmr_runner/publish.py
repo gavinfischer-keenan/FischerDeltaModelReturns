@@ -116,6 +116,24 @@ def dispersion_field(field, records, slopes):
     return out
 
 
+def element_fickian(field, records, slopes) -> list[float]:
+    """How far below a release in each element Fischer's dispersion holds, m,
+    at the element's median flow: U times six of Fischer's Lagrangian time
+    scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
+    theory holds only past t/T = 6). l is the half width, Fischer's length for a
+    symmetric channel (an asymmetric one, its fastest water nearer one bank,
+    takes longer, up to four times); r is the mean depth, as for K above."""
+    out = []
+    for e, el in enumerate(field.elements):
+        k, shape = shape_at(records, el.mid)
+        slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
+        i = sorted(range(field.steps), key=lambda i: field.flow[i][e])[field.steps // 2]
+        q = max(field.flow[i][e], 1e-3)
+        d, w, u = shape.depth(q), shape.width(q), abs(field.velocity[i][e])
+        out.append(round(fdmr_py.fickian_distance(u, w / 2, d, fdmr_py.shear_velocity(d, slope))))
+    return out
+
+
 def element_widths(field, records) -> list[float]:
     """Each element's water-surface width, m, at its median flow over the
     published steps: the channel shape fitted at the gauges either side
@@ -311,10 +329,12 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
     (cdir / reach).mkdir(parents=True, exist_ok=True)
     els = field.elements
     widths = element_widths(field, records)
+    fickian = element_fickian(field, records, slopes)
     (cdir / "geometry" / f"{reach}.json").write_text(json.dumps({
         "reach": reach,
         "dims": 1,
-        "elements": [{"start_m": round(e.start, 1), "end_m": round(e.end, 1), "width_m": w} for e, w in zip(els, widths)],
+        "elements": [{"start_m": round(e.start, 1), "end_m": round(e.end, 1), "width_m": w, "fickian_m": x}
+                     for e, w, x in zip(els, widths, fickian)],
         "lines": element_lines(line, els),
         # Each element's form from its line: turn, bending, sinuosity (#27).
         "form": form.forms(line.point_at, [(e.start, e.end) for e in els]),

@@ -101,6 +101,12 @@ fn fischer_k(velocity: f64, width: f64, depth: f64, shear_velocity: f64) -> f64 
     dispersion::fischer_k(velocity, width, depth, shear_velocity)
 }
 
+/// How far below a release Fischer's dispersion holds, m (Fischer 1966, eq. 57, t/T > 6).
+#[pyfunction]
+fn fickian_distance(velocity: f64, length: f64, hydraulic_radius: f64, shear_velocity: f64) -> f64 {
+    dispersion::fickian_distance(velocity, length, hydraulic_radius, shear_velocity)
+}
+
 /// Dispersion from the change of temporal moments between two stations, m²/s.
 #[pyfunction]
 fn change_of_moment_k(velocity: f64, mean_1: f64, var_1: f64, mean_2: f64, var_2: f64) -> f64 {
@@ -192,6 +198,7 @@ fn practical_salinity(specific_conductance: Vec<f64>) -> Vec<f64> {
 fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(shear_velocity, m)?)?;
     m.add_function(wrap_pyfunction!(fischer_k, m)?)?;
+    m.add_function(wrap_pyfunction!(fickian_distance, m)?)?;
     m.add_function(wrap_pyfunction!(change_of_moment_k, m)?)?;
     m.add_function(wrap_pyfunction!(fit_power_law, m)?)?;
     m.add_function(wrap_pyfunction!(temporal_moments, m)?)?;

@@ -121,6 +121,9 @@ export interface Frame {
   particleShares?: Float32Array;
   /** The water sources' names, in the order of every particleShares. */
   sources: string[];
+  /** For the latest river release, how far below it Fischer's dispersion
+   * holds, m (published per element); null for none or a network or mesh release. */
+  fickianM: number | null;
 }
 
 export type Words = "measured" | "forecast" | "rough_guide";

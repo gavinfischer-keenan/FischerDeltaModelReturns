@@ -113,5 +113,6 @@
   "reading_pumping": "Pumping",
   "overlay_landmarks": "Landmarks",
   "release_kd": "Sticks to sediment (partition coefficient Kd, L/kg; blank for dissolved; the Delta only)",
-  "mass_on_bed": "Settled on the bed with the mud"
+  "mass_on_bed": "Settled on the bed with the mud",
+  "fickian_note": "The river's spreading (Fischer's dispersion) holds from about {km} km below this release; nearer, the real cloud is more drawn out and lopsided than shown (Fischer 1966)"
 }
