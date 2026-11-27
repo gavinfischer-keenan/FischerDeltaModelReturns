@@ -9,6 +9,12 @@ and the hourly run fetches only the latest hour or so. Then it fetches the
 latest river forecast for every gauge that names a forecast point, if that
 issue is not already held. One gauge's failure does not stop the rest.
 
+Every request is planned first, then each host's requests are made in turn,
+the hosts side by side (#34): `--pause` is the wait between two requests to
+the same host, never between hosts, so no host is asked faster than before.
+A planned request runs later, so each one binds what it needs when it is
+planned (its lambda's defaults), never a loop variable that moves on.
+
     --forecast-only     skip the gauges and fetch only the forecasts
     --no-measurements   skip channel measurements (they change rarely; the
                         nightly run fetches them)
@@ -19,7 +25,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -38,6 +46,23 @@ from . import delta
 from .region import load_region
 
 DATUM_EVERY_S = 30 * 86_400  # a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey)
+AVAILABLE_EVERY_S = 86_400  # USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely)
+
+# The host each fetch goes to, by the first word of its label: one queue each,
+# run side by side. A label that starts with a site number is USGS's.
+HOSTS = {"cdec": "cdec.water.ca.gov", "noaa": "tidesandcurrents.noaa.gov", "nws": "api.weather.gov",
+         "ghcnh": "ncei.noaa.gov", "ndbc": "ndbc.noaa.gov", "erddap": "erddap", "sea": "erddap",
+         "ecostress": "earthdata", "opera": "earthdata", "smap": "earthdata", "swot": "earthdata",
+         "openet": "openet", "snodas": "nsidc", "cpc": "cpc.ncep.noaa.gov", "usace": "usace",
+         "usbr-cvo": "usbr.gov", "cnrfc": "cnrfc.noaa.gov", "rws": "rijkswaterstaat"}
+
+
+def host_of(label: str) -> str:
+    """The host a fetch, by its label, goes to (HOSTS)."""
+    if label.startswith("nws precipitation"):
+        return "water.noaa.gov"
+    word = label.split(" ", 1)[0]
+    return HOSTS.get(word, "usgs" if word[:1].isdigit() else "other")
 
 
 def months(start: float, end: float) -> list[tuple[int, int]]:
@@ -82,17 +107,53 @@ def main(argv: list[str] | None = None) -> int:
     failures = 0
     attempts = 0
     failed: list[dict] = []
+    tally = threading.Lock()  # the counts, shared by the hosts' threads
+    queues: dict[str, list] = {}  # host -> its planned fetches, made in turn (#34)
+    last_ask: dict[str, float] = {}  # host -> when it was last asked
 
-    def attempt(label: str, fn) -> None:
+    def ask(label: str, fn, host: str) -> None:
+        """Make one fetch now, on its host's thread: the pause after the last
+        request to the same host first; a failure counted and named."""
         nonlocal failures, attempts
-        attempts += 1
+        wait = last_ask.get(host, 0.0) + args.pause - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        with tally:
+            attempts += 1
         try:
             print(f"{label:40s} {fn():7d}", flush=True)
         except Exception as e:  # one gauge's outage must not stop the rest
-            failures += 1
-            failed.append({"what": label, "error": str(e)[:200]})
+            with tally:
+                failures += 1
+                failed.append({"what": label, "error": str(e)[:200]})
             print(f"{label:40s} FAILED {e}", flush=True)
-        time.sleep(args.pause)
+        last_ask[host] = time.time()
+
+    def attempt(label: str, fn, host: str | None = None) -> None:
+        """Plan one fetch on its host's queue (host_of its label)."""
+        h = host or host_of(label)
+        queues.setdefault(h, []).append(lambda: ask(label, fn, h))
+
+    # USGS's list of each gauge's series, asked at most daily (AVAILABLE_EVERY_S).
+    avail_file = Path(args.store).parent / "usgs-available.json"
+    try:
+        avail = json.loads(avail_file.read_text(encoding="utf-8")) if avail_file.exists() else {}
+    except ValueError:
+        avail = {}
+
+    def available(site: str) -> set[str]:
+        held = avail.get(site)
+        if held and held["fetched"] >= now - AVAILABLE_EVERY_S:
+            return set(held["series"])
+        wait = last_ask.get("usgs", 0.0) + args.pause - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        try:
+            have = usgs.available(site)
+        finally:
+            last_ask["usgs"] = time.time()
+        avail[site] = {"fetched": int(now), "series": sorted(have)}
+        return have
 
     cdec_gauges = [g for g in region.gauges if g.source == CDEC]
     for g in [] if args.forecast_only else cdec_gauges:
@@ -101,14 +162,18 @@ def main(argv: list[str] | None = None) -> int:
         attempt(f"cdec {g.site} {g.parameter}", lambda g=g, f0=from_t: cdec_gauge.fetch_values(g.site, g.parameter, int(f0), int(now), duration=g.duration or "H"))
         if g.usgs_site and not args.no_measurements:
             attempt(f"{g.usgs_site} channel_measurements", lambda g=g: usgs.fetch_channel_measurements(g.usgs_site))
-    for g in [] if args.forecast_only else [g for g in region.gauges if g.source == SOURCE]:
+    def usgs_gauge(g) -> None:
+        """One USGS gauge, on USGS's thread: which series it records, then each
+        series from where the store's copy ends."""
+        nonlocal failures
         try:
-            have = usgs.available(g.site)
+            have = available(g.site)
         except Exception as e:
-            failures += 1
+            with tally:
+                failures += 1
+                failed.append({"what": f"{g.site} series list", "error": str(e)[:200]})
             print(f"{g.site} series list FAILED {e}", flush=True)
-            continue
-        time.sleep(args.pause)
+            return
         for p in (p for p in PARAMETERS if p in have):
             cov = store.coverage(SOURCE, g.site, p)
             # Already held from (about) the start of the period to a moment ago: skip.
@@ -116,9 +181,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{g.site} {p:31s} held    {g.name}", flush=True)
                 continue
             from_t = max(start, cov[1]) if cov and cov[0] <= start + 2 * 86_400 else start
-            attempt(f"{g.site} {p}", lambda p=p, f=from_t: usgs.fetch_values(g.site, p, f"{iso(f)}/{iso(now)}"))
+            ask(f"{g.site} {p}", lambda p=p, f=from_t: usgs.fetch_values(g.site, p, f"{iso(f)}/{iso(now)}"), "usgs")
         if not args.no_measurements:
-            attempt(f"{g.site} channel_measurements", lambda: usgs.fetch_channel_measurements(g.site))
+            ask(f"{g.site} channel_measurements", lambda: usgs.fetch_channel_measurements(g.site), "usgs")
+
+    for g in [] if args.forecast_only else [g for g in region.gauges if g.source == SOURCE]:
+        queues.setdefault("usgs", []).append(lambda g=g: usgs_gauge(g))
     # Each release and main gauge's datum, for the river's measured slope: kept
     # in the store and fetched again monthly (it changes only with a resurvey),
     # so publish never asks USGS itself (#52).
@@ -165,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
             last = store.latest(SWOT, r["id"], "width")
             if last and last[1] >= now - 12 * 3600:
                 continue
-            attempt(f"swot {r['id']}", lambda r=r: sw.fetch(r["id"], iso(now - 60 * 86_400), iso(now)))
+            attempt(f"swot {r['id']}", lambda r=r, sw=sw: sw.fetch(r["id"], iso(now - 60 * 86_400), iso(now)))
     # Water temperature seen from orbit (overlays.toml [satellite_temperature]):
     # each new pass's water pixels, kept beside the store.
     if not args.forecast_only and ocfg.get("satellite_temperature"):
@@ -215,9 +283,9 @@ def main(argv: list[str] | None = None) -> int:
         held, new = [s for s in group if s in ends], [s for s in group if s not in ends]
         if held:
             f0 = max(start, min(ends[s] for s in held) - 3600)
-            attempt(f"cdec {len(held)} stations ({dur}) from {iso(f0)}", lambda h=held, f0=f0, d=dur: sum(cdec.fetch_many(h, shown, int(f0), int(now), d).values()))
+            attempt(f"cdec {len(held)} stations ({dur}) from {iso(f0)}", lambda h=held, f0=f0, d=dur, sh=shown: sum(cdec.fetch_many(h, sh, int(f0), int(now), d).values()))
         if new:
-            attempt(f"cdec {len(new)} new stations ({dur})", lambda n=new, d=dur: sum(cdec.fetch_many(n, shown, int(start), int(now), d).values()))
+            attempt(f"cdec {len(new)} new stations ({dur})", lambda n=new, d=dur, sh=shown: sum(cdec.fetch_many(n, sh, int(start), int(now), d).values()))
     # The land's surface temperature along the rivers and at their weather
     # zones' airports, from orbit (region.toml [river_temperature.land]).
     from . import land as _land
@@ -274,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
         cov = store.coverage(_erddap.source(sl["server"]), sl["site"], "sea_level_anomaly")
         f0 = cov[1] + 1 if cov else now - 40 * 86_400
         # Asked ten days at a time: the server refuses a longer window over a box.
-        attempt("sea level anomaly", lambda: _erddap.ErddapAdapter(store, sl["server"]).fetch_grid_mean(
+        attempt("sea level anomaly", lambda sl=sl, f0=f0: _erddap.ErddapAdapter(store, sl["server"]).fetch_grid_mean(
             sl["dataset"], sl["variable"], tuple(sl["box"]), iso(max(f0, now - 10 * 86_400)), sl["site"], "sea_level_anomaly", "m")
             + (_erddap.ErddapAdapter(store, sl["server"]).fetch_grid_mean(
                 sl["dataset"], sl["variable"], tuple(sl["box"]), iso(f0), sl["site"], "sea_level_anomaly", "m", until_iso=iso(now - 10 * 86_400))
@@ -329,11 +397,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"ghcnh {s['ghcnh']} {'':25s} held    {s['name']}", flush=True)
             else:
                 f0 = max(start, cov[1] - 86_400) if cov and cov[0] <= start + 2 * 86_400 else start
-                attempt(f"ghcnh {s['ghcnh']}", lambda s=s, f0=f0: wx.fetch_archive(s["ghcnh"], int(f0), int(now)))
-            attempt(f"nws {s['nws']} observations", lambda s=s: wx.fetch_observations(s["nws"], int(now - 7 * 86_400)))
+                attempt(f"ghcnh {s['ghcnh']}", lambda s=s, f0=f0, wx=wx: wx.fetch_archive(s["ghcnh"], int(f0), int(now)))
+            attempt(f"nws {s['nws']} observations", lambda s=s, wx=wx: wx.fetch_observations(s["nws"], int(now - 7 * 86_400)))
         if "forecast" in tcfg:
             fc = tcfg["forecast"]
-            attempt(f"nws forecast {fc['office']}/{fc['x']},{fc['y']}", lambda: wx.fetch_forecast(fc["office"], fc["x"], fc["y"])[1])
+            attempt(f"nws forecast {fc['office']}/{fc['x']},{fc['y']}", lambda wx=wx, fc=fc: wx.fetch_forecast(fc["office"], fc["x"], fc["y"])[1])
     # The outflow a mesh reach's extension is fitted to (bay.toml [extension]):
     # a long record, from where the store's copy ends.
     from . import bay
@@ -347,7 +415,7 @@ def main(argv: list[str] | None = None) -> int:
         if cov and cov[1] >= now - 86_400:
             print(f"cdec {o['site']} {o['parameter']:26s} held", flush=True)
         else:
-            attempt(f"cdec {o['site']} {o['parameter']}", lambda: cdec.fetch_values(o["site"], o["parameter"], int(f0), int(now), duration=o.get("duration", "D")))
+            attempt(f"cdec {o['site']} {o['parameter']}", lambda o=o, f0=f0: cdec.fetch_values(o["site"], o["parameter"], int(f0), int(now), duration=o.get("duration", "D")))
     # The stations the Bay's salinity and temperature are corrected by (bay.toml
     # [quality]); CDEC's come with the overlays. A USGS bay station has an upper
     # and a lower sensor, each its own series (`<parameter>_<sensor>`).
@@ -441,14 +509,13 @@ def main(argv: list[str] | None = None) -> int:
         f0 = now - 40 * 86_400 if not cov or cov[0] > now - 35 * 86_400 else cov[1] - 86_400
         attempt(f"noaa {fc['station']} {TIDE}", lambda st=fc["station"], f0=f0: tides.fetch_predictions(st, int(f0), int(now + 16 * 86_400)))
     cnrfc = CnrfcAdapter(store, archive=Path(args.store).parent / "cnrfc-issues")  # kept for hindcasts (#9)
+    def cnrfc_group(group: str, points: list[str]) -> int:
+        issue, n = cnrfc.fetch(group, points)
+        print(f"cnrfc {group:34s} issue {issue}" + ("" if n else " (held)"), flush=True)
+        return n
+
     for group, points in groups.items():
-        try:
-            issue, n = cnrfc.fetch(group, points)
-            print(f"cnrfc {group:34s} {n:7d} issue {issue}" + ("" if n else " (held)"), flush=True)
-        except Exception as e:
-            failures += 1
-            print(f"cnrfc {group:34s} FAILED {e}", flush=True)
-        time.sleep(args.pause)
+        attempt(f"cnrfc {group}", lambda g=group, p=points: cnrfc_group(g, p))
     # Live stations of a region read from Rijkswaterstaat (region.toml
     # [[live_stations]], source "rws"; fdmr_adapters.rws): each quantity from
     # where the store's record ends, and the agency's own forecasts afresh.
@@ -474,6 +541,16 @@ def main(argv: list[str] | None = None) -> int:
                                                                       depth_cm=st.get("depth_cm") if q in st.get("depth_for", ["chloride", "water_temperature"]) else None))
             for q in st.get("forecasts", []):
                 attempt(f"rws {st['site']} {q} forecast", lambda st=st, q=q: rws.fetch(st["site"], q, int(now) - 3 * 3600, int(now) + 3 * 86_400, forecast=True))
+    # Every host's queue, side by side; each host's own requests in turn.
+    t_fetch = time.time()
+    with ThreadPoolExecutor(max_workers=max(1, len(queues))) as pool:
+        for f in [pool.submit(lambda jobs=jobs: [job() for job in jobs]) for jobs in queues.values()]:
+            f.result()
+    print("by host: " + ", ".join(f"{h} {len(j)}" for h, j in sorted(queues.items(), key=lambda kv: -len(kv[1])))
+          + f"; {time.time() - t_fetch:.0f} s", flush=True)
+    tmp = avail_file.with_name(avail_file.name + ".tmp")
+    tmp.write_text(json.dumps(avail), encoding="utf-8")
+    tmp.replace(avail_file)
     store.close()
     print(f"done: {len(region.gauges)} gauges, {attempts} fetches, {failures} failures")
     # The run's own account, published with the next cycle (index.json

@@ -9,7 +9,9 @@ The store depends on nothing else in the project; data adapters depend only on i
 
 from __future__ import annotations
 
+import functools
 import sqlite3
+import threading
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -62,17 +64,33 @@ class ChannelMeasurement:
     velocity: float | None
 
 
+def _locked(method):
+    """Run a store method holding the store's lock: one connection, shared
+    safely by the threads that fetch different sources side by side."""
+
+    @functools.wraps(method)
+    def run(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return run
+
+
 class Store:
-    """A local store of time series and channel measurements, in one SQLite file."""
+    """A local store of time series and channel measurements, in one SQLite
+    file. Safe to share between threads: every call holds the store's lock."""
 
     def __init__(self, path: str | Path = ":memory:") -> None:
         self.path = Path(path)
-        self._db = sqlite3.connect(str(path))
+        self._lock = threading.RLock()
+        self._db = sqlite3.connect(str(path), check_same_thread=False)
         self._db.executescript(SCHEMA)
 
+    @_locked
     def close(self) -> None:
         self._db.close()
 
+    @_locked
     def _series_id(self, source: str, site: str, parameter: str, unit: str) -> int:
         row = self._db.execute(
             "SELECT id, unit FROM series WHERE source=? AND site=? AND parameter=?",
@@ -88,6 +106,7 @@ class Store:
         )
         return int(cur.lastrowid)
 
+    @_locked
     def put_values(self, source: str, site: str, parameter: str, unit: str, values: Iterable[Value]) -> int:
         """Store values, replacing any already held for the same times (later revisions win).
         Returns how many were written."""
@@ -103,6 +122,7 @@ class Store:
             )
         return len(rows)
 
+    @_locked
     def values(self, source: str, site: str, parameter: str, start: int, end: int) -> list[Value]:
         """Values with start <= t < end, in time order."""
         return [
@@ -114,12 +134,14 @@ class Store:
             )
         ]
 
+    @_locked
     def unit(self, source: str, site: str, parameter: str) -> str | None:
         row = self._db.execute(
             "SELECT unit FROM series WHERE source=? AND site=? AND parameter=?", (source, site, parameter)
         ).fetchone()
         return row[0] if row else None
 
+    @_locked
     def latest(self, source: str, site: str, parameter: str) -> tuple[int, int] | None:
         """(time of the latest value, when it was fetched), or None."""
         row = self._db.execute(
@@ -129,6 +151,7 @@ class Store:
         ).fetchone()
         return (row[0], row[1]) if row else None
 
+    @_locked
     def coverage(self, source: str, site: str, parameter: str) -> tuple[int, int, int] | None:
         """(first time, last time, number of values) held for a series, or None."""
         row = self._db.execute(
@@ -138,6 +161,7 @@ class Store:
         ).fetchone()
         return (row[0], row[1], row[2]) if row and row[2] else None
 
+    @_locked
     def put_channel_measurements(self, source: str, site: str, ms: Iterable[ChannelMeasurement]) -> int:
         now = int(time.time())
         rows = [(source, site, m.t, m.flow, m.area, m.width, m.velocity, now) for m in ms]
@@ -150,6 +174,7 @@ class Store:
             )
         return len(rows)
 
+    @_locked
     def channel_measurements(self, source: str, site: str) -> list[ChannelMeasurement]:
         return [
             ChannelMeasurement(*r)

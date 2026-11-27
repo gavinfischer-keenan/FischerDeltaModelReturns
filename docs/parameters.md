@@ -271,6 +271,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/experiment.py:59](../python/fdmr_runner/experiment.py#L59) | `STEP` | `900` | s: DWR's station output, 15 minutes |
 | [python/fdmr_runner/experiment.py:60](../python/fdmr_runner/experiment.py#L60) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
+| [python/fdmr_runner/fetch.py:49](../python/fdmr_runner/fetch.py#L49) | `AVAILABLE_EVERY_S` | `86_400` | USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely) |
 | [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/geometry.py:30](../python/fdmr_runner/geometry.py#L30) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
 | [python/fdmr_runner/handoff.py:43](../python/fdmr_runner/handoff.py#L43) | `STEP_DEG` | `0.0002` | sample channel lines about every 20 m to find where they enter the mesh |
