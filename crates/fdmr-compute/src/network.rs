@@ -105,6 +105,11 @@ struct Parcel {
     mass: f64,
     born: f64,
     half_life: Option<f64>,
+    /// Bound to the suspended sediment (`add_bound_release`): it settles and
+    /// is scoured back up with the mud, where the reach has a sediment run.
+    bound: bool,
+    /// Lying on the bed (a bound parcel that has settled).
+    on_bed: bool,
 }
 
 /// [released, in the water, exported, diverted, out to sea, broken down,
@@ -118,6 +123,8 @@ pub struct NetBalance {
     pub to_sea: f64,
     pub decayed: f64,
     pub handed_on: f64,
+    /// Bound to sediment and lying on the bed, kg (`add_bound_release`).
+    pub on_bed: f64,
 }
 
 /// A parcel passed to another reach: where (`via`), at time `t` (s), with
@@ -128,6 +135,12 @@ pub struct Handed {
     pub t: f64,
     pub mass: f64,
     pub half_life: Option<f64>,
+}
+
+/// Bound parcels' rates per channel at one moment, 1/s.
+struct SedNow {
+    settle: Vec<f64>,
+    resuspend: Vec<f64>,
 }
 
 /// Conditions at one moment, worked out once per step.
@@ -186,6 +199,9 @@ pub struct NetworkTracer {
     /// reach, if any (`set_outlets`).
     outlet: Vec<Option<usize>>,
     handed: Vec<Handed>,
+    /// The suspended sediment's settling velocity, m/s, where the reach has a
+    /// sediment run (`set_settling`): bound parcels settle at it.
+    settling: Option<f64>,
 }
 
 impl NetworkTracer {
@@ -234,6 +250,7 @@ impl NetworkTracer {
             widths: Vec::new(),
             outlet: Vec::new(),
             handed: Vec::new(),
+            settling: None,
         }
     }
 
@@ -335,6 +352,8 @@ impl NetworkTracer {
                 mass,
                 born: self.time - 1e-6,
                 half_life,
+                bound: false,
+                on_bed: false,
             });
         }
     }
@@ -373,6 +392,8 @@ impl NetworkTracer {
                 // Just before now: in the water now, and not counted again by the step.
                 born: self.time - 1e-6,
                 half_life,
+                bound: false,
+                on_bed: false,
             });
         }
     }
@@ -544,10 +565,19 @@ impl NetworkTracer {
     #[must_use]
     pub fn balance(&self) -> NetBalance {
         let mut b = self.balance;
+        let held = |p: &&Parcel| p.born <= self.time && !matches!(p.place, Place::Gone(_));
         b.in_water = self
             .parcels
             .iter()
-            .filter(|p| p.born <= self.time && !matches!(p.place, Place::Gone(_)))
+            .filter(held)
+            .filter(|p| !p.on_bed)
+            .map(|p| p.mass)
+            .sum();
+        b.on_bed = self
+            .parcels
+            .iter()
+            .filter(held)
+            .filter(|p| p.on_bed)
             .map(|p| p.mass)
             .sum();
         b
@@ -555,17 +585,88 @@ impl NetworkTracer {
 
     /// Add a release: its parcels start at its place, spread evenly over its duration.
     pub fn add_release(&mut self, r: NetRelease) {
+        self.push_release(&r, 0.0);
+    }
+
+    /// The sediment's settling velocity, m/s (the reach's `sediment` entry,
+    /// from its sediment run), for bound releases.
+    pub fn set_settling(&mut self, ws: f64) {
+        self.settling = (ws.is_finite() && ws > 0.0).then_some(ws);
+    }
+
+    /// Add a release of a pollutant that sticks to suspended sediment, by its
+    /// partition coefficient `kd`, L/kg. Where it is released, the share bound
+    /// to the sediment is `kd c / (1 + kd c)`, `c` the suspended sediment there
+    /// (the `ssc` field, mg/L, as kg/L), the linear equilibrium partition
+    /// (Chapra 1997, ref:chapra1997); that share's parcels settle and are
+    /// scoured back up with the mud (`step_to`), the rest is dissolved. With no
+    /// sediment field, or released in a pool, everything is dissolved. The
+    /// split is made once, at release; the pollutant does not move between
+    /// water and sediment afterwards. Returns the bound share.
+    pub fn add_bound_release(&mut self, r: NetRelease, kd: f64) -> f64 {
+        let c = match r.at {
+            Place::Channel(ch, _) => self
+                .quality
+                .at(r.start, "ssc")
+                .and_then(|v| v.get(ch).copied())
+                .filter(|x| x.is_finite() && *x > 0.0),
+            _ => None,
+        };
+        let share = match c {
+            Some(mg_l) if kd.is_finite() && kd > 0.0 => {
+                let kc = kd * mg_l * 1e-6; // L/kg x kg/L
+                kc / (1.0 + kc)
+            }
+            _ => 0.0,
+        };
+        self.push_release(&r, share);
+        share
+    }
+
+    fn push_release(&mut self, r: &NetRelease, bound_share: f64) {
         let n = r.parcels.max(1);
+        // Bound parcels: the share of the parcels nearest the share of the mass
+        // (at least one each way if both shares are real), each carrying its
+        // kind's exact mass.
+        #[allow(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            clippy::cast_precision_loss
+        )]
+        let mut nb = (bound_share * n as f64).round() as usize;
+        if bound_share > 0.0 && nb == 0 {
+            nb = 1;
+        }
+        if bound_share < 1.0 && nb == n && n > 1 {
+            nb = n - 1;
+        }
+        let nb = nb.min(n);
         #[allow(clippy::cast_precision_loss)]
-        let each = r.mass / n as f64;
+        let (mb, md) = (
+            if nb > 0 {
+                r.mass * bound_share / nb as f64
+            } else {
+                0.0
+            },
+            if nb < n {
+                r.mass * (1.0 - bound_share) / (n - nb) as f64
+            } else {
+                0.0
+            },
+        );
         for i in 0..n {
             #[allow(clippy::cast_precision_loss)]
             let born = r.start + r.duration * (i as f64 + 0.5) / n as f64;
+            // Bound and dissolved parcels interleaved over the release's duration.
+            #[allow(clippy::cast_precision_loss)]
+            let bound = nb > 0 && ((i + 1) * nb / n) > (i * nb / n);
             self.parcels.push(Parcel {
                 place: r.at,
-                mass: each,
+                mass: if bound { mb } else { md },
                 born,
                 half_life: r.half_life,
+                bound,
+                on_bed: false,
             });
         }
     }
@@ -815,8 +916,9 @@ impl NetworkTracer {
                 continue;
             };
             let k = self.dispersion;
+            let sed = self.sediment_now(self.time + dt / 2.0, &now);
             for i in 0..self.parcels.len() {
-                let p = self.parcels[i];
+                let mut p = self.parcels[i];
                 if p.born > self.time + dt || matches!(p.place, Place::Gone(_)) {
                     continue;
                 }
@@ -824,6 +926,27 @@ impl NetworkTracer {
                 let keep = decay::remaining_fraction(step, p.half_life);
                 self.balance.decayed += p.mass * (1.0 - keep);
                 let mass = p.mass * keep;
+                // A bound parcel settles at the sediment's rate, ws / depth, and
+                // one on the bed is scoured back up at the bed's own rate,
+                // erosion / settled mass (both from the sediment run); on the
+                // bed it does not move.
+                if let (true, Place::Channel(c, _), Some(s)) = (p.bound, p.place, sed.as_ref()) {
+                    let rate = if p.on_bed {
+                        s.resuspend[c]
+                    } else {
+                        s.settle[c]
+                    };
+                    if rate > 0.0 && self.rng.uniform() < 1.0 - (-rate * step).exp() {
+                        p.on_bed = !p.on_bed;
+                    }
+                    if p.on_bed {
+                        if p.born >= self.time && p.born < self.time + dt {
+                            self.balance.released += p.mass;
+                        }
+                        self.parcels[i] = Parcel { mass, ..p };
+                        continue;
+                    }
+                }
                 let place = self.advance(p.place, step, &now, k);
                 if let Place::Gone(fate) = place {
                     match fate {
@@ -857,6 +980,41 @@ impl NetworkTracer {
             }
             self.time += dt;
         }
+    }
+
+    /// Each channel's rates for bound parcels at `t`, 1/s: settling, ws over
+    /// the water's depth (its cross-section over its width), and scouring,
+    /// the erosion rate over the settled mass (`erosion`, `bed_mud` from the
+    /// sediment run). None without a settling velocity, widths or those fields.
+    fn sediment_now(&self, t: f64, now: &Now) -> Option<SedNow> {
+        let ws = self.settling?;
+        if self.widths.len() != self.topo.length.len() {
+            return None;
+        }
+        let bed = self.quality.at(t, "bed_mud")?;
+        let ero = self.quality.at(t, "erosion")?;
+        let settle = (0..self.topo.length.len())
+            .map(|c| {
+                let depth = now.volume[c] / self.topo.length[c].max(1.0) / self.widths[c].max(1.0);
+                if depth > 0.01 {
+                    ws / depth
+                } else {
+                    0.0
+                }
+            })
+            .collect();
+        let resuspend = bed
+            .iter()
+            .zip(&ero)
+            .map(|(&m, &e)| {
+                if m > 1e-9 && e.is_finite() && e > 0.0 {
+                    e / m
+                } else {
+                    0.0
+                }
+            })
+            .collect();
+        Some(SedNow { settle, resuspend })
     }
 
     /// Move the flow particles `dt` s under the conditions at the current time,
@@ -1485,6 +1643,81 @@ mod tests {
             "{} {}",
             per_m(0),
             per_m(1)
+        );
+    }
+
+    /// The split network, 1 m deep everywhere (area 10, width 10), with
+    /// suspended sediment, settled mud and its erosion rate held everywhere.
+    fn with_sediment(ssc: f32, bed: f32, erosion: f32, ws: f64) -> NetworkTracer {
+        let mut t = split();
+        t.set_widths(&[10.0, 10.0, 10.0]);
+        let steps = 400u32;
+        let all = |v: f32| vec![v; 3 * steps as usize];
+        t.load_quality(&file(
+            0,
+            steps,
+            3,
+            vec![
+                ("ssc", all(ssc)),
+                ("bed_mud", all(bed)),
+                ("erosion", all(erosion)),
+            ],
+        ))
+        .unwrap();
+        t.set_settling(ws);
+        t
+    }
+
+    fn bound_release(t: &mut NetworkTracer, kd: f64) -> f64 {
+        t.add_bound_release(
+            NetRelease {
+                at: Place::Channel(0, 10.0),
+                start: 0.0,
+                duration: 0.0,
+                mass: 10.0,
+                half_life: None,
+                parcels: 400,
+            },
+            kd,
+        )
+    }
+
+    #[test]
+    fn a_bound_release_splits_by_the_partition_coefficient() {
+        // kd c = 1e4 L/kg x 100 mg/L (1e-4 kg/L) = 1: half bound.
+        let mut t = with_sediment(100.0, 0.0, 0.0, 0.0);
+        let share = bound_release(&mut t, 1e4);
+        assert!((share - 0.5).abs() < 1e-12, "{share}");
+        t.step_to(1.0);
+        let b = t.balance();
+        assert!((b.in_water + b.on_bed - 10.0).abs() < 1e-9, "{b:?}");
+        // No settling velocity: nothing settles.
+        t.step_to(3600.0);
+        assert!(t.balance().on_bed.abs() < 1e-12);
+    }
+
+    #[test]
+    fn bound_parcels_settle_at_ws_over_depth() {
+        // 1 m deep, ws 1e-3 m/s: after an hour 1 - e^-3.6 of the bound mass is down.
+        let mut t = with_sediment(1e6, 0.0, 0.0, 1e-3);
+        let share = bound_release(&mut t, 1e6); // nearly all bound
+        t.step_to(3600.0);
+        let b = t.balance();
+        let want = 10.0 * share * (1.0 - (-3.6f64).exp());
+        assert!((b.on_bed - want).abs() < 0.4, "{} {want}", b.on_bed);
+        assert!((b.in_water + b.on_bed - 10.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn settling_and_scouring_at_equal_rates_leave_half_on_the_bed() {
+        // settle ws/h = 1e-3/s; scour erosion/bed = 1e-3/1 = 1e-3/s: in balance, half down.
+        let mut t = with_sediment(1e6, 1.0, 1e-3, 1e-3);
+        bound_release(&mut t, 1e6);
+        t.step_to(36_000.0);
+        let b = t.balance();
+        assert!(
+            (b.on_bed / (b.on_bed + b.in_water) - 0.5).abs() < 0.08,
+            "{b:?}"
         );
     }
 

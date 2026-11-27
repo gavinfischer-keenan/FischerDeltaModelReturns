@@ -135,7 +135,7 @@ Each day of a network reach then has two more field files beside `<day>.fdf`:
   - `withdrawal` (m3/s): water taken by anything else, such as farm intakes;
   - `volume` (m3): each pool's water, with no value at plain junctions.
 - **`<day>.links.fdf`** has one element per link. Its `flow` field (m3/s) is positive from the pool to its junction.
-- **`<day>.quality.fdf`** has one element per channel, like `<day>.fdf`, and holds water-quality fields: `ec` (uS/cm), `salinity` (psu), `temperature` (degC), `ssc` (suspended sediment, mg/L, the mean of the channel's two ends, from the sediment run) and `source:<name>` (shares, 0 to 1). The reach's index entry lists them as `quality_fields`. They live in their own file so that moving parcels does not mean downloading them; a reader loads it only to show them. A `.nodes.fdf` may also carry each pool's `ec`.
+- **`<day>.quality.fdf`** has one element per channel, like `<day>.fdf`, and holds water-quality fields: `ec` (uS/cm), `salinity` (psu), `temperature` (degC), `ssc` (suspended sediment, mg/L, the mean of the channel's two ends, from the sediment run), `bed_mud` (kg/m2) and `erosion` (kg/m2/s), the sediment settled on each channel's bed and the rate it is scoured back up, for pollutants that ride on the sediment (the reach's entry then carries `sediment`: `settling_velocity_m_s`) and `source:<name>` (shares, 0 to 1). The reach's index entry lists them as `quality_fields`. They live in their own file so that moving parcels does not mean downloading them; a reader loads it only to show them. A `.nodes.fdf` may also carry each pool's `ec`.
 
 ### Mesh geometry (2D, version 1.1)
 
@@ -246,6 +246,8 @@ The fields follow in descriptor order. Each field is `steps x layers x elements`
 | `temperature` | degC | Water temperature |
 | `salinity` | psu | Salinity |
 | `ssc` | mg/L | Suspended sediment concentration |
+| `bed_mud` | kg/m2 | Sediment settled on the bed (a network channel with a sediment run) |
+| `erosion` | kg/m2/s | Rate the settled sediment is scoured back up |
 | `source:<name>` | 1 | Share of water from one source, 0 to 1 |
 | `net_velocity` | m/s | Velocity averaged over the tides, for the net-flow display |
 | `flow_up`, `flow_down` | m3/s | Flow at an element's upstream and downstream ends, positive downstream (1D networks, where flow changes along a channel with the tide) |

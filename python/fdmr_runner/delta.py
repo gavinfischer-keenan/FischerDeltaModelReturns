@@ -463,7 +463,11 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         "elements": len(channels), "layers": 1, "fields": fields.FIELDS,
         # In <day>.quality.fdf, loaded only to show them (docs/format.md).
         "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + (["temperature"] if temp_file.exists() else [])
-        + (["ssc"] if sed_file.exists() else []) + sources,
+        + (["ssc"] + (["bed_mud", "erosion"] if sed_file.with_name("gtm_sed_bed.bin").exists() else []) if sed_file.exists() else [])
+        + sources,
+        # The sediment's settling velocity, for pollutants that ride on it (#16).
+        **({"sediment": {"settling_velocity_m_s": cfg["sediment"]["scalars"]["sed_settling"]}}
+           if sed_file.exists() and cfg.get("sediment") else {}),
         "time": {"start": utc(start), "step_s": STEP, "days": days},
         "now": utc(now),
         "certainty": [round(fdmr_py.certainty_at(start + i * STEP - now, solid, end - now, floor), 4) for i in range(steps)],

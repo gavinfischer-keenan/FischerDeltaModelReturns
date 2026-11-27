@@ -80,6 +80,13 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                            "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
                            "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
                            "fdmr_plugins.dsm2.sediment, fdmr_runner.delta ssc_series")],
+        "bound-pollutant": [Maths("partition-settle-scour",
+                                  "A release that sticks to sediment splits at release by its partition coefficient, Kd c / (1 + Kd c) bound "
+                                  "(c the local suspended sediment); bound parcels settle at the mud's ws / depth and are scoured back up at the "
+                                  "sediment run's erosion over its settled mass; no exchange after release",
+                                  "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
+                                  "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
+                                  "crates/fdmr-compute network.rs add_bound_release, step_to")],
     },
     "2d-field": {
         "flow": [Maths("noaa-fvcom-forecast", "NOAA's operational FVCOM forecast for the bay, depth-averaged and coarsened",

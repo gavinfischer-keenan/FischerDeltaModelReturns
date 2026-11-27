@@ -117,6 +117,7 @@
   let mass = $state(100);
   let continuousHours = $state(0);
   let halfLifeHours = $state<number | null>(null);
+  let kdLPerKg = $state<number | null>(null);
 
   let busy = false;
   let pending = 0; // the request whose frame frees the play loop
@@ -225,6 +226,7 @@
       duration: Math.max(0, continuousHours) * 3600,
       mass,
       halfLife: halfLifeHours ? halfLifeHours * 3600 : null,
+      kd: kdLPerKg && kdLPerKg > 0 ? kdLPerKg : null,
     });
     draft = null;
     if (layer !== "contaminant") setLayer("contaminant"); // the plume's own colours (spec 3.5)
@@ -383,6 +385,7 @@
           <label>{text.release_mass} <input type="number" min="0" bind:value={mass} /></label>
           <label>{text.release_continuous} <input type="number" min="0" bind:value={continuousHours} /></label>
           <label>{text.release_half_life} <input type="number" min="0" bind:value={halfLifeHours} /></label>
+          <label>{text.release_kd} <input type="number" min="0" bind:value={kdLPerKg} /></label>
           {#if mode === "now"}<span class="note">{forecastAhead ? text.release_plays_ahead : text.release_starts_back}</span>{/if}
           <button class="go" onclick={release}>{text.release_go}</button>
           <button onclick={() => (draft = null)}>{text.cancel}</button>
@@ -404,6 +407,7 @@
           {#if balance[5] > 0} · {text.mass_diverted}: {balance[5].toFixed(1)} kg{/if}
           {#if balance[6] > 0} · {text.mass_to_sea}: {balance[6].toFixed(1)} kg{/if}
           {#if balance[7] > 0} · {text.mass_to_ocean}: {balance[7].toFixed(1)} kg{/if}
+          {#if balance[10] > 0} · {text.mass_on_bed}: {balance[10].toFixed(1)} kg{/if}
           {#if balance[2] > 0} · {text.mass_past_end}: {balance[2].toFixed(1)} kg{/if}
           · {text.mass_decayed}: {balance[3].toFixed(1)} kg
         </div>

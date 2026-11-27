@@ -273,6 +273,45 @@ impl NetworkEngine {
         });
     }
 
+    /// Release a pollutant that sticks to suspended sediment, by its
+    /// partition coefficient `kd` (L/kg): the share bound where it is released
+    /// settles and is scoured back up with the mud (fdmr-compute
+    /// `add_bound_release`). Returns that share. Load the quality days first.
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_bound_release(
+        &mut self,
+        channel: u32,
+        fraction: f64,
+        length: f64,
+        start: f64,
+        duration: f64,
+        mass: f64,
+        half_life: f64,
+        parcels: u32,
+        kd: f64,
+    ) -> f64 {
+        self.core.add_bound_release(
+            NetRelease {
+                at: Place::Channel(channel as usize, fraction.clamp(0.0, 1.0) * length),
+                start,
+                duration,
+                mass,
+                half_life: if half_life.is_finite() && half_life > 0.0 {
+                    Some(half_life)
+                } else {
+                    None
+                },
+                parcels: parcels as usize,
+            },
+            kd,
+        )
+    }
+
+    /// The sediment's settling velocity, m/s (the reach's `sediment` entry), for bound releases.
+    pub fn set_settling(&mut self, ws: f64) {
+        self.core.set_settling(ws);
+    }
+
     pub fn clear_releases(&mut self) {
         self.core.clear_releases();
     }
@@ -443,6 +482,7 @@ impl NetworkEngine {
             b.to_sea,
             b.decayed,
             b.handed_on,
+            b.on_bed,
         ]
     }
 

@@ -23,6 +23,11 @@
      "text": "\"Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 \""
     },
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 88,
+     "text": "\"(ref:achete2015, runner/dsm2/gtm-sediment.patch)\","
+    },
+    {
      "file": "python/fdmr_runner/delta.py",
      "line": 162,
      "text": "how += f\"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)\""
@@ -385,9 +390,19 @@
    "citation": "Chapra, S. C. (1997). Surface Water-Quality Modeling. McGraw-Hill, New York; 844 pp. Reissued by Waveland Press, Long Grove, Illinois (ISBN 978-1-57766-605-9). ISBN 0-07-011364-5. https://openlibrary.org/isbn/0070113645",
    "used": [
     {
+     "file": "crates/fdmr-compute/src/network.rs",
+     "line": 601,
+     "text": "(Chapra 1997, ref:chapra1997); that share's parcels settle and are"
+    },
+    {
      "file": "python/fdmr_plugins/registry.py",
      "line": 55,
      "text": "\"Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); \""
+    },
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 87,
+     "text": "\"Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run \""
     },
     {
      "file": "python/fdmr_plugins/river_routing/heat.py",
@@ -433,7 +448,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 86,
+     "line": 93,
      "text": "\"NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)\", \"fdmr_plugins.fvcom\")],"
     }
    ]
@@ -503,7 +518,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 103,
+     "line": 110,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
     }
    ]
@@ -521,7 +536,7 @@
    "used": [
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 132,
+     "line": 136,
      "text": "Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal"
     }
    ]
@@ -569,12 +584,12 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 102,
+     "line": 109,
      "text": "\"Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term \""
     },
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 133,
+     "line": 137,
      "text": "Waters, ref:fischer1979)."
     }
    ]
@@ -1036,7 +1051,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 86,
+     "line": 93,
      "text": "\"NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)\", \"fdmr_plugins.fvcom\")],"
     }
    ]
@@ -1110,7 +1125,7 @@
    "used": [
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 128,
+     "line": 132,
      "text": "K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);"
     }
    ]
@@ -1237,7 +1252,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 90,
+     "line": 97,
      "text": "\"Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; \""
     }
    ]
@@ -1344,7 +1359,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 91,
+     "line": 98,
      "text": "\"constituent speeds from Schureman 1958 (ref:schureman1958)\","
     }
    ]
@@ -1660,7 +1675,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 104,
+     "line": 111,
      "text": "\"salinity-from-conductance\": [Maths(\"pss-78\", \"Practical salinity from specific conductance\", \"UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)\","
     }
    ]
@@ -1701,7 +1716,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 103,
+     "line": 110,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
     }
    ]

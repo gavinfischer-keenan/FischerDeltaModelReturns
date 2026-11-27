@@ -25,6 +25,8 @@ export type Request = { seq?: number } & (
       duration: number; // s; 0 for all at once
       mass: number; // kg
       halfLife: number | null; // s
+      /** Sticks to suspended sediment: its partition coefficient, L/kg (a network reach with a sediment run). */
+      kd?: number | null;
     }
   | { type: "clear" }
   | { type: "layer"; layer: Layer }

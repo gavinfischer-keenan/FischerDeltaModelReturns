@@ -16,7 +16,10 @@ conductance as QUAL computes it) and salinity (psu, PSS-78 from the math
 library), each the channel's mean; with the fingerprint study's output,
 source:<group> for each water source, the share (0 to 1) of the channel's
 water that came from it; with the sediment run's (GTM), ssc, suspended
-sediment, mg/L, the mean of the channel's two ends.
+sediment, mg/L, the mean of the channel's two ends; bed_mud, the sediment
+settled on the channel's bed, kg/m2, and erosion, the rate it is scoured
+back up, kg/m2/s, each the mean over the channel's cells (for pollutants
+that ride on the sediment, issue #16).
 
 A reader works out velocity (flow / area) and volume (area x length) itself.
 """
@@ -87,6 +90,17 @@ def write_days(
         g_chan = gh["output/channel concentration"]
         g_t0 = tidefile_start(g_chan.attrs["start_time"][0])
         k_ssc = g_names.index("ssc")
+        # The settled bed and its erosion, cell by cell (gtm-sediment.patch,
+        # <output>_bed.bin), averaged over each channel's cells.
+        bed_file = Path(sediment_file).with_name(Path(sediment_file).stem + "_bed.bin")
+        bed = None
+        if bed_file.exists():
+            ch = gh["geometry/channel"][:]
+            n_cell = int(ch["end_cell"].max())
+            raw = np.fromfile(bed_file, dtype="<f4")
+            raw = raw[: raw.size // (2 * n_cell) * 2 * n_cell].reshape(-1, 2, n_cell)
+            members = [np.arange(s - 1, e) for s, e in zip(ch["start_cell"], ch["end_cell"])]
+            bed = np.stack([np.stack([raw[:, k, m].mean(axis=1) for m in members], axis=1) for k in (0, 1)], axis=1)
     th = h5py.File(temp_file, "r") if temp_file else None
     if th is not None:
         t_names = [x.decode().strip() for x in th["output/constituent_names"][:]]
@@ -156,6 +170,13 @@ def write_days(
                     have = g_chan[j0 : j0 + steps, k_ssc, :, :].mean(axis=2)
                     ssc[: have.shape[0]] = have
                 quality.append(("ssc", "mg/L", True, ssc.ravel().tolist()))
+                if bed is not None:
+                    for k, (fname, unit) in enumerate((("bed_mud", "kg/m2"), ("erosion", "kg/m2/s"))):
+                        v = np.full((steps, n), np.nan)
+                        if j0 >= 0:
+                            have = bed[j0 : j0 + steps, k, :]
+                            v[: have.shape[0]] = have
+                        quality.append((fname, unit, True, v.ravel().tolist()))
             if sh is not None:
                 j0 = (a - s_t0) // 900
                 for k, g in enumerate(s_names):

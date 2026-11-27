@@ -111,5 +111,7 @@
   "reading_reservoir_inflow": "Inflow",
   "reading_reservoir_storage": "Water held",
   "reading_pumping": "Pumping",
-  "overlay_landmarks": "Landmarks"
+  "overlay_landmarks": "Landmarks",
+  "release_kd": "Sticks to sediment (partition coefficient Kd, L/kg; blank for dissolved; the Delta only)",
+  "mass_on_bed": "Settled on the bed with the mud"
 }

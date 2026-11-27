@@ -23,8 +23,12 @@ Hydrol. Earth Syst. Sci. 19, 2837-2857, doi:10.5194/hess-19-2837-2015,
 sections 2.1 and 3.4: one mud fraction, D = ws c, no bed sediment at the start. Unset, every
 scalar leaves GTM as DWR released it.
 
+It also writes, each HDF5 output step, every cell's settled sediment (kg/m2)
+and erosion flux (kg/m2/s) to <output>_bed.bin, for pollutants that ride on
+the sediment (issue #16; fdmr_plugins.dsm2.fields reads it).
+
 diff --git a/dsm2/src/gtm/gtm.f90 b/dsm2/src/gtm/gtm.f90
-index a355eb8..4d5ebbd 100644
+index a355eb8..f1323de 100644
 --- a/dsm2/src/gtm/gtm.f90
 +++ b/dsm2/src/gtm/gtm.f90
 @@ -320,8 +320,14 @@ subroutine gtm_prepare_loop()
@@ -52,6 +56,14 @@ index a355eb8..4d5ebbd 100644
  
          ! set values to variables needed for mercury module
          if (run_mercury) then
+@@ -746,6 +752,7 @@ subroutine gtm_loop()
+                 budget_prev_flow_lo = flow_lo
+                 budget_prev_flow_hi = flow_hi
+                 budget_prev_conc = conc
++                if (run_sediment .and. .not. use_sediment_bed) call write_settled_bed(trim(gtm_io(3,2)%filename))  ! fdmr
+                 if (use_sediment_bed) then   !<added:dhh
+                     call write_gtm_sed_hdf(n_chan, n_cell, time_index_in_gtm_hdf)
+                     if (run_mercury) then
 diff --git a/dsm2/src/gtm_core/common_variables.f90 b/dsm2/src/gtm_core/common_variables.f90
 index 3fa067d..08d7640 100644
 --- a/dsm2/src/gtm_core/common_variables.f90
@@ -89,10 +101,10 @@ index 9898813..82986cf 100644
           read(Val, '(l2)', err=810) calc_budget
        elseif (Param .eq. 'run_pdaf') then
 diff --git a/dsm2/src/sediment/suspended_sediment.f90 b/dsm2/src/sediment/suspended_sediment.f90
-index 5259a41..119e8aa 100644
+index 5259a41..511408e 100644
 --- a/dsm2/src/sediment/suspended_sediment.f90
 +++ b/dsm2/src/sediment/suspended_sediment.f90
-@@ -24,12 +24,16 @@
+@@ -24,12 +24,21 @@
  module suspended_sediment
  
      use gtm_precision
@@ -107,10 +119,15 @@ index 5259a41..119e8aa 100644
 +    ! (kg/m2 of bed, per class); erosion takes no more than is there.
 +    real(gtm_real), allocatable :: settled(:,:)
 +    real(gtm_real), allocatable :: settled_net1(:,:)
++    ! fdmr: the erosion flux (kg/m2/s, the mean of Heun's two stages), for writing out
++    real(gtm_real), allocatable :: settled_erosion1(:,:)
++    real(gtm_real), allocatable :: settled_erosion(:,:)
++    integer :: settled_unit = 0
++    logical :: settled_open = .false.   ! newunit= gives negative unit numbers
  
      contains
  
-@@ -90,6 +94,7 @@ module suspended_sediment
+@@ -90,6 +99,7 @@ module suspended_sediment
          integer :: icell
          logical ::  function_van_rijn
          real(gtm_real) :: param_M
@@ -118,7 +135,7 @@ index 5259a41..119e8aa 100644
  
          param_M = ero_coeff                        ! unit kg/(m^2s)
  
-@@ -123,13 +128,18 @@ module suspended_sediment
+@@ -123,13 +133,18 @@ module suspended_sediment
                                          depth_si(icell),               &
                                          bottom_shear_stress(icell),    &
                                          conc_si(icell))
@@ -138,7 +155,7 @@ index 5259a41..119e8aa 100644
                  call cohesive_deposition(deposition_flux(icell),       &
                                           fall_vel(icell),              &
                                           near_bed_c(icell),            &
-@@ -141,7 +151,7 @@ module suspended_sediment
+@@ -141,7 +156,7 @@ module suspended_sediment
                                            shear_vel(icell),            &
                                            exp_re_p(icell),             &
                                            fall_vel(icell),             &
@@ -147,7 +164,7 @@ index 5259a41..119e8aa 100644
                  call non_cohesive_deposition(deposition_flux(icell),       &
                                               shear_vel(icell),             &
                                               fall_vel(icell),              &
-@@ -150,6 +160,8 @@ module suspended_sediment
+@@ -150,6 +165,8 @@ module suspended_sediment
                                               bottom_shear_stress(icell))
              end if
  
@@ -156,7 +173,7 @@ index 5259a41..119e8aa 100644
              if (erosion_flux(icell) .gt. available_bed(icell)) then
                  erosion_flux(icell) = available_bed(icell)
              end if
-@@ -163,6 +175,15 @@ module suspended_sediment
+@@ -163,6 +180,17 @@ module suspended_sediment
              vertical_flux(icell) = erosion_flux(icell) - deposition_flux(icell)
              source(icell) = vertical_flux(icell)/depth_si(icell)*si_to_english
           end do
@@ -164,7 +181,9 @@ index 5259a41..119e8aa 100644
 +             ! the bed changes as Heun's method changes the water: by the mean of its two stages
 +             if (rkstep .eq. 1) then
 +                 settled_net1(:,isediment) = deposition_flux - erosion_flux
++                 settled_erosion1(:,isediment) = erosion_flux
 +             else
++                 settled_erosion(:,isediment) = half*(settled_erosion1(:,isediment) + erosion_flux)
 +                 settled(:,isediment) = max(zero, settled(:,isediment) + &
 +                     dt*half*(settled_net1(:,isediment) + deposition_flux - erosion_flux))
 +             end if
@@ -172,7 +191,7 @@ index 5259a41..119e8aa 100644
           return
      end subroutine
  
-@@ -180,6 +201,17 @@ module suspended_sediment
+@@ -180,6 +208,40 @@ module suspended_sediment
      end subroutine
  
      !> deallocate sediment variables
@@ -183,8 +202,31 @@ index 5259a41..119e8aa 100644
 +        real(gtm_real), intent(in) :: initial
 +        allocate(settled(ncell,nsediment))
 +        allocate(settled_net1(ncell,nsediment))
++        allocate(settled_erosion1(ncell,nsediment))
++        allocate(settled_erosion(ncell,nsediment))
 +        settled = initial
 +        settled_net1 = zero
++        settled_erosion1 = zero
++        settled_erosion = zero
++    end subroutine
++
++    !> fdmr: each output step, every cell's settled sediment (kg/m2) and erosion
++    !> flux (kg/m2/s) of the first class, as two arrays of 4-byte reals, appended
++    !> to a stream file beside the HDF5 output (<name>_bed.bin).
++    subroutine write_settled_bed(hdf_name)
++        implicit none
++        character(len=*), intent(in) :: hdf_name
++        integer :: k
++        if (.not. allocated(settled)) return
++        if (.not. settled_open) then
++            k = index(hdf_name, '.', .true.)
++            if (k .le. 1) k = len_trim(hdf_name) + 1
++            open(newunit=settled_unit, file=hdf_name(1:k-1)//'_bed.bin', access='stream', &
++                 form='unformatted', status='replace')
++            settled_open = .true.
++        end if
++        write(settled_unit) real(settled(:,1), 4), real(settled_erosion(:,1), 4)   ! 4-byte reals: half the size
++        flush(settled_unit)
 +    end subroutine
 +
      subroutine dealloacte_sediment_variables()

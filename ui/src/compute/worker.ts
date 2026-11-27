@@ -23,6 +23,8 @@ interface ReachEntry {
   dims?: number;
   time?: { days: string[] };
   quality_fields?: string[];
+  /** A network reach with a sediment run: the mud's settling velocity (#16). */
+  sediment?: { settling_velocity_m_s: number };
 }
 interface Junction {
   node: number;
@@ -101,6 +103,8 @@ interface NetRelease {
   mass: number;
   halfLife: number | null;
   parcels: number;
+  /** Sticks to sediment: partition coefficient, L/kg. */
+  kd?: number | null;
 }
 
 const PARCELS_PER_RELEASE = 20_000;
@@ -494,8 +498,14 @@ function build(t: number): void {
     for (const b of net.channels) ne.load_channels(b);
     for (const b of net.nodeDays) ne.load_nodes(b);
     for (const b of net.linkDays) ne.load_links(b);
-    for (const r of net.releases) ne.add_release(r.element, r.fraction, T.length[r.element], r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
+    // Quality first: a bound release reads the sediment where it is released.
     for (const b of net.quality ?? []) ne.load_quality(b);
+    const ws = index?.reaches.find((x) => x.id === net.id)?.sediment?.settling_velocity_m_s;
+    if (ws) ne.set_settling(ws);
+    for (const r of net.releases) {
+      if (r.kd) ne.add_bound_release(r.element, r.fraction, T.length[r.element], r.start, r.duration, r.mass, hl(r.halfLife), r.parcels, r.kd);
+      else ne.add_release(r.element, r.fraction, T.length[r.element], r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
+    }
     const owned = index?.handoffs?.filter((h) => h.from === net.id && h.owned && meshes.some((m) => m.id === h.to)).flatMap((h) => h.owned!) ?? [];
     ne.set_handoff(Uint32Array.from(owned));
     const cuts = index?.handoffs?.filter((h) => h.from === net.id && h.cuts && meshes.some((m) => m.id === h.to)).flatMap((h) => h.cuts!) ?? [];
@@ -713,7 +723,7 @@ function words(c: number, t: number): Words {
 /** Every reach's mass balance together (see Frame.massBalance). Mass passed
  * from one reach to another is counted as released once. */
 function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Float64Array {
-  const out = new Float64Array(10);
+  const out = new Float64Array(11);
   out[0] = -handedIn;
   const rivers: [string, Engine][] = [[riverId, engine!], ...lines.filter((l) => l.engine).map((l): [string, Engine] => [l.id, l.engine!])];
   for (const [id, e] of rivers) {
@@ -724,9 +734,10 @@ function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Flo
     out[3] += decayed;
   }
   for (const n of networks) {
-    const [released, inWater, exported, diverted, toSea, decayed] = n.massBalance;
+    const [released, inWater, exported, diverted, toSea, decayed, , onBed] = n.massBalance;
     out[0] += released;
     out[3] += decayed;
+    out[10] += onBed ?? 0; // bound to sediment, settled on the bed
     if (nets.find((x) => x.id === n.id)?.canal) {
       out[8] += inWater; // in the canals, so far
       out[9] += exported; // carried on down them, beyond the map
@@ -934,7 +945,9 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         } else if (r.line && lines.some((l) => l.id === r.line!.id)) {
           lines.find((l) => l.id === r.line!.id)!.releases.push({ ...base, x: r.line.x });
         } else if (r.network && net) {
-          net.releases.push({ ...base, element: r.network.element, fraction: r.network.fraction, parcels: PARCELS_PER_RELEASE });
+          // A pollutant that sticks to sediment needs the sediment fields where it is released.
+          if (r.kd && !net.quality) await loadQuality();
+          net.releases.push({ ...base, element: r.network.element, fraction: r.network.fraction, parcels: PARCELS_PER_RELEASE, kd: r.kd ?? null });
         } else {
           riverReleases.push({ ...base, x: r.x });
         }
