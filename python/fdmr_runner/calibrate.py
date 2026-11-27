@@ -38,7 +38,10 @@ from .publish import channel_method, fit_shapes, river_chain
 from .region import load_region
 
 STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
-TRACERS = {  # parameter: smallest swing in the smoothed signal that counts as a signal
+# The smallest swing in a smoothed tracer signal that counts as a signal, by
+# parameter (FDMR's choice: so that a travel time is fitted to a real swing,
+# not to a smoothed record's noise).
+TRACERS = {
     "specific_conductance": 5.0,  # µS/cm
     "water_temperature": 0.5,  # °C
 }

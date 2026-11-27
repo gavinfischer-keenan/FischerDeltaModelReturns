@@ -58,6 +58,10 @@ SHOWN = {
 }
 CHECK_DAYS = 14  # each station's readings against the model over this many days
 MODEL_NEAR_KM = 1.0  # a station further than this from every channel gets no model value
+MIN_DAY_HOURS = 18  # a day's mean needs this many hourly readings, three quarters of the day (FDMR's choice)
+MIN_CHECK_READINGS = 24  # a station's check against the model needs this many readings, a day's hourly (FDMR's choice)
+GATE_DAYS = 3  # a gate's state is read from its flow over the last this many days (FDMR's choice)
+DAILY_AGE_DAYS = 3  # a daily value is posted the day after: one this many days old still counts as latest (FDMR's choice)
 
 
 def load(region_dir: Path) -> dict | None:
@@ -120,7 +124,7 @@ def measured_crossings(store: Store, source: str, sites: dict[str, float], param
         means = []
         for s in order:
             vs = [v.value for v in store.values(source, s, parameter, d, d + 86_400) if v.value is not None]
-            means.append(float(np.mean(vs)) if len(vs) >= 18 else math.nan)  # three quarters of the hours
+            means.append(float(np.mean(vs)) if len(vs) >= MIN_DAY_HOURS else math.nan)
         km, why = isohaline.crossing(np.array([sites[s] for s in order]), np.array(means), threshold)
         out.append({"day": datetime.fromtimestamp(d - off, timezone.utc).strftime("%Y-%m-%d"),
                     "km": None if km is None else round(km, 2), **({"outside": why} if why else {})})
@@ -165,7 +169,7 @@ def isohalines(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> li
                 d0 = calendar.timegm(datetime.strptime(m["day"], "%Y-%m-%d").timetuple()) + DAY_OFFSET.get(chk["source"], 0)
                 sel = (tt >= d0) & (tt < d0 + 86_400)
                 ok = sel & np.isfinite(km)
-                m["model_km"] = round(float(km[ok].mean()), 2) if ok.sum() >= 18 else None
+                m["model_km"] = round(float(km[ok].mean()), 2) if ok.sum() >= MIN_DAY_HOURS else None  # hourly values
             pairs = [(m["model_km"], m["km"]) for m in measured if m.get("model_km") is not None and m.get("km") is not None]
             entry_out["check"] = {
                 "source": chk["source"], "parameter": chk["parameter"], "sites": sites, "days": measured,
@@ -234,7 +238,7 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
                 m = near[0].at(field, near[1], v.t) if v.value is not None else None
                 if m is not None:
                     pairs.append(v.value - m)
-            if len(pairs) >= 24:
+            if len(pairs) >= MIN_CHECK_READINGS:
                 d = np.array(pairs)
                 checks[p] = {"readings": len(d), "mean_misfit": round(float(d.mean()), 3),
                              "rms_misfit": round(float(np.sqrt((d ** 2).mean())), 3)}
@@ -247,6 +251,7 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
 
 RESIDUAL_DAYS = 7  # days of hourly tide residual summarised (FDMR's choice)
 SLOW_DAYS = 30  # the residual's slow part: the ocean's state, river set-up and the datum's age
+MIN_SLOW_DAYS = 20  # the slow part is given only with at least this many days of hourly residual (FDMR's choice)
 
 
 def tide_residual(cfg: dict, store: Store, now: int) -> list[dict]:
@@ -282,7 +287,7 @@ def tide_residual(cfg: dict, store: Store, now: int) -> list[dict]:
         row = {"site": s["site"], "name": s["name"], "latest_hour": int(hw[-1] * 3600), "latest_m": round(float(hourly[-1]), 3),
                "mean_m": round(float(hourly.mean()), 3), "highest_m": round(float(hourly.max()), 3),
                "highest_at": int(hw[int(hourly.argmax())] * 3600), "lowest_m": round(float(hourly.min()), 3), "hours": int(len(hourly))}
-        if len(all_hours) >= 20 * 24:  # enough for the slow part
+        if len(all_hours) >= MIN_SLOW_DAYS * 24:  # enough for the slow part
             slow = float(all_hours.mean())
             row.update({"mean_30d_m": round(slow, 3), "hours_30d": int(len(all_hours)), "latest_less_30d_m": round(float(hourly[-1]) - slow, 3)})
         out.append(row)
@@ -375,7 +380,7 @@ def gate_state(store: Store, source: str, site: str, rule: dict, now: int) -> di
     """Open or closed now, from the flow through the gate over the last three
     days, by the rule the Delta model uses (fdmr_runner.delta.gate_states, with
     the gate's own settings from dsm2.toml)."""
-    vals = [(v.t, v.value) for v in store.values(source, site, rule["parameter"], now - 3 * 86_400, now + 1) if v.value is not None]
+    vals = [(v.t, v.value) for v in store.values(source, site, rule["parameter"], now - GATE_DAYS * 86_400, now + 1) if v.value is not None]
     states = delta.gate_states(vals, rule["open_above"], int(rule.get("max_gap_h", 8) * 3600))
     if not states:
         return None
@@ -392,10 +397,10 @@ def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict]
     for s in cfg.get("structures", []):
         src = s.get("source", cdec.SOURCE)
         # A daily value is posted the day after; allow it three days.
-        max_age = LATEST_S if s.get("duration", "H") != "D" else 3 * 86_400
+        max_age = LATEST_S if s.get("duration", "H") != "D" else DAILY_AGE_DAYS * 86_400
         readings = {}
         for p in s.get("show", []):
-            age = 3 * 86_400 if p in s.get("daily", []) else max_age
+            age = DAILY_AGE_DAYS * 86_400 if p in s.get("daily", []) else max_age
             vs = [v for v in store.values(src, s["site"], p, now - age, now + 1) if v.value is not None]
             if vs:
                 units[p] = store.unit(src, s["site"], p) or ""

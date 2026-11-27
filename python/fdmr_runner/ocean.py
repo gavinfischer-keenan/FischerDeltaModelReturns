@@ -25,6 +25,9 @@ from fdmr_adapters.cpc import SOURCE as CPC
 
 DAY = 86_400
 ENSO_THRESHOLD = 0.5  # degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index
+WEEKLY_AGE_DAYS = 21  # a weekly Nino index older than this is not shown (FDMR's choice: three missed weeks)
+CHANGE_DAYS = 28  # the weekly index's change is over four weeks, the week found within a few days of it (FDMR's choice)
+ONI_AGE_DAYS = 150  # the Oceanic Nino Index, a three-month mean issued monthly, is shown up to this old (FDMR's choice)
 
 
 def _latest(store: Store, src: str, site: str, p: str, t0: int, t1: int):
@@ -40,11 +43,11 @@ def summary(cfg: dict, store: Store, now: int) -> dict | None:
     if oc.get("enso"):
         weekly = {}
         for r in REGIONS:
-            v = _latest(store, CPC, r, "sst_anomaly", now - 21 * DAY, now + 1)
+            v = _latest(store, CPC, r, "sst_anomaly", now - WEEKLY_AGE_DAYS * DAY, now + 1)
             if v:
-                before = _latest(store, CPC, r, "sst_anomaly", v.t - 31 * DAY, v.t - 27 * DAY)
+                before = _latest(store, CPC, r, "sst_anomaly", v.t - (CHANGE_DAYS + 3) * DAY, v.t - (CHANGE_DAYS - 1) * DAY)
                 weekly[r] = {"week": v.t, "anomaly_c": v.value, **({"change_4w_c": round(v.value - before.value, 2)} if before else {})}
-        oni = _latest(store, CPC, "oni", "sst_anomaly", now - 150 * DAY, now + 1)
+        oni = _latest(store, CPC, "oni", "sst_anomaly", now - ONI_AGE_DAYS * DAY, now + 1)
         if weekly or oni:
             out["enso"] = {"source": "NOAA Climate Prediction Center (weekly Nino indices, 1991-2020 base; Oceanic Nino Index)",
                            "weekly": weekly, "threshold_c": ENSO_THRESHOLD,

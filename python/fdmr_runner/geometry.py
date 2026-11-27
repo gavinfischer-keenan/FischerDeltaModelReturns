@@ -30,6 +30,14 @@ from .region import load_region
 MAX_SNAP_M = 300  # a station placed by its coordinates must lie this close to the river
 
 
+# Building a reach's centreline from the national hydrography (NLDI), once,
+# when a region is set up (FDMR's choices, generous: a trace past the river's
+# end is cut where the reach ends).
+TRACE_KM = 1500  # how far downstream a reach's line is traced, km
+JOIN_TRACE_KM = 400  # how far downstream a tributary is traced to find where it joins, km
+JOIN_AFTER_M = 500  # a tributary joins no nearer its own start than this, m
+JOIN_WITHIN_M = 150  # it joins where it comes within this of the reach's centreline, m
+
 def position(nldi: NldiAdapter, g) -> "object":
     """Where a gauge sits on the national river network: its USGS site's
     position, or its own coordinates snapped to the nearest flowline (checked)."""
@@ -55,7 +63,7 @@ def build(region_dir: Path, reach: str, extra_km: float, nldi: NldiAdapter, paus
     # The reach starts at its dam where one is given (`dam`, lon and lat), else at its release gauge.
     rel = position(nldi, release)
     top = nldi.point_position(cfg["dam"][0], cfg["dam"][1], "dam") if cfg.get("dam") else rel
-    flowlines = nldi.downstream_from(top.comid, distance_km=1500)
+    flowlines = nldi.downstream_from(top.comid, distance_km=TRACE_KM)
     line = chain([(f.comid, f.coords) for f in flowlines], start_comid=top.comid)
     main_ids = set(line.flowline_start)
     start = line.position_of(top.comid, top.measure)
@@ -85,7 +93,7 @@ def build(region_dir: Path, reach: str, extra_km: float, nldi: NldiAdapter, paus
         if g.role != "tributary":
             continue
         time.sleep(pause)
-        path = nldi.downstream_mainstem(g.place_site, distance_km=400) if g.place_site else nldi.downstream_from(position(nldi, g).comid, 400)
+        path = nldi.downstream_mainstem(g.place_site, distance_km=JOIN_TRACE_KM) if g.place_site else nldi.downstream_from(position(nldi, g).comid, JOIN_TRACE_KM)
         # The first flowline downstream of the tributary gauge that is on the main
         # stem is where it joins: its upstream end.
         on_main = [f.comid for f in path if f.comid in main_ids]
@@ -101,7 +109,7 @@ def build(region_dir: Path, reach: str, extra_km: float, nldi: NldiAdapter, paus
         other = json.loads((Path(region_dir) / f"{cfg['joins']}.json").read_text(encoding="utf-8"))["coords"]
         kk = math.cos(math.radians(other[0][1]))
         for xy, s in zip(line.coords, line.chainage):
-            if s - start > 500 and min(math.hypot((xy[0] - o[0]) * kk, xy[1] - o[1]) for o in other[:: 1]) * 111_195 < 150:
+            if s - start > JOIN_AFTER_M and min(math.hypot((xy[0] - o[0]) * kk, xy[1] - o[1]) for o in other) * 111_195 < JOIN_WITHIN_M:
                 mouth = list(xy)
                 break
         else:

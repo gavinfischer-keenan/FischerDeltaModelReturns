@@ -36,6 +36,9 @@ from .forecast import on_grid
 DAY = 86_400
 
 
+REPORT_AGE_DAYS = 4  # the flood-control report and the release, daily, still used this old: a long weekend (FDMR's choice)
+STORAGE_AGE_DAYS = 2  # the reservoir's storage, reported hourly or daily, still used this old (FDMR's choice)
+
 def _latest(store: Store, src: str, site: str, p: str, t0: int, t1: int):
     vs = [v for v in store.values(src, site, p, t0, t1) if v.value is not None]
     return vs[-1] if vs else None
@@ -65,9 +68,9 @@ def rule_forecast(store: Store, rule: dict, gauge_now: float, t0: int, step: int
         return out, {"how": f"follows the River Forecast Center's release forecast {p} upstream (its changes added to today's release)",
                      "largest_rise_m3s": round(float(rises), 2)}
     site = rule["reservoir"]
-    toc = _latest(store, "usace-spk", site, "top_of_conservation", now - 4 * DAY, now + 1)
-    storage = _latest(store, "cdec", site, "reservoir_storage", now - 2 * DAY, now + 1)
-    release = _latest(store, "cdec", site, "reservoir_outflow", now - 4 * DAY, now + 1)
+    toc = _latest(store, "usace-spk", site, "top_of_conservation", now - REPORT_AGE_DAYS * DAY, now + 1)
+    storage = _latest(store, "cdec", site, "reservoir_storage", now - STORAGE_AGE_DAYS * DAY, now + 1)
+    release = _latest(store, "cdec", site, "reservoir_outflow", now - REPORT_AGE_DAYS * DAY, now + 1)
     inflow = _forecast_grid(store, rule["inflow"]["point"], t0, step, n, now)
     if toc is None or storage is None or release is None or inflow is None:
         missing = [k for k, v in (("top of conservation", toc), ("storage", storage), ("release", release), ("inflow forecast", inflow)) if v is None]

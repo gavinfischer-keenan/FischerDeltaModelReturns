@@ -1,18 +1,24 @@
 """Write docs/parameters.md: every number the model is set with, where it is
 set, and what the file says about it.
 
-Two places hold the model's numbers: each region's settings
-(regions/<id>/*.toml) and the constants at the top of the model's own modules
-(python/fdmr_runner, python/fdmr_plugins: names in capitals). For each number
+The model's numbers are held in each region's settings (regions/<id>/*.toml)
+and in the constants at the top of the model's own modules: Python
+(python/fdmr_runner, fdmr_plugins, fdmr_adapters: names in capitals), Rust
+(crates/*/src: `const`) and the browser's engine (ui/src/compute: `const` in
+capitals). For each number
 this lists where it is set (file and line, the table it belongs to), its
 value, the comment written beside or above it (where its source is given),
 and the references it cites (ref:<key>, linked to references.md). Places,
 names and station codes are left out: coordinates, ids, channel numbers.
 The date a number was set is the file's history (git log -L), linked.
 
+Every number a region's settings hold, nested and multi-line arrays included,
+is read with tomllib, and `--check` fails if any of them is missing from the
+page (#62): the page's claim to list every number is checked, not assumed.
+
 Usage:
   python tools/params_doc.py           write docs/parameters.md
-  python tools/params_doc.py --check   fail if it is out of date
+  python tools/params_doc.py --check   fail if it is out of date or misses a number
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -45,26 +52,46 @@ def tracked(pattern: str) -> list[Path]:
         return sorted(ROOT.glob(pattern))
 
 
-def numbers(value: str) -> list[tuple[str, str]]:
-    """(subkey, number) pairs in a TOML value: a number, an array of numbers,
-    or an inline table's numeric entries."""
-    v = value.strip()
-    if NUMBER.match(v):
-        return [("", v)]
-    if v.startswith("[") and v.endswith("]"):
-        items = [x.strip() for x in v[1:-1].split(",") if x.strip()]
-        if items and all(NUMBER.match(x) for x in items):
-            return [("", "[" + ", ".join(items) + "]")]
-        return []
-    if v.startswith("{") and v.endswith("}"):
+def is_number(x) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def all_numbers(x) -> bool:
+    """A number, or an array (of arrays) holding nothing but numbers."""
+    return is_number(x) or (isinstance(x, list) and bool(x) and all(all_numbers(y) for y in x))
+
+
+def shown(x) -> str:
+    """A number or an array of numbers as the page shows it."""
+    if isinstance(x, list):
+        return "[" + ", ".join(shown(y) for y in x) + "]"
+    return repr(x) if isinstance(x, float) else str(x)
+
+
+def leaves(value, prefix: str = "") -> list[tuple[str, object]]:
+    """(subkey, number or array of numbers) in a parsed TOML value: a number,
+    an array (of arrays) of numbers, or an inline table's entries, nested."""
+    if all_numbers(value):
+        return [(prefix, value)]
+    if isinstance(value, dict):
         out = []
-        for part in re.split(r",(?![^\[]*\])", v[1:-1]):
-            if "=" in part:
-                k, x = (s.strip() for s in part.split("=", 1))
-                if k not in NOT_PARAMETERS:
-                    out += [(k + (("." + s) if s else ""), n) for s, n in numbers(x)]
+        for k, x in value.items():
+            if k not in NOT_PARAMETERS:
+                out += leaves(x, f"{prefix}.{k}" if prefix else k)
         return out
+    if isinstance(value, list) and value and all(isinstance(x, dict) for x in value):  # an array of inline tables
+        return [r for i, x in enumerate(value, 1) for r in leaves(x, f"{prefix}[{i}]")]
     return []
+
+
+def numbers(value: str) -> list[tuple[str, str]]:
+    """(subkey, number as shown) pairs in a TOML value as written: a number,
+    an array (of arrays) of numbers, or an inline table's numeric entries."""
+    try:
+        parsed = tomllib.loads("v = " + value.strip())["v"]
+    except tomllib.TOMLDecodeError:
+        return []
+    return [(k, shown(x)) for k, x in leaves(parsed)]
 
 
 def toml_rows(path: Path) -> list[dict]:
@@ -79,7 +106,10 @@ def toml_rows(path: Path) -> list[dict]:
     rows, table, table_note, block, counts, group, first_notes = [], "", "", [], {}, "", {}
     repeated: dict[tuple[str, str, str], tuple[str, str]] = {}  # (array, key, value): (where noted, note)
     lines = path.read_text(encoding="utf-8").splitlines()
-    for i, raw in enumerate(lines, 1):
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        i += 1
         line = raw.strip()
         if line.startswith("#"):
             block.append(line.lstrip("#").strip())
@@ -106,6 +136,13 @@ def toml_rows(path: Path) -> list[dict]:
             continue
         key, rest = m.group(1).strip('"'), m.group(2)
         value, _, inline = rest.partition(" #")
+        start = i
+        # A value written over several lines (an array): read on to its end.
+        while value.count("[") > value.count("]") and i < len(lines):
+            more, _, note = lines[i].partition(" #")
+            value += " " + more.strip()
+            inline = (inline + " " + note.strip()).strip() if note.strip() else inline
+            i += 1
         inline_table = value.strip().startswith("{")
         own = " ".join(block + ([inline.strip()] if inline.strip() else []))
         if block:
@@ -115,23 +152,33 @@ def toml_rows(path: Path) -> list[dict]:
             continue
         array = re.sub(r"\[\d+\]$", "", table)
         for sub, n in numbers(value):
-            k = key + (("." + sub) if sub else "")
+            k = key + (("." + sub) if sub and not sub.startswith("[") else sub)
             if own and array != table:
                 repeated.setdefault((array, k, n), (table, own))
             seen = repeated.get((array, k, n)) if array != table else None
             note = own or (f"As in `{seen[0]}`: {seen[1]}" if seen and seen[0] != table else group)
-            rows.append({"file": path.relative_to(ROOT).as_posix(), "line": i, "table": table, "table_note": table_note,
-                         "key": key + (("." + sub) if sub else ""), "value": n, "note": note})
+            rows.append({"file": path.relative_to(ROOT).as_posix(), "line": start, "table": table, "table_note": table_note,
+                         "key": k, "value": n, "note": note})
         block = []
     return rows
 
 
+NUMERIC = re.compile(r"^[\d.eE+\-*/ (),_\[\]]+$")  # a number, a sum of them, or a tuple or list of them
+
+
 def code_rows(path: Path) -> list[dict]:
+    """A module's constants: Python's (a name in capitals set to a number,
+    a sum of numbers, or a tuple of them), Rust's (`const`) and TypeScript's
+    (`const` in capitals), each with the comment above or beside it."""
+    if path.suffix == ".rs":
+        return lang_rows(path, re.compile(r"^\s*(?:pub(?:\([a-z]+\))?\s+)?const\s+([A-Z][A-Z0-9_]+)\s*:\s*[\w\[\]; ]+=\s*([^;]+);\s*(?://\s*(.*))?$"), ("///", "//"))
+    if path.suffix == ".ts":
+        return lang_rows(path, re.compile(r"^\s*(?:export\s+)?const\s+([A-Z][A-Z0-9_]+)\s*(?::\s*\w+)?\s*=\s*([^;]+);\s*(?://\s*(.*))?$"), ("//", "*", "/**"))
     rows = []
     lines = path.read_text(encoding="utf-8").splitlines()
     for i, raw in enumerate(lines, 1):
         m = re.match(r"^([A-Z][A-Z0-9_]+)\s*(?::\s*[\w\[\], |]+)?=\s*([^#]+?)\s*(?:#\s*(.*))?$", raw)
-        if not m or not NUMBER.match(m.group(2).replace(" ", "")) and not re.match(r"^[\d.eE+\-*/ ()]+$", m.group(2)):
+        if not m or not NUMBER.match(m.group(2).replace(" ", "")) and not NUMERIC.match(m.group(2)) or not re.search(r"\d", m.group(2)):
             continue
         above = []
         j = i - 2
@@ -142,6 +189,52 @@ def code_rows(path: Path) -> list[dict]:
         rows.append({"file": path.relative_to(ROOT).as_posix(), "line": i, "table": "(module constant)",
                      "key": m.group(1), "value": m.group(2).strip(), "note": note})
     return rows
+
+
+def lang_rows(path: Path, const: re.Pattern, comment: tuple[str, ...]) -> list[dict]:
+    """Constants in a Rust or TypeScript file: name, numeric value, and the
+    comment lines just above (`comment` prefixes) or beside it."""
+    rows = []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for i, raw in enumerate(lines, 1):
+        if raw.strip().startswith("#[cfg(test)]"):  # a Rust file's tests: not the model's settings
+            break
+        m = const.match(raw)
+        if not m or not NUMERIC.match(m.group(2).strip()) or not re.search(r"\d", m.group(2)):
+            continue
+        above = []
+        j = i - 2
+        while j >= 0 and lines[j].strip().startswith(comment) and not lines[j].strip().startswith("*/"):
+            above.insert(0, lines[j].strip().lstrip("/*").strip())
+            j -= 1
+        note = " ".join(above[-4:] + ([m.group(3)] if m.group(3) else []))
+        rows.append({"file": path.relative_to(ROOT).as_posix(), "line": i, "table": "(module constant)",
+                     "key": m.group(1), "value": m.group(2).strip(), "note": note})
+    return rows
+
+
+def missing(regions: list[Path]) -> list[str]:
+    """Numbers a region's settings hold (read whole with tomllib) that the
+    page does not list: "file: key = value"."""
+    out = []
+    for region in regions:
+        for f in tracked(f"regions/{region.name}/*.toml"):
+            listed = {(r["key"].split(".")[-1], r["value"]) for r in toml_rows(f)}
+            data = tomllib.loads(f.read_text(encoding="utf-8"))
+
+            def walk(x, key=""):
+                if isinstance(x, dict):
+                    for k, y in x.items():
+                        if k not in NOT_PARAMETERS:
+                            yield from walk(y, k)
+                elif isinstance(x, list) and x and all(isinstance(y, dict) for y in x):
+                    for y in x:
+                        yield from walk(y, key)
+                elif key and all_numbers(x):
+                    yield key, shown(x)
+
+            out += [f"{f.relative_to(ROOT).as_posix()}: {k} = {v}" for k, v in walk(data) if (k, v) not in listed]
+    return out
 
 
 def linked(s: str) -> str:
@@ -175,7 +268,8 @@ def build() -> str:
                 out.append(f"| {where} | {setting} | `{r['value']}` | {linked(r['note'])} |")
             out.append("")
     out += ["## The model's own constants", "", "| Where | Constant | Value | Note and source |", "| --- | --- | --- | --- |"]
-    for f in tracked("python/fdmr_runner/*.py") + tracked("python/fdmr_plugins/**/*.py"):
+    for f in (tracked("python/fdmr_runner/*.py") + tracked("python/fdmr_plugins/**/*.py") + tracked("python/fdmr_adapters/*.py")
+              + tracked("crates/*/src/*.rs") + tracked("ui/src/compute/*.ts")):
         for r in code_rows(f):
             out.append(f"| [{r['file']}:{r['line']}](../{r['file']}#L{r['line']}) | `{r['key']}` | `{r['value']}` | {linked(r['note'])} |")
     out.append("")
@@ -184,10 +278,13 @@ def build() -> str:
 
 def main(argv: list[str]) -> int:
     text, path = build(), ROOT / "docs" / "parameters.md"
+    gaps = missing(sorted({p.parent for p in tracked("regions/*/*.toml")}))
+    for g in gaps:
+        print(f"not listed: {g}")
     if "--check" in argv:
         ok = path.exists() and path.read_text(encoding="utf-8") == text
         print("docs/parameters.md", "ok" if ok else "is out of date: run python tools/params_doc.py")
-        return 0 if ok else 1
+        return 0 if ok and not gaps else 1
     path.write_text(text, encoding="utf-8", newline="\n")
     print(f"wrote {path.relative_to(ROOT)}: {text.count(chr(10) + '| [')} rows")
     return 0

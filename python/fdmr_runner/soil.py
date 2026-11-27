@@ -34,6 +34,8 @@ POINT_SPACING_M = 2_000.0  # centreline points kept for a corridor: far closer t
 FRESH_S = 4 * 86_400  # SMAP's Level 4 runs about two days behind
 
 
+OPENET_AGE_DAYS = 45  # OpenET's evapotranspiration runs days to weeks behind: shown up to this old (FDMR's choice)
+
 def load(region_dir: Path) -> dict | None:
     return tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("soil_moisture")
 
@@ -106,7 +108,7 @@ def water_in(store: Store, site: str, now: int) -> dict:
             out["rain_7d_percent_normal"] = round(100 * week / normal)
     samples = [f"{site}/s{k}" for k in range(1, SAMPLE_GRID[0] * SAMPLE_GRID[1] + 1)]
     lasts = [x[0] for x in (store.latest("openet", s, "evapotranspiration") for s in samples) if x]
-    if lasts and min(lasts) >= now - 45 * 86_400:  # OpenET runs days to weeks behind
+    if lasts and min(lasts) >= now - OPENET_AGE_DAYS * 86_400:  # OpenET runs days to weeks behind
         t = min(lasts)  # the last day every sample has
         weeks = [_sum(store, "openet", s, "evapotranspiration", t - 6 * 86_400, t + 1) for s in samples]
         weeks = [w for w, n in weeks if n == 7]

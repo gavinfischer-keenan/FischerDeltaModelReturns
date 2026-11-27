@@ -28,6 +28,9 @@ from pathlib import Path
 import numpy as np
 
 PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1
+MIN_SEEN = 0.2  # a pass counts only if it saw at least this share of the area (FDMR's choice)
+MAX_PATCHES = 10  # the largest this many patches of new water are listed per pass (FDMR's choice)
+PASS_S = 3600  # tiles within this of each other, s, are one radar pass (FDMR's choice: a pass takes minutes)
 
 
 def _grid(box: tuple[float, float, float, float], zone: int, dx: float):
@@ -63,7 +66,7 @@ def mosaics(tiles: list[dict], box, zone: int, dx: float) -> list[tuple[int, np.
     x0, y0, rows, cols = _grid(box, zone, dx)
     passes: dict[int, list[dict]] = {}
     for tl in sorted(tiles, key=lambda t: t["t"]):
-        key = next((k for k in passes if abs(k - tl["t"]) <= 3600), tl["t"])
+        key = next((k for k in passes if abs(k - tl["t"]) <= PASS_S), tl["t"])
         passes.setdefault(key, []).append(tl)
     out = []
     for t, group in sorted(passes.items()):
@@ -104,7 +107,7 @@ def area_record(tiles: list[dict], area: dict, cfg: dict, baseline: list[dict] |
     # The same season in earlier years: how often each pixel was water then.
     for _, g in mosaics(baseline or [], box, zone, dx):
         seen = (g != NOT_SEEN) & inside
-        if seen.sum() >= 0.2 * inside.sum():
+        if seen.sum() >= MIN_SEEN * inside.sum():
             water_n += ((g == 1) & inside).astype(np.uint16)
             seen_n += seen.astype(np.uint16)
     passes = []
@@ -112,10 +115,10 @@ def area_record(tiles: list[dict], area: dict, cfg: dict, baseline: list[dict] |
     for t, g in mosaics(tiles, box, zone, dx):
         seen = (g != NOT_SEEN) & inside
         water = (g == 1) & inside
-        if seen.sum() < 0.2 * inside.sum():  # a pass that saw little of the area tells little
+        if seen.sum() < MIN_SEEN * inside.sum():  # a pass that saw little of the area tells little
             continue
         freq = np.where(seen_n > 0, water_n / np.maximum(seen_n, 1), 1.0)
-        new = water & (seen_n >= cfg.get("min_prior", 3)) & (freq < cfg.get("new_below", 0.2))
+        new = water & (seen_n >= cfg["min_prior"]) & (freq < cfg["new_below"])
         rec = {"t": int(t), "seen_km2": round(float(seen.sum()) * PIXEL_KM2, 1), "water_km2": round(float(water.sum()) * PIXEL_KM2, 1),
                "new_water_km2": round(float(new.sum()) * PIXEL_KM2, 2), "baseline_passes": int(seen_n[inside].max())}
         def patches_of(mask):
@@ -123,13 +126,13 @@ def area_record(tiles: list[dict], area: dict, cfg: dict, baseline: list[dict] |
             if mask.any():
                 lab, _ = label(mask, structure=np.ones((3, 3), bool))
                 sizes = np.bincount(lab.ravel())
-                for k in np.nonzero(sizes * PIXEL_KM2 >= cfg.get("min_patch_km2", 0.5))[0]:
+                for k in np.nonzero(sizes * PIXEL_KM2 >= cfg["min_patch_km2"])[0]:
                     if k == 0:
                         continue
                     rr, cc = np.nonzero(lab == k)
                     lo, la = lonlat_from_utm(x0 + (cc.mean() + 0.5) * dx, y0 - (rr.mean() + 0.5) * dx, zone)
                     out.append({"km2": round(float(sizes[k]) * PIXEL_KM2, 2), "lon": round(float(lo), 4), "lat": round(float(la), 4)})
-            return sorted(out, key=lambda p: -p["km2"])[:10]
+            return sorted(out, key=lambda p: -p["km2"])[:MAX_PATCHES]
 
         patches = patches_of(new)
         if patches:
@@ -149,7 +152,7 @@ def summary(cfg: dict, cache: Path, now: int) -> dict | None:
     we = cfg.get("water_extent")
     if not we or not cache.exists():
         return None
-    recent_from = now - we.get("days", 60) * 86_400
+    recent_from = now - we["days"] * 86_400
     # The summary changes only when a tile comes or goes, or one moves from
     # the recent window into the baseline: kept beside the tiles until then (#35).
     import hashlib
@@ -172,9 +175,9 @@ def summary(cfg: dict, cache: Path, now: int) -> dict | None:
               "x0": float(z["x0"]), "y0": float(z["y0"]), "dx": float(z["dx"]), "zone": int(z["zone"])}
         (tiles if tl["t"] >= recent_from else baseline).append(tl)
     areas = [r for r in (area_record(tiles, a, we, baseline) for a in we.get("areas", [])) if r]
-    out = {"source": "NASA JPL OPERA DSWx-S1 (Sentinel-1 radar, 30 m), PO.DAAC", "new_below": we.get("new_below", 0.2),
-           "min_prior": we.get("min_prior", 3), "min_patch_km2": we.get("min_patch_km2", 0.5),
-           "baseline_years": we.get("baseline_years", 2), "baseline_window_days": we.get("baseline_window_days", 30), "areas": areas} if areas else None
+    out = {"source": "NASA JPL OPERA DSWx-S1 (Sentinel-1 radar, 30 m), PO.DAAC", "new_below": we["new_below"],
+           "min_prior": we["min_prior"], "min_patch_km2": we["min_patch_km2"],
+           "baseline_years": we["baseline_years"], "baseline_window_days": we["baseline_window_days"], "areas": areas} if areas else None
     tmp = kept.with_name(kept.name + ".tmp")
     tmp.write_text(json.dumps({"key": key, "summary": out}), encoding="utf-8")
     tmp.replace(kept)
@@ -190,10 +193,10 @@ def _tile_t(p: Path) -> int:
 def windows(cfg: dict, now: int) -> list[tuple[int, int]]:
     """The passes to keep: the last `days`, and the same season (`baseline_window_days`
     either side of the date) in each of the last `baseline_years` years."""
-    days = cfg.get("days", 60) * 86_400
-    w = cfg.get("baseline_window_days", 30) * 86_400
+    days = cfg["days"] * 86_400
+    w = cfg["baseline_window_days"] * 86_400
     out = [(now - days, now)]
-    for y in range(1, cfg.get("baseline_years", 2) + 1):
+    for y in range(1, cfg["baseline_years"] + 1):
         c = now - y * 365 * 86_400
         out.append((c - w, c + w))
     return out

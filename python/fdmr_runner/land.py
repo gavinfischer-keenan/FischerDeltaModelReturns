@@ -37,6 +37,13 @@ MATCH_S = 600  # a band and its airport count as the same pass within this
 POINT_SPACING_M = 200.0  # centreline points kept for the bands, about this far apart
 
 
+# Local solar hours counted as day and as night when comparing the land's
+# temperature with the airport's (FDMR's choice: well clear of the hours
+# around sunrise and sunset, when the land heats and cools fastest).
+DAY_HOURS = (8, 17)  # from 08:00 to 17:00 local solar time
+NIGHT_HOURS = (20, 5)  # from 20:00 to 05:00
+
+
 def load(region_dir: Path) -> tuple[dict, list[dict]] | None:
     rt = tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("river_temperature", {})
     if not rt.get("land") or not rt.get("weather"):
@@ -85,7 +92,7 @@ def box(pl: list[dict], margin: float = 0.05) -> tuple[float, float, float, floa
 
 def part_of_day(t: int, lon: float) -> str | None:
     h = ((t % 86_400) / 3600 + lon / 15) % 24
-    return "day" if 8 <= h < 17 else "night" if h >= 20 or h < 5 else None
+    return "day" if DAY_HOURS[0] <= h < DAY_HOURS[1] else "night" if h >= NIGHT_HOURS[0] or h < NIGHT_HOURS[1] else None
 
 
 def contrast(region_dir: Path, store: Store, now: int) -> dict | None:
