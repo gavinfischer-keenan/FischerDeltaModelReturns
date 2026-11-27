@@ -29,3 +29,15 @@ def test_six_lagrangian_time_scales_at_the_median_flow():
     u_star = math.sqrt(9.81 * 2.0 * 1e-4)
     want = 1.8 * 0.5 * 50.0**2 / (2.0 * u_star)  # l = half of the 100 m width
     assert got == [round(want), round(want)]
+
+
+def test_sourced_channels_take_their_own_slope_for_shear_velocity():
+    """A weir pool's flat surface must not pair with the open river's uniform-flow depth."""
+    from fdmr_runner.publish import segment_slopes
+
+    a = SimpleNamespace(site="a", source="rws", channel={"slope": 1.2e-4})
+    b = SimpleNamespace(site="b", source="rws", channel={"slope": 1.0e-4})
+    c = SimpleNamespace(site="c", source="rws", channel={"slope": 1.0e-4})
+    # The store is never read: every segment's gauges have a sourced channel.
+    got = segment_slopes([a, b, c], {"a": 0.0, "b": 8000.0, "c": 60000.0}, None, {}, 0, 0)
+    assert got == [pytest.approx(1.1e-4), pytest.approx(1.0e-4)]

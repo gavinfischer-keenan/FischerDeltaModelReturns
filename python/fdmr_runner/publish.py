@@ -62,10 +62,28 @@ DEFAULT_SLOPE = 3e-4  # a typical lowland river, used only where no gauge pair g
 
 
 def segment_slopes(gauges, chainage, store, datums, t0, now) -> list[float]:
-    """Water-surface slope between each pair of consecutive main gauges: the drop
-    in (datum + median gauge height) over the distance; a gauge reporting its
-    water level against the region's datum itself (Rijkswaterstaat's, in m NAP)
-    gives it directly. Missing or implausible slopes take a neighbour's, or a default."""
+    """The friction slope between each pair of consecutive main gauges, for the
+    shear velocity u* = sqrt(g d S) that goes with the depth and velocity used.
+
+    Where both gauges' channel is the region's sourced uniform-flow channel
+    (gauge `channel`), their depth and velocity come from its slope, so u* takes
+    that slope too (the mean of the two): a measured surface slope there would
+    pair a weir pool's flat water with the open river's depth and speed.
+    Elsewhere (channel shapes from field measurements), the water-surface slope:
+    the drop in (datum + median gauge height) over the distance; a gauge
+    reporting its water level against the region's datum itself
+    (Rijkswaterstaat's, in m NAP) gives it directly. Missing or implausible
+    slopes take a neighbour's, or a default."""
+    pairs = list(zip(gauges, gauges[1:]))
+    sourced = [(a.channel["slope"] + b.channel["slope"]) / 2 if a.channel and b.channel else None for a, b in pairs]
+    if all(s is not None for s in sourced):
+        return sourced
+    measured = _surface_slopes(gauges, chainage, store, datums, t0, now)
+    return [s if s is not None else m for s, m in zip(sourced, measured)]
+
+
+def _surface_slopes(gauges, chainage, store, datums, t0, now) -> list[float]:
+    """Water-surface slope between each pair of consecutive main gauges (see segment_slopes)."""
     def surface(g):
         if g.source == "rws":
             wl = [v.value for v in store.values("rws", g.site, "water_level", t0, now + STEP) if v.value is not None]
