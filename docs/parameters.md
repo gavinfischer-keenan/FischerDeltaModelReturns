@@ -294,8 +294,8 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/overlays.py:36](../python/fdmr_runner/overlays.py#L36) | `LATEST_S` | `26 * 3600` | a reading older than this is not "latest" |
 | [python/fdmr_runner/overlays.py:59](../python/fdmr_runner/overlays.py#L59) | `CHECK_DAYS` | `14` | each station's readings against the model over this many days |
 | [python/fdmr_runner/overlays.py:60](../python/fdmr_runner/overlays.py#L60) | `MODEL_NEAR_KM` | `1.0` | a station further than this from every channel gets no model value |
-| [python/fdmr_runner/overlays.py:259](../python/fdmr_runner/overlays.py#L259) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
-| [python/fdmr_runner/overlays.py:260](../python/fdmr_runner/overlays.py#L260) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
+| [python/fdmr_runner/overlays.py:248](../python/fdmr_runner/overlays.py#L248) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
+| [python/fdmr_runner/overlays.py:249](../python/fdmr_runner/overlays.py#L249) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
 | [python/fdmr_runner/publish.py:40](../python/fdmr_runner/publish.py#L40) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
 | [python/fdmr_runner/publish.py:41](../python/fdmr_runner/publish.py#L41) | `STALE_REACH_S` | `13 * 3600` | a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice) |
 | [python/fdmr_runner/publish.py:42](../python/fdmr_runner/publish.py#L42) | `DAY` | `86_400` | unit: seconds in a day |

@@ -63,6 +63,23 @@ def test_series_is_tidally_averaged_and_hourly(tmp_path):
     assert mid == pytest.approx(55 + 2 * 0.36, abs=0.05)
 
 
+def test_a_missing_day_leaves_its_hours_missing_and_the_days_after_in_place(tmp_path):
+    """No gap is closed up, and no hour is given an unaveraged value (#59, #71)."""
+    ax = isohaline.Axis(straight_net(), [dict(a) for a in ANCHORS])
+    t0, step, steps = 1_794_355_200, 900, 96
+    base = np.array([5000.0, 4000.0, 3000.0, 2000.0, 1000.0, 0.0])
+    files = []
+    for d in (0, 1, 2, 4, 5, 6):  # day 3 is missing
+        p = tmp_path / f"day{d}.quality.fdf"
+        fdmr_py.write_field_file(str(p), "net:quality", 1, 6, 1, steps, t0 + d * 86_400, step,
+                                 [("ec", "uS/cm", True, np.tile(base, steps).tolist())])
+        files.append(p)
+    s = isohaline.series(ax, files, "ec", 2640.0)
+    assert s["t0"] == t0 and len(s["km"]) == 7 * 24
+    assert all(k is None for k in s["km"][3 * 24:4 * 24])  # the missing day: no position
+    assert s["km"][5 * 24] == pytest.approx(55 + 2 * 0.36, abs=0.05)  # a day after it, where it was
+
+
 def test_gate_state_and_structure_readings():
     from fdmr_runner import overlays
     from fdmr_store import Store, Value

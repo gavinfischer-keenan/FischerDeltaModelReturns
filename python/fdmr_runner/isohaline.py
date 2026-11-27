@@ -158,6 +158,12 @@ def crossing(km: np.ndarray, values: np.ndarray, threshold: float) -> tuple[floa
     return None, "landward"
 
 
+def _runs(ok: np.ndarray) -> list[tuple[int, int]]:
+    """(start, end) of each run of True in `ok`."""
+    edges = np.diff(np.concatenate([[0], ok.astype(np.int8), [0]]))
+    return list(zip(np.nonzero(edges == 1)[0], np.nonzero(edges == -1)[0]))
+
+
 def series(axis: Axis, day_files: list[Path], field: str, threshold: float, every_s: int = 3600) -> dict:
     """The isohaline's position from a network reach's water-quality day files:
     {"t0", "step_s", "km": [...], "outside": [...]} every `every_s` seconds,
@@ -165,22 +171,28 @@ def series(axis: Axis, day_files: list[Path], field: str, threshold: float, ever
     import fdmr_py
 
     cols = [i for i, _ in axis.links]
-    rows, t0, step, held = [], None, None, 0
+    days = []
     for f in sorted(day_files):
         _, _, n, _, steps, ft0, fstep, flds = fdmr_py.read_field_file(str(f))
         vals = next((v for name, _, v in flds if name == field), None)
-        if vals is None:
-            raise ValueError(f"{f.name} has no {field} field")
-        if t0 is None:
-            t0, step = ft0, fstep
-        elif ft0 != t0 + held * step or fstep != step:
-            raise ValueError(f"{f.name} does not follow on from the day before")
-        rows.append(np.asarray(vals, dtype=float).reshape(steps, n)[:, cols])
-        held += steps
-    if not rows:
+        days.append((ft0, fstep, steps, None if vals is None else np.asarray(vals, dtype=float).reshape(steps, n)[:, cols]))
+    if not days:
         return {"t0": None, "step_s": every_s, "km": [], "outside": []}
-    x = np.concatenate(rows)
-    m = np.column_stack([tidal_mean(x[:, j], 3600 / step) if np.all(np.isfinite(x[:, j])) else x[:, j] for j in range(x.shape[1])])
+    # Each day in its place in time; a missing day, or one without the field,
+    # is missing (NaN), never closed up (#59).
+    t0, step = min(d[0] for d in days), days[0][1]
+    if any(d[1] != step for d in days):
+        raise ValueError("day files with different time steps")
+    x = np.full((max((d0 - t0) // step + k for d0, _, k, _ in days), len(cols)), np.nan)
+    for d0, _, k, v in days:
+        if v is not None:
+            x[(d0 - t0) // step:(d0 - t0) // step + k] = v
+    # Tidally averaged channel by channel, each unbroken run of values on its
+    # own: a gap is never filled with unaveraged values (#71).
+    m = np.full(x.shape, np.nan)
+    for j in range(x.shape[1]):
+        for a, b in _runs(np.isfinite(x[:, j])):
+            m[a:b, j] = tidal_mean(x[a:b, j], 3600 / step)
     every = max(1, every_s // step)
     first = (-t0) % every_s // step  # on the whole hour
     kms, outside = [], []

@@ -170,40 +170,20 @@ def series(cdir: Path, entry: dict, time_axis: dict, field: str, columns: list[i
     """A published field's values at some elements from the day holding
     `t_from` on: (t0, step, values[step, column]). `flow` on a network is the
     mean of `flow_up` and `flow_down`."""
-    import fdmr_py
+    from .cycle_fields import read_days
 
     quality = field not in ("flow", "flow_up", "flow_down", "area", "level", "velocity", "volume")
     two_ends = entry.get("network") or entry.get("kind") == "canal-network"  # flow at each end of a channel
     names = ["flow_up", "flow_down"] if field == "flow" and two_ends else [field]
-    t0 = step = None
-    parts = []
-    for day in time_axis["days"]:
-        if stamp(f"{day}T00:00Z") + 86_400 <= t_from:
-            continue
-        path = cdir / entry["id"] / (f"{day}.quality.fdf" if quality else f"{day}.fdf")
-        if not path.exists():
-            if parts:
-                break
-            continue
-        _, _, n, _, steps, d0, st, flds = fdmr_py.read_field_file(str(path))
-        got = {name: v for name, _, v in flds}
-        if not all(nm in got for nm in names):
-            return None
-        t0, step = (d0, st) if t0 is None else (t0, step)
-        parts.append(np.mean([np.asarray(got[nm], dtype=np.float32).reshape(steps, n)[:, columns] for nm in names], axis=0))
-    return None if not parts else (t0, step, np.concatenate(parts))
+    # Each day in its place in time; a missing day is NaN, never closed up (#59).
+    t0, step, got = read_days(cdir, entry["id"], time_axis["days"], names, "quality" if quality else "flow",
+                              columns=columns, skip_before=t_from, dtype=np.float32)
+    if t0 is None or not all(np.isfinite(got[nm]).any() for nm in names):
+        return None
+    return t0, step, np.mean([got[nm] for nm in names], axis=0)
 
 
-def at_times(t0: int, step: int, v: np.ndarray, ts: np.ndarray) -> np.ndarray:
-    """Values at times ts, linear between steps; NaN outside."""
-    pos = (ts - t0) / step
-    out = np.full((len(ts), v.shape[1]), np.nan)
-    ok = (pos >= 0) & (pos <= len(v) - 1)
-    i = np.floor(pos[ok]).astype(int)
-    f = (pos[ok] - i)[:, None]
-    j = np.minimum(i + 1, len(v) - 1)
-    out[ok] = v[i] * (1 - f) + v[j] * f
-    return out
+from .cycle_fields import at_times  # noqa: E402  (values at times, linear between steps; kept here for its callers)
 
 
 # --- Recording -----------------------------------------------------------------------------

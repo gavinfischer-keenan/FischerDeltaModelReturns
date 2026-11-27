@@ -71,25 +71,14 @@ class NetworkValues:
 
     def __init__(self, cdir: Path, entry: dict, fields: list[str]) -> None:
         """With no `fields`, the geometry only: for finding places, not values."""
-        import fdmr_py
+        from .cycle_fields import read_days
 
         self.reach = entry["id"]
         self.geo = json.loads((cdir / "geometry" / f"{entry['id']}.json").read_text(encoding="utf-8"))
         if "lines" not in self.geo:  # a mesh: each node is a point
             self.geo["lines"] = [[[x, y]] for x, y in zip(self.geo["lon"], self.geo["lat"])]
-        data: dict[str, list[np.ndarray]] = {f: [] for f in fields}
-        self.t0 = self.step = None
-        for day in entry["time"]["days"] if fields else []:
-            path = cdir / entry["id"] / f"{day}.quality.fdf"
-            if not path.exists():
-                continue
-            _, _, n, _, steps, t0, step, flds = fdmr_py.read_field_file(str(path))
-            if self.t0 is None:
-                self.t0, self.step = t0, step
-            got = {name: v for name, _, v in flds}
-            for f in fields:
-                data[f].append(np.asarray(got[f], dtype=float).reshape(steps, n) if f in got else np.full((steps, n), np.nan))
-        self.data = {f: np.concatenate(v) for f, v in data.items() if v}
+        # Each day in its place in time; a missing day is NaN, never closed up (#59).
+        self.t0, self.step, self.data = read_days(cdir, entry["id"], entry["time"]["days"], fields, "quality") if fields else (None, None, {})
 
     skip: frozenset = frozenset()  # channels another reach covers (a mesh's), not this one's to answer for
 
