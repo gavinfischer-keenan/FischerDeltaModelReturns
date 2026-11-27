@@ -133,6 +133,10 @@ class RunSettings:
     qual: str = ""  # the qual program
     mains: Sequence[str] = ("hydro.inp",)  # the study's main files, run in order
     depletion: Depletion | None = None  # island water use following a live daily total
+    # Where DSM2's programs keep their temporary files. Short: QUAL fails to
+    # read a long temp_dir (27 Nov 2026). On a machine whose /tmp is memory,
+    # a folder on disk (#36).
+    temp_dir: str = "/tmp"
 
 
 def same_day_in(year: int, t: int) -> int:
@@ -224,7 +228,7 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
         "START_DATE": sd, "START_TIME": st, "END_DATE": ed, "END_TIME": et,
         "QUAL_START_DATE": dsm2_date(start + 86_400)[0], "GTM_START_DATE": dsm2_date(start + 86_400)[0], "GTM_END_DATE": ed,
         "DSM2INPUTDIR": env_dwr["DSM2INPUTDIR"], "TSINPUTDIR": env_dwr["TSINPUTDIR"],
-        "STUDYDIR": str(run_dir), "TEMPDIR": "/tmp",
+        "STUDYDIR": str(run_dir), "TEMPDIR": settings.temp_dir,
         **{name: str(run_dir / f"{name.lower()}.dss") for name in settings.replace},
         **{name: settings.version for name in settings.version_settings},
     }

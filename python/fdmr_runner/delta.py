@@ -498,6 +498,14 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     return pub
 
 
+def temp_dir() -> Path:
+    """DSM2's temporary files: on disk beside its install, not in /tmp, which
+    is memory on the runner (#36); a short path, which QUAL needs."""
+    d = DSM2_ROOT.parent / "qt"
+    d.mkdir(exist_ok=True)
+    return d
+
+
 def prune_runs(work: Path, keep: int = 2) -> None:
     """Keep the newest few run folders: each holds HYDRO's full output, hundreds of MB."""
     import shutil
@@ -563,6 +571,7 @@ def main(argv: list[str] | None = None) -> int:
         replace=cfg["replace"], version=cfg["version"], version_settings=cfg["version_settings"],
         reference_year=cfg["reference_year"], tool=str(root / "bin" / "dsstool"), hydro=str(root / "bin" / "hydro"),
         qual=str(root / "bin" / "qual"), mains=cfg.get("mains", ["hydro.inp"]), depletion=depletion,
+        temp_dir=str(temp_dir()),
     )
     run_dir = Path(args.work) / (datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ") + ("-asof" if hindcast else ""))
     summary = study.build(settings, run_dir, start, end, live)
