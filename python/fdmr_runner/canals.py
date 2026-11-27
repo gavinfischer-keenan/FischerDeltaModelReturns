@@ -306,7 +306,12 @@ def publish(region_dir: Path, net_dir: Path, out_root: Path, keep: int = 3) -> P
     net_geo = json.loads((net_dir / "geometry" / f"{net_id}.json").read_text(encoding="utf-8"))
     geo, members = geometry(cfg, lines)
     intakes = [_intake(net_geo, c["export"]) for c in cfg["canal"]]
-    qfields = [f for f in net.get("quality_fields", [])]
+    # The water's own quality is carried down the canals; what describes the
+    # network's bed (its reach.json `bed_fields`: settled mud, erosion) stays
+    # where it is (#49).
+    bed = set(net.get("bed_fields", []))
+    qfields = [f for f in net.get("quality_fields", []) if f not in bed]
+    units: dict[str, str] = {}  # each field's unit, as the network's own file gives it
 
     # The network's export and intake water quality, every published step.
     ts, qs, quals, days = [], [], {f: [] for f in qfields}, []
@@ -324,6 +329,7 @@ def publish(region_dir: Path, net_dir: Path, out_root: Path, keep: int = 3) -> P
         if qf.exists():
             _, _, n_ch, _, qsteps, _, _, qflds = fdmr_py.read_field_file(str(qf))
             got = {n: np.asarray(v, dtype=float).reshape(qsteps, n_ch) for n, _, v in qflds}
+            units.update({n: u for n, u, _ in qflds})
         for f in qfields:
             if f in got:
                 with np.errstate(all="ignore"):
@@ -382,11 +388,11 @@ def publish(region_dir: Path, net_dir: Path, out_root: Path, keep: int = 3) -> P
         ])
         if qfields:
             fdmr_py.write_field_file(str(pub / REACH / f"{d}.quality.fdf"), f"{REACH}:quality", 1, n, 1, steps, t0, step,
-                                     [(f, _UNITS.get(f.split(":")[0], "1"), True, values[f][sl].ravel().tolist()) for f in qfields])
+                                     [(f, units[f], True, values[f][sl].ravel().tolist()) for f in qfields if f in units])
         names.append(d)
     entry = {
         "id": REACH, "kind": "canal-network", "dims": 1, "network": True, "elements": n, "layers": 1,
-        "fields": ["flow_up", "flow_down", "area"], "quality_fields": qfields,
+        "fields": ["flow_up", "flow_down", "area"], "quality_fields": [f for f in qfields if f in units],
         "time": {**net["time"], "step_s": STEP_S, "days": names}, "now": net["now"],
         "certainty": net["certainty"][:: max(1, STEP_S // net["time"]["step_s"])],
         "flow_source": f"the {net_id} reach's exports ({net.get('flow_source', '')})",
@@ -401,9 +407,6 @@ def publish(region_dir: Path, net_dir: Path, out_root: Path, keep: int = 3) -> P
     for p in olds[: max(0, len(olds) - (keep - 1))]:
         shutil.rmtree(p)
     return pub
-
-
-_UNITS = {"ec": "uS/cm", "salinity": "psu", "temperature": "degC", "source": "1"}
 
 
 def _areas(cfg: dict, lines: dict) -> list[float]:

@@ -465,6 +465,8 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + (["temperature"] if temp_file.exists() else [])
         + (["ssc"] + (["bed_mud", "erosion"] if sed_file.with_name("gtm_sed_bed.bin").exists() else []) if sed_file.exists() else [])
         + sources,
+        # Of those, the ones describing the bed rather than the water: not carried on with it (#49).
+        **({"bed_fields": ["bed_mud", "erosion"]} if sed_file.exists() and sed_file.with_name("gtm_sed_bed.bin").exists() else {}),
         # The sediment's settling velocity, for pollutants that ride on it (#16).
         **({"sediment": {"settling_velocity_m_s": cfg["sediment"]["scalars"]["sed_settling"]}}
            if sed_file.exists() and cfg.get("sediment") else {}),
