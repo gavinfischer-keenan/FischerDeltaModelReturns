@@ -349,11 +349,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/overlays.py:252](../python/fdmr_runner/overlays.py#L252) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
 | [python/fdmr_runner/overlays.py:253](../python/fdmr_runner/overlays.py#L253) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
 | [python/fdmr_runner/overlays.py:254](../python/fdmr_runner/overlays.py#L254) | `MIN_SLOW_DAYS` | `20` | the slow part is given only with at least this many days of hourly residual (FDMR's choice) |
-| [python/fdmr_runner/publish.py:40](../python/fdmr_runner/publish.py#L40) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
-| [python/fdmr_runner/publish.py:41](../python/fdmr_runner/publish.py#L41) | `STALE_REACH_S` | `13 * 3600` | a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice) |
-| [python/fdmr_runner/publish.py:42](../python/fdmr_runner/publish.py#L42) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/publish.py:68](../python/fdmr_runner/publish.py#L68) | `DEFAULT_SLOPE` | `3e-4` | a typical lowland river, used only where no gauge pair gives one |
-| [python/fdmr_runner/publish.py:147](../python/fdmr_runner/publish.py#L147) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
+| [python/fdmr_runner/publish.py:45](../python/fdmr_runner/publish.py#L45) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/publish.py:46](../python/fdmr_runner/publish.py#L46) | `STALE_REACH_S` | `13 * 3600` | a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice) |
+| [python/fdmr_runner/publish.py:47](../python/fdmr_runner/publish.py#L47) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/releases.py:39](../python/fdmr_runner/releases.py#L39) | `REPORT_AGE_DAYS` | `4` | the flood-control report and the release, daily, still used this old: a long weekend (FDMR's choice) |
 | [python/fdmr_runner/releases.py:40](../python/fdmr_runner/releases.py#L40) | `STORAGE_AGE_DAYS` | `2` | the reservoir's storage, reported hourly or daily, still used this old (FDMR's choice) |

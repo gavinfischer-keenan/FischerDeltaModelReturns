@@ -389,9 +389,6 @@ Used in:
 - `docs/maths.md:23`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
 - `python/fdmr_plugins/registry.py:82`: "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
 - `python/fdmr_plugins/registry.py:87`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
-- `python/fdmr_runner/publish.py:147`: ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
-- `python/fdmr_runner/publish.py:152`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
-- `python/fdmr_runner/publish.py:221`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
 
 ## fischer1979
 

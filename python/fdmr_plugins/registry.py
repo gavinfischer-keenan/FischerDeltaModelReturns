@@ -80,7 +80,7 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                              "far from a release it spreads at Fischer's K, near it as lopsided as the shear makes it",
                              "Fischer 1966, Longitudinal Dispersion in Laboratory and Natural Streams, sections II-F and III-F, eqs. 23, "
                              "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
-                             "crates/fdmr-math dispersion.rs shear_profile_c, crates/fdmr-compute lib.rs, fdmr_runner.publish lateral_field"),
+                             "crates/fdmr-math dispersion.rs shear_profile_c, crates/fdmr-compute lib.rs, fdmr_plugins.river_routing.fields lateral_field"),
                        Maths("fischer-longitudinal",
                              "Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; "
                              "each element also publishes how far below a release it holds (fickian_m: six Lagrangian "

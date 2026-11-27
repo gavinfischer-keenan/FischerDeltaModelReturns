@@ -780,21 +780,6 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 87,
      "text": "\"time scales, Fischer 1966 eq. 57, ref:fischer1966)\","
-    },
-    {
-     "file": "python/fdmr_runner/publish.py",
-     "line": 147,
-     "text": "ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)"
-    },
-    {
-     "file": "python/fdmr_runner/publish.py",
-     "line": 152,
-     "text": "(Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same"
-    },
-    {
-     "file": "python/fdmr_runner/publish.py",
-     "line": 221,
-     "text": "scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's"
     }
    ]
   },
