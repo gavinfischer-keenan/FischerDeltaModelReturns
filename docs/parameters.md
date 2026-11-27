@@ -136,14 +136,14 @@ Every number the model is set with: in each region's settings and among the mode
 
 | Where | Setting | Value | Note and source |
 | --- | --- | --- | --- |
-| [25](../regions/sf-bay-delta/fishing.toml#L25) | `white_sturgeon`<br>`monthly_catch_percent` | `[11.0, 13.5, 15.3, 10.7, 5.2, 2.9, 1.8, 1.4, 2.7, 8.4, 13.7, 13.0]` | Season: the share of the Report Card's white sturgeon catch in each month, 2007-2023 mean (Hause et al. 2024, [hause2024](references.md#hause2024), figure 12, read from the figure to about 0.3 percentage points), divided by its largest (March). Not corrected for effort, which CDFW does not publish (p. 15). Months the season is closed score 0. |
-| [26](../regions/sf-bay-delta/fishing.toml#L26) | `white_sturgeon`<br>`closed_months` | `[7, 8, 9]` |  |
-| [41](../regions/sf-bay-delta/fishing.toml#L41) | `white_sturgeon`<br>`migration_months` | `[11, 12, 1, 2, 3, 4, 5]` | fresh water scores higher: the spawning run (Heublein et al. 2017, [heublein2017](references.md#heublein2017), pp. 12, 26) |
-| [45](../regions/sf-bay-delta/fishing.toml#L45) | `white_sturgeon`<br>`caught_temperature_c` | `[9.0, 24.0]` | Temperature: catches were made across 9-24 degC (Patton et al. 2020, results p. 5). Outside it the model does not score lower (no evidence of avoidance); the place is flagged "outside the temperatures fish were caught in". |
-| [53](../regions/sf-bay-delta/fishing.toml#L53) | `white_sturgeon`<br>`migration_rise_m3s` | `40.0` |  |
-| [63](../regions/sf-bay-delta/fishing.toml#L63) | `green_sturgeon`<br>`months` | `[2, 3, 4, 5, 6, 7, 8, 9, 10]` | In the estuary from spring through autumn (Kelly et al. 2007, [kelly2007](references.md#kelly2007)); in the lower estuary more often February-March and June-September, present all months (Chapman et al. 2019, [chapman2019](references.md#chapman2019)). FDMR flags April-October, and February-March. |
-| [68](../regions/sf-bay-delta/fishing.toml#L68) | `green_sturgeon`<br>`temperature_c` | `[11.9, 21.9]` | The ranges they were tracked in (Kelly et al. 2007; Moser and Lindley 2007, as compiled by Heublein et al. 2017, p. 21): 11.9-21.9 degC, 8.8-32.1 ppt. Ranges observed, not preferences: Kelly et al. found "no apparent preferences". |
-| [69](../regions/sf-bay-delta/fishing.toml#L69) | `green_sturgeon`<br>`salinity_psu` | `[8.8, 32.1]` |  |
+| [45](../regions/sf-bay-delta/fishing.toml#L45) | `white_sturgeon`<br>`monthly_catch_percent` | `[11.0, 13.5, 15.3, 10.7, 5.2, 2.9, 1.8, 1.4, 2.7, 8.4, 13.7, 13.0]` | Season: the share of the Report Card's white sturgeon catch in each month, 2007-2023 mean (Hause et al. 2024, [hause2024](references.md#hause2024), figure 12, read from the figure to about 0.3 percentage points), divided by its largest (March). Not corrected for effort, which CDFW does not publish (p. 15). Months the season is closed score 0. |
+| [46](../regions/sf-bay-delta/fishing.toml#L46) | `white_sturgeon`<br>`closed_months` | `[7, 8, 9]` |  |
+| [61](../regions/sf-bay-delta/fishing.toml#L61) | `white_sturgeon`<br>`migration_months` | `[11, 12, 1, 2, 3, 4, 5]` | fresh water scores higher: the spawning run (Heublein et al. 2017, [heublein2017](references.md#heublein2017), pp. 12, 26) |
+| [65](../regions/sf-bay-delta/fishing.toml#L65) | `white_sturgeon`<br>`caught_temperature_c` | `[9.0, 24.0]` | Temperature: catches were made across 9-24 degC (Patton et al. 2020, results p. 5). Outside it the model does not score lower (no evidence of avoidance); the place is flagged "outside the temperatures fish were caught in". |
+| [73](../regions/sf-bay-delta/fishing.toml#L73) | `white_sturgeon`<br>`migration_rise_m3s` | `40.0` |  |
+| [83](../regions/sf-bay-delta/fishing.toml#L83) | `green_sturgeon`<br>`months` | `[2, 3, 4, 5, 6, 7, 8, 9, 10]` | In the estuary from spring through autumn (Kelly et al. 2007, [kelly2007](references.md#kelly2007)); in the lower estuary more often February-March and June-September, present all months (Chapman et al. 2019, [chapman2019](references.md#chapman2019)). FDMR flags April-October, and February-March. |
+| [88](../regions/sf-bay-delta/fishing.toml#L88) | `green_sturgeon`<br>`temperature_c` | `[11.9, 21.9]` | The ranges they were tracked in (Kelly et al. 2007; Moser and Lindley 2007, as compiled by Heublein et al. 2017, p. 21): 11.9-21.9 degC, 8.8-32.1 ppt. Ranges observed, not preferences: Kelly et al. found "no apparent preferences". |
+| [89](../regions/sf-bay-delta/fishing.toml#L89) | `green_sturgeon`<br>`salinity_psu` | `[8.8, 32.1]` |  |
 
 ### overlays.toml
 

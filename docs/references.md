@@ -64,7 +64,7 @@ Checked: CDFW's pages read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:18`: status = "catch and release only; season closed 1 July to 30 September (California Fish and Game Commission rules for a CESA candidate species, ref:cdfw_sturgeon_regs)"
+- `regions/sf-bay-delta/fishing.toml:38`: status = "catch and release only; season closed 1 July to 30 September (California Fish and Game Commission rules for a CESA candidate species, ref:cdfw_sturgeon_regs)"
 
 ## dwr1974b200v2
 
@@ -164,7 +164,7 @@ Checked: Text of the section read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:57`: status = "federally threatened (ref:fr2006_green_sturgeon); in California it may not be taken or possessed, nor removed from the water, and is to be released at once (14 CCR 5.81, ref:ccr14_581). Show
+- `regions/sf-bay-delta/fishing.toml:77`: status = "federally threatened (ref:fr2006_green_sturgeon); in California it may not be taken or possessed, nor removed from the water, and is to be released at once (14 CCR 5.81, ref:ccr14_581). Show
 
 ## ccwd2014
 
@@ -208,7 +208,7 @@ Checked: Crossref record of the DOI; abstract read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:61`: June-September, present all months (Chapman et al. 2019, ref:chapman2019).
+- `regions/sf-bay-delta/fishing.toml:81`: June-September, present all months (Chapman et al. 2019, ref:chapman2019).
 
 ## chapra1997
 
@@ -355,7 +355,7 @@ Checked: CDFW's PDF read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:21`: 2007-2023 mean (Hause et al. 2024, ref:hause2024, figure 12, read from the
+- `regions/sf-bay-delta/fishing.toml:41`: 2007-2023 mean (Hause et al. 2024, ref:hause2024, figure 12, read from the
 
 ## heublein2017
 
@@ -367,7 +367,7 @@ Checked: DataCite record of the DOI; full text read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:41`: migration_months = [11, 12, 1, 2, 3, 4, 5]   # fresh water scores higher: the spawning run (Heublein et al. 2017, ref:heublein2017, pp. 12, 26)
+- `regions/sf-bay-delta/fishing.toml:61`: migration_months = [11, 12, 1, 2, 3, 4, 5]   # fresh water scores higher: the spawning run (Heublein et al. 2017, ref:heublein2017, pp. 12, 26)
 
 ## ecostress_lst
 
@@ -421,7 +421,7 @@ Checked: Crossref record of the DOI; abstract read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:60`: ref:kelly2007); in the lower estuary more often February-March and
+- `regions/sf-bay-delta/fishing.toml:80`: ref:kelly2007); in the lower estuary more often February-March and
 
 ## kundu1976
 
@@ -454,7 +454,7 @@ Checked: Crossref record of the DOI; abstract read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:32`: (McEnroe and Cech 1985, ref:mcenroe1985). Moderate to weak evidence: the
+- `regions/sf-bay-delta/fishing.toml:52`: (McEnroe and Cech 1985, ref:mcenroe1985). Moderate to weak evidence: the
 
 ## jrp2022dmc
 
@@ -500,7 +500,7 @@ Checked: Federal Register citation confirmed, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:57`: status = "federally threatened (ref:fr2006_green_sturgeon); in California it may not be taken or possessed, nor removed from the water, and is to be released at once (14 CCR 5.81, ref:ccr14_581). Show
+- `regions/sf-bay-delta/fishing.toml:77`: status = "federally threatened (ref:fr2006_green_sturgeon); in California it may not be taken or possessed, nor removed from the water, and is to be released at once (14 CCR 5.81, ref:ccr14_581). Show
 
 ## snodas
 
@@ -666,7 +666,7 @@ Checked: Crossref record of the DOI; full text read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:31`: et al. 2020, ref:patton2020, results p. 5) and adults tolerating 35 ppt
+- `regions/sf-bay-delta/fishing.toml:51`: et al. 2020, ref:patton2020, results p. 5) and adults tolerating 35 ppt
 
 ## pawlowicz2002
 
@@ -720,7 +720,7 @@ Checked: Consensus's record (title, author, year, volume 83), 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:47`: river flow" (Schaffter 1997, ref:schaffter1997), and spawning followed
+- `regions/sf-bay-delta/fishing.toml:67`: river flow" (Schaffter 1997, ref:schaffter1997), and spawning followed
 
 ## schoellhamer2017
 
@@ -755,7 +755,7 @@ Checked: Crossref record of the DOI; full text read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/fishing.toml:28`: Sellheim et al. 2022 (ref:sellheim2022; fresh < 0.5, low 0.5-2, medium 2-10,
+- `regions/sf-bay-delta/fishing.toml:48`: Sellheim et al. 2022 (ref:sellheim2022; fresh < 0.5, low 0.5-2, medium 2-10,
 
 ## snyder1987
 
@@ -789,6 +789,18 @@ Used in:
 
 - `python/fdmr_adapters/usbr_cvo.py:3`: for the Delta under the State Water Board's D-1641 (ref:swrcb_d1641; Figure 3 there gives its
 - `regions/sf-bay-delta/dsm2.toml:201`: water balance DWR and Reclamation keep under D-1641 (ref:swrcb_d1641), each node keeping the
+
+## stompe2024
+
+Stompe, D. K., and Hobbs, J. A. (2024). California Department of Fish and Wildlife Adult Sturgeon Study, Sacramento-San Joaquin Watershed, 1954-2022, ver 2. Environmental Data Initiative; package edi.1479.2; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/fdd183bb7ddec813400a924ae2d4f0ad
+
+*Trammel-net sets with catch, water temperature and (2021-2022 only) salinity; used to check the sturgeon forecast's salinity, temperature and month rules (tools/validation/cdfw_sturgeon).*
+
+Checked: The data tables' SHA-1 checksums against the DataONE system metadata; the EDI data package summary, 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/fishing.toml:12`: checked against CDFW's trammel-net sets (ref:stompe2024; method and numbers
 
 ## swot_riversp
 

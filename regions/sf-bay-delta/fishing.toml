@@ -8,10 +8,30 @@
 # quantified relation to sturgeon presence or catch in this estuary was found;
 # Patton et al. 2020 could not test tide, p. 7); the anglers' location codes
 # (CDFW Report Card) have no published shapes to map onto the model.
-# Validation: no daily catch or presence data are published. CDFW's adult
-# sturgeon trammel-net sets (Aug-Oct, with salinity and temperature per set)
-# and the Report Card's raw daily records (on request from CDFW) are the
-# candidates; until one is in hand this forecast is unvalidated, and says so.
+# Validation (#25), 27 Nov 2026: the rules, not yet the daily forecast, were
+# checked against CDFW's trammel-net sets (ref:stompe2024; method and numbers
+# in tools/validation/cdfw_sturgeon/results.md; catch per 100 net-fathom-hours
+# with 95% intervals from resampling sampling days):
+# - Salinity was measured only in 2021-2022 (170 sets, 8.3-29.4 psu), so the
+#   fresh, low and medium bands are untested. Above 16 psu white sturgeon
+#   catch fell, as the scores do: 2.05 [1.25, 3.10] at 10-16 psu, 0.55
+#   [0.11, 1.16] at 16-25 and 0.31 [0.11, 0.59] above 25, that is 0.27 and
+#   0.15 of 10-16's (the scores give 0.57 and 0.29). But
+#   salinity there follows place (Suisun about 12 psu, San Pablo about 26), so
+#   the two are not separated. 10-16 psu caught the most: no evidence for
+#   scoring it below 0.5-10 (only 6 sets below 10, at 8-10 psu).
+# - Temperature: fish were caught across 10-24.5 degC, more in warmer water:
+#   no avoidance, as assumed.
+# - Months: the nets fish August to October only, and their catch per effort
+#   is near flat (2.4, 2.5, 2.0) while the Report Card's angler catch rises
+#   six-fold; the season factor is angler catch, effort included, as it says.
+# - Green sturgeon: catch inside and outside the tracked temperatures was the
+#   about the same (0.11 and 0.14 per effort), as Kelly et al.'s "no apparent
+#   preferences" implies; nearly every set (166 of 170) was inside the salinities.
+# Nothing was changed: two years, with salinity tied to place, are too few to
+# choose new scores, which would need data held out to judge them. Still to
+# obtain: the Report Card's daily records (on request from CDFW), to score
+# the daily forecast itself through the prediction ledger.
 
 [white_sturgeon]
 name = "White sturgeon"

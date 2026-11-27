@@ -794,3 +794,13 @@ in = "California Department of Water Resources, Sacramento; December 2019"
 url = "https://water.ca.gov/-/media/DWR-Website/Web-Pages/Library/Modeling-And-Analysis/Files/Modeling-and-Analysis-PDFs/2019-Annual-Report_a_y19.pdf"
 note = "Chapter 4, DWR's DSM2 GTM sediment calibration: a constant 20 mg/L of suspended sediment in the Delta islands' drainage returns (DCD flow)."
 checked = "The report read (chapter 4, the erosion-coefficient calibration), 27 Nov 2026"
+
+[stompe2024]
+authors = "Stompe, D. K., and Hobbs, J. A."
+year = 2024
+title = "California Department of Fish and Wildlife Adult Sturgeon Study, Sacramento-San Joaquin Watershed, 1954-2022, ver 2"
+kind = "data"
+in = "Environmental Data Initiative; package edi.1479.2; Creative Commons Attribution (CC BY 4.0)"
+doi = "10.6073/pasta/fdd183bb7ddec813400a924ae2d4f0ad"
+note = "Trammel-net sets with catch, water temperature and (2021-2022 only) salinity; used to check the sturgeon forecast's salinity, temperature and month rules (tools/validation/cdfw_sturgeon)."
+checked = "The data tables' SHA-1 checksums against the DataONE system metadata; the EDI data package summary, 27 Nov 2026"

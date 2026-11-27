@@ -6,8 +6,8 @@ every number with its source) to the cycle just published: each network
 channel's and mesh node's daily mean salinity and temperature, and each
 listed river's daily mean flow at its end. Writes `fishing.json` beside the
 cycle's index (docs/format.md). Fits nothing: the rules are the sources',
-and the forecast is unvalidated until catch or survey data are in hand
-(fishing.toml says which).
+and its rules are checked against survey catches by hand, not fitted to them
+(fishing.toml's validation note; the daily forecast is not yet scored).
 
 Per species and day:
 - a target species (white sturgeon): a score 0-100 for every element of the
