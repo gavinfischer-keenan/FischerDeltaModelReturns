@@ -160,6 +160,23 @@ line = { source = "nhd", names = ["Tule Canal", "Toe Drain"], end = [-121.58872,
 mouth = [-121.58872, 38.47485]   # DSM2 node 710, the toe drain at Lisbon
 certainty = { solid_days = 5, floor = 0.2 }
 
+[[reaches]]
+id = "putah"
+name = "Putah Creek, Putah Diversion Dam to the Yolo Bypass"
+kind = "river-routing"
+# From the Putah Diversion Dam near Winters, its release measured by the Solano
+# County Water Agency (CDEC PTF, "Total release to Lower Putah Creek from the
+# Putah Diversion Dam"), to the bypass's toe drain east of Davis (issue #30).
+# USGS has no field measurements on lower Putah Creek, so the channel is the
+# published description of it (gauge `channel`, below). Below about river mile
+# 4 the creek is held back by seasonal dams (Road 106A, Los Rios) from about
+# April to December, where uniform flow does not hold (SCWA, Draft PEIR, 2016,
+# section 3.1).
+dam = [-122.00564, 38.4921]   # the Putah Diversion Dam (CDEC PTF)
+joins = "yolo"
+certainty = { solid_days = 5, floor = 0.2 }
+maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
+
 [[handoffs]]
 from = "river"
 to = "delta"
@@ -173,6 +190,11 @@ to = "delta"
 at = "the toe drain at Lisbon, where DSM2's toe drain channel begins"
 node = 710
 source = "sac"
+
+[[handoffs]]
+from = "putah"
+to = "yolo"
+at = "Putah Creek's end in the toe drain, east of Davis"
 
 [[handoffs]]
 from = "cache"
@@ -611,6 +633,22 @@ site = "11452500"
 name = "Cache C at Yolo"
 role = "main"
 forecast = { source = "cnrfc", group = "CachePutah", point = "YLOC1" }
+
+[[gauges]]
+reach = "putah"
+site = "PTF"
+name = "Putah Creek, release from the Putah Diversion Dam (SCWA)"
+role = "release"
+source = "cdec"
+duration = "E"
+lon = -122.00564
+lat = 38.4921
+# Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):
+# baseflow (20 cfs) water-surface width 54.8 ft in 2005 LiDAR (p. 31); average
+# channel slope 0.083% (p. 24); Manning's n 0.035, "a winding channel with
+# rocks and some aquatic and riparian plants" (p. 24, assigned after England
+# et al. 2019, not calibrated). The width is held: above baseflow it is too narrow.
+channel = { width_m = 16.7, slope = 0.00083, manning_n = 0.035 }
 
 [[gauges]]
 reach = "yolo"

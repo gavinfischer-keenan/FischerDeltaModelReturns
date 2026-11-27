@@ -1034,6 +1034,25 @@
    ]
   },
   {
+   "key": "mcconnell2023",
+   "authors": "McConnell, C.",
+   "year": 2023,
+   "title": "Modeling riparian geomorphology and vegetation on a regulated river to assess change, prioritize ecological restoration areas, and inform restoration design",
+   "kind": "report",
+   "in": "PhD dissertation, University of California, Davis",
+   "url": "https://escholarship.org/uc/item/29g03887",
+   "note": "Lower Putah Creek: baseflow (20 cfs) width 54.8 ft in 2005 (p. 31); HEC-RAS average channel slope 0.083% and Manning's n 0.035 (p. 24).",
+   "checked": "The dissertation read (pp. 24 and 31), 27 Nov 2026",
+   "citation": "McConnell, C. (2023). Modeling riparian geomorphology and vegetation on a regulated river to assess change, prioritize ecological restoration areas, and inform restoration design. PhD dissertation, University of California, Davis. https://escholarship.org/uc/item/29g03887",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/region.toml",
+     "line": 646,
+     "text": "Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):"
+    }
+   ]
+  },
+  {
    "key": "mcenroe1985",
    "authors": "McEnroe, M., and Cech, J. J., Jr.",
    "year": 1985,

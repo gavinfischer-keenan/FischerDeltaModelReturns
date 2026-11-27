@@ -854,3 +854,13 @@ in = "San Francisco Estuary and Watershed Science 22(1)"
 doi = "10.15447/sfews.2024v22iss1art2"
 note = "The surveys' visual Microcystis index 2014-2021 modelled on temperature, Secchi depth and exports (Table 6, Fig. 6); regional contrasts (Table 4)."
 checked = "Crossref record of the DOI; the paper read for FDMR, 27 Nov 2026"
+
+[mcconnell2023]
+authors = "McConnell, C."
+year = 2023
+title = "Modeling riparian geomorphology and vegetation on a regulated river to assess change, prioritize ecological restoration areas, and inform restoration design"
+kind = "report"
+in = "PhD dissertation, University of California, Davis"
+url = "https://escholarship.org/uc/item/29g03887"
+note = "Lower Putah Creek: baseflow (20 cfs) width 54.8 ft in 2005 (p. 31); HEC-RAS average channel slope 0.083% and Manning's n 0.035 (p. 24)."
+checked = "The dissertation read (pp. 24 and 31), 27 Nov 2026"

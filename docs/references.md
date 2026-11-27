@@ -509,6 +509,18 @@ Used in:
 - `crates/fdmr-math/src/geometry.rs:5`: at-a-station hydraulic geometry of Leopold and Maddock (ref:leopold1953).
 - `python/fdmr_plugins/registry.py:56`: "Leopold and Maddock 1953, USGS Professional Paper 252 (hydraulic geometry; ref:leopold1953); the hinge's "
 
+## mcconnell2023
+
+McConnell, C. (2023). Modeling riparian geomorphology and vegetation on a regulated river to assess change, prioritize ecological restoration areas, and inform restoration design. PhD dissertation, University of California, Davis. https://escholarship.org/uc/item/29g03887
+
+*Lower Putah Creek: baseflow (20 cfs) width 54.8 ft in 2005 (p. 31); HEC-RAS average channel slope 0.083% and Manning's n 0.035 (p. 24).*
+
+Checked: The dissertation read (pp. 24 and 31), 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/region.toml:646`: Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):
+
 ## mcenroe1985
 
 McEnroe, M., and Cech, J. J., Jr. (1985). Osmoregulation in juvenile and adult white sturgeon, Acipenser transmontanus. Environmental Biology of Fishes 14(1), 23-30. https://doi.org/10.1007/BF00001573
