@@ -445,7 +445,7 @@ async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<
 }
 
 /** Layers that need the water-quality files. */
-const QUALITY_LAYERS = new Set<Layer>(["temperature", "salinity", "source"]);
+const QUALITY_LAYERS = new Set<Layer>(["temperature", "salinity", "sediment", "source"]);
 
 /** Fetch the water-quality day files of every reach not holding them yet, and load them. */
 async function loadQuality(): Promise<void> {
@@ -781,7 +781,7 @@ function centred(v: Float32Array): Float32Array {
 }
 
 /** The field a layer shows, by its name in the published files. */
-const FIELD: Partial<Record<Layer, string>> = { temperature: "temperature", salinity: "salinity", level: "level" };
+const FIELD: Partial<Record<Layer, string>> = { temperature: "temperature", salinity: "salinity", sediment: "ssc", level: "level" };
 
 /** Shares of each water source, all particles of a network, interleaved. */
 function networkShares(e: NetworkEngine): Float32Array {

@@ -3,7 +3,7 @@
 // knows about the compute side.
 
 /** What colours the water (specification 3.5). */
-export type Layer = "plain" | "contaminant" | "speed" | "temperature" | "salinity" | "level" | "source";
+export type Layer = "plain" | "contaminant" | "speed" | "temperature" | "salinity" | "sediment" | "level" | "source";
 
 /** Requests from the UI to the compute engine. Times are seconds since 1970 UTC.
  * Each carries a number (`seq`, set by connect()) that the frame answering it repeats. */

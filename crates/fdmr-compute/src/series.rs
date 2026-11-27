@@ -47,15 +47,16 @@ impl Series {
         Some((d, i, pos - pos.floor()))
     }
 
-    /// Step `i` of day `d`, or the next day's first step when `i` is one past the end.
-    fn row(&self, d: usize, i: usize, name: &str) -> &[f32] {
+    /// Step `i` of day `d`, or the next day's first step when `i` is one past the
+    /// end; `None` where that day has no field of this name.
+    fn row(&self, d: usize, i: usize, name: &str) -> Option<&[f32]> {
         let (day, i) = if i >= self.days[d].steps as usize && d + 1 < self.days.len() {
             (&self.days[d + 1], 0)
         } else {
             (&self.days[d], i.min(self.days[d].steps as usize - 1))
         };
-        let v = &day.field(name).expect("checked when loaded").values;
-        &v[i * self.elements..(i + 1) * self.elements]
+        let v = &day.field(name)?.values;
+        v.get(i * self.elements..(i + 1) * self.elements)
     }
 
     /// The time of the last step held, s; `None` with no days.
@@ -121,10 +122,12 @@ impl Series {
     }
 
     /// A field at `t` for every element, linear between steps; `None` before the
-    /// first day. A value missing at either step (NaN) stays missing.
+    /// first day, or where the days hold no field of this name (a layer asking
+    /// for a field this reach does not publish). A value missing at either
+    /// step (NaN) stays missing.
     pub(crate) fn at(&self, t: f64, name: &str) -> Option<Vec<f64>> {
         let (d, i, f) = self.locate(t)?;
-        let (a, b) = (self.row(d, i, name), self.row(d, i + 1, name));
+        let (a, b) = (self.row(d, i, name)?, self.row(d, i + 1, name)?);
         Some(
             a.iter()
                 .zip(b)
@@ -195,5 +198,8 @@ mod tests {
             (mid[0] - 100.0).abs() < 0.5 && (mid[1] - 200.0).abs() < 0.5,
             "{mid:?}"
         );
+        // A field the days do not hold is missing, not a panic (a layer
+        // asking a reach for a field it does not publish).
+        assert!(m.at(2.5 * 86_400.0, "ssc").is_none());
     }
 }

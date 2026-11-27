@@ -2,8 +2,8 @@
 // engine gives each flow particle the value of the chosen field where it is;
 // this turns values into colours and describes the legend. Every scale is
 // readable with the common colour-vision deficiencies: the Okabe-Ito colours
-// in hue order for speed, temperature and salinity, changing hue at values
-// that mean something; purple-orange (diverging) for water level; and the
+// in hue order for speed, temperature, salinity and sediment, changing hue at
+// values that mean something (for sediment, at even steps of its log scale); purple-orange (diverging) for water level; and the
 // Okabe-Ito colours for water sources. The basemap is dark, so no scale uses
 // a colour dark enough to vanish against it.
 
@@ -40,6 +40,7 @@ const at = (f: (v: number) => number, pairs: [number, string][]): Stops => pairs
 
 const logSpeed = (v: number) => Math.log10(Math.max(Math.abs(v), 0.01));
 const rootSalinity = (v: number) => Math.sqrt(Math.max(v, 0));
+const logSediment = (v: number) => Math.log10(Math.max(v, 0.5));
 
 export const SCALES: Partial<Record<Layer, Scale>> = {
   speed: {
@@ -70,6 +71,16 @@ export const SCALES: Partial<Record<Layer, Scale>> = {
     stops: at(rootSalinity, [[0, OI.blue], [0.5, OI.sky], [2, OI.green], [5, OI.yellow], [18, OI.orange], [30, OI.vermillion], [34, OI.purple]]),
     ticks: [[0.5, "0.5"], [2, "2"], [5, "5"], [18, "18"], [30, "30"]],
     unit: "psu",
+  },
+  // Suspended sediment, the Delta model's mud (issues #16, #17): from about 1
+  // mg/L in clear water to hundreds in a storm, so on a log scale. The hue
+  // changes at even steps of that scale (1, 3, 10, 30, 100, 300 mg/L); unlike
+  // temperature and salinity, no thresholds are implied.
+  sediment: {
+    at: logSediment,
+    stops: at(logSediment, [[1, OI.blue], [3, OI.sky], [10, OI.green], [30, OI.yellow], [100, OI.orange], [300, OI.vermillion]]),
+    ticks: [[1, "1"], [3, "3"], [10, "10"], [30, "30"], [100, "100"], [300, "300"]],
+    unit: "mg/L",
   },
   level: { at: (v) => v, stops: spread(-1, 1, PUOR), ticks: [[-1, "−1"], [0, "mean"], [1, "+1"]], unit: "m from the reach's mean" },
 };
