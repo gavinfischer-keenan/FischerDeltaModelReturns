@@ -1,0 +1,215 @@
+# Experiments (issue #33; fdmr_runner.experiment): past interventions in the
+# Delta, each run on DWR's historical inputs (ref:dwr2026dsm2input) once as it
+# was and once with the intervention taken away. The intervention's effect, as
+# the model sees it, is the difference between the two runs; each run is scored
+# against what was measured. Data only.
+#
+# An experiment's runs start at `run_from`, months before the days it is judged
+# on (`judge_from` to `judge_to`): QUAL starts every channel's salinity at zero,
+# and salt takes months to work in from Martinez (dsm2.toml, days_back).
+# `effect_from` to `effect_to`: the days the intervention was in place.
+#
+# A scenario's `override` sets one of DWR's gate settings (a DSS path in DWR's
+# gate file, as the study's operating rules name it) to `value`, from `from` to
+# `to` (dates, PST; the whole run if left out), in the run's own copy of the
+# file. Every other input is DWR's, unchanged.
+#
+# Measured daily means: experiments/<name>/measured.csv, made from the EDI
+# packages by tools/validation/experiments/prepare_edi.py. A station's `output` is its name
+# in DWR's study output, where that differs (DWR's QUAL writes Bethel Island as
+# BET2, for example).
+
+[[experiment]]
+name = "false-river-barrier-2021"
+title = "West False River emergency drought barrier, 2021"
+what = "In the 2021 drought DWR closed West False River with a rock barrier (built 3-22 June 2021, removed in fall 2022) to keep salt water from being drawn up the San Joaquin side into Franks Tract and the central Delta. DWR's input set has the barrier in from 1 June 2021."
+refs = ["hartman2024edb", "dwr2026dsm2input"]
+run_from = "2020-07-01"
+judge_from = "2021-01-01"
+judge_to = "2022-01-01"
+effect_from = "2021-06-01"
+effect_to = "2022-01-01"
+# DWR's own model's prediction, in the same package (Bay-Delta SCHISM, run with and without the barrier).
+other_model = { name = "Bay-Delta SCHISM (DWR)", file = "schism.csv", with = "with barrier", without = "without barrier" }
+
+[[experiment.scenario]]
+name = "as-built"
+label = "as it was: barrier in"
+
+[[experiment.scenario]]
+name = "no-barrier"
+label = "barrier never built"
+without = true
+override = [{ path = "/HIST+GATE/FALSE_R/INSTALL//IR-DECADE/DWR-BDO_NAVD/", value = 0.0 }]
+
+[[experiment.station]]
+name = "BET"
+output = "BET2"
+place = "Piper Slough at Bethel Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "BAC"
+place = "Old River at Bacon Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FAL"
+output = "FAL2"
+place = "False River"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FRK"
+place = "Franks Tract"
+quantity = "ec"
+
+[[experiment.station]]
+name = "HOL"
+place = "Holland Cut"
+quantity = "ec"
+
+[[experiment.station]]
+name = "OSJ"
+output = "OSJ2"
+place = "Old River at the San Joaquin"
+quantity = "ec"
+
+[[experiment.station]]
+name = "DSJ"
+place = "Dutch Slough at Jersey Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FCT"
+place = "Fisherman's Cut"
+quantity = "ec"
+
+[[experiment.station]]
+name = "TWI"
+place = "Threemile Slough"
+quantity = "ec"
+
+[[experiment.station]]
+name = "MDM"
+place = "Middle River at Middle River"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FAL"
+place = "False River"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "DSJ"
+place = "Dutch Slough at Jersey Island"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "HOL"
+place = "Holland Cut"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "OSJ"
+place = "Old River at the San Joaquin"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "FCT"
+place = "Fisherman's Cut"
+quantity = "net_flow"
+
+[[experiment]]
+name = "suisun-gates-2018"
+title = "Suisun Marsh Salinity Control Gates, summer 2018"
+what = "In August 2018 DWR and Reclamation ran the Montezuma Slough gates with the tide for the first time in summer, to draw fresher water into Suisun Marsh for Delta smelt (flashboards in 27 July; gates operated 2 August to 7 September; usual operations from 17 October). Without the action the gates stand open with the flashboards out until the October season."
+refs = ["hartman2026smscg", "dwr2026dsm2input"]
+run_from = "2017-12-01"
+judge_from = "2018-06-01"
+judge_to = "2018-12-01"
+effect_from = "2018-07-27"
+effect_to = "2018-10-17"
+
+[[experiment.scenario]]
+name = "as-built"
+label = "as it was: gates operated"
+
+[[experiment.scenario]]
+name = "no-action"
+label = "gates left open, flashboards out"
+without = true
+# Open as DWR's inputs write it in the open spells of 2018 and summer 2017:
+# radial gates open (1) at full fraction both ways, flashboards out (1), boat lock shut (0).
+override = [
+  { path = "/HIST+GATE/MTZSL/RADIAL_OP//IR-DECADE/DWR-ESO/", value = 1.0, from = "2018-07-27", to = "2018-10-17" },
+  { path = "/HIST+GATE/MTZSL/RADIAL_FRACT_UP//IR-DECADE/DWR-ESO/", value = 1.0, from = "2018-07-27", to = "2018-10-17" },
+  { path = "/HIST+GATE/MTZSL/RADIAL_FRACT_DOWN//IR-DECADE/DWR-ESO/", value = 1.0, from = "2018-07-27", to = "2018-10-17" },
+  { path = "/HIST+GATE/MTZSL/FLASHBOARD_OP//IR-DECADE/DWR-ESO/", value = 1.0, from = "2018-07-27", to = "2018-10-17" },
+  { path = "/HIST+GATE/MTZSL/BOATLOCK_OP//IR-DECADE/DWR-ESO/", value = 0.0, from = "2018-07-27", to = "2018-10-17" },
+]
+
+[[experiment.station]]
+name = "MSL"
+place = "Montezuma Slough at the gates"
+quantity = "ec"
+
+[[experiment.station]]
+name = "NSL"
+place = "Montezuma Slough at National Steel"
+quantity = "ec"
+
+[[experiment.station]]
+name = "BDL"
+place = "Montezuma Slough at Beldens Landing"
+quantity = "ec"
+
+[[experiment.station]]
+name = "HUN"
+place = "Montezuma Slough at Hunter Cut"
+quantity = "ec"
+
+[[experiment.station]]
+name = "VOL"
+place = "Suisun Slough at Volanti Slough"
+quantity = "ec"
+
+[[experiment.station]]
+name = "GOD"
+place = "Suisun Slough at Godfather"
+quantity = "ec"
+
+[[experiment.station]]
+name = "GZL"
+place = "Grizzly Bay"
+quantity = "ec"
+
+[[experiment.station]]
+name = "HON"
+place = "Honker Bay"
+quantity = "ec"
+
+[[experiment.station]]
+name = "RYC"
+place = "Ryer Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "MAL"
+place = "Sacramento River at Mallard Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "CSE"
+place = "Sacramento River at Collinsville"
+quantity = "ec"
+
+[[experiment.station]]
+name = "SSI"
+place = "Sacramento River near Sherman Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "RVB"
+place = "Sacramento River at Rio Vista"
+quantity = "ec"

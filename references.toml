@@ -884,3 +884,33 @@ in = "Environmental Data Initiative; package edi.539.4; Creative Commons Attribu
 doi = "10.6073/pasta/8b646dfbeb625e308212a39f1e46f69b"
 note = "environment.csv: 7,523 samples 2007-2021 with a visual Microcystis rating (1-5), surface temperature and salinity; used to check the bloom forecast's rules (tools/validation/blooms)."
 checked = "The table's MD5 against the EML's authentication value; the package's EML read, 27 Nov 2026"
+
+[hartman2024edb]
+authors = "California Department of Water Resources, Hartman, R., Bosworth, D., Huston, D., Frantzich, J., Salman, T., Ateljevich, E., Clark, K., Bergman, P., Klambach, A., Wilder, R., Silva, M., Hassrick, J., Hinkelman, T., and Spaulding, T."
+year = 2024
+title = "2021-2022 West False River Emergency Drought Barrier water quality, flow, and fish monitoring, ver 2"
+kind = "data"
+in = "Environmental Data Initiative; package edi.1162.2; Creative Commons Attribution (CC BY 4.0)"
+doi = "10.6073/pasta/2e99059927c5a02b136961d2da139399"
+note = "The barrier experiment (regions/sf-bay-delta/experiments.toml): daily EC at the DWR stations around the barrier (ContinuousWQ.csv), measured and Bay-Delta SCHISM EC with and without the barrier at Bethel Island, Clifton Court and Bacon Island (schism_station_output.csv), and tidally filtered flows (Hydrodynamics_Data_2015_2020_2021.csv); daily means by tools/validation/experiments/prepare_edi.py."
+checked = "The package's EML read; tables read from the zip as downloaded, 27 Nov 2026"
+
+[hartman2026smscg]
+authors = "Hartman, R., Rasmussen, N., Burdi, C., Breining-Aday, S., Wells, E., Stewart, A., and Battey, M."
+year = 2026
+title = "Interagency Ecological Program: Monitoring of water quality, phytoplankton, zooplankton, clams, and Delta Smelt to support the Summer-Fall Suisun Marsh Salinity Control Gates Action 2018-2024, ver 9"
+kind = "data"
+in = "Environmental Data Initiative; package edi.876.9; Creative Commons Attribution (CC BY 4.0)"
+doi = "10.6073/pasta/953336f612afe7b395b77ffb560a0959"
+note = "The Suisun gates experiment (regions/sf-bay-delta/experiments.toml): 15-minute specific conductance 2017-2024 (SMSCG_wq_data_2017-2024_final_edi.csv), daily means by tools/validation/experiments/prepare_edi.py; the gates' daily log 1988-2024 and the action years."
+checked = "The package's EML read; tables read from the zip as downloaded, 27 Nov 2026"
+
+[dwr2026dsm2input]
+authors = "California Department of Water Resources"
+year = 2026
+title = "DSM2 Input 2026-04-16 historical update"
+kind = "data"
+in = "California Natural Resources Agency Open Data"
+url = "https://data.cnra.ca.gov/dataset/dsm2-input-2026-04-16-historical-update"
+note = "DWR's historical DSM2 study, September 2014 to December 2024: boundary flows and salinity, island water use, and every gate's operation (gates.dss), with the West False River barrier as a time series (in from 1 June 2021 to 15 November 2022). The live Delta run uses its input files unchanged; the experiments run it as it is, with a gate setting changed in a scenario's own copy."
+checked = "Release notes and the barrier's and the Suisun gates' series read from the runner's copy, 27 Nov 2026"

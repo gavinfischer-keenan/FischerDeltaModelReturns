@@ -193,6 +193,30 @@ Used in:
 - `regions/sf-bay-delta/dsm2.toml:1`: DSM2 for the Delta reach (specification 7.2; ref:dsm2): DWR's own historical study, run
 - `runner/dsm2/gtm-sediment.patch:1`: FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
 
+## dwr2026dsm2input
+
+California Department of Water Resources (2026). DSM2 Input 2026-04-16 historical update. California Natural Resources Agency Open Data. https://data.cnra.ca.gov/dataset/dsm2-input-2026-04-16-historical-update
+
+*DWR's historical DSM2 study, September 2014 to December 2024: boundary flows and salinity, island water use, and every gate's operation (gates.dss), with the West False River barrier as a time series (in from 1 June 2021 to 15 November 2022). The live Delta run uses its input files unchanged; the experiments run it as it is, with a gate setting changed in a scenario's own copy.*
+
+Checked: Release notes and the barrier's and the Suisun gates' series read from the runner's copy, 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/experiments.toml:2`: Delta, each run on DWR's historical inputs (ref:dwr2026dsm2input) once as it
+
+## hartman2024edb
+
+California Department of Water Resources, Hartman, R., Bosworth, D., Huston, D., Frantzich, J., Salman, T., Ateljevich, E., Clark, K., Bergman, P., Klambach, A., Wilder, R., Silva, M., Hassrick, J., Hinkelman, T., and Spaulding, T. (2024). 2021-2022 West False River Emergency Drought Barrier water quality, flow, and fish monitoring, ver 2. Environmental Data Initiative; package edi.1162.2; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/2e99059927c5a02b136961d2da139399
+
+*The barrier experiment (regions/sf-bay-delta/experiments.toml): daily EC at the DWR stations around the barrier (ContinuousWQ.csv), measured and Bay-Delta SCHISM EC with and without the barrier at Bethel Island, Clifton Court and Bacon Island (schism_station_output.csv), and tidally filtered flows (Hydrodynamics_Data_2015_2020_2021.csv); daily means by tools/validation/experiments/prepare_edi.py.*
+
+Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 2026
+
+Used in:
+
+- `tools/validation/experiments/prepare_edi.py:6`: false-river-barrier-2021: edi.1162.2 (ref:hartman2024edb, CC BY 4.0)
+
 ## ccr14_581
 
 California Fish and Game Commission (2026). California Code of Regulations, Title 14, section 5.81: Green Sturgeon. https://www.law.cornell.edu/regulations/california/14-CCR-5.81
@@ -391,8 +415,21 @@ Used in:
 - `crates/fdmr-math/src/signal.rs:138`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
 - `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press)."""
 - `python/fdmr_runner/delta.py:359`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
+- `python/fdmr_runner/experiment.py:13`: (ref:godin1972), then each day's mean, as the agencies filter their gauges.
 - `python/fdmr_runner/isohaline.py:13`: Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
 - `regions/sf-bay-delta/dsm2.toml:324`: flow through the same channel filtered by Godin's filter (ref:godin1972; fdmr_runner.delta.
+
+## hartman2026smscg
+
+Hartman, R., Rasmussen, N., Burdi, C., Breining-Aday, S., Wells, E., Stewart, A., and Battey, M. (2026). Interagency Ecological Program: Monitoring of water quality, phytoplankton, zooplankton, clams, and Delta Smelt to support the Summer-Fall Suisun Marsh Salinity Control Gates Action 2018-2024, ver 9. Environmental Data Initiative; package edi.876.9; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/953336f612afe7b395b77ffb560a0959
+
+*The Suisun gates experiment (regions/sf-bay-delta/experiments.toml): 15-minute specific conductance 2017-2024 (SMSCG_wq_data_2017-2024_final_edi.csv), daily means by tools/validation/experiments/prepare_edi.py; the gates' daily log 1988-2024 and the action years.*
+
+Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 2026
+
+Used in:
+
+- `tools/validation/experiments/prepare_edi.py:14`: suisun-gates-2018: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)
 
 ## hause2024
 

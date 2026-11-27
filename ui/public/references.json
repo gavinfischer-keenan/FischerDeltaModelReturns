@@ -374,6 +374,44 @@
    ]
   },
   {
+   "key": "dwr2026dsm2input",
+   "authors": "California Department of Water Resources",
+   "year": 2026,
+   "title": "DSM2 Input 2026-04-16 historical update",
+   "kind": "data",
+   "in": "California Natural Resources Agency Open Data",
+   "url": "https://data.cnra.ca.gov/dataset/dsm2-input-2026-04-16-historical-update",
+   "note": "DWR's historical DSM2 study, September 2014 to December 2024: boundary flows and salinity, island water use, and every gate's operation (gates.dss), with the West False River barrier as a time series (in from 1 June 2021 to 15 November 2022). The live Delta run uses its input files unchanged; the experiments run it as it is, with a gate setting changed in a scenario's own copy.",
+   "checked": "Release notes and the barrier's and the Suisun gates' series read from the runner's copy, 27 Nov 2026",
+   "citation": "California Department of Water Resources (2026). DSM2 Input 2026-04-16 historical update. California Natural Resources Agency Open Data. https://data.cnra.ca.gov/dataset/dsm2-input-2026-04-16-historical-update",
+   "used": [
+    {
+     "file": "regions/sf-bay-delta/experiments.toml",
+     "line": 2,
+     "text": "Delta, each run on DWR's historical inputs (ref:dwr2026dsm2input) once as it"
+    }
+   ]
+  },
+  {
+   "key": "hartman2024edb",
+   "authors": "California Department of Water Resources, Hartman, R., Bosworth, D., Huston, D., Frantzich, J., Salman, T., Ateljevich, E., Clark, K., Bergman, P., Klambach, A., Wilder, R., Silva, M., Hassrick, J., Hinkelman, T., and Spaulding, T.",
+   "year": 2024,
+   "title": "2021-2022 West False River Emergency Drought Barrier water quality, flow, and fish monitoring, ver 2",
+   "kind": "data",
+   "in": "Environmental Data Initiative; package edi.1162.2; Creative Commons Attribution (CC BY 4.0)",
+   "doi": "10.6073/pasta/2e99059927c5a02b136961d2da139399",
+   "note": "The barrier experiment (regions/sf-bay-delta/experiments.toml): daily EC at the DWR stations around the barrier (ContinuousWQ.csv), measured and Bay-Delta SCHISM EC with and without the barrier at Bethel Island, Clifton Court and Bacon Island (schism_station_output.csv), and tidally filtered flows (Hydrodynamics_Data_2015_2020_2021.csv); daily means by tools/validation/experiments/prepare_edi.py.",
+   "checked": "The package's EML read; tables read from the zip as downloaded, 27 Nov 2026",
+   "citation": "California Department of Water Resources, Hartman, R., Bosworth, D., Huston, D., Frantzich, J., Salman, T., Ateljevich, E., Clark, K., Bergman, P., Klambach, A., Wilder, R., Silva, M., Hassrick, J., Hinkelman, T., and Spaulding, T. (2024). 2021-2022 West False River Emergency Drought Barrier water quality, flow, and fish monitoring, ver 2. Environmental Data Initiative; package edi.1162.2; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/2e99059927c5a02b136961d2da139399",
+   "used": [
+    {
+     "file": "tools/validation/experiments/prepare_edi.py",
+     "line": 6,
+     "text": "false-river-barrier-2021: edi.1162.2 (ref:hartman2024edb, CC BY 4.0)"
+    }
+   ]
+  },
+  {
    "key": "ccr14_581",
    "authors": "California Fish and Game Commission",
    "year": 2026,
@@ -812,6 +850,11 @@
      "text": "Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily"
     },
     {
+     "file": "python/fdmr_runner/experiment.py",
+     "line": 13,
+     "text": "(ref:godin1972), then each day's mean, as the agencies filter their gauges."
+    },
+    {
      "file": "python/fdmr_runner/isohaline.py",
      "line": 13,
      "text": "Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's"
@@ -820,6 +863,25 @@
      "file": "regions/sf-bay-delta/dsm2.toml",
      "line": 324,
      "text": "flow through the same channel filtered by Godin's filter (ref:godin1972; fdmr_runner.delta."
+    }
+   ]
+  },
+  {
+   "key": "hartman2026smscg",
+   "authors": "Hartman, R., Rasmussen, N., Burdi, C., Breining-Aday, S., Wells, E., Stewart, A., and Battey, M.",
+   "year": 2026,
+   "title": "Interagency Ecological Program: Monitoring of water quality, phytoplankton, zooplankton, clams, and Delta Smelt to support the Summer-Fall Suisun Marsh Salinity Control Gates Action 2018-2024, ver 9",
+   "kind": "data",
+   "in": "Environmental Data Initiative; package edi.876.9; Creative Commons Attribution (CC BY 4.0)",
+   "doi": "10.6073/pasta/953336f612afe7b395b77ffb560a0959",
+   "note": "The Suisun gates experiment (regions/sf-bay-delta/experiments.toml): 15-minute specific conductance 2017-2024 (SMSCG_wq_data_2017-2024_final_edi.csv), daily means by tools/validation/experiments/prepare_edi.py; the gates' daily log 1988-2024 and the action years.",
+   "checked": "The package's EML read; tables read from the zip as downloaded, 27 Nov 2026",
+   "citation": "Hartman, R., Rasmussen, N., Burdi, C., Breining-Aday, S., Wells, E., Stewart, A., and Battey, M. (2026). Interagency Ecological Program: Monitoring of water quality, phytoplankton, zooplankton, clams, and Delta Smelt to support the Summer-Fall Suisun Marsh Salinity Control Gates Action 2018-2024, ver 9. Environmental Data Initiative; package edi.876.9; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/953336f612afe7b395b77ffb560a0959",
+   "used": [
+    {
+     "file": "tools/validation/experiments/prepare_edi.py",
+     "line": 14,
+     "text": "suisun-gates-2018: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)"
     }
    ]
   },

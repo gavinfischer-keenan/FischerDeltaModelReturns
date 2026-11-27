@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturgeon: experiments</title>
+<!--
+  The experiments (issue #33; fdmr_runner.experiment): past interventions run
+  as they were and with the intervention taken away, scored against what was
+  measured. Reads data/<region>/experiments/index.json and <name>.json.
+  Plain, for checking. Computes nothing. ?region=
+-->
+<style>
+  body { font: 13px/1.35 ui-monospace, Menlo, Consolas, monospace; margin: 12px; color: #111; background: #fff; }
+  h1 { font-size: 16px; } h2 { font-size: 14px; margin-top: 24px; border-top: 2px solid #000; padding-top: 6px; }
+  table { border-collapse: collapse; margin: 4px 0 10px; } td, th { border: 1px solid #999; padding: 2px 6px; text-align: right; vertical-align: top; }
+  th { background: #eee; } td.l, th.l { text-align: left; } p { max-width: 980px; } .note { color: #555; } .closer { background: #e8f4e8; }
+</style>
+</head>
+<body>
+<h1>Sturgeon: experiments</h1>
+<p class="note">Part of the model's validation and calibration: things people actually did to the Delta, and what the model says they did. The experiments are defined in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/regions/sf-bay-delta/experiments.toml">the region's experiments file</a> and written up, run by run, in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/tools/validation/experiments/results.md">the validation record</a>. Each experiment is a past period run on DWR's historical inputs twice: once as it was, and once with the intervention taken away (one gate setting changed in the run's own copy of DWR's gate file; every other input unchanged). The model's predicted effect is the second run less the first. Both runs are scored against what was measured: <b>mean diff.</b> is model less measured, <b>abs. diff.</b> the mean absolute difference of daily means, over the days the intervention was in place. The shaded run is the one closer to the measurements. Where the agencies published their own model's runs with and without, its effect is shown beside ours. What this tests: the Delta's flow and salinity as the map shows them, computed by DWR's DSM2 on our runner. It does not test the spreading maths we wrote ourselves; measured dye clouds do that. Salinity is EC in µS/cm, net flow is tidally filtered (Godin) in m³/s. See also <a href="check.html">every check</a>, <a href="assumptions.html">every assumption</a> and <a href="references.html">every source</a>.</p>
+<div id="out">Loading…</div>
+<script>
+const q = new URLSearchParams(location.search);
+const region = q.get("region") || "sf-bay-delta";
+const base = new URL(`data/${region}/experiments/`, location.href).href;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const n = (v) => (v === undefined || v === null ? "" : Number(v).toLocaleString("en-US", { maximumFractionDigits: 1 }));
+const sign = (v) => (v === undefined || v === null ? "" : (v > 0 ? "+" : "") + n(v));
+function experiment(x) {
+  const lab = Object.fromEntries(x.scenarios.map((s) => [s.name, s.label]));
+  let h = `<h2>${esc(x.title)}</h2><p>${esc(x.what)}</p>`;
+  h += `<p class="note">Sources: ${x.refs.map((r) => `<a href="references.html#${esc(r)}">${esc(r)}</a>`).join(", ")}. Runs start ${esc(x.run_from)} (months of spin-up for salinity); judged ${esc(x.judged[0])} to ${esc(x.judged[1])}; intervention in place ${esc(x.in_place[0])} to ${esc(x.in_place[1])}. DWR input set ${esc(x.inputs)}; scored ${esc(x.generated)}.</p>`;
+  h += "<p>Runs: " + x.scenarios.map((s) => `<b>${esc(s.name)}</b> (${esc(s.label)})` + (s.override.length ? ": " + s.override.map((o) => `${esc(o.path)} = ${o.value}${o.from ? ` from ${esc(o.from)} to ${esc(o.to)}` : ""}`).join("; ") : "")).join(" · ") + "</p>";
+  const a = x.as_built, w = x.without;
+  h += `<table><tr><th class="l" rowspan="2">station</th><th class="l" rowspan="2">place</th><th class="l" rowspan="2">quantity</th><th rowspan="2">days</th><th rowspan="2">measured mean</th>`
+    + `<th colspan="3">${esc(lab[a])}</th><th colspan="3">${esc(lab[w])}</th><th colspan="2">predicted effect (${esc(w)} less ${esc(a)})</th>`
+    + (x.other_model ? `<th colspan="3">${esc(x.other_model)}</th>` : "") + "</tr><tr>"
+    + "<th>mean</th><th>mean diff.</th><th>abs. diff.</th><th>mean</th><th>mean diff.</th><th>abs. diff.</th><th>mean</th><th>largest day</th>"
+    + (x.other_model ? "<th>effect, mean</th><th>abs. diff. with</th><th>abs. diff. without</th>" : "") + "</tr>";
+  for (const s of x.stations) {
+    const A = s.scenarios[a]?.in_place || {}, W = s.scenarios[w]?.in_place || {}, o = s.other_model;
+    h += `<tr><td class="l">${esc(s.station)}</td><td class="l">${esc(s.place)}</td><td class="l">${esc(s.quantity)}</td><td>${n(A.days)}</td><td>${n(A.measured_mean)}</td>`
+      + `<td class="${s.closer === a ? "closer" : ""}">${n(A.model_mean)}</td><td class="${s.closer === a ? "closer" : ""}">${sign(A.mean_difference)}</td><td class="${s.closer === a ? "closer" : ""}">${n(A.mean_abs_difference)}</td>`
+      + `<td class="${s.closer === w ? "closer" : ""}">${n(W.model_mean)}</td><td class="${s.closer === w ? "closer" : ""}">${sign(W.mean_difference)}</td><td class="${s.closer === w ? "closer" : ""}">${n(W.mean_abs_difference)}</td>`
+      + `<td>${sign(s.effect?.mean)}</td><td>${sign(s.effect?.largest)}</td>`
+      + (x.other_model ? `<td>${o ? sign(o.effect.mean) : ""}</td><td>${o ? n(o.with.mean_abs_difference) : ""}</td><td>${o ? n(o.without.mean_abs_difference) : ""}</td>` : "") + "</tr>";
+  }
+  h += "</table>";
+  const closer = x.stations.filter((s) => s.closer);
+  h += `<p>As built closer to the measurements at <b>${closer.filter((s) => s.closer === a).length} of ${closer.length}</b> station series over the days the intervention was in place.</p>`;
+  h += "<details><summary>Monthly means, every station</summary>";
+  for (const s of x.stations) {
+    const cols = Object.keys(s.monthly);
+    const months = [...new Set(cols.flatMap((c) => Object.keys(s.monthly[c])))].sort();
+    h += `<p><b>${esc(s.station)}</b> ${esc(s.place)}, ${esc(s.quantity)} (${esc(s.unit)})</p><table><tr><th class="l">month</th>${cols.map((c) => `<th>${esc(lab[c] || c)}</th>`).join("")}</tr>`;
+    for (const m of months) h += `<tr><td class="l">${m}</td>${cols.map((c) => `<td>${n(s.monthly[c][m])}</td>`).join("")}</tr>`;
+    h += "</table>";
+  }
+  h += "</details>";
+  h += "<p><b>The runs behind these numbers</b> (code and region fingerprints as every cycle records them; the same fingerprints mean the same maths on the same settings):</p>"
+    + "<table><tr><th class='l'>run</th><th class='l'>started (UTC)</th><th>minutes</th><th class='l'>period</th><th class='l'>DWR inputs</th><th class='l'>DSM2</th><th class='l'>code</th><th class='l'>region</th></tr>";
+  for (const r of x.runs || []) {
+    h += `<tr><td class="l">${esc(r.scenario)}</td><td class="l">${esc(r.started || "not recorded")}</td><td>${r.seconds ? n(r.seconds / 60) : ""}</td><td class="l">${esc((r.period || []).join(" to "))}</td>`
+      + `<td class="l">${esc(r.inputs)}</td><td class="l">${esc(r.dsm2)}</td><td class="l">${esc(r.model_version?.code)}</td><td class="l">${esc(r.model_version?.region)}</td></tr>`;
+  }
+  return h + "</table>";
+}
+(async () => {
+  const index = await (await fetch(base + "index.json", { cache: "no-store" })).json();
+  let h = "";
+  for (const e of index.experiments) h += experiment(await (await fetch(base + e.name + ".json", { cache: "no-store" })).json());
+  document.getElementById("out").innerHTML = h || "No experiments have been run.";
+})().catch((e) => { document.getElementById("out").textContent = "Failed: " + e; });
+</script>
+</body>
+</html>
