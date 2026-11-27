@@ -209,7 +209,7 @@ Used in:
 
 California Department of Water Resources, Hartman, R., Bosworth, D., Huston, D., Frantzich, J., Salman, T., Ateljevich, E., Clark, K., Bergman, P., Klambach, A., Wilder, R., Silva, M., Hassrick, J., Hinkelman, T., and Spaulding, T. (2024). 2021-2022 West False River Emergency Drought Barrier water quality, flow, and fish monitoring, ver 2. Environmental Data Initiative; package edi.1162.2; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/2e99059927c5a02b136961d2da139399
 
-*The barrier experiment (regions/sf-bay-delta/experiments.toml): daily EC at the DWR stations around the barrier (ContinuousWQ.csv), measured and Bay-Delta SCHISM EC with and without the barrier at Bethel Island, Clifton Court and Bacon Island (schism_station_output.csv), and tidally filtered flows (Hydrodynamics_Data_2015_2020_2021.csv); daily means by tools/validation/experiments/prepare_edi.py.*
+*The barrier experiment (regions/sf-bay-delta/experiments.toml): daily EC at the DWR stations around the barrier (ContinuousWQ.csv), measured and Bay-Delta SCHISM EC with and without the barrier at Bethel Island, Clifton Court and Bacon Island (schism_station_output.csv), and tidally filtered flows (Hydrodynamics_Data_2015_2020_2021.csv), also for the 2015 barrier experiment; daily means by tools/validation/experiments/prepare_edi.py.*
 
 Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 2026
 
@@ -406,6 +406,18 @@ Used in:
 - `python/fdmr_plugins/registry.py:145`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
 - `ui/src/compute/worker.ts:139`: Waters, ref:fischer1979).
 
+## frantzich2026ncro
+
+Frantzich, J., Hoshovsky, R., Salman, T., and Scott, P. (California Department of Water Resources) (2026). Sacramento-San Joaquin Bay-Delta Continuous (15 minute) Water Quality Monitoring: Central Delta Region, collected by the North Central Region Office, Department of Water Resources, 2005 - ongoing, ver 1. Environmental Data Initiative; package edi.2385.1; Creative Commons CC0 1.0. https://doi.org/10.6073/pasta/96c1fb83fad6fad18677c98bc20ec8f8
+
+*The 2015 barrier experiment (regions/sf-bay-delta/experiments.toml): 15-minute specific conductance at Bethel Island, False River, Fisherman's Cut, Holland Cut, Old River at the San Joaquin, Old River at Bacon Island and Blind Point (<station>_POR.csv), daily means by tools/validation/experiments/prepare_edi.py.*
+
+Checked: The package's EML read (times PST); tables read from the zip as downloaded, 27 Nov 2026
+
+Used in:
+
+- `tools/validation/experiments/prepare_edi.py:15`: edi.2385.1 (ref:frantzich2026ncro, CC0): 15-minute specific conductance
+
 ## gensen2022
 
 Gensen, M. R. A., Warmink, J. J., Huthoff, F., and Hulscher, S. J. M. H. (2022). Human interventions in a bifurcating river system. Journal of Flood Risk Management 15(1), e12762. https://doi.org/10.1111/jfr3.12762
@@ -438,13 +450,13 @@ Used in:
 
 Hartman, R., Rasmussen, N., Burdi, C., Breining-Aday, S., Wells, E., Stewart, A., and Battey, M. (2026). Interagency Ecological Program: Monitoring of water quality, phytoplankton, zooplankton, clams, and Delta Smelt to support the Summer-Fall Suisun Marsh Salinity Control Gates Action 2018-2024, ver 9. Environmental Data Initiative; package edi.876.9; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/953336f612afe7b395b77ffb560a0959
 
-*The Suisun gates experiment (regions/sf-bay-delta/experiments.toml): 15-minute specific conductance 2017-2024 (SMSCG_wq_data_2017-2024_final_edi.csv), daily means by tools/validation/experiments/prepare_edi.py; the gates' daily log 1988-2024 and the action years.*
+*The Suisun gates experiments, 2018 and 2023 (regions/sf-bay-delta/experiments.toml): 15-minute specific conductance 2017-2024 (SMSCG_wq_data_2017-2024_final_edi.csv), daily means by tools/validation/experiments/prepare_edi.py; the gates' daily log 1988-2024 and the action years.*
 
 Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 2026
 
 Used in:
 
-- `tools/validation/experiments/prepare_edi.py:14`: suisun-gates-2018: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)
+- `tools/validation/experiments/prepare_edi.py:21`: suisun-gates-2018 and suisun-gates-2023: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)
 - `tools/validation/experiments/results.md:62`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it.
 
 ## hause2024
@@ -691,6 +703,18 @@ Used in:
 - `python/fdmr_plugins/registry.py:309`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
 - `tools/validation/satellite_turbidity/README.md:6`: Satellite.** NASA's HLS v2.0 surface reflectance (ref:hls2), Landsat 8/9 and Sentinel-2 at 30 m: every pass from 1 July to 27 November 2026 with at most 40% cloud over the Delta's two tiles (T10SFH, T
 - `tools/validation/satellite_turbidity/hls_check.py:5`: (HLSL30 from Landsat 8/9, HLSS30 from Sentinel-2; 30 m; ref:hls2), red (B04)
+
+## nelson2026cemp
+
+Nelson, M. M., and Tran, A. H. (California Department of Water Resources) (2026). Sacramento-San Joaquin Bay-Delta Continuous (15 Minute) water quality monitoring data collected by the Continuous Environmental Monitoring Program, DWR, 2005-2025, ver 9. Environmental Data Initiative; package edi.1177.9; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/af06602f2547c66d9a8459f2dd7e4188
+
+*The 2015 barrier experiment (regions/sf-bay-delta/experiments.toml): 15-minute specific conductance at Franks Tract (from 5 June 2015) and Threemile Slough, daily means by tools/validation/experiments/prepare_edi.py.*
+
+Checked: The package's EML read (times PST); tables read from the zip as downloaded, 27 Nov 2026
+
+Used in:
+
+- `tools/validation/experiments/prepare_edi.py:18`: edi.1177.9 (ref:nelson2026cemp, CC BY 4.0): 15-minute specific conductance
 
 ## cpc_enso
 

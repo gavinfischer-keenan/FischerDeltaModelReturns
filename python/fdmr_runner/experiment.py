@@ -173,13 +173,24 @@ def settings_for(cfg: dict) -> study.RunSettings:
     )
 
 
-def run_scenario(cfg: dict, exp: dict, scen: dict, run_dir: Path, lock: str | None) -> dict[str, dict[str, float]]:
-    """Run one scenario; returns {"<station>/<quantity>": {date: daily mean}}."""
+def run_scenario(cfg: dict, exp: dict, scen: dict, run_dir: Path, lock: str | None,
+                 phases: dict[str, float] | None = None) -> dict[str, dict[str, float]]:
+    """Run one scenario; returns {"<station>/<quantity>": {date: daily mean}}.
+    Each phase's wall-clock seconds go into `phases`, to find what is slow."""
+    phases = {} if phases is None else phases
+    clock = [time.time()]
+
+    def lap(name: str) -> None:
+        now = time.time()
+        phases[name] = round(phases.get(name, 0.0) + now - clock[0], 1)
+        clock[0] = now
+
     s = settings_for(cfg)
     start, end = midnight(exp["run_from"]), midnight(exp["judge_to"]) + DAY
     if run_dir.exists():
         shutil.rmtree(run_dir)
     summary = study.build(s, run_dir, start, end, [])
+    lap("build")
     config = run_dir / "config.inp"
     # Not /tmp, which is memory on the runner; and short: QUAL failed to read
     # the run folder's own tmp (77 characters) as its temp_dir (27 Nov 2026).
@@ -208,13 +219,20 @@ def run_scenario(cfg: dict, exp: dict, scen: dict, run_dir: Path, lock: str | No
                 raise RuntimeError(f"{o['path']}: the run's gate file does not read back as written")
             print(f"  {o['path']} = {o['value']} from {o.get('from', 'the start')} to {o.get('to', 'the end')}", flush=True)
         new["GATEFILE"] = str(gates)
+        lap("gate_override")
     config.write_text(inp.set_envvars(config.read_text(encoding="utf-8"), new), encoding="utf-8")
     with held(lock):
+        lap("lock_wait")
         secs = study.run_hydro(s, run_dir)
+        lap("hydro")
         print(f"  hydro {secs:.0f} s", flush=True)
         secs = study.run_qual(s, run_dir, "qual_ec.inp")
+        lap("qual")
         print(f"  qual {secs:.0f} s", flush=True)
-    return read_stations(cfg, exp, run_dir, start, end)
+    out = read_stations(cfg, exp, run_dir, start, end)
+    lap("read_output")
+    print("  phases (s): " + ", ".join(f"{k} {v:.0f}" for k, v in phases.items()), flush=True)
+    return out
 
 
 def read_stations(cfg: dict, exp: dict, run_dir: Path, start: int, end: int) -> dict[str, dict[str, float]]:
@@ -313,14 +331,18 @@ def main(argv: list[str] | None = None) -> int:
                 print(f" {sc['name']}: {sc['label']}", flush=True)
                 t = time.time()
                 started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
-                result = run_scenario(cfg, exp, sc, folder / "run", args.lock)
+                phases: dict[str, float] = {}
+                result = run_scenario(cfg, exp, sc, folder / "run", args.lock, phases)
                 daily_file.write_text(json.dumps(result))
                 record.write_text(json.dumps({"scenario": sc["name"], "label": sc["label"], "started": started,
                                               "seconds": round(time.time() - t), "model_version": model_version(region_dir, None),
                                               "inputs": cfg["inputs"], "dsm2": cfg["output_a"],
-                                              "period": [exp["run_from"], exp["judge_to"]], "override": sc.get("override", [])}))
+                                              "period": [exp["run_from"], exp["judge_to"]], "override": sc.get("override", []),
+                                              "phases": phases}))
                 if not args.keep:
+                    c = time.time()
                     shutil.rmtree(folder / "run")
+                    print(f"  cleanup {time.time() - c:.0f} s", flush=True)
                 print(f"  done in {time.time() - t:.0f} s: {len(result)} station series", flush=True)
             if daily_file.exists():
                 series[sc["name"]] = json.loads(daily_file.read_text())

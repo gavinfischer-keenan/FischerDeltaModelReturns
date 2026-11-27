@@ -213,3 +213,192 @@ quantity = "ec"
 name = "RVB"
 place = "Sacramento River at Rio Vista"
 quantity = "ec"
+
+[[experiment]]
+name = "false-river-barrier-2015"
+title = "West False River emergency drought barrier, 2015"
+what = "In the 2015 drought DWR first closed West False River with a rock barrier, in May 2015, and took it out that autumn, to keep salt water from being drawn up the San Joaquin side into Franks Tract and the central Delta. DWR's input set has the barrier in from 14 May to 1 November 2015. The same barrier was built again in 2021."
+refs = ["frantzich2026ncro", "nelson2026cemp", "hartman2024edb", "dwr2026dsm2input"]
+run_from = "2014-07-01"
+judge_from = "2015-01-01"
+judge_to = "2016-01-01"
+effect_from = "2015-05-14"
+effect_to = "2015-11-01"
+
+[[experiment.scenario]]
+name = "as-built"
+label = "as it was: barrier in"
+
+[[experiment.scenario]]
+name = "no-barrier"
+label = "barrier never built"
+without = true
+override = [{ path = "/HIST+GATE/FALSE_R/INSTALL//IR-DECADE/DWR-BDO_NAVD/", value = 0.0 }]
+
+[[experiment.station]]
+name = "BET"
+output = "BET2"
+place = "Piper Slough at Bethel Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "BAC"
+place = "Old River at Bacon Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FAL"
+output = "FAL2"
+place = "False River"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FRK"
+place = "Franks Tract"
+quantity = "ec"
+
+[[experiment.station]]
+name = "HOL"
+place = "Holland Cut"
+quantity = "ec"
+
+[[experiment.station]]
+name = "OSJ"
+output = "OSJ2"
+place = "Old River at the San Joaquin"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FCT"
+place = "Fisherman's Cut"
+quantity = "ec"
+
+[[experiment.station]]
+name = "TWI"
+place = "Threemile Slough"
+quantity = "ec"
+
+[[experiment.station]]
+name = "BLP"
+place = "San Joaquin River at Blind Point"
+quantity = "ec"
+
+[[experiment.station]]
+name = "FAL"
+place = "False River"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "DSJ"
+place = "Dutch Slough at Jersey Island"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "HOL"
+place = "Holland Cut"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "OSJ"
+place = "Old River at the San Joaquin"
+quantity = "net_flow"
+
+[[experiment.station]]
+name = "FCT"
+place = "Fisherman's Cut"
+quantity = "net_flow"
+
+[[experiment]]
+name = "suisun-gates-2023"
+title = "Suisun Marsh Salinity Control Gates, summer 2023"
+what = "In a wet year, under a new requirement of the State Water Project's incidental take permit (to use 100 thousand acre-feet of water to freshen the marsh for Delta smelt), DWR put the Montezuma Slough flashboards in early on 14 August 2023 and ran two of the three gates with the tide from 15 August until the water was used, on 18 October. The gates were then left open until they were closed for repairs on 6 November. Without the action the gates stand open with the flashboards out, as from 11 June."
+refs = ["hartman2026smscg", "dwr2026dsm2input"]
+run_from = "2022-12-01"
+judge_from = "2023-06-01"
+judge_to = "2023-12-01"
+effect_from = "2023-08-14"
+effect_to = "2023-11-06"
+
+[[experiment.scenario]]
+name = "as-built"
+label = "as it was: gates operated"
+
+[[experiment.scenario]]
+name = "no-action"
+label = "gates left open, flashboards out"
+without = true
+# As DWR's inputs write the open spell from 11 June 2023: two radial gates open
+# (1, at 0.667 both ways; gate 1 stayed shut all year), flashboards out (1),
+# boat lock shut (0). Flashboards out until the repair closure of 6 November,
+# since they went in early only for the action.
+override = [
+  { path = "/HIST+GATE/MTZSL/RADIAL_OP//IR-DECADE/DWR-ESO/", value = 1.0, from = "2023-08-14", to = "2023-10-19" },
+  { path = "/HIST+GATE/MTZSL/RADIAL_FRACT_UP//IR-DECADE/DWR-ESO/", value = 0.667, from = "2023-08-14", to = "2023-10-19" },
+  { path = "/HIST+GATE/MTZSL/FLASHBOARD_OP//IR-DECADE/DWR-ESO/", value = 1.0, from = "2023-08-14", to = "2023-11-06" },
+  { path = "/HIST+GATE/MTZSL/BOATLOCK_OP//IR-DECADE/DWR-ESO/", value = 0.0, from = "2023-08-14", to = "2023-11-06" },
+]
+
+[[experiment.station]]
+name = "MSL"
+place = "Montezuma Slough at the gates"
+quantity = "ec"
+
+[[experiment.station]]
+name = "NSL"
+place = "Montezuma Slough at National Steel"
+quantity = "ec"
+
+[[experiment.station]]
+name = "BDL"
+place = "Montezuma Slough at Beldens Landing"
+quantity = "ec"
+
+[[experiment.station]]
+name = "HUN"
+place = "Montezuma Slough at Hunter Cut"
+quantity = "ec"
+
+[[experiment.station]]
+name = "VOL"
+place = "Suisun Slough at Volanti Slough"
+quantity = "ec"
+
+[[experiment.station]]
+name = "GOD"
+place = "Suisun Slough at Godfather"
+quantity = "ec"
+
+[[experiment.station]]
+name = "GZL"
+place = "Grizzly Bay"
+quantity = "ec"
+
+[[experiment.station]]
+name = "HON"
+place = "Honker Bay"
+quantity = "ec"
+
+[[experiment.station]]
+name = "RYC"
+place = "Ryer Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "MAL"
+place = "Sacramento River at Mallard Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "CSE"
+place = "Sacramento River at Collinsville"
+quantity = "ec"
+
+[[experiment.station]]
+name = "SSI"
+place = "Sacramento River near Sherman Island"
+quantity = "ec"
+
+[[experiment.station]]
+name = "RVB"
+place = "Sacramento River at Rio Vista"
+quantity = "ec"

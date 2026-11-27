@@ -2,7 +2,7 @@
 
 Part of the model's validation and calibration (issue #33). Each experiment runs DWR's historical inputs twice: once as it was, and once with the intervention taken away. The intervention is taken away by changing gate settings in the run's own copy of DWR's gate file; nothing else changes. Both runs are scored against measured daily means while the intervention was in place.
 
-- **What runs:** DSM2 v8.5.1 (HYDRO, QUAL) on DWR's input set 2026-04-16. The as-built runs have code fingerprint `682f3c4c660d`; the corrected "without" runs `55acbf9295ca`. The two differ only in how a gate override is written (the correction below), not in any maths.
+- **What runs:** DSM2 v8.5.1 (HYDRO, QUAL) on DWR's input set 2026-04-16. The as-built runs have code fingerprint `682f3c4c660d`; the corrected "without" runs `55acbf9295ca`. The two differ only in how a gate override is written (the correction below), not in any maths. The 2015 barrier and 2023 gate runs have `cc3bb5e8aee1`, which adds only timing of each run's phases.
 - **Where the numbers are:** `experiments.html`, served from `data/sf-bay-delta/experiments/`, lists every run with when it ran and its fingerprints.
 - **Units:** salinity as EC in µS/cm; net flow tidally filtered, in m³/s.
 - **Columns:** "Diff." is model less measured; "abs." is the mean absolute difference of daily means. The **effect** is the run without the intervention less the run as it was, as on the page: how much saltier (+) the water would have been without it.
@@ -52,6 +52,50 @@ False River's flow gauge has only four days in the window, all before the closur
 - **Too fresh with the barrier.** Our as-built run reads 110–205 µS/cm below measured at Bethel Island, Franks Tract and Holland Cut. SCHISM with the barrier is within 61 at Bethel Island. So the model likely overstates the protection the barrier gave, by up to about 200 µS/cm there.
 - **Old River at the San Joaquin.** The model carries too much water up Old River, −66 against −16 measured, as built and as never built alike: a standing misfit in the channel network, not of the barrier.
 
+## West False River emergency drought barrier, 2015
+
+**What was done.** In the 2015 drought DWR first closed West False River with a rock barrier, and took it out that autumn. DWR's input set has it in from 14 May to 1 November 2015. It is the same barrier as in 2021, so this is the same test in a second year.
+
+**Data.**
+- Salinity comes from DWR's continuous stations, edi.2385.1 (ref:frantzich2026ncro), and from the CEMP stations at Franks Tract and Threemile Slough, edi.1177.9 (ref:nelson2026cemp).
+- Net flow comes from edi.1162.2 (ref:hartman2024edb).
+- No other model's runs for 2015 are published with them.
+
+**Judged** 14 May to 31 October 2015:
+
+| Station | Measured | As built (diff., abs.) | Never built (diff., abs.) | Our effect |
+|---|---|---|---|---|
+| Bethel Island (BET) | 992 | 711 (−281, 281) | 1,189 (+197, 262) | +478 |
+| Old R. at Bacon Island (BAC) | 747 | 573 (−175, 175) | 1,019 (+272, 297) | +455 |
+| Franks Tract (FRK) | 861 | 500 (−361, 361) | 1,002 (+141, 204) | +452 |
+| Holland Cut (HOL) | 804 | 563 (−241, 241) | 1,034 (+230, 270) | +474 |
+| Fisherman's Cut (FCT) | 992 | 809 (−183, 189) | 1,305 (+313, 314) | +496 |
+| False River (FAL) | 1,331 | 1,244 (−87, 199) | 1,612 (+281, 398) | +368 |
+| Old R. at San Joaquin (OSJ) | 662 | 513 (−149, 149) | 742 (+79, 117) | +224 |
+| Threemile Slough (TWI) | 1,408 | 1,245 (−163, 174) | 1,301 (−107, 129) | +39 |
+| San Joaquin R. at Blind Point (BLP) | 3,062 | 2,988 (−74, 422) | 2,750 (−312, 392) | −239 |
+
+Net flow:
+
+| Station | Measured | As built (diff., abs.) | Never built (diff., abs.) |
+|---|---|---|---|
+| Fisherman's Cut | −3.4 | −8.3 (5.1) | +5.0 (8.7) |
+| Old R. at San Joaquin | −13.9 | −60.7 (47.0) | −83.6 (69.7) |
+| Holland Cut | +4.2 | −12.2 (16.4) | −3.7 (8.2) |
+| Dutch Slough | −2.6 | +0.2 (3.8) | −1.7 (3.1) |
+
+False River's flow gauge reads only at the two ends of the window: 14–21 May, as the barrier went in, and 11–31 October. Those days read −23 to −175 m³/s in October, which neither run reproduces (as built +32 on average). As in 2021, that row is not scored.
+
+**Reading:**
+- **Which run is closer.** As built is closer in only 6 of 13 scored series: 4 of 9 for salinity, 2 of 4 for flow. That is fewer than in 2021, and for a reason the next point gives.
+- **Effect.** The model's effect is almost the same as in 2021: a fall of 450–500 µS/cm at Bethel Island, Bacon Island, Franks Tract, Holland Cut and Fisherman's Cut.
+- **Too fresh with the barrier, again and more so.** The as-built run reads 175–361 µS/cm below measured at those stations, against 110–205 in 2021.
+  - At Bethel Island, January to April 2015 (no barrier) the model is 20–140 µS/cm fresh. From June to October (barrier in) it is 210–445 fresh. In November and December (barrier out) it is 100–170 fresh.
+  - So most of the shortfall, about 200 µS/cm at Bethel Island, comes with the barrier. The never-built run, saltier than measured by 140–200, is the closer of the two at Bethel Island and Franks Tract.
+  - In 2021 SCHISM's effect at Bethel Island was 287 against our 487. Both years say the same: the model overstates the barrier's protection, by about 200 µS/cm at Bethel Island.
+- **Old River at the San Joaquin.** Too much water goes up Old River again, −61 against −14 measured: the same standing misfit as in 2021.
+- **Blind Point.** In the model the lower San Joaquin at Blind Point is about 240 µS/cm saltier with the barrier than without. That is too small to judge against the station's day-to-day misfit (abs. about 400).
+
 ## Suisun Marsh Salinity Control Gates, summer 2018
 
 **What was done.**
@@ -85,13 +129,48 @@ False River's flow gauge has only four days in the window, all before the closur
 - **River and bays.** Salinity rises about 250–300 µS/cm at Mallard Island and Collinsville, as fresh water is drawn into the marsh. That is too small an effect to judge against the bays' and river's own misfits.
 - **Overall.** As built is closer at 7 of 13 stations: all four on Montezuma Slough, and three of the bay and river stations.
 
+## Suisun Marsh Salinity Control Gates, summer 2023
+
+**What was done.**
+- 2023 was a wet year. The State Water Project's incidental take permit required 100 thousand acre-feet of water to be used to freshen the marsh for Delta smelt.
+- DWR put the Montezuma Slough flashboards in on 14 August and ran two of the three gates with the tide from 15 August until the water was used, on 18 October.
+- The gates were then left open until they were closed for repairs on 6 November.
+- Without the action, the gates stand open with the flashboards out, as they had from 11 June.
+
+**Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg), as for 2018. Hunter Cut has only 32 days in the window and Volanti 65; the others have 82–84.
+
+**Judged** 14 August to 5 November 2023:
+
+| Station | Measured | As built (diff., abs.) | No action (diff., abs.) | Our effect |
+|---|---|---|---|---|
+| Montezuma Sl. at the gates (MSL) | 2,462 | 2,834 (+371, 525) | 3,394 (+932, 953) | +561 |
+| Montezuma Sl. at National Steel (NSL) | 2,746 | 3,169 (+423, 593) | 4,484 (+1,738, 1,738) | +1,315 |
+| Montezuma Sl. at Beldens Landing (BDL) | 3,401 | 3,854 (+453, 699) | 7,948 (+4,547, 4,547) | +4,019 |
+| Montezuma Sl. at Hunter Cut (HUN) | 8,162 | 8,064 (−98, 379) | 10,701 (+2,539, 2,539) | +2,294 |
+| Suisun Sl. at Volanti (VOL) | 5,834 | 3,959 (−1,876, 1,876) | 6,643 (+809, 1,856) | +2,753 |
+| Suisun Sl. at Godfather (GOD) | 10,326 | 7,809 (−2,517, 2,517) | 9,922 (−404, 903) | +2,113 |
+| Grizzly Bay (GZL) | 11,166 | 11,008 (−158, 539) | 11,247 (+80, 569) | +238 |
+| Honker Bay (HON) | 7,324 | 7,378 (+54, 860) | 7,052 (−272, 828) | −326 |
+| Ryer Island (RYC) | 10,286 | 9,250 (−1,036, 1,066) | 9,148 (−1,138, 1,159) | −103 |
+| Sacramento R. at Mallard Island (MAL) | 5,411 | 6,048 (+637, 866) | 5,675 (+264, 688) | −373 |
+| Sacramento R. at Collinsville (CSE) | 2,475 | 3,178 (+703, 773) | 2,907 (+432, 630) | −271 |
+| Sacramento R. near Sherman Island (SSI) | 503 | 931 (+429, 429) | 869 (+366, 366) | −62 |
+| Sacramento R. at Rio Vista (RVB) | 139 | 135 (−4, 7) | 135 (−4, 7) | −1 |
+
+**Reading:**
+- **Montezuma Slough.** As in 2018, the model sees the action clearly along the slough. Without it the four stations would have been 0.6–4.0 mS/cm saltier, and that run misses by 0.9–4.5 mS/cm. The as-built run is within 100–450 µS/cm of measured on average, this time on the salty side at the three upper stations.
+- **Western marsh, in a second year.** Suisun Slough again reads too fresh as built, by 1.9–2.5 mS/cm (2.2–2.3 in 2018), and the no-action run is again closer. So this misfit is not a feature of one year. It is now seen in a wet year as well as in a below-normal one.
+- **River and bays.** The model's Sacramento River below Rio Vista reads 430–700 µS/cm salty in both runs. The action's effect there (−270 to −370) is smaller than that misfit, so the no-action run comes out closer only because it is fresher.
+- **Overall.** As built is closer at 7 of 13 stations: all four on Montezuma Slough, Grizzly Bay, Ryer Island and Rio Vista. That is the same count as in 2018.
+
 ## What this says about the model
 
 **What these experiments test:**
 - The Delta's flow and salinity as the map shows them: DWR's DSM2 on its own inputs, run by the model runner.
 - They do not test the spreading maths written here. Measured dye clouds test that (`tools/validation/rhine_dye`).
 
-**Standing misfits:**
-- Old River at the San Joaquin's net flow, and Franks Tract to Bethel Island reading fresh with the barrier in.
-- The western marsh reading fresh with the gates operating.
-- Both are recorded here, not tuned away: DWR's own inputs and grid are used unchanged.
+**Standing misfits.** Each is now seen in two years, so none is a feature of one year:
+- Old River at the San Joaquin's net flow: −61 to −66 m³/s modelled against −14 to −16 measured, in 2015 and 2021, with or without the barrier.
+- Franks Tract to Bethel Island reading fresh with the barrier in, in 2015 and 2021. The model overstates the barrier's protection by about 200 µS/cm at Bethel Island.
+- The western marsh (Suisun Slough) reading 1.9–2.5 mS/cm fresh with the gates operating, in 2018 and 2023.
+- All are recorded here, not tuned away: DWR's own inputs and grid are used unchanged.
