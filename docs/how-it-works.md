@@ -3,7 +3,8 @@
 How the model gets its data, runs, publishes and checks itself: in block
 diagrams first, then in words. Each box names the code that does it, so every
 step can be followed to its source. The maths in each kind of water, with its
-sources, is in [maths.md](maths.md); every source cited anywhere is in
+sources, is in [maths.md](maths.md); every number it is set with, in
+[parameters.md](parameters.md); every source cited anywhere is in
 [references.md](references.md); every assumption the model makes about data it
 does not have is published with each cycle and listed on the site's
 assumptions page.

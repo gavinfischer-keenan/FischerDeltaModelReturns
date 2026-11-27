@@ -21,6 +21,7 @@ jobs:
       # references page and the maths document match the code.
       - run: python -I tools/references.py --check
       - run: python tools/maths_doc.py --check
+      - run: python tools/params_doc.py --check
 
   python:
     name: Python (store, adapters, plug-ins, bindings)
