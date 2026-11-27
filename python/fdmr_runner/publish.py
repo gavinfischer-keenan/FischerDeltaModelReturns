@@ -153,6 +153,23 @@ def lateral_field(field, records, slopes):
     return out
 
 
+def bridged(values) -> tuple[list[float] | None, int]:
+    """A series with its gaps (None) bridged in a straight line between
+    readings and held at the ends, and how many steps were gaps; (None, n)
+    with no reading at all. A hindcast's window can start before the first
+    reading (27 Nov 2026)."""
+    import numpy as np
+
+    vals = [None if v is None else float(v) for v in values]
+    known = [i for i, v in enumerate(vals) if v is not None]
+    if not known:
+        return None, len(vals)
+    if len(known) == len(vals):
+        return vals, 0
+    filled = np.interp(np.arange(len(vals)), known, [vals[i] for i in known])
+    return [float(v) for v in filled], len(vals) - len(known)
+
+
 def storage_field(store: Store, cfg: dict | None, field, t0: int, now: int, n: int, i_now: int, hindcast: bool,
                   assumed: list[dict]):
     """The dead-zone storage ratio for every element and step where the reach
@@ -176,8 +193,14 @@ def storage_field(store: Store, cfg: dict | None, field, t0: int, now: int, n: i
     assumed.append({"input": f"{cfg['source']} {cfg['site']} discharge (groyne fields)",
                     "how": "Rijkswaterstaat's forecast, joined over a day, then held" if fc is not None else "held at its last value",
                     "last_reading": min(vals[-1].t, now)})
+    qs, gaps = bridged(q)
+    if qs is None:
+        return None
+    if gaps:
+        assumed.append({"input": f"{cfg['source']} {cfg['site']} discharge (groyne fields)",
+                        "how": f"{gaps} of {len(qs)} steps without a reading: bridged between readings, held at the ends"})
     m = len(field.elements)
-    return [[storage.ratio(cfg, float(q[i]))] * m for i in range(field.steps)]
+    return [[storage.ratio(cfg, qs[i])] * m for i in range(field.steps)]
 
 
 def element_fickian(field, records, slopes) -> list[float]:

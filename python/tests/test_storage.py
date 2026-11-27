@@ -31,3 +31,11 @@ def test_every_branchs_tables_are_sourced_and_sane():
                 assert qs == sorted(qs) and len(set(qs)) == len(qs)
                 assert all(lo <= v <= hi for _, v in table)
     assert found == 3
+
+
+def test_a_gap_in_the_gauge_is_bridged_and_held_at_the_ends():
+    from fdmr_runner.publish import bridged
+
+    assert bridged([None, 2.0, None, 4.0, None]) == ([2.0, 2.0, 3.0, 4.0, 4.0], 3)
+    assert bridged([1.0, 2.0]) == ([1.0, 2.0], 0)
+    assert bridged([None, None]) == (None, 2)
