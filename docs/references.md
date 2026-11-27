@@ -42,7 +42,7 @@ Checked: The report read (Table 5.1 and section 5), 27 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/blooms.toml:31`: ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:
+- `regions/sf-bay-delta/blooms.toml:38`: ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:
 
 ## boumagregson2024
 
@@ -486,6 +486,19 @@ Used in:
 
 - `python/fdmr_runner/bay.py:593`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
 
+## kurobe2022
+
+Kurobe, T., Lehman, P. W., Lesmeister, S., and Teh, S. J. (2022). Cyanobacteria abundance, cyanotoxin concentration, and water quality data for the upper San Francisco Estuary, California, USA: 2014-2019. Environmental Data Initiative; package edi.1076.1; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/b4e180cb925266171285375a3e202635
+
+*424 samples July-November 2014-2019 with Microcystis cells (qPCR), colony biovolume, microcystin, water temperature and salinity; used to check the bloom forecast's rules (tools/validation/blooms).*
+
+Checked: The data table's MD5 against the EML's authentication value; the package's EML read, 27 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/blooms.toml:24`: al. 2022, ref:kurobe2022; 424 samples, each classed by its own measured
+- `tools/validation/blooms/results.md:3`: Data.** Kurobe, Lehman, Lesmeister and Teh (2022), EDI edi.1076.1 (ref:kurobe2022). The table's MD5 matches EDI's record.
+
 ## lehman2005
 
 Lehman, P. W., Boyer, G., Hall, C., Waller, S., and Gehrts, K. (2005). Distribution and toxicity of a new colonial Microcystis aeruginosa bloom in the San Francisco Bay Estuary, California. Hydrobiologia 541(1), 87-99. https://doi.org/10.1007/s10750-004-4670-0
@@ -496,7 +509,7 @@ Checked: Crossref record of the DOI; the paper read for FDMR (pp. 93-94), 27 Nov
 
 Used in:
 
-- `regions/sf-bay-delta/blooms.toml:39`: ref:lehman2005, pp. 93-94); salinity sets how far seaward blooms reach, not
+- `regions/sf-bay-delta/blooms.toml:46`: ref:lehman2005, pp. 93-94); salinity sets how far seaward blooms reach, not
 
 ## leopold1953
 

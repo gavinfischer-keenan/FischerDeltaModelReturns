@@ -20,8 +20,15 @@
 #   Delta, the San Joaquin, Old and Middle rivers and Franks Tract bloom more
 #   than the Sacramento side (Bouma-Gregson et al. 2024, ref:boumagregson2024,
 #   Table 4).
-# Validation: not yet scored. The IEP surveys' visual Microcystis index
-# (edi.539, edi.1076, edi.1391, edi.276; #28) is what to check it against.
+# Validation (27 Nov 2026), the rules against the 2014-2019 surveys (Kurobe et
+# al. 2022, ref:kurobe2022; 424 samples, each classed by its own measured
+# temperature and salinity; tools/validation/blooms/results.md): the classes
+# rank Microcystis abundance about 300-fold (median cells/mL 244, 4,035 and
+# 74,700 for unlikely, possible and likely) and microcystin detection (12%,
+# 45%, 56%), but not mere presence (cells in over 80% of samples in every
+# class). In warm water, samples at or above 5 psu held about 5 times fewer
+# cells (12 samples). The daily forecast itself is not scored: no live bloom
+# measurements exist in the Delta's channels.
 
 reaches = ["delta"]
 

@@ -864,3 +864,13 @@ in = "PhD dissertation, University of California, Davis"
 url = "https://escholarship.org/uc/item/29g03887"
 note = "Lower Putah Creek: baseflow (20 cfs) width 54.8 ft in 2005 (p. 31); HEC-RAS average channel slope 0.083% and Manning's n 0.035 (p. 24)."
 checked = "The dissertation read (pp. 24 and 31), 27 Nov 2026"
+
+[kurobe2022]
+authors = "Kurobe, T., Lehman, P. W., Lesmeister, S., and Teh, S. J."
+year = 2022
+title = "Cyanobacteria abundance, cyanotoxin concentration, and water quality data for the upper San Francisco Estuary, California, USA: 2014-2019"
+kind = "data"
+in = "Environmental Data Initiative; package edi.1076.1; Creative Commons Attribution (CC BY 4.0)"
+doi = "10.6073/pasta/b4e180cb925266171285375a3e202635"
+note = "424 samples July-November 2014-2019 with Microcystis cells (qPCR), colony biovolume, microcystin, water temperature and salinity; used to check the bloom forecast's rules (tools/validation/blooms)."
+checked = "The data table's MD5 against the EML's authentication value; the package's EML read, 27 Nov 2026"
