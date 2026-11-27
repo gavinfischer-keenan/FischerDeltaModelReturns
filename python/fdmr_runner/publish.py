@@ -3,8 +3,9 @@
     python -m fdmr_runner.publish REGION_DIR STORE_FILE OUT_DIR [--days 14] [--ahead 14] [--keep 3]
 
 Writes OUT_DIR/<cycle>/ with index.json, geometry/<reach>.json and
-<reach>/<YYYY-MM-DD>.fdf, then points OUT_DIR/current at the new cycle in one
-step, so a reader never sees half a cycle. Older cycles beyond the newest
+<reach>/<YYYY-MM-DD>.fdf, built in a folder of its own and renamed into place
+whole, then points OUT_DIR/current at it in one step, so a reader never sees
+half a cycle (a cycle published again with the same "now" is <cycle>.r2). Older cycles beyond the newest
 `--keep` are removed; a browser still reading one has had an hour to finish.
 
 After now, each main gauge follows its river forecast (fdmr_runner.forecast);
@@ -722,9 +723,14 @@ def publish(
     end = now + ahead * DAY
     n = (end - t0) // STEP + 1
 
+    # Built in a folder of its own and renamed into place when whole: a cycle
+    # whose "now" has not moved (a gauge that has not reported since) gets a
+    # new folder beside the live one, never written over it (#53).
     cycle = utc(now, "%Y%m%dT%H%MZ")
-    cdir = out_dir / cycle
-    (cdir / "geometry").mkdir(parents=True, exist_ok=True)
+    cdir = out_dir / f".building-{cycle}-{os.getpid()}"
+    if cdir.exists():
+        shutil.rmtree(cdir)
+    (cdir / "geometry").mkdir(parents=True)
 
     # Every river-routing reach, the main one first: each from its own dam's
     # release (specification 3.13; issue #4). Another reach that cannot be
@@ -859,25 +865,44 @@ def publish(
             print(f"ledger FAILED {e}", flush=True)
     (cdir / "index.json").write_text(json.dumps(index, separators=(",", ":")), encoding="utf-8")
 
+    final, k = out_dir / cycle, 1
+    while final.exists():  # the same "now" published again: the next revision
+        k += 1
+        final = out_dir / f"{cycle}.r{k}"
+    os.rename(cdir, final)
     tmp = out_dir / ".current.tmp"
     if tmp.is_symlink() or tmp.exists():
         tmp.unlink()
-    tmp.symlink_to(cycle)
+    tmp.symlink_to(final.name)
     os.replace(tmp, out_dir / "current")
-    return cdir
+    return final
 
 
-CYCLE = re.compile(r"\d{8}T\d{4}Z$")
+CYCLE = re.compile(r"\d{8}T\d{4}Z(\.r\d+)?$")  # a cycle's folder; .r2, .r3: the same "now" published again
+
+
+def _order(name: str) -> tuple[str, int]:
+    base, _, r = name.partition(".r")
+    return base, int(r) if r else 1
 
 
 def prune(out_dir: Path, keep: int) -> list[str]:
-    """Remove all but the newest `keep` cycles, never the current one. Returns what was removed."""
+    """Remove all but the newest `keep` cycles, never the current one, and any
+    folder an interrupted publish left half built over an hour ago. Returns what was removed."""
     current = os.readlink(out_dir / "current") if (out_dir / "current").is_symlink() else None
-    cycles = sorted(p.name for p in out_dir.iterdir() if p.is_dir() and not p.is_symlink() and CYCLE.match(p.name))
+    cycles = sorted((p.name for p in out_dir.iterdir() if p.is_dir() and not p.is_symlink() and CYCLE.match(p.name)), key=_order)
     gone = [c for c in cycles[: max(0, len(cycles) - keep)] if c != current]
+    gone += [p.name for p in out_dir.glob(".building-*") if p.is_dir() and time.time() - p.stat().st_mtime > 3600]
     for c in gone:
         shutil.rmtree(out_dir / c)
     return gone
+
+
+def held_datums(region, store: Store) -> dict[str, float | None]:
+    """Each release and main gauge's datum (m) as fetch kept it in the store
+    (fdmr_runner.fetch, #52); None where none is held: no measured slope there."""
+    usgs = UsgsAdapter(store)
+    return {g.site: usgs.held_datum(g.site)[1] for g in region.gauges if g.role in ("release", "main") and g.source == SOURCE}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -895,12 +920,12 @@ def main(argv: list[str] | None = None) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     region = load_region(args.region)
-    usgs = UsgsAdapter(Store(":memory:"))
-    datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main") and g.source == SOURCE}
+    store = Store(args.store)
+    datums = held_datums(region, store)
     cal_path = Path(args.calibration) if args.calibration else None
     calibration = json.loads(cal_path.read_text(encoding="utf-8")) if cal_path and cal_path.exists() else None
     extra = [Path(p) for p in args.with_reach if (Path(p) / "reach.json").exists()]
-    cdir = publish(Path(args.region), Store(args.store), out, args.days, datums=datums, ahead=args.ahead,
+    cdir = publish(Path(args.region), store, out, args.days, datums=datums, ahead=args.ahead,
                    calibration=calibration, extra_reaches=extra,
                    as_of=int(datetime.fromisoformat(args.as_of).replace(tzinfo=timezone.utc).timestamp()) if args.as_of else None)
     size = sum(f.stat().st_size for f in cdir.rglob("*") if f.is_file())

@@ -31,11 +31,13 @@ from fdmr_adapters.noaa_tides import NoaaTidesAdapter
 from fdmr_adapters.noaa_weather import GHCNH, NoaaWeatherAdapter
 from fdmr_adapters.usbr_cvo import SOURCE as USBR
 from fdmr_adapters.usbr_cvo import UsbrCvoAdapter
-from fdmr_adapters.usgs import PARAMETERS, SOURCE, UsgsAdapter
+from fdmr_adapters.usgs import DATUM, PARAMETERS, SOURCE, UsgsAdapter
 from fdmr_store import Store
 
 from . import delta
 from .region import load_region
+
+DATUM_EVERY_S = 30 * 86_400  # a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey)
 
 
 def months(start: float, end: float) -> list[tuple[int, int]]:
@@ -117,6 +119,14 @@ def main(argv: list[str] | None = None) -> int:
             attempt(f"{g.site} {p}", lambda p=p, f=from_t: usgs.fetch_values(g.site, p, f"{iso(f)}/{iso(now)}"))
         if not args.no_measurements:
             attempt(f"{g.site} channel_measurements", lambda: usgs.fetch_channel_measurements(g.site))
+    # Each release and main gauge's datum, for the river's measured slope: kept
+    # in the store and fetched again monthly (it changes only with a resurvey),
+    # so publish never asks USGS itself (#52).
+    for g in [] if args.forecast_only else [g for g in region.gauges if g.source == SOURCE and g.role in ("release", "main")]:
+        cov = store.coverage(SOURCE, g.site, DATUM)
+        if cov and cov[1] >= now - DATUM_EVERY_S:
+            continue
+        attempt(f"{g.site} datum", lambda g=g: usgs.fetch_datum(g.site, int(now)))
     # Tracer stations (CDEC): hourly readings, from where the store's copy ends.
     cdec = CdecAdapter(store)
     for s in [] if args.forecast_only else region.stations:

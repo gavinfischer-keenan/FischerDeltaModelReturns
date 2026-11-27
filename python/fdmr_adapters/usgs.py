@@ -23,6 +23,7 @@ from .http import HttpJsonClient, JsonClient
 
 BASE = "https://api.waterdata.usgs.gov/ogcapi/v0"
 SOURCE = "usgs"
+DATUM = "datum"  # the store series holding a gauge's datum, m (fetch_datum)
 
 # An api.data.gov key raises the USGS rate limit. Optional: read from the
 # environment, or from a file only the model runner's user can read.
@@ -103,6 +104,18 @@ class UsgsAdapter:
         d = self.client.get_json(f"{BASE}/collections/monitoring-locations/items/USGS-{site}?f=json")
         alt = d.get("properties", {}).get("altitude")
         return None if alt in (None, "") else float(alt) * FT
+
+    def fetch_datum(self, site: str, now: int | None = None) -> int:
+        """Keep the gauge's datum (m) in the store as the series `datum`, one
+        value stamped when it was fetched (None where USGS publishes none), so
+        a cycle reads it from the store rather than asking USGS each time (#52)."""
+        t = int(time.time()) if now is None else now
+        return self.store.put_values(SOURCE, site, DATUM, "m", [Value(t, self.datum_m(site))])
+
+    def held_datum(self, site: str) -> tuple[bool, float | None]:
+        """(whether a datum has been fetched, its latest value in m, or None)."""
+        vals = self.store.values(SOURCE, site, DATUM, 0, 2**62)
+        return (True, vals[-1].value) if vals else (False, None)
 
     def available(self, site: str, active_within_days: int = 30) -> set[str]:
         """Standard parameter names this gauge records as continuous values and

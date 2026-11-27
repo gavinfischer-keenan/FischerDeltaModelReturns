@@ -116,3 +116,24 @@ def test_a_gauge_with_a_project_sensor_keeps_its_own():
     store = Store()
     assert UsgsAdapter(store, MainAndProject()).fetch_values("11447650", "water_temperature", "P1D") == 1
     assert [v.value for v in store.values("usgs", "11447650", "water_temperature", 0, 2**62)] == [11.0]
+
+
+class OneReply:
+    def __init__(self, reply):
+        self.reply, self.urls = reply, []
+
+    def get_json(self, url: str):
+        self.urls.append(url)
+        return self.reply
+
+
+def test_a_datum_is_kept_in_the_store_and_read_back_without_asking_usgs():
+    """fetch keeps each gauge's datum; publish reads it from the store (#52)."""
+    store = Store()
+    UsgsAdapter(store, OneReply({"properties": {"altitude": "100"}})).fetch_datum("11370500", now=1_000)
+    asked = OneReply({})
+    assert UsgsAdapter(store, asked).held_datum("11370500") == (True, pytest.approx(100 * FT))
+    assert asked.urls == []
+    UsgsAdapter(store, OneReply({"properties": {"altitude": ""}})).fetch_datum("11447650", now=1_000)
+    assert UsgsAdapter(store, asked).held_datum("11447650") == (True, None)  # USGS publishes none
+    assert UsgsAdapter(store, asked).held_datum("99999999") == (False, None)  # never fetched

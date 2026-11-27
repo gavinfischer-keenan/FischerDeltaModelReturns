@@ -74,8 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     calibration = json.loads(cal.read_text(encoding="utf-8")) if cal.exists() else None
     store = Store(args.store)
     # The same gauge datums as the publisher's own runs (publish.main), for the rivers' surface slopes.
-    usgs = publish.UsgsAdapter(Store(":memory:"))
-    datums = {g.site: usgs.datum_m(g.site) for g in region.gauges if g.role in ("release", "main") and g.source == publish.SOURCE}
+    datums = publish.held_datums(region, store)
     cdir = publish.publish(region_dir, store, out, 14, datums=datums, calibration=calibration, as_of=as_of, trial=trial)
     publish.prune(out, 2)
     index = json.loads((cdir / "index.json").read_text(encoding="utf-8"))
