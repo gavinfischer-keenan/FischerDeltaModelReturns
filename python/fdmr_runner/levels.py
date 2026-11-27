@@ -72,21 +72,31 @@ def level_checks(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> 
 
     lks = lookups(cdir, index)
     out = []
+    t_from = now - WINDOW_DAYS * 86_400
+    # Each station's nearest channel first; then each reach's level read once,
+    # for all its stations' channels together.
+    placed = []
     for st in cfg.get("stations", []):
-        src = st.get("source", "cdec")
         near = None
         for lk, r in lks:
             c, d = lk.channel_near(st["lon"], st["lat"])
             if d <= MODEL_NEAR_KM and (near is None or d < near[3]):
                 near = (lk, r, c, d)
-        if not near:
-            continue
-        lk, r, c, d = near
-        t_from = now - WINDOW_DAYS * 86_400
-        got = ledger.series(cdir, r, r.get("time", index["time"]), "level", [c], t_from)
+        if near:
+            placed.append((st, *near))
+    levels: dict[str, tuple | None] = {}
+    for rid in dict.fromkeys(r["id"] for _, _, r, _, _ in placed):
+        r = next(r for _, _, r, _, _ in placed if r["id"] == rid)
+        cols = sorted({c for _, _, rr, c, _ in placed if rr["id"] == rid})
+        got = ledger.series(cdir, r, r.get("time", index["time"]), "level", cols, t_from)
+        levels[rid] = None if got is None else (got[0], got[1], got[2], {c: j for j, c in enumerate(cols)})
+    for st, lk, r, c, d in placed:
+        src = st.get("source", "cdec")
+        got = levels.get(r["id"])
         if got is None:
             continue
-        t0, step, v = got
+        t0, step, all_v, col = got
+        v = all_v[:, [col[c]]]
         ts = t0 + step * np.arange(len(v))
         keep = (ts >= t_from) & (ts <= now)
         if not keep.any():

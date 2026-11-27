@@ -344,17 +344,32 @@ def satellite_temperature(cfg: dict, cache: Path, lookups: list[NetworkValues], 
     per_reach: dict[str, dict] = {}
     for lk in lookups:
         seen: dict[tuple[int, int], float] = {}
+        # Every line's points at once, each tagged with its line; projected
+        # once per UTM zone, then looked up in each tile in one go.
+        ks = [k for k in range(len(lk.geo["lines"])) if k not in lk.skip]
+        if not ks:
+            continue
+        pts = [np.asarray(lk.geo["lines"][k], dtype=float).reshape(-1, 2) for k in ks]
+        lon = np.concatenate([p[:, 0] for p in pts])
+        lat = np.concatenate([p[:, 1] for p in pts])
+        line_of = np.concatenate([np.full(len(p), i) for i, p in enumerate(pts)])
+        projected: dict[int, tuple[np.ndarray, np.ndarray]] = {}
         for tl in tiles:
-            for k, line in enumerate(lk.geo["lines"]):
-                if k in lk.skip or (tl.t, k) in seen:
+            if tl.zone not in projected:
+                projected[tl.zone] = tuple(np.atleast_1d(v) for v in ecostress.utm(lon, lat, tl.zone))
+            s = tl.pure_utm(*projected[tl.zone])
+            fin = np.isfinite(s)
+            if not fin.any():
+                continue
+            sums = np.bincount(line_of[fin], weights=s[fin], minlength=len(ks))
+            counts = np.bincount(line_of[fin], minlength=len(ks))
+            for i in np.nonzero(counts)[0]:
+                k = ks[i]
+                if (tl.t, k) in seen:
                     continue
                 m = lk.at("temperature", k, tl.t)
-                if m is None:
-                    continue
-                a = np.asarray(line, dtype=float)
-                s = tl.pure(a[:, 0], a[:, 1])
-                if np.isfinite(s).any():
-                    seen[(tl.t, k)] = float(np.nanmean(s)) - m
+                if m is not None:
+                    seen[(tl.t, k)] = float(sums[i] / counts[i]) - m
         if seen:
             per_reach[lk.reach] = {"places": len({k for _, k in seen}), **_summary(list(seen.values()))}
     out = {"source": sc.get("source", "ECOSTRESS"), "passes": len({t.t for t in tiles}),
@@ -464,16 +479,33 @@ def nearest_element(geo: dict, lon: float, lat: float) -> tuple[int, float]:
     """The element of a reach's geometry nearest a point, and how far, km: the
     nearest line for a 1D reach (lines per element), the nearest node for a 2D
     mesh (lon/lat per node)."""
-    def xy(lo, la):
-        return np.array(isohaline._xy(lo, la, lat))
-    p = xy(lon, lat)
     if "lines" in geo:
-        best = (math.inf, -1)
-        for k, line in enumerate(geo["lines"]):
-            pts = [xy(lo, la) for lo, la in line]
-            d = min(_segment_km(p, pts[i], pts[i + 1]) for i in range(len(pts) - 1)) if len(pts) > 1 else float(np.hypot(*(p - pts[0])))
-            best = min(best, (d, k))
-        return best[1], best[0]
+        # Every line's segments at once, on the same local plane as _segment_km
+        # (km about the point's latitude): the nearest segment's line.
+        flat = geo.get("_segments")
+        if flat is None:
+            a, b, line_of = [], [], []
+            for k, line in enumerate(geo["lines"]):
+                pts = np.asarray(line, dtype=float).reshape(-1, 2)
+                if len(pts) > 1:
+                    a.append(pts[:-1])
+                    b.append(pts[1:])
+                    line_of.append(np.full(len(pts) - 1, k))
+                elif len(pts) == 1:  # a line of one point: its distance is to the point
+                    a.append(pts)
+                    b.append(pts)
+                    line_of.append(np.array([k]))
+            flat = geo["_segments"] = (np.concatenate(a), np.concatenate(b), np.concatenate(line_of))
+        a, b, line_of = flat
+        sx, sy = isohaline.KM_PER_DEG_LAT * math.cos(math.radians(lat)), isohaline.KM_PER_DEG_LAT
+        p = np.array([lon * sx, lat * sy])
+        a_km, b_km = a * (sx, sy), b * (sx, sy)
+        d = b_km - a_km
+        dd = (d * d).sum(axis=1)
+        f = np.where(dd > 0, np.clip(((p - a_km) * d).sum(axis=1) / np.where(dd > 0, dd, 1.0), 0.0, 1.0), 0.0)
+        dist = np.hypot(*(p - (a_km + f[:, None] * d)).T)
+        i = int(np.argmin(dist))
+        return int(line_of[i]), float(dist[i])
     lo, la = np.asarray(geo["lon"]), np.asarray(geo["lat"])
     c = math.cos(math.radians(lat))
     d = np.hypot((lo - lon) * c, la - lat) * isohaline.KM_PER_DEG_LAT

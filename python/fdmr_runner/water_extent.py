@@ -21,6 +21,8 @@ some wet fields and smooth ground for water.
 
 from __future__ import annotations
 
+import json
+
 from pathlib import Path
 
 import numpy as np
@@ -148,16 +150,41 @@ def summary(cfg: dict, cache: Path, now: int) -> dict | None:
     if not we or not cache.exists():
         return None
     recent_from = now - we.get("days", 60) * 86_400
+    # The summary changes only when a tile comes or goes, or one moves from
+    # the recent window into the baseline: kept beside the tiles until then (#35).
+    import hashlib
+
+    files = sorted(cache.glob("*.npz"))
+    key = hashlib.sha256(json.dumps([we, [(p.name, p.stat().st_size, int(p.stat().st_mtime)) for p in files],
+                                     [_tile_t(p) >= recent_from for p in files]], sort_keys=True).encode()).hexdigest()
+    kept = cache / "summary.json"
+    if kept.exists():
+        try:
+            k = json.loads(kept.read_text(encoding="utf-8"))
+            if k.get("key") == key:
+                return k["summary"]
+        except ValueError:
+            pass
     tiles, baseline = [], []
-    for p in sorted(cache.glob("*.npz")):
+    for p in files:
         z = np.load(p)
         tl = {"t": int(z["t"]), "water": z["water"], "row0": int(z["row0"]), "col0": int(z["col0"]),
               "x0": float(z["x0"]), "y0": float(z["y0"]), "dx": float(z["dx"]), "zone": int(z["zone"])}
         (tiles if tl["t"] >= recent_from else baseline).append(tl)
     areas = [r for r in (area_record(tiles, a, we, baseline) for a in we.get("areas", [])) if r]
-    return {"source": "NASA JPL OPERA DSWx-S1 (Sentinel-1 radar, 30 m), PO.DAAC", "new_below": we.get("new_below", 0.2),
-            "min_prior": we.get("min_prior", 3), "min_patch_km2": we.get("min_patch_km2", 0.5),
-            "baseline_years": we.get("baseline_years", 2), "baseline_window_days": we.get("baseline_window_days", 30), "areas": areas} if areas else None
+    out = {"source": "NASA JPL OPERA DSWx-S1 (Sentinel-1 radar, 30 m), PO.DAAC", "new_below": we.get("new_below", 0.2),
+           "min_prior": we.get("min_prior", 3), "min_patch_km2": we.get("min_patch_km2", 0.5),
+           "baseline_years": we.get("baseline_years", 2), "baseline_window_days": we.get("baseline_window_days", 30), "areas": areas} if areas else None
+    tmp = kept.with_name(kept.name + ".tmp")
+    tmp.write_text(json.dumps({"key": key, "summary": out}), encoding="utf-8")
+    tmp.replace(kept)
+    return out
+
+
+def _tile_t(p: Path) -> int:
+    """A kept tile's pass time, from its file."""
+    with np.load(p) as z:
+        return int(z["t"])
 
 
 def windows(cfg: dict, now: int) -> list[tuple[int, int]]:

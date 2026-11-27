@@ -223,19 +223,42 @@ class Tile:
         self.x0, self.y0, self.dx = float(z["x0"]), float(z["y0"]), float(z["dx"])
         self.grid = np.full(tuple(z["shape"]), np.nan, dtype=np.float32)
         self.grid[z["rows"], z["cols"]] = z["temperature"]
+        self._pure: np.ndarray | None = None
+
+    @property
+    def pure_mask(self) -> np.ndarray:
+        """Pixels whose 3 x 3 pixels are all kept water (never on the tile's
+        edge), worked out once per tile."""
+        if self._pure is None:
+            ok = np.isfinite(self.grid)
+            m = np.zeros_like(ok)
+            rows, cols = ok.shape
+            inner = np.ones((rows - 2, cols - 2), dtype=bool) if rows > 2 and cols > 2 else np.zeros((0, 0), dtype=bool)
+            for dr in (0, 1, 2):
+                for dc in (0, 1, 2):
+                    inner &= ok[dr:dr + rows - 2, dc:dc + cols - 2]
+            if inner.size:
+                m[1:-1, 1:-1] = inner
+            self._pure = m
+        return self._pure
 
     def pure(self, lon, lat) -> np.ndarray:
         """Each point's temperature (degC), NaN where its 3 x 3 pixels are not
         all kept water."""
         e, n = utm(lon, lat, self.zone)
-        c = np.floor((np.atleast_1d(e) - self.x0) / self.dx).astype(int)
-        r = np.floor((self.y0 - np.atleast_1d(n)) / self.dx).astype(int)
+        return self.pure_utm(np.atleast_1d(e), np.atleast_1d(n))
+
+    def pure_utm(self, e: np.ndarray, n: np.ndarray) -> np.ndarray:
+        """As `pure`, for points already in this tile's UTM zone (m)."""
+        c = np.floor((e - self.x0) / self.dx).astype(int)
+        r = np.floor((self.y0 - n) / self.dx).astype(int)
         out = np.full(c.shape, np.nan)
         inside = (r >= 1) & (c >= 1) & (r < self.grid.shape[0] - 1) & (c < self.grid.shape[1] - 1)
-        for i in np.nonzero(inside)[0]:
-            w = self.grid[r[i] - 1:r[i] + 2, c[i] - 1:c[i] + 2]
-            if np.isfinite(w).all():
-                out[i] = float(w[1, 1])
+        ri, ci = r[inside], c[inside]
+        ok = self.pure_mask[ri, ci]
+        vals = np.full(ri.shape, np.nan)
+        vals[ok] = self.grid[ri[ok], ci[ok]]
+        out[inside] = vals
         return out
 
     def near(self, lon: float, lat: float, reach: int = 2) -> float | None:

@@ -304,7 +304,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/soil.py:33](../python/fdmr_runner/soil.py#L33) | `POINT_SPACING_M` | `2_000.0` | centreline points kept for a corridor: far closer than its 9 km cells |
 | [python/fdmr_runner/trial.py:39](../python/fdmr_runner/trial.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/water_extent.py:28](../python/fdmr_runner/water_extent.py#L28) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 |
+| [python/fdmr_runner/water_extent.py:30](../python/fdmr_runner/water_extent.py#L30) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 |
 | [python/fdmr_plugins/dsm2/dss.py:15](../python/fdmr_plugins/dsm2/dss.py#L15) | `PST` | `8 * 3600` | s: DSM2's clock is Pacific Standard Time, UTC-8 all year |
 | [python/fdmr_plugins/dsm2/dss.py:16](../python/fdmr_plugins/dsm2/dss.py#L16) | `MISSING` | `-901.0` | HEC-DSS's missing-value flag |
 | [python/fdmr_plugins/dsm2/fields.py:36](../python/fdmr_plugins/dsm2/fields.py#L36) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
