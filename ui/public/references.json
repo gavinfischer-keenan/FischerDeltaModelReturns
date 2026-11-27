@@ -525,7 +525,7 @@
    "used": [
     {
      "file": "crates/fdmr-compute/src/network.rs",
-     "line": 601,
+     "line": 614,
      "text": "(Chapra 1997, ref:chapra1997); that share's parcels settle and are"
     },
     {
@@ -671,6 +671,11 @@
      "text": "ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,"
     },
     {
+     "file": "crates/fdmr-math/src/parcel.rs",
+     "line": 28,
+     "text": "well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,"
+    },
+    {
      "file": "python/fdmr_plugins/registry.py",
      "line": 146,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
@@ -778,17 +783,17 @@
     },
     {
      "file": "python/fdmr_runner/publish.py",
-     "line": 137,
+     "line": 144,
      "text": "ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)"
     },
     {
      "file": "python/fdmr_runner/publish.py",
-     "line": 142,
+     "line": 149,
      "text": "(Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same"
     },
     {
      "file": "python/fdmr_runner/publish.py",
-     "line": 209,
+     "line": 216,
      "text": "scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's"
     }
    ]
@@ -2309,6 +2314,11 @@
      "file": "crates/fdmr-compute/src/mesh.rs",
      "line": 19,
      "text": "ref:visser1997). K is one value everywhere, or one per node, linear within"
+    },
+    {
+     "file": "crates/fdmr-math/src/parcel.rs",
+     "line": 29,
+     "text": "ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is"
     },
     {
      "file": "python/fdmr_plugins/registry.py",

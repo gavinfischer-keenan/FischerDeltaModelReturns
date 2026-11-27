@@ -281,7 +281,7 @@ Checked: Open Library ISBN records of both printings, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/network.rs:601`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
+- `crates/fdmr-compute/src/network.rs:614`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
 - `python/fdmr_plugins/registry.py:73`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/registry.py:123`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
@@ -344,6 +344,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:18`: ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
+- `crates/fdmr-math/src/parcel.rs:28`: well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,
 - `python/fdmr_plugins/registry.py:146`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## dogliotti2015
@@ -388,9 +389,9 @@ Used in:
 - `docs/maths.md:23`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
 - `python/fdmr_plugins/registry.py:82`: "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
 - `python/fdmr_plugins/registry.py:87`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
-- `python/fdmr_runner/publish.py:137`: ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
-- `python/fdmr_runner/publish.py:142`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
-- `python/fdmr_runner/publish.py:209`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
+- `python/fdmr_runner/publish.py:144`: ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
+- `python/fdmr_runner/publish.py:149`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
+- `python/fdmr_runner/publish.py:216`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
 
 ## fischer1979
 
@@ -1184,6 +1185,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:19`: ref:visser1997). K is one value everywhere, or one per node, linear within
+- `crates/fdmr-math/src/parcel.rs:29`: ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is
 - `python/fdmr_plugins/registry.py:146`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## visser2000

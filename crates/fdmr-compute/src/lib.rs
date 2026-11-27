@@ -324,6 +324,42 @@ impl Engine {
         self.value(|d| &d.dispersion, self.element(x), t)
     }
 
+    /// K at x and t, m²/s, and the well-mixed drift (1/A)·∂(A·K)/∂x there,
+    /// m/s (`fdmr_math::parcel::well_mixed_drift`, #51). Each element's A
+    /// (its volume over its length) and A·K are taken at its midpoint and
+    /// linear between midpoints, so both are continuous along the reach;
+    /// before the first midpoint and past the last they are held.
+    fn spreading(&self, x: f64, t: f64) -> (f64, f64) {
+        let n = self.elements();
+        let mid = |e: usize| f64::midpoint(self.starts[e], self.ends[e]);
+        let at = |e: usize| {
+            let a =
+                self.value(|d| &d.volume, e, t) / (self.ends[e] - self.starts[e]).max(f64::EPSILON);
+            (a, a * self.value(|d| &d.dispersion, e, t))
+        };
+        let e = self.element(x);
+        let (e0, e1) = if x < mid(e) {
+            (e.saturating_sub(1), e)
+        } else {
+            (e, (e + 1).min(n - 1))
+        };
+        let (a0, ak0) = at(e0);
+        if e0 == e1 || x <= mid(e0) || x >= mid(e1) {
+            let (a, ak) = if e0 == e1 || x <= mid(e0) {
+                (a0, ak0)
+            } else {
+                at(e1)
+            };
+            return (if a > 0.0 { ak / a } else { 0.0 }, 0.0);
+        }
+        let (a1, ak1) = at(e1);
+        let span = mid(e1) - mid(e0);
+        let f = (x - mid(e0)) / span;
+        let (a, ak) = (a0 + f * (a1 - a0), ak0 + f * (ak1 - ak0));
+        let k = if a > 0.0 { ak / a } else { 0.0 };
+        (k, parcel::well_mixed_drift(a, (ak1 - ak0) / span))
+    }
+
     /// The lateral mixing ε at x and t, m²/s, where every day holds it.
     fn lateral_mixing(&self, x: f64, t: f64) -> Option<f64> {
         if self.days.is_empty() || self.days.iter().any(|d| d.lateral.is_none()) {
@@ -425,8 +461,10 @@ impl Engine {
                     continue;
                 }
                 let u = self.velocity(p.x, now);
-                let mut x = match (self.lateral_mixing(p.x, now), &self.widths) {
-                    (Some(eps), Some(widths)) => {
+                let mut x = if let (Some(eps), Some(widths)) =
+                    (self.lateral_mixing(p.x, now), &self.widths)
+                {
+                    {
                         // Downstream at the speed across the channel where it is,
                         // then across by the lateral mixing, reflected at the banks.
                         let w = widths[self.element(p.x)];
@@ -438,13 +476,13 @@ impl Engine {
                         }
                         x
                     }
-                    _ => parcel::step_along_channel(
-                        p.x,
-                        u,
-                        self.dispersion(p.x, now),
-                        dt,
-                        &mut self.rng,
-                    ),
+                } else {
+                    {
+                        // Fischer's K alone: the random walk, with the drift that keeps
+                        // a well-mixed tracer mixed where K and the cross-section change (#51).
+                        let (k, drift) = self.spreading(p.x, now);
+                        parcel::step_along_channel(p.x, u + drift, k, dt, &mut self.rng)
+                    }
                 };
                 if x < 0.0 {
                     x = -x; // the top of the reach reflects
@@ -674,6 +712,85 @@ mod tests {
         assert!(
             (m.in_water - 1000.0).abs() < 1e-6,
             "stored parcels are still in the water"
+        );
+    }
+
+    /// A reach whose K and cross-section both step up halfway: K 10 then 100
+    /// m²/s, area 100 then 400 m², no flow.
+    fn stepped_day(n: u32, t0: i64) -> Vec<u8> {
+        let steps = 96;
+        let per = |lo: f32, hi: f32| -> Vec<f32> {
+            (0..steps)
+                .flat_map(|_| (0..n).map(move |e| if e < n / 2 { lo } else { hi }))
+                .collect()
+        };
+        let file = FieldFile {
+            reach: "river".into(),
+            dims: 1,
+            elements: n,
+            layers: 1,
+            steps,
+            t0,
+            step_s: STEP,
+            fields: vec![
+                Field {
+                    name: "velocity".into(),
+                    unit: "m/s".into(),
+                    encoding: Encoding::F32,
+                    values: vec![0.0; (n * steps) as usize],
+                },
+                Field {
+                    name: "volume".into(),
+                    unit: "m3".into(),
+                    encoding: Encoding::F32,
+                    values: per(100_000.0, 400_000.0),
+                },
+                Field {
+                    name: "dispersion".into(),
+                    unit: "m2/s".into(),
+                    encoding: Encoding::F32,
+                    values: per(10.0, 100.0),
+                },
+            ],
+        };
+        let mut b = Vec::new();
+        file.write_to(&mut b).unwrap();
+        b
+    }
+
+    #[test]
+    fn a_well_mixed_tracer_stays_mixed_where_k_and_the_section_step() {
+        // Parcels start evenly by volume. A plain random walk would pile them
+        // into the low-K, narrow half (in the long run as 1/K); with the
+        // well-mixed drift each half keeps as many per cubic metre (#51).
+        let n = 40u32;
+        let els: Vec<(f64, f64)> = (0..n)
+            .map(|i| (f64::from(i) * 1000.0, f64::from(i + 1) * 1000.0))
+            .collect();
+        let mut e = Engine::new(&els, 0.0, 11);
+        e.load_day(&stepped_day(n, 0)).unwrap();
+        e.load_day(&stepped_day(n, 86_400)).unwrap();
+        for i in 0..n {
+            let wide = i >= n / 2;
+            e.add_release(Release {
+                x: f64::from(i) * 1000.0 + 500.0,
+                start: 0.0,
+                duration: 0.0,
+                mass: if wide { 4.0 } else { 1.0 },
+                half_life: None,
+                parcels: if wide { 2400 } else { 600 },
+            });
+        }
+        e.step_to(86_400.0);
+        let xs = e.parcel_snapshot().0;
+        let count = |a: f64, b: f64| xs.iter().filter(|&&x| (a..b).contains(&x)).count() as f64;
+        // Per cubic metre, 2 km either side of where the section changes
+        // (between the two midpoints next to the step, 19.5 to 20.5 km).
+        let narrow = count(17_500.0, 19_500.0) / (2_000.0 * 100.0);
+        let wide = count(20_500.0, 22_500.0) / (2_000.0 * 400.0);
+        assert!(
+            (narrow / wide - 1.0).abs() < 0.1,
+            "per m3: narrow {narrow}, wide {wide}"
         );
     }
 

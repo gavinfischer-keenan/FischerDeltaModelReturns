@@ -17,6 +17,28 @@ pub fn step_along_channel(x: f64, velocity: f64, k: f64, dt: f64, rng: &mut Rng)
     x + velocity * dt + (2.0 * k * dt).sqrt() * rng.normal()
 }
 
+/// The drift a random walk needs where K or the channel's cross-section A
+/// changes along it: (1/A)·∂(A·K)/∂x, m/s, added to the flow's velocity.
+///
+/// The cross-sectionally averaged advection–dispersion equation is
+/// ∂(A c)/∂t + ∂(Q c)/∂x = ∂/∂x (A K ∂c/∂x). Parcels are the mass A c per
+/// metre, and the random walk that solves it is
+/// dX = (U + (1/A) ∂(A K)/∂x) dt + √(2K) dW. Without the drift, parcels
+/// collect where K or A is small and a well-mixed tracer un-mixes: the
+/// well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,
+/// ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is
+/// in two (crates/fdmr-compute mesh.rs).
+///
+/// `a`, `ak`: A and A·K at x; `dak_dx`: the slope of A·K there.
+#[must_use]
+pub fn well_mixed_drift(a: f64, dak_dx: f64) -> f64 {
+    if a > 0.0 {
+        dak_dx / a
+    } else {
+        0.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

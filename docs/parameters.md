@@ -287,6 +287,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/levels.py:35](../python/fdmr_runner/levels.py#L35) | `MIN_FRACTION` | `0.6` | of the window's steps with both values |
 | [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
+| [python/fdmr_runner/nightly.py:41](../python/fdmr_runner/nightly.py#L41) | `TAIL_LINES` | `60` | each step's last lines of output kept in the log: enough for every check's result (FDMR's choice) |
 | [python/fdmr_runner/ocean.py:26](../python/fdmr_runner/ocean.py#L26) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/ocean.py:27](../python/fdmr_runner/ocean.py#L27) | `ENSO_THRESHOLD` | `0.5` | degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index |
 | [python/fdmr_runner/overlays.py:36](../python/fdmr_runner/overlays.py#L36) | `LATEST_S` | `26 * 3600` | a reading older than this is not "latest" |
@@ -294,10 +295,11 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/overlays.py:60](../python/fdmr_runner/overlays.py#L60) | `MODEL_NEAR_KM` | `1.0` | a station further than this from every channel gets no model value |
 | [python/fdmr_runner/overlays.py:259](../python/fdmr_runner/overlays.py#L259) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
 | [python/fdmr_runner/overlays.py:260](../python/fdmr_runner/overlays.py#L260) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
-| [python/fdmr_runner/publish.py:39](../python/fdmr_runner/publish.py#L39) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
-| [python/fdmr_runner/publish.py:40](../python/fdmr_runner/publish.py#L40) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/publish.py:61](../python/fdmr_runner/publish.py#L61) | `DEFAULT_SLOPE` | `3e-4` | a typical lowland river, used only where no gauge pair gives one |
-| [python/fdmr_runner/publish.py:137](../python/fdmr_runner/publish.py#L137) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
+| [python/fdmr_runner/publish.py:40](../python/fdmr_runner/publish.py#L40) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/publish.py:41](../python/fdmr_runner/publish.py#L41) | `STALE_REACH_S` | `13 * 3600` | a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice) |
+| [python/fdmr_runner/publish.py:42](../python/fdmr_runner/publish.py#L42) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/publish.py:68](../python/fdmr_runner/publish.py#L68) | `DEFAULT_SLOPE` | `3e-4` | a typical lowland river, used only where no gauge pair gives one |
+| [python/fdmr_runner/publish.py:144](../python/fdmr_runner/publish.py#L144) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
 | [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/soil.py:33](../python/fdmr_runner/soil.py#L33) | `POINT_SPACING_M` | `2_000.0` | centreline points kept for a corridor: far closer than its 9 km cells |
 | [python/fdmr_runner/trial.py:39](../python/fdmr_runner/trial.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
