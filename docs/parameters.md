@@ -294,6 +294,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/fvcom/correct.py:33](../python/fdmr_plugins/fvcom/correct.py#L33) | `MIN_H` | `0.5` | m: shoals that dry still pass a little water |
 | [python/fdmr_plugins/fvcom/extend.py:47](../python/fdmr_plugins/fvcom/extend.py#L47) | `EPOCH` | `946_684_800` | 2000-01-01T00:00Z: phases are reckoned from here |
 | [python/fdmr_plugins/fvcom/extend.py:48](../python/fdmr_plugins/fvcom/extend.py#L48) | `Q_SCALE` | `1000.0` | outflow in thousands of m3/s, so the columns are of a size |
+| [python/fdmr_plugins/fvcom/mesh.py:257](../python/fdmr_plugins/fvcom/mesh.py#L257) | `OKUBO` | `0.0103` | Okubo's K = 0.0103 L^1.15, cm2/s with L in cm (Okubo 1971, [okubo1971](references.md#okubo1971)) |
+| [python/fdmr_plugins/fvcom/mesh.py:258](../python/fdmr_plugins/fvcom/mesh.py#L258) | `ELDER` | `5.93` | Elder's K = 5.93 H u* (Elder 1959, [elder1959](references.md#elder1959); Fischer et al. 1979, [fischer1979](references.md#fischer1979)) |
+| [python/fdmr_plugins/fvcom/mesh.py:259](../python/fdmr_plugins/fvcom/mesh.py#L259) | `DRAG` | `0.0025` | bed drag coefficient Cd, u* = sqrt(Cd) \|u\| (Fischer et al. 1979, [fischer1979](references.md#fischer1979)) |
 | [python/fdmr_plugins/river_routing/calibration.py:30](../python/fdmr_plugins/river_routing/calibration.py#L30) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/river_routing/calibration.py:32](../python/fdmr_plugins/river_routing/calibration.py#L32) | `MAX_SPREAD` | `0.4` | the middle half of the events must lie within this fraction of their median |
 | [python/fdmr_plugins/river_routing/centreline.py:15](../python/fdmr_plugins/river_routing/centreline.py#L15) | `EARTH_RADIUS_M` | `6_371_008.8` | m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, [moritz2000grs80](references.md#moritz2000grs80)) |

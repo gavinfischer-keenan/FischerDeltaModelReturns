@@ -762,8 +762,9 @@ def publish(cfg: dict, region_dir: Path, coarse: mesh.Coarse, edges: dict, hours
     if pub.exists():
         shutil.rmtree(pub)  # never rewrite a published file in place
     (pub / "geometry").mkdir(parents=True)
-    (pub / "geometry" / f"{reach}.json").write_text(json.dumps(mesh.geometry(coarse, reach, edges), separators=(",", ":"), allow_nan=False), encoding="utf-8")
     data = {t: (p if isinstance(p, dict) else dict(np.load(p))) for t, p in sorted(hours.items())}
+    k = mesh.diffusivity(coarse, data)  # each node's own mixing (#10), from the hours published
+    (pub / "geometry" / f"{reach}.json").write_text(json.dumps(mesh.geometry(coarse, reach, edges, k), separators=(",", ":"), allow_nan=False), encoding="utf-8")
     start, end = min(data), max(data) + HOUR
     days = fields.write_days(data, reach, pub / reach, start, end)
     rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {})

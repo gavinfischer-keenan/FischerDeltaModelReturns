@@ -156,6 +156,7 @@ A 2D reach is a triangular mesh, such as the Bay's (from NOAA's forecast, coarse
 
 - `lon`, `lat`: each node, for drawing. `x`, `y` (m): the same nodes in a planar projection (the source model's own), for moving parcels.
 - `depth_m`: still-water depth at each node, positive down, on the datum of the `level` field.
+- `diffusivity_m2s` (optional): each node's horizontal diffusivity, m²/s, for a reader's random walk: Okubo's eddies at the node's own patch size plus Elder's shear at its depth and tide-averaged current (`fdmr_plugins.fvcom.mesh.diffusivity`). A reader without it uses one value everywhere.
 - `triangles`: node triples, counter-clockwise in `x`, `y`.
 - `edges`: boundary edges that are not land, as node pairs: `open` where water leaves to the open sea, and one list per handoff, named by the reach it hands to. Every other boundary edge is land.
 

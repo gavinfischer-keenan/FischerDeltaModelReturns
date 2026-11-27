@@ -280,7 +280,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/mesh.rs:17`: Shelf Science 37:99-110, ref:dimou1993; Visser 1997, Marine Ecology Progress
+- `crates/fdmr-compute/src/mesh.rs:18`: ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
 - `python/fdmr_plugins/registry.py:123`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## elder1959
@@ -291,7 +291,8 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `ui/src/compute/worker.ts:136`: Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal
+- `python/fdmr_plugins/fvcom/mesh.py:258`: ELDER = 5.93  # Elder's K = 5.93 H u* (Elder 1959, ref:elder1959; Fischer et al. 1979, ref:fischer1979)
+- `ui/src/compute/worker.ts:138`: Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal
 
 ## fischer1966
 
@@ -318,9 +319,11 @@ Checked: Crossref record of the DOI (title, 1979); Open Library ISBN record, 26 
 Used in:
 
 - `crates/fdmr-math/src/dispersion.rs:4`: Coastal Waters* (Academic Press, 1979; ref:fischer1979), chapter 5; Fischer,
+- `python/fdmr_plugins/fvcom/mesh.py:258`: ELDER = 5.93  # Elder's K = 5.93 H u* (Elder 1959, ref:elder1959; Fischer et al. 1979, ref:fischer1979)
+- `python/fdmr_plugins/fvcom/mesh.py:259`: DRAG = 0.0025  # bed drag coefficient Cd, u* = sqrt(Cd) |u| (Fischer et al. 1979, ref:fischer1979)
 - `python/fdmr_plugins/registry.py:73`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
 - `python/fdmr_plugins/registry.py:122`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
-- `ui/src/compute/worker.ts:137`: Waters, ref:fischer1979).
+- `ui/src/compute/worker.ts:139`: Waters, ref:fischer1979).
 
 ## gensen2022
 
@@ -643,7 +646,8 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `ui/src/compute/worker.ts:132`: K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);
+- `python/fdmr_plugins/fvcom/mesh.py:257`: OKUBO = 0.0103  # Okubo's K = 0.0103 L^1.15, cm2/s with L in cm (Okubo 1971, ref:okubo1971)
+- `ui/src/compute/worker.ts:134`: K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);
 
 ## openet
 
@@ -983,7 +987,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/mesh.rs:18`: Series 158:275-281, ref:visser1997). The flow part is taken with a midpoint (second-order
+- `crates/fdmr-compute/src/mesh.rs:19`: ref:visser1997). K is one value everywhere, or one per node, linear within
 - `python/fdmr_plugins/registry.py:123`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## visser2000

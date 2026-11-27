@@ -77,6 +77,8 @@ interface MeshGeometry {
   depth_m: number[];
   triangles: [number, number, number][];
   edges: Record<string, [number, number][]>;
+  /** Each node's horizontal diffusivity, m²/s, where published (#10). */
+  diffusivity_m2s?: number[];
 }
 interface MeshRelease {
   triangle: number;
@@ -137,6 +139,9 @@ const NETWORK_DISPERSION = 50;
 //   Waters, ref:fischer1979).
 // The sum's median by water area is 1.1 m²/s (mean 1.35). Elder's part acts
 // along the flow, so as an even spreading this errs toward too much across it.
+// Used only where a mesh publishes no diffusivity of its own: the Bay's
+// publisher now works out the same two parts at every node
+// (fdmr_plugins.fvcom.mesh.diffusivity, geometry `diffusivity_m2s`; #10).
 const MESH_DIFFUSIVITY = 1.1;
 // Reaches pass parcels to each other this often, s of model time. A parcel
 // handed back waits at most this long at the join.
@@ -232,6 +237,8 @@ interface Mesh {
   x: Float64Array;
   y: Float64Array;
   depth: Float64Array;
+  /** Each node's horizontal diffusivity, m²/s, or null for MESH_DIFFUSIVITY everywhere. */
+  diffusivity: Float64Array | null;
   triangles: Uint32Array;
   open: Uint32Array;
   handoff: Uint32Array;
@@ -429,6 +436,7 @@ async function loadMesh(cycle: string, id: string, meshDays: string[]): Promise<
     x: Float64Array.from(g.x),
     y: Float64Array.from(g.y),
     depth: Float64Array.from(g.depth_m),
+    diffusivity: g.diffusivity_m2s?.length === g.x.length ? Float64Array.from(g.diffusivity_m2s) : null,
     triangles: Uint32Array.from(g.triangles.flat()),
     open: Uint32Array.from((g.edges.open ?? []).flat()),
     handoff: Uint32Array.from(handoffs.flatMap(([, es]) => es.flat())),
@@ -555,6 +563,7 @@ function build(t: number): void {
   }
   for (const m of meshes) {
     const me = new MeshEngine(m.x, m.y, m.depth, m.triangles, m.open, m.handoff, m.handoffId, first, 2028, MESH_DIFFUSIVITY);
+    if (m.diffusivity) me.set_node_diffusivity(m.diffusivity);
     for (const b of m.days) me.load_day(b);
     for (const r of m.releases) me.add_release(r.triangle, r.w1, r.w2, r.start, r.duration, r.mass, hl(r.halfLife), r.parcels);
     for (const b of m.quality ?? []) me.load_quality(b);

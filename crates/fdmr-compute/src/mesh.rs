@@ -7,15 +7,17 @@
 //! interpolation); between published steps, linear in time.
 //!
 //! A parcel moves by the random-walk form of the depth-averaged
-//! advection-diffusion equation for a constant horizontal diffusivity K:
+//! advection-diffusion equation for a horizontal diffusivity K:
 //!
-//! dX = (u + K ∇H / H) dt + √(2K) dW
+//! dX = (u + ∇K + K ∇H / H) dt + √(2K) dW
 //!
-//! where H is the total water depth. The K ∇H / H term is what keeps parcels
-//! from collecting in shallow water, where a plain random walk would leave
-//! them (the well-mixed condition: Dimou and Adams 1993, Estuarine, Coastal and
-//! Shelf Science 37:99-110, ref:dimou1993; Visser 1997, Marine Ecology Progress
-//! Series 158:275-281, ref:visser1997). The flow part is taken with a midpoint (second-order
+//! where H is the total water depth. The ∇K + K ∇H / H term, ∇(K H) / H, is
+//! what keeps parcels from collecting in shallow water or where K is low,
+//! where a plain random walk would leave them (the well-mixed condition:
+//! Dimou and Adams 1993, Estuarine, Coastal and Shelf Science 37:99-110,
+//! ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
+//! ref:visser1997). K is one value everywhere, or one per node, linear within
+//! each triangle (`set_node_diffusivity`). The flow part is taken with a midpoint (second-order
 //! Runge-Kutta) step.
 //!
 //! A move is followed in a straight line through the triangles it crosses.
@@ -139,6 +141,8 @@ pub struct MeshTracer {
     /// Water-quality fields at the nodes (`<day>.quality.fdf`), loaded to be shown.
     quality: Series,
     diffusivity: f64,
+    /// K at each node, m²/s, where it varies over the mesh (`set_node_diffusivity`).
+    node_k: Option<Vec<f64>>,
     time: f64,
     rng: Rng,
     parcels: Vec<Parcel>,
@@ -214,6 +218,7 @@ impl MeshTracer {
             net_on: false,
             quality: Series::default(),
             diffusivity,
+            node_k: None,
             time: start_time,
             rng: Rng::new(seed),
             parcels: Vec::new(),
@@ -347,6 +352,44 @@ impl MeshTracer {
     /// published forecast nothing moves, rather than moving on a frozen tide.
     fn conditions(&self, t: f64) -> Option<Now> {
         self.conditions_in(t, &self.fields)
+    }
+
+    /// The horizontal diffusivity K at each node, m²/s, where it varies over
+    /// the mesh (Okubo's eddies at each node's own scale plus Elder's shear at
+    /// its depth and current), in place of the one value given to `new`.
+    ///
+    /// # Panics
+    /// If `k` does not have one value per node.
+    pub fn set_node_diffusivity(&mut self, k: Vec<f64>) {
+        assert_eq!(k.len(), self.topo.x.len(), "one diffusivity per node");
+        self.node_k = Some(k);
+    }
+
+    /// How many nodes the mesh has.
+    #[must_use]
+    pub fn node_count(&self) -> usize {
+        self.topo.x.len()
+    }
+
+    /// K and its gradient (∂K/∂x, ∂K/∂y) at a point of triangle `t`: the node
+    /// values, linear within the triangle; or the one value everywhere.
+    fn diffusivity_at(&self, t: usize, x: f64, y: f64) -> (f64, f64, f64) {
+        let Some(k) = &self.node_k else {
+            return (self.diffusivity, 0.0, 0.0);
+        };
+        let l = self.bary(t, x, y);
+        let n = self.topo.tri[t];
+        let (xs, ys) = (&self.topo.x, &self.topo.y);
+        let kx = (k[n[0]] * (ys[n[1]] - ys[n[2]])
+            + k[n[1]] * (ys[n[2]] - ys[n[0]])
+            + k[n[2]] * (ys[n[0]] - ys[n[1]]))
+            / self.area2[t];
+        let ky = (k[n[0]] * (xs[n[2]] - xs[n[1]])
+            + k[n[1]] * (xs[n[0]] - xs[n[2]])
+            + k[n[2]] * (xs[n[1]] - xs[n[0]]))
+            / self.area2[t];
+        let here = (l[0] * k[n[0]] + l[1] * k[n[1]] + l[2] * k[n[2]]).max(0.0);
+        (here, kx, ky)
     }
 
     /// Show the flow as net flow (`true`: the flow particles move on the
@@ -547,10 +590,15 @@ impl MeshTracer {
             MeshPlace::Gone(_) => (s1.u, s1.v),
         };
         let (mut dx, mut dy) = (u * dt, v * dt);
+        let (k, kx, ky) = if self.node_k.is_some() {
+            self.diffusivity_at(t, x, y)
+        } else {
+            (k, 0.0, 0.0)
+        };
         if k > 0.0 {
             let sd = (2.0 * k * dt).sqrt();
-            dx += k * s1.hx / s1.h * dt + sd * self.rng.normal();
-            dy += k * s1.hy / s1.h * dt + sd * self.rng.normal();
+            dx += (kx + k * s1.hx / s1.h) * dt + sd * self.rng.normal();
+            dy += (ky + k * s1.hy / s1.h) * dt + sd * self.rng.normal();
         }
         self.walk(t, x, y, dx, dy, time)
     }
@@ -1313,6 +1361,50 @@ mod tests {
             (deep_share(&t) - expected).abs() < 0.02,
             "deep share {}",
             deep_share(&t)
+        );
+    }
+
+    #[test]
+    fn an_even_start_stays_even_where_the_diffusivity_varies() {
+        // Still water of even depth, K from 0.5 m²/s on one side to 8 on the
+        // other: without the ∇K term parcels would collect where K is low. With
+        // it, an even start stays even: the share in the low-K half stays a half.
+        let topo = channel(5.0);
+        let n = topo.x.len();
+        let k: Vec<f64> = topo.y.iter().map(|y| 0.5 + 7.5 * y / 200.0).collect();
+        let mut t = MeshTracer::new(topo, 0.0, 5, 1.0);
+        t.set_node_diffusivity(k);
+        t.load_day(&day(n, 0.0, 0.0, 25)).unwrap();
+        let mut rng = Rng::new(11);
+        for _ in 0..20_000 {
+            t.add_release(MeshRelease {
+                x: 200.0 + rng.uniform() * 600.0,
+                y: rng.uniform() * 200.0,
+                start: 0.0,
+                duration: 0.0,
+                mass: 1.0,
+                half_life: None,
+                parcels: 1,
+            });
+        }
+        let low_share = |t: &MeshTracer| {
+            let ys: Vec<f64> = t
+                .parcels
+                .iter()
+                .filter_map(|p| match p.place {
+                    MeshPlace::In(_, _, y) => Some(y),
+                    MeshPlace::Gone(_) => None,
+                })
+                .collect();
+            #[allow(clippy::cast_precision_loss)]
+            let s = ys.iter().filter(|&&y| y < 100.0).count() as f64 / ys.len() as f64;
+            s
+        };
+        t.step_to(20_000.0);
+        assert!(
+            (low_share(&t) - 0.5).abs() < 0.02,
+            "low-K share {}",
+            low_share(&t)
         );
     }
 

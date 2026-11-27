@@ -562,6 +562,19 @@ impl MeshEngine {
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
+    /// The horizontal diffusivity at each node, m²/s (the reach's geometry
+    /// `diffusivity_m2s`), in place of the one value given when made.
+    ///
+    /// # Errors
+    /// If there is not one value per node.
+    pub fn set_node_diffusivity(&mut self, k: &[f64]) -> Result<(), JsError> {
+        if k.len() != self.core.node_count() {
+            return Err(JsError::new("one diffusivity per node"));
+        }
+        self.core.set_node_diffusivity(k.to_vec());
+        Ok(())
+    }
+
     /// Release at a point given as a triangle and two barycentric weights.
     /// `half_life` in s, or `NaN` for none. False if the point is off the mesh.
     #[allow(clippy::too_many_arguments)]

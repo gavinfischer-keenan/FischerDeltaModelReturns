@@ -227,6 +227,7 @@ CHECKS: dict[str, tuple[str, ...]] = {
         "crates/fdmr-compute/src/mesh.rs::uniform_flow_carries_a_parcel_exactly",
         "crates/fdmr-compute/src/mesh.rs::spreading_matches_diffusion_and_stays_even_over_a_sloping_bed",
         "crates/fdmr-compute/src/mesh.rs::mass_is_conserved_under_spreading",
+        "crates/fdmr-compute/src/mesh.rs::an_even_start_stays_even_where_the_diffusivity_varies",
         "crates/fdmr-compute/src/lib.rs::mass_balances_with_decay_and_outflow",
     ),
     "pss-78": ("crates/fdmr-math/src/salinity.rs::delta_waters_read_sensibly",),

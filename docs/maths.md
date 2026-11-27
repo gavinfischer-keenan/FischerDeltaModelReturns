@@ -98,6 +98,6 @@ Every kind of water
 
 Standard problems passed:
 
-- **advection-random-walk**: `no_dispersion_means_pure_advection` (crates/fdmr-math/src/parcel.rs); `moment_method_recovers_k_from_parcels` (crates/fdmr-math/src/parcel.rs); `uniform_flow_carries_a_parcel_exactly` (crates/fdmr-compute/src/mesh.rs); `spreading_matches_diffusion_and_stays_even_over_a_sloping_bed` (crates/fdmr-compute/src/mesh.rs); `mass_is_conserved_under_spreading` (crates/fdmr-compute/src/mesh.rs); `mass_balances_with_decay_and_outflow` (crates/fdmr-compute/src/lib.rs)
+- **advection-random-walk**: `no_dispersion_means_pure_advection` (crates/fdmr-math/src/parcel.rs); `moment_method_recovers_k_from_parcels` (crates/fdmr-math/src/parcel.rs); `uniform_flow_carries_a_parcel_exactly` (crates/fdmr-compute/src/mesh.rs); `spreading_matches_diffusion_and_stays_even_over_a_sloping_bed` (crates/fdmr-compute/src/mesh.rs); `mass_is_conserved_under_spreading` (crates/fdmr-compute/src/mesh.rs); `an_even_start_stays_even_where_the_diffusivity_varies` (crates/fdmr-compute/src/mesh.rs); `mass_balances_with_decay_and_outflow` (crates/fdmr-compute/src/lib.rs)
 - **pss-78**: `delta_waters_read_sensibly` (crates/fdmr-math/src/salinity.rs)
 - **first-order**: `half_left_after_one_half_life` (crates/fdmr-math/src/decay.rs); `steps_compose` (crates/fdmr-math/src/decay.rs)

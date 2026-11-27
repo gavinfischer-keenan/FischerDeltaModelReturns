@@ -19,6 +19,7 @@ or a handoff to another reach, each set by the region (see `classify`).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -239,8 +240,9 @@ def classify(c: Coarse, open_sea: dict, handoffs: list[dict]) -> dict[str, list[
     return out
 
 
-def geometry(c: Coarse, reach: str, edges: dict[str, list[list[int]]]) -> dict:
-    """The reach's geometry file (docs/format.md, 2D)."""
+def geometry(c: Coarse, reach: str, edges: dict[str, list[list[int]]], k: np.ndarray | None = None) -> dict:
+    """The reach's geometry file (docs/format.md, 2D); `k`, each node's
+    horizontal diffusivity (m2/s, `diffusivity`), where worked out."""
     return {
         "reach": reach, "dims": 2,
         "lon": [round(float(v), 5) for v in c.lon], "lat": [round(float(v), 5) for v in c.lat],
@@ -248,4 +250,38 @@ def geometry(c: Coarse, reach: str, edges: dict[str, list[list[int]]]) -> dict:
         "depth_m": [round(float(v), 2) for v in c.depth],
         "triangles": c.tri.tolist(),
         "edges": edges,
+        **({"diffusivity_m2s": [round(float(v), 3) for v in k]} if k is not None else {}),
     }
+
+
+OKUBO = 0.0103  # Okubo's K = 0.0103 L^1.15, cm2/s with L in cm (Okubo 1971, ref:okubo1971)
+ELDER = 5.93  # Elder's K = 5.93 H u* (Elder 1959, ref:elder1959; Fischer et al. 1979, ref:fischer1979)
+DRAG = 0.0025  # bed drag coefficient Cd, u* = sqrt(Cd) |u| (Fischer et al. 1979, ref:fischer1979)
+
+
+def diffusivity(c: Coarse, hours: dict[int, dict]) -> np.ndarray:
+    """Each coarse node's horizontal diffusivity K, m2/s: mixing the
+    depth-averaged mesh does not resolve, as the sum of two parts:
+
+    - eddies smaller than the node's own patch of water: Okubo's
+      K = 0.0103 L^1.15 (cgs), L the patch's size (the square root of its
+      area, from NOAA's nodes it stands for);
+    - the vertical shear the depth average hides: Elder's K = 5.93 H u*,
+      u* = sqrt(Cd) |u|, Cd = 0.0025, at the node's water depth H (still
+      depth plus level) and current, averaged over the hours given (the tides).
+
+    The same two relations whose Bay-wide median was the one value used before
+    (1.1 m2/s), now at each node: the coarse open sea and the narrow,
+    fast straits each get their own."""
+    owned = c.node_owner >= 0
+    patch = np.bincount(c.node_owner[owned], weights=c.node_area[owned], minlength=len(c.x))
+    size_cm = np.sqrt(np.clip(patch, 1.0, None)) * 100.0
+    okubo = OKUBO * size_cm**1.15 * 1e-4
+    shear = np.zeros(len(c.x))
+    n = 0
+    for h in hours.values():
+        speed = np.hypot(np.nan_to_num(h["u"]), np.nan_to_num(h["v"]))
+        depth = np.clip(c.depth + np.nan_to_num(h["level"]), 0.0, None)
+        shear += ELDER * depth * math.sqrt(DRAG) * speed
+        n += 1
+    return okubo + (shear / n if n else 0.0)
