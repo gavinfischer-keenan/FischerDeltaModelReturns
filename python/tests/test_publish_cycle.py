@@ -129,3 +129,29 @@ def test_each_modes_last_run_is_kept_and_systemd_does_not_overwrite_a_fresh_reco
     runs = cycle_runs.record(f, "nightly", 0, "unit-failed", now=9000)  # nothing recorded: systemd ended it
     assert runs["nightly"]["status"] == "ended by systemd (timeout or crash)"
     assert json.loads(f.read_text(encoding="utf-8")) == runs
+
+
+def test_the_channel_maths_that_runs_is_the_one_recorded(cycle, tmp_path):
+    """The register's channel choice decides what runs (#64): each registered
+    alternative runs when chosen, and a reach whose gauges disagree with its
+    choice is refused rather than run with other maths than it records."""
+    from fdmr_plugins.river_routing import channel
+    from fdmr_runner.region import Gauge
+
+    now, out, first = cycle
+    river = json.loads((first / "index.json").read_text(encoding="utf-8"))["reaches"][0]
+    assert river["maths"]["channel"]["name"] == publish.POWER_LAW
+    store = Store(tmp_path / "store" / "fdmr.sqlite")
+    gauges, chainage = publish.river_chain(REGION, "river")
+    power = publish.fit_shapes(gauges, chainage, store, publish.POWER_LAW)
+    assert all(isinstance(s, channel.ChannelShape) for s in power.values())
+
+    wide = Gauge("river", "W", "W", "main", channel={"width_m": 100.0, "slope": 1e-4, "chezy": 40.0})
+    shapes = publish.fit_shapes([gauges[0], wide], {gauges[0].site: 0.0, "W": 1000.0}, store, publish.WIDE_CHANNEL)
+    expect = channel.wide_channel(100.0, 1e-4, chezy=40.0)
+    assert shapes["W"] == expect and shapes[gauges[0].site] == expect  # no table of its own: the nearest gauge's
+    with pytest.raises(ValueError, match="channel"):
+        publish.fit_shapes([wide], {"W": 0.0}, store, publish.POWER_LAW)
+    with pytest.raises(ValueError, match="channel"):  # the trial asks for maths these gauges cannot give
+        publish.publish(REGION, store, out, days=2, datums={}, ahead=2,
+                        trial={"name": "t", "maths": {"river": {"channel": publish.WIDE_CHANNEL}}})

@@ -249,15 +249,39 @@ def river_chain(region_dir: Path, reach: str):
     return gauges, {gauges[0].site: 0.0, **geo["gauges_m"]}
 
 
-def fit_shapes(gauges, chainage, store: Store) -> dict:
-    """Channel shape at each gauge from its USGS field measurements of the last
-    ten years (for another agency's station, those of the USGS site at the
-    same place, of any age if none are recent); a gauge with too few takes
-    the nearest gauge's shape."""
+POWER_LAW, WIDE_CHANNEL = "power-law-hydraulic-geometry", "wide-channel-uniform-flow"  # the registered channel maths
+
+
+def channel_method(region, reach: str) -> str:
+    """The channel maths the reach runs, as the register resolves its choice
+    (fdmr_plugins.registry, #10): what runs is what index.json records (#64)."""
+    from fdmr_plugins import registry
+
+    chosen = next((r.get("maths") for r in region.reaches if r["id"] == reach), None)
+    return registry.choices("river-routing", chosen)["channel"].name
+
+
+def fit_shapes(gauges, chainage, store: Store, method: str = POWER_LAW) -> dict:
+    """Channel shape at each gauge, by the reach's registered channel maths:
+    - power-law-hydraulic-geometry: from the gauge's USGS field measurements
+      of the last ten years (for another agency's station, those of the USGS
+      site at the same place, of any age if none are recent);
+    - wide-channel-uniform-flow: the gauge's sourced main channel (its
+      `channel` table in region.toml), where no measurements are published.
+    A gauge with no shape of its own takes the nearest gauge's. A gauge whose
+    `channel` table disagrees with the reach's choice stops the reach, rather
+    than running other maths than the cycle records (#64)."""
     since = int(time.time()) - 10 * 365 * DAY
+    if method not in (POWER_LAW, WIDE_CHANNEL):
+        raise ValueError(f"no channel shapes for maths {method!r}")
+    if method == POWER_LAW and any(g.channel for g in gauges):
+        raise ValueError(f"gauges {[g.site for g in gauges if g.channel]} give a `channel` table, but their reach runs "
+                         f"{POWER_LAW}: choose {WIDE_CHANNEL} for the reach in region.toml `maths`")
 
     def fit(g):
-        if g.channel:  # no field measurements here: the region's sourced main channel
+        if method == WIDE_CHANNEL:
+            if not g.channel:
+                return None
             c = g.channel
             return channel.wide_channel(c["width_m"], c["slope"], chezy=c.get("chezy"), manning_n=c.get("manning_n"))
         if not g.place_site:
@@ -267,7 +291,7 @@ def fit_shapes(gauges, chainage, store: Store) -> dict:
 
     shapes = {g.site: fit(g) for g in gauges}
     if not any(shapes.values()):
-        raise ValueError("no gauge has enough channel measurements")
+        raise ValueError("no gauge has a `channel` table" if method == WIDE_CHANNEL else "no gauge has enough channel measurements")
     return {
         g.site: shapes[g.site] or min(
             ((abs(chainage[o.site] - chainage[g.site]), shapes[o.site]) for o in gauges if shapes[o.site]),
@@ -332,7 +356,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
     i_now = (now - t0) // STEP
     n = (end - t0) // STEP + 1
 
-    shapes = fit_shapes(gauges, chainage, store)
+    shapes = fit_shapes(gauges, chainage, store, channel_method(region, reach))
     records = []
     assumed: list[dict] = []  # how each gauge was carried past its last reading (#22)
     fc_ends: list[int | None] = []  # last forecast step at each gauge that has a forecast

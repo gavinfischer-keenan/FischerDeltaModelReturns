@@ -34,7 +34,7 @@ from fdmr_plugins.river_routing.wave import measure_events, regular
 from fdmr_store import Store
 
 from .forecast import on_grid
-from .publish import fit_shapes, river_chain
+from .publish import channel_method, fit_shapes, river_chain
 from .region import load_region
 
 STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
@@ -79,7 +79,7 @@ def calibrate_reach(region_dir: Path, store: Store, reach: str, days: int, previ
     now = int(time.time()) // 86_400 * 86_400
     t0 = now - days * 86_400
     n = (now - t0) // STEP
-    shapes = fit_shapes(gauges, chainage, store)
+    shapes = fit_shapes(gauges, chainage, store, channel_method(load_region(region_dir), reach))
     stations = [cal.Station(chainage[g.site], shapes[g.site]) for g in gauges]
     flow = {g.site: regular([(v.t, v.value) for v in store.values(g.source, g.site, g.parameter, t0, now)], t0, STEP, n) for g in gauges}
     prev = {(s["up"], s["down"]): s for s in previous.get("segments", [])}
