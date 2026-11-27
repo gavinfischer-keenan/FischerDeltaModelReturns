@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import csv
 import io
-import urllib.request
 from calendar import timegm
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
@@ -33,7 +32,8 @@ from urllib.parse import urlencode
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT, HttpJsonClient, JsonClient
+from . import http
+from .http import HttpJsonClient, JsonClient
 
 GHCNH = "ghcnh"
 NWS = "nws"
@@ -190,9 +190,7 @@ def _put(store: Store, source: str, site: str, data: dict[str, dict[int, float]]
 
 
 def _get_text(url: str) -> Iterator[str]:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=300) as r:
-        yield from io.TextIOWrapper(r, encoding="utf-8", errors="replace")
+    yield from io.StringIO(http.get_text(url, timeout=300))
 
 
 class NoaaWeatherAdapter:

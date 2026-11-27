@@ -32,14 +32,11 @@ References: ref:rws_ddapi (references.toml).
 
 from __future__ import annotations
 
-import json
-import urllib.error
-import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 BASE = "https://ddapi20-waterwebservices.rijkswaterstaat.nl"
 SOURCE = "rws"
@@ -57,13 +54,7 @@ BAD_QUALITY = 50  # codes above this are gaps
 
 def post(url: str, body: dict, timeout_s: float = 120.0) -> dict | None:
     """POST JSON; the parsed reply, or None for "204 No Content" (no values)."""
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
-                                 headers={"User-Agent": USER_AGENT, "Content-Type": "application/json", "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=timeout_s) as r:
-        if r.status == 204:
-            return None
-        raw = r.read()
-        return json.loads(raw) if raw else None
+    return http.post_json(url, body, timeout=timeout_s)
 
 
 def stamp(t: int) -> str:

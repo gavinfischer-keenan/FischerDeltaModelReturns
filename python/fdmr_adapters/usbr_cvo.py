@@ -21,13 +21,12 @@ from __future__ import annotations
 
 import io
 import re
-import urllib.request
 from calendar import timegm
 from datetime import datetime, timezone
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 BASE = "https://www.usbr.gov/mp/cvo/vungvari/"
 SOURCE = "usbr-cvo"
@@ -87,9 +86,7 @@ class UsbrCvoAdapter:
 
     @staticmethod
     def _get(url: str) -> bytes:
-        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            return r.read()
+        return http.request(url, timeout=60)
 
     def fetch_month(self, year: int, month: int, now: int) -> int:
         """Store one month's daily values; returns how many days."""

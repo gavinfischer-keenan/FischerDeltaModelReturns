@@ -76,7 +76,6 @@ def test_a_cycle_is_published_whole(cycle):
 def test_the_flow_follows_the_gauges(cycle):
     """At the main gauge, the published flow is the measured flow (m3/s), to rounding."""
     now, _, cdir = cycle
-    index = json.loads((cdir / "index.json").read_text(encoding="utf-8"))
     geo = json.loads((cdir / "geometry" / "river.json").read_text(encoding="utf-8"))
     at = json.loads((REGION / "river.json").read_text(encoding="utf-8"))["gauges_m"]["09402500"]
     e = min(range(len(geo["elements"])), key=lambda i: abs((geo["elements"][i]["start_m"] + geo["elements"][i]["end_m"]) / 2 - at))

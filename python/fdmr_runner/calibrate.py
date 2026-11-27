@@ -27,7 +27,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fdmr_adapters.usgs import SOURCE
 from fdmr_plugins.river_routing import calibration as cal
 from fdmr_plugins.river_routing.centreline import Centreline, nearest
 from fdmr_plugins.river_routing.wave import measure_events, regular

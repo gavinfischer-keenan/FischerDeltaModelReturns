@@ -35,14 +35,14 @@ from __future__ import annotations
 import io
 import math
 import time
-import urllib.request
 from calendar import timegm
 from pathlib import Path
 from urllib.parse import urlencode
 
 import numpy as np
 
-from .http import USER_AGENT, HttpJsonClient, JsonClient
+from . import http
+from .http import HttpJsonClient, JsonClient
 
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.json"
 SHORT_NAME, VERSION = "ECO_L2T_LSTE", "003"
@@ -155,22 +155,8 @@ RETRY_WAITS_S = (5, 20)  # waits before each retry of a download the server fail
 def _download(url: str, token: str, sleep=time.sleep) -> bytes:
     """A file, with the token; a server error or a dropped connection is
     retried after each of RETRY_WAITS_S."""
-    import urllib.error
-
-    for wait in (*RETRY_WAITS_S, None):
-        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        req.add_unredirected_header("Authorization", f"Bearer {token}")  # not passed on to the storage it redirects to
-        try:
-            with urllib.request.urlopen(req, timeout=300) as r:
-                return r.read()
-        except urllib.error.HTTPError as e:
-            if e.code < 500 or wait is None:
-                raise
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
-            if wait is None:
-                raise
-        sleep(wait)
-    raise AssertionError("unreachable")
+    # The token is not passed on to the storage it redirects to (http.request's `bearer`).
+    return http.request(url, bearer=token, timeout=300, sleep=sleep)
 
 
 class EcostressAdapter:

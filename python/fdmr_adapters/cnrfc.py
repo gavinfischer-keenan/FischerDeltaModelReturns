@@ -16,7 +16,6 @@ from __future__ import annotations
 import csv
 import io
 import re
-import urllib.request
 import zipfile
 from pathlib import Path
 from calendar import timegm
@@ -25,7 +24,7 @@ from time import strptime
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 BASE = "https://www.cnrfc.noaa.gov"
 INDEX = f"{BASE}/deterministicHourlyProductCSV.php"
@@ -34,9 +33,7 @@ KCFS = 1000 * 0.3048**3  # thousand cubic feet per second, in m3/s
 
 
 def _get(url: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return r.read()
+    return http.request(url, timeout=60)
 
 
 def issue_time(issue: str) -> int:

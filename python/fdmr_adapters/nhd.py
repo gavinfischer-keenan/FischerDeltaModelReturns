@@ -13,11 +13,9 @@ References: ref:nhd (references.toml).
 
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
-from .http import USER_AGENT
+from . import http
 from .lines import line_between  # noqa: F401  (the walk along the pieces)
 
 URL = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query"
@@ -25,9 +23,7 @@ ATTRIBUTION = "U.S. Geological Survey, National Hydrography Dataset (public doma
 
 
 def get_json(url: str) -> dict:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/geo+json"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        return json.load(r)
+    return http.get_json(url, accept="application/geo+json", timeout=120)
 
 
 def _lines(geom: dict) -> list[list[list[float]]]:

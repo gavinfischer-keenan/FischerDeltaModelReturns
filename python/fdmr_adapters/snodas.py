@@ -25,12 +25,11 @@ import gzip
 import io
 import tarfile
 import time
-import urllib.request
 
 import numpy as np
 
 from .areas import extent, members
-from .http import USER_AGENT
+from . import http
 
 SOURCE = "snodas"
 URL = "https://noaadata.apps.nsidc.org/NOAA/G02158/masked/{y}/{m:02d}_{mon}/SNODAS_{y}{m:02d}{d:02d}.tar"
@@ -40,9 +39,7 @@ NO_DATA = -9999
 
 
 def _get(url: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=300) as r:
-        return r.read()
+    return http.request(url, timeout=300)
 
 
 def header(text: str) -> dict[str, str]:

@@ -21,12 +21,11 @@ from __future__ import annotations
 
 import re
 import time
-import urllib.request
 from calendar import timegm
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 SOURCE = "usace-spk"
 URL = "https://www.spk-wc.usace.army.mil/fcgi-bin/midnight.py?days=0&report=FCR"
@@ -35,9 +34,7 @@ PST = 8 * 3600
 
 
 def _get(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        return r.read().decode("utf-8", "replace")
+    return http.get_text(url, timeout=120)
 
 
 def _num(s: str) -> float | None:

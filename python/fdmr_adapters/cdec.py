@@ -148,7 +148,6 @@ class CdecAdapter:
         is simply absent."""
         by_number = {SENSORS[p].number: p for p in parameters}
         raw: dict[tuple[str, str], dict[int, Value]] = {}
-        units: dict[tuple[str, str], str] = {}
         t = start
         while t < end:
             t1 = min(end, t + CHUNK_DAYS * 86_400)

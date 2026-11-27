@@ -16,12 +16,11 @@ from __future__ import annotations
 import io
 import math
 import time
-import urllib.request
 
 import numpy as np
 
 from .areas import members
-from .http import USER_AGENT
+from . import http
 
 SOURCE = "nws-precip"
 URL = "https://water.noaa.gov/resources/downloads/precip/stageIV/{y}/{m:02d}/{d:02d}/nws_precip_1day_{y}{m:02d}{d:02d}_conus.nc"
@@ -47,9 +46,7 @@ def lonlat(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def _get(url: str) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=180) as r:
-        return r.read()
+    return http.request(url, timeout=180)
 
 
 def read(data: bytes) -> dict[str, np.ndarray]:

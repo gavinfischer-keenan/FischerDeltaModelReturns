@@ -13,11 +13,9 @@ References: ref:pdok_nwb_vaarwegen (references.toml).
 
 from __future__ import annotations
 
-import json
 import urllib.parse
-import urllib.request
 
-from .http import USER_AGENT
+from . import http
 from .lines import line_between  # noqa: F401  (the walk along the sections)
 
 BASE = "https://api.pdok.nl/rws/nationaal-wegenbestand-vaarwegen/ogc/v1/collections"
@@ -25,9 +23,7 @@ ATTRIBUTION = "Rijkswaterstaat, NWB Vaarwegen (PDOK), CC0 1.0"
 
 
 def get_json(url: str) -> dict:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/geo+json"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        return json.load(r)
+    return http.get_json(url, accept="application/geo+json", timeout=120)
 
 
 def _features(collection: str, query: dict, get=get_json) -> list[dict]:

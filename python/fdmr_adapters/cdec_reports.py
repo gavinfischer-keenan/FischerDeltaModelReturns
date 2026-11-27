@@ -26,12 +26,11 @@ References: ref:cdec (references.toml).
 from __future__ import annotations
 
 import re
-import urllib.request
 from collections.abc import Callable
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 SOURCE = "cdec"
 URL = "https://cdec.water.ca.gov/reportapp/javareports?name={name}"
@@ -41,9 +40,7 @@ PST = 8 * 3600
 
 
 def _get(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=90) as r:
-        return r.read().decode("utf-8", "replace")
+    return http.get_text(url, timeout=90)
 
 
 def rows(html: str) -> list[list[str]]:

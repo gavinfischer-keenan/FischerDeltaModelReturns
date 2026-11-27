@@ -13,15 +13,13 @@ References: ref:openet, and the method: ref:melton2022openet (references.toml).
 
 from __future__ import annotations
 
-import json
 import time
-import urllib.request
 from calendar import timegm
 from pathlib import Path
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 SOURCE = "openet"
 URL = "https://openet-api.org/raster/timeseries/polygon"
@@ -29,10 +27,7 @@ KEY_FILE = Path.home() / ".config" / "fdmr" / "openet-api-key"
 
 
 def _post(body: dict, key: str) -> list:
-    req = urllib.request.Request(URL, data=json.dumps(body).encode(), method="POST",
-                                 headers={"Authorization": key, "Content-Type": "application/json", "User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=300) as r:
-        return json.loads(r.read())
+    return http.post_json(URL, body, headers={"Authorization": key}, timeout=300)
 
 
 def outline(area: dict) -> list[float]:

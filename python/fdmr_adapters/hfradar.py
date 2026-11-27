@@ -12,12 +12,11 @@ References: ref:hfradar (references.toml).
 from __future__ import annotations
 
 import io
-import urllib.request
 from dataclasses import dataclass
 
 import numpy as np
 
-from .http import USER_AGENT
+from . import http
 
 
 @dataclass(frozen=True)
@@ -55,6 +54,4 @@ def parse_nc(data: bytes) -> Currents:
 
 
 def fetch(server: str, dataset: str, box: tuple[float, float, float, float], hours: int) -> Currents:
-    req = urllib.request.Request(query(server, dataset, box, hours), headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=180) as r:
-        return parse_nc(r.read())
+    return parse_nc(http.request(query(server, dataset, box, hours), timeout=180))

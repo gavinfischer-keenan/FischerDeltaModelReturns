@@ -23,7 +23,6 @@ each node in proportion to its uses over the run.
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 import time
 from collections.abc import Sequence

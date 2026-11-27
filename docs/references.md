@@ -976,7 +976,7 @@ Checked: Crossref record of the DOI; USGS Publications Warehouse page, 26 Nov 20
 
 Used in:
 
-- `python/fdmr_adapters/nws_precip.py:36`: (Snyder 1987, ref:snyder1987, Map Projections: A Working Manual, USGS Professional Paper
+- `python/fdmr_adapters/nws_precip.py:35`: (Snyder 1987, ref:snyder1987, Map Projections: A Working Manual, USGS Professional Paper
 
 ## scwa_nba
 

@@ -293,10 +293,10 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/bay.py:49](../python/fdmr_runner/bay.py#L49) | `ANOMALY_H` | `72` | Hours before the forecast's end over which the extension's non-tidal offset is taken. |
 | [python/fdmr_runner/bay.py:51](../python/fdmr_runner/bay.py#L51) | `MESH_VERSION` | `2` | Raised whenever the coarsening changes, so meshes and hours made the old way are made again. |
 | [python/fdmr_runner/bay.py:387](../python/fdmr_runner/bay.py#L387) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
-| [python/fdmr_runner/calibrate.py:40](../python/fdmr_runner/calibrate.py#L40) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
-| [python/fdmr_runner/calibrate.py:50](../python/fdmr_runner/calibrate.py#L50) | `MIN_PAIR_M` | `40_000` | m: a tracer pair at least this far apart, or weather swamps its travel time (below; FDMR's choice) |
-| [python/fdmr_runner/calibrate.py:51](../python/fdmr_runner/calibrate.py#L51) | `MIN_COVER` | `0.25` | a pair corrects only segments it covers at least this share of |
-| [python/fdmr_runner/calibrate.py:52](../python/fdmr_runner/calibrate.py#L52) | `MAX_OFF_LINE_M` | `1_500` | a station further than this from the river centreline is misplaced |
+| [python/fdmr_runner/calibrate.py:39](../python/fdmr_runner/calibrate.py#L39) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/calibrate.py:49](../python/fdmr_runner/calibrate.py#L49) | `MIN_PAIR_M` | `40_000` | m: a tracer pair at least this far apart, or weather swamps its travel time (below; FDMR's choice) |
+| [python/fdmr_runner/calibrate.py:50](../python/fdmr_runner/calibrate.py#L50) | `MIN_COVER` | `0.25` | a pair corrects only segments it covers at least this share of |
+| [python/fdmr_runner/calibrate.py:51](../python/fdmr_runner/calibrate.py#L51) | `MAX_OFF_LINE_M` | `1_500` | a station further than this from the river centreline is misplaced |
 | [python/fdmr_runner/canals.py:33](../python/fdmr_runner/canals.py#L33) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_runner/canals.py:34](../python/fdmr_runner/canals.py#L34) | `INCH` | `0.0254` | unit: metres in an inch (exact) |
 | [python/fdmr_runner/canals.py:36](../python/fdmr_runner/canals.py#L36) | `SEGMENT_M` | `1000.0` | the longest channel a canal is cut into, so quality can change along it |
@@ -372,7 +372,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/dsm2/fields.py:36](../python/fdmr_plugins/dsm2/fields.py#L36) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_plugins/dsm2/fields.py:38](../python/fdmr_plugins/dsm2/fields.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/dsm2/grid.py:17](../python/fdmr_plugins/dsm2/grid.py#L17) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
-| [python/fdmr_plugins/dsm2/study.py:55](../python/fdmr_plugins/dsm2/study.py#L55) | `RAIN_SEASON` | `(12, 1, 2, 3)` | months whose island returns are rain running off |
+| [python/fdmr_plugins/dsm2/study.py:54](../python/fdmr_plugins/dsm2/study.py#L54) | `RAIN_SEASON` | `(12, 1, 2, 3)` | months whose island returns are rain running off |
 | [python/fdmr_plugins/dsm2/temperature.py:38](../python/fdmr_plugins/dsm2/temperature.py#L38) | `MPH` | `3600 / 1609.344` | m/s to mph |
 | [python/fdmr_plugins/dsm2/temperature.py:39](../python/fdmr_plugins/dsm2/temperature.py#L39) | `INHG` | `1 / 33.8639` | hPa to inches of mercury |
 | [python/fdmr_plugins/fvcom/correct.py:33](../python/fdmr_plugins/fvcom/correct.py#L33) | `MIN_H` | `0.5` | m: shoals that dry still pass a little water |
@@ -405,29 +405,33 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_adapters/cdec.py:32](../python/fdmr_adapters/cdec.py#L32) | `CHUNK_DAYS` | `90` | one request per 90 days keeps each answer small |
 | [python/fdmr_adapters/cdec.py:33](../python/fdmr_adapters/cdec.py#L33) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_adapters/cdec.py:50](../python/fdmr_adapters/cdec.py#L50) | `MISSING` | `(-9999, -9998, -9997)` | CDEC's markers for a reading that is missing or not reported (seen live: -9999, and -9997 at the Tuolumne below La Grange, 26 Nov 2026). Flow sensors allow negative values (tidal channels run both ways), so the range check alone does not catch them. |
-| [python/fdmr_adapters/cdec_reports.py:38](../python/fdmr_adapters/cdec_reports.py#L38) | `AF` | `1_233.48184` | m3 |
-| [python/fdmr_adapters/cdec_reports.py:39](../python/fdmr_adapters/cdec_reports.py#L39) | `INCH` | `25.4` | mm |
-| [python/fdmr_adapters/cdec_reports.py:40](../python/fdmr_adapters/cdec_reports.py#L40) | `PST` | `8 * 3600` |  |
-| [python/fdmr_adapters/cnrfc.py:33](../python/fdmr_adapters/cnrfc.py#L33) | `KCFS` | `1000 * 0.3048**3` | thousand cubic feet per second, in m3/s |
+| [python/fdmr_adapters/cdec_reports.py:37](../python/fdmr_adapters/cdec_reports.py#L37) | `AF` | `1_233.48184` | m3 |
+| [python/fdmr_adapters/cdec_reports.py:38](../python/fdmr_adapters/cdec_reports.py#L38) | `INCH` | `25.4` | mm |
+| [python/fdmr_adapters/cdec_reports.py:39](../python/fdmr_adapters/cdec_reports.py#L39) | `PST` | `8 * 3600` |  |
+| [python/fdmr_adapters/cnrfc.py:32](../python/fdmr_adapters/cnrfc.py#L32) | `KCFS` | `1000 * 0.3048**3` | thousand cubic feet per second, in m3/s |
 | [python/fdmr_adapters/ecostress.py:51](../python/fdmr_adapters/ecostress.py#L51) | `MIN_LAND_PIXELS` | `100` | about half a square kilometre of clear land |
 | [python/fdmr_adapters/ecostress.py:53](../python/fdmr_adapters/ecostress.py#L53) | `CLOUD_BUFFER` | `5` | pixels (350 m) kept clear of any flagged cloud |
 | [python/fdmr_adapters/ecostress.py:54](../python/fdmr_adapters/ecostress.py#L54) | `PER_RUN` | `12` | new tiles downloaded per fetch at most, newest first, so a backlog never holds up a cycle |
 | [python/fdmr_adapters/ecostress.py:55](../python/fdmr_adapters/ecostress.py#L55) | `KELVIN` | `273.15` |  |
 | [python/fdmr_adapters/ecostress.py:152](../python/fdmr_adapters/ecostress.py#L152) | `RETRY_WAITS_S` | `(5, 20)` | waits before each retry of a download the server failed |
+| [python/fdmr_adapters/http.py:31](../python/fdmr_adapters/http.py#L31) | `RETRIED` | `(429, 500, 502, 503, 504)` | answers worth asking again |
+| [python/fdmr_adapters/http.py:32](../python/fdmr_adapters/http.py#L32) | `RETRIES` | `3` | tries after the first (FDMR's choice) |
+| [python/fdmr_adapters/http.py:33](../python/fdmr_adapters/http.py#L33) | `BACKOFF_S` | `5.0` | first wait before a retry, doubling each time (FDMR's choice) |
+| [python/fdmr_adapters/http.py:34](../python/fdmr_adapters/http.py#L34) | `MAX_WAIT_S` | `120.0` | all the waits for one address, together, at most this (FDMR's choice: a cycle is hourly, #90) |
 | [python/fdmr_adapters/noaa_ofs.py:31](../python/fdmr_adapters/noaa_ofs.py#L31) | `HOUR` | `3600` | unit: seconds in an hour |
 | [python/fdmr_adapters/noaa_tides.py:33](../python/fdmr_adapters/noaa_tides.py#L33) | `CHUNK_DAYS` | `30` | the API serves 15-minute predictions, and 6-minute readings, a month at a time |
-| [python/fdmr_adapters/nws_precip.py:28](../python/fdmr_adapters/nws_precip.py#L28) | `INCH_MM` | `25.4` |  |
-| [python/fdmr_adapters/nws_precip.py:29](../python/fdmr_adapters/nws_precip.py#L29) | `EARTH_R` | `6_371_200.0` | the grid's own sphere (its crs attribute) |
+| [python/fdmr_adapters/nws_precip.py:27](../python/fdmr_adapters/nws_precip.py#L27) | `INCH_MM` | `25.4` |  |
+| [python/fdmr_adapters/nws_precip.py:28](../python/fdmr_adapters/nws_precip.py#L28) | `EARTH_R` | `6_371_200.0` | the grid's own sphere (its crs attribute) |
 | [python/fdmr_adapters/opera.py:32](../python/fdmr_adapters/opera.py#L32) | `NOT_SEEN` | `255` |  |
 | [python/fdmr_adapters/opera.py:33](../python/fdmr_adapters/opera.py#L33) | `PER_RUN` | `24` | tiles downloaded per fetch at most, newest first |
-| [python/fdmr_adapters/rws.py:55](../python/fdmr_adapters/rws.py#L55) | `BAD_QUALITY` | `50` | codes above this are gaps |
-| [python/fdmr_adapters/smap.py:49](../python/fdmr_adapters/smap.py#L49) | `PER_RUN` | `48` | three-hour periods read per fetch at most (six days) |
-| [python/fdmr_adapters/smap.py:50](../python/fdmr_adapters/smap.py#L50) | `FILL` | `-9000.0` | SMAP marks no value with -9999 |
-| [python/fdmr_adapters/snodas.py:39](../python/fdmr_adapters/snodas.py#L39) | `NO_DATA` | `-9999` |  |
-| [python/fdmr_adapters/usace_spk.py:33](../python/fdmr_adapters/usace_spk.py#L33) | `AF` | `1_233.48184` |  |
-| [python/fdmr_adapters/usace_spk.py:34](../python/fdmr_adapters/usace_spk.py#L34) | `PST` | `8 * 3600` |  |
-| [python/fdmr_adapters/usbr_cvo.py:35](../python/fdmr_adapters/usbr_cvo.py#L35) | `PST_TO_UTC` | `8 * 3600` |  |
-| [python/fdmr_adapters/usbr_cvo.py:36](../python/fdmr_adapters/usbr_cvo.py#L36) | `CFS` | `0.3048**3` |  |
+| [python/fdmr_adapters/rws.py:52](../python/fdmr_adapters/rws.py#L52) | `BAD_QUALITY` | `50` | codes above this are gaps |
+| [python/fdmr_adapters/smap.py:48](../python/fdmr_adapters/smap.py#L48) | `PER_RUN` | `48` | three-hour periods read per fetch at most (six days) |
+| [python/fdmr_adapters/smap.py:49](../python/fdmr_adapters/smap.py#L49) | `FILL` | `-9000.0` | SMAP marks no value with -9999 |
+| [python/fdmr_adapters/snodas.py:38](../python/fdmr_adapters/snodas.py#L38) | `NO_DATA` | `-9999` |  |
+| [python/fdmr_adapters/usace_spk.py:32](../python/fdmr_adapters/usace_spk.py#L32) | `AF` | `1_233.48184` |  |
+| [python/fdmr_adapters/usace_spk.py:33](../python/fdmr_adapters/usace_spk.py#L33) | `PST` | `8 * 3600` |  |
+| [python/fdmr_adapters/usbr_cvo.py:34](../python/fdmr_adapters/usbr_cvo.py#L34) | `PST_TO_UTC` | `8 * 3600` |  |
+| [python/fdmr_adapters/usbr_cvo.py:35](../python/fdmr_adapters/usbr_cvo.py#L35) | `CFS` | `0.3048**3` |  |
 | [python/fdmr_adapters/usgs.py:40](../python/fdmr_adapters/usgs.py#L40) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_adapters/usgs.py:57](../python/fdmr_adapters/usgs.py#L57) | `PST_TO_UTC` | `8 * 3600` |  |
 | [crates/fdmr-compute/src/lib.rs:37](../crates/fdmr-compute/src/lib.rs#L37) | `MAX_DT` | `60.0` | Largest time step the engine takes, s. |

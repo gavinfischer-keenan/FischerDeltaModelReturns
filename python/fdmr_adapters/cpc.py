@@ -15,13 +15,12 @@ References: ref:cpc_enso (references.toml).
 
 from __future__ import annotations
 
-import urllib.request
 from calendar import timegm
 from time import strptime
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 SOURCE = "cpc"
 WEEKLY = "https://www.cpc.ncep.noaa.gov/data/indices/wksst9120.for"
@@ -31,9 +30,7 @@ SEASON_MIDDLE = {"DJF": 1, "JFM": 2, "FMA": 3, "MAM": 4, "AMJ": 5, "MJJ": 6, "JJ
 
 
 def _get(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return r.read().decode("ascii", "replace")
+    return http.get_text(url, encoding="ascii", timeout=60)
 
 
 def parse_weekly(text: str) -> dict[str, list[Value]]:

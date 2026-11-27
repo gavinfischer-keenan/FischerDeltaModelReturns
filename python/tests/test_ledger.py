@@ -1,7 +1,6 @@
 import sqlite3
 
 import numpy as np
-import pytest
 
 from fdmr_runner import ledger
 from fdmr_store import Store, Value

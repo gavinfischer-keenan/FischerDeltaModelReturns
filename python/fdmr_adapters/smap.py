@@ -23,9 +23,7 @@ from __future__ import annotations
 
 import io
 import time
-import urllib.error
 import urllib.parse
-import urllib.request
 from calendar import timegm
 from pathlib import Path
 from urllib.parse import urlencode
@@ -33,7 +31,8 @@ from urllib.parse import urlencode
 import numpy as np
 
 from .areas import members as _members
-from .http import USER_AGENT, HttpJsonClient, JsonClient
+from . import http
+from .http import HttpJsonClient, JsonClient
 
 SOURCE = "smap"
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.json"
@@ -67,20 +66,7 @@ def search(start: int, end: int, client: JsonClient | None = None) -> list[dict]
 
 
 def _get(url: str, token: str, sleep=time.sleep) -> bytes:
-    for wait in (5, 20, None):
-        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        req.add_unredirected_header("Authorization", f"Bearer {token}")
-        try:
-            with urllib.request.urlopen(req, timeout=180) as r:
-                return r.read()
-        except urllib.error.HTTPError as e:
-            if e.code < 500 or wait is None:
-                raise
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
-            if wait is None:
-                raise
-        sleep(wait)
-    raise AssertionError("unreachable")
+    return http.request(url, bearer=token, timeout=180, sleep=sleep)
 
 
 def read_nc4(data: bytes) -> dict[str, np.ndarray]:

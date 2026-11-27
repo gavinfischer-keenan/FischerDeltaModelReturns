@@ -17,13 +17,12 @@ References: ref:ndbc (references.toml).
 
 from __future__ import annotations
 
-import urllib.request
 from calendar import timegm
 from collections.abc import Iterable
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 SOURCE = "ndbc"
 URL = "https://www.ndbc.noaa.gov/data/realtime2/{station}.ocean"
@@ -59,9 +58,7 @@ def parse(lines: Iterable[str], columns: dict = COLUMNS) -> dict[str, list[Value
 
 
 def _get_lines(url: str) -> list[str]:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return r.read().decode("utf-8", "replace").splitlines()
+    return http.get_text(url, timeout=60).splitlines()
 
 
 class NdbcAdapter:

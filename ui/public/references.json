@@ -1899,7 +1899,7 @@
    "used": [
     {
      "file": "python/fdmr_adapters/nws_precip.py",
-     "line": 36,
+     "line": 35,
      "text": "(Snyder 1987, ref:snyder1987, Map Projections: A Working Manual, USGS Professional Paper"
     }
    ]

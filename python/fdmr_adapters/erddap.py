@@ -18,14 +18,13 @@ from __future__ import annotations
 import csv
 import io
 import urllib.error
-import urllib.request
 from calendar import timegm
 from time import strptime
 from urllib.parse import quote
 
 from fdmr_store import Store, Value
 
-from .http import USER_AGENT
+from . import http
 
 VARIABLES = {
     "water_temperature": ("sea_water_temperature", "degC", (-2.0, 40.0)),
@@ -59,9 +58,7 @@ def parse(text: str) -> dict[str, list[Value]]:
 
 
 def _get_text(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        return r.read().decode("utf-8", "replace")
+    return http.get_text(url, timeout=120)
 
 
 class ErddapAdapter:
