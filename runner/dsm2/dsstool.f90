@@ -13,6 +13,11 @@
 !       then "MINUTES VALUE" per line, minutes after the start of day BASE
 !   dsstool writeir FILE PATH UNITS TYPE BASE < "MINUTES VALUE" lines
 !       stores an irregular series, replacing what the file holds over its span
+!       (into a record it wrote itself: a record written in another form, such
+!       as DWR's own gate records, is garbled by it, so delete that first)
+!   dsstool delete FILE PATH
+!       deletes one record, PATH with its D part (the block's start, such as
+!       01JAN2020 for an IR-DECADE block); prints "deleted T" or "deleted F"
 !
 ! PATH is a DSS pathname whose E part gives the interval, such as
 ! /FDMR/RSAC054/STAGE//15MIN/LIVE/. DATE and TIME are the first value's,
@@ -25,14 +30,15 @@ program dsstool
   character(len=8) :: cunits, ctype
   real, allocatable :: values(:), grown(:)
   real :: v
+  logical :: lfound
 
   call get_command_argument(1, cmd)
   call get_command_argument(2, fname)
   call get_command_argument(3, cpath)
   call get_command_argument(4, cdate)
   call get_command_argument(5, ctime)
-  if (len_trim(ctime) == 0) then
-    write (0, '(a)') 'usage: dsstool read|write FILE PATH DATE TIME ...'
+  if (len_trim(cpath) == 0 .or. (len_trim(ctime) == 0 .and. trim(cmd) /= 'delete')) then
+    write (0, '(a)') 'usage: dsstool read|write|readir|writeir|delete FILE PATH ...'
     stop 2
   end if
 
@@ -116,6 +122,9 @@ program dsstool
       stop 4
     end if
     write (*, '(a,i0)') 'stored ', n
+  case ('delete')
+    call zdelet(ifltab, trim(cpath), len_trim(cpath), lfound)
+    write (*, '(a,l1)') 'deleted ', lfound
   case default
     write (0, '(a)') 'unknown command: '//trim(cmd)
     call zclose(ifltab)

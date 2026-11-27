@@ -408,6 +408,11 @@
      "file": "tools/validation/experiments/prepare_edi.py",
      "line": 6,
      "text": "false-river-barrier-2021: edi.1162.2 (ref:hartman2024edb, CC BY 4.0)"
+    },
+    {
+     "file": "tools/validation/experiments/results.md",
+     "line": 20,
+     "text": "Data.** Measured salinity and flow come from edi.1162.2 (ref:hartman2024edb). Its Bay-Delta SCHISM runs, with and without the barrier, are compared beside ours."
     }
    ]
   },
@@ -685,6 +690,11 @@
      "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
     },
     {
+     "file": "tools/validation/satellite_turbidity/README.md",
+     "line": 7,
+     "text": "Turbidity from reflectance.** Dogliotti et al. 2015 (ref:dogliotti2015), with the coefficients ACOLITE uses."
+    },
+    {
      "file": "tools/validation/satellite_turbidity/hls_check.py",
      "line": 7,
      "text": "Turbidity, FNU, by Dogliotti et al. (2015, ref:dogliotti2015):"
@@ -906,6 +916,11 @@
      "file": "tools/validation/experiments/prepare_edi.py",
      "line": 14,
      "text": "suisun-gates-2018: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)"
+    },
+    {
+     "file": "tools/validation/experiments/results.md",
+     "line": 62,
+     "text": "Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it."
     }
    ]
   },
@@ -1332,6 +1347,11 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 309,
      "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
+    },
+    {
+     "file": "tools/validation/satellite_turbidity/README.md",
+     "line": 6,
+     "text": "Satellite.** NASA's HLS v2.0 surface reflectance (ref:hls2), Landsat 8/9 and Sentinel-2 at 30 m: every pass from 1 July to 27 November 2026 with at most 40% cloud over the Delta's two tiles (T10SFH, T"
     },
     {
      "file": "tools/validation/satellite_turbidity/hls_check.py",

@@ -216,6 +216,7 @@ Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 
 Used in:
 
 - `tools/validation/experiments/prepare_edi.py:6`: false-river-barrier-2021: edi.1162.2 (ref:hartman2024edb, CC BY 4.0)
+- `tools/validation/experiments/results.md:20`: Data.** Measured salinity and flow come from edi.1162.2 (ref:hartman2024edb). Its Bay-Delta SCHISM runs, with and without the barrier, are compared beside ours.
 
 ## ccr14_581
 
@@ -355,6 +356,7 @@ Checked: DOI record read; coefficients read from ACOLITE's defaults, 27 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/registry.py:309`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `tools/validation/satellite_turbidity/README.md:7`: Turbidity from reflectance.** Dogliotti et al. 2015 (ref:dogliotti2015), with the coefficients ACOLITE uses.
 - `tools/validation/satellite_turbidity/hls_check.py:7`: Turbidity, FNU, by Dogliotti et al. (2015, ref:dogliotti2015):
 
 ## elder1959
@@ -443,6 +445,7 @@ Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 
 Used in:
 
 - `tools/validation/experiments/prepare_edi.py:14`: suisun-gates-2018: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)
+- `tools/validation/experiments/results.md:62`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it.
 
 ## hause2024
 
@@ -686,6 +689,7 @@ Checked: Both DOI records read, 27 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/registry.py:309`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `tools/validation/satellite_turbidity/README.md:6`: Satellite.** NASA's HLS v2.0 surface reflectance (ref:hls2), Landsat 8/9 and Sentinel-2 at 30 m: every pass from 1 July to 27 November 2026 with at most 40% cloud over the Delta's two tiles (T10SFH, T
 - `tools/validation/satellite_turbidity/hls_check.py:5`: (HLSL30 from Landsat 8/9, HLSS30 from Sentinel-2; 30 m; ref:hls2), red (B04)
 
 ## cpc_enso

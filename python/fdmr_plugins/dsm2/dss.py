@@ -65,6 +65,20 @@ def hec_day(t: int) -> int:
     return (t - PST - HEC_EPOCH) // 86_400
 
 
+def irregular_blocks(path: str, start: int, end: int) -> list[str]:
+    """The record paths (D part set to each block's start) an irregular series
+    keeps its values in from `start` to `end` (UTC): IR-DECADE blocks start on
+    1 January of a year ending in 0, IR-YEAR on 1 January."""
+    p = parts(path)
+    step = {"IR-DECADE": 10, "IR-YEAR": 1}.get(p[4].upper())
+    if step is None:
+        raise ValueError(f"no block rule for {p[4]!r}")
+    y0 = datetime.fromtimestamp(start - PST, timezone.utc).year
+    y1 = datetime.fromtimestamp(end - PST, timezone.utc).year
+    first = y0 - y0 % step
+    return [f"/{p[0]}/{p[1]}/{p[2]}/01JAN{y}/{p[4]}/{p[5]}/" for y in range(first, y1 + 1, step)]
+
+
 def is_irregular(path: str) -> bool:
     return parts(path)[4].upper().startswith("IR-")
 
@@ -103,6 +117,11 @@ class Dss:
                 if not is_missing(float(v)):
                     pts.append((t0 + int(m) * 60, float(v)))
         return pts, units, kind
+
+    def delete(self, file: str, path: str) -> bool:
+        """Delete one record (`path` with its D part, the block's start); True if it was there."""
+        out = subprocess.run([self.tool, "delete", file, path], capture_output=True, text=True, check=True)
+        return out.stdout.strip().endswith("T")
 
     def write_irregular(self, file: str, path: str, points: Sequence[tuple[int, float]], units: str, kind: str) -> None:
         """Store (UTC time, value) pairs as an irregular series."""

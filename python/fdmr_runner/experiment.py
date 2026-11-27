@@ -197,7 +197,15 @@ def run_scenario(cfg: dict, exp: dict, scen: dict, run_dir: Path, lock: str | No
             a = midnight(o["from"]) if "from" in o else t0
             b = midnight(o["to"]) if "to" in o else None
             new_pts = in_run(overridden(pts, float(o["value"]), a, b), t0, t1)
-            d.write_irregular(str(gates), o["path"], study.monthly(new_pts, t1), units or "UNSPECIF", kind or "INST-VAL")
+            # DWR's records are in a form dsstool's write garbles: delete the
+            # run's blocks, then write the run's whole series afresh (27 Nov 2026).
+            for block in dss.irregular_blocks(o["path"], t0, t1):
+                d.delete(str(gates), block)
+            written = study.monthly(new_pts, t1)
+            d.write_irregular(str(gates), o["path"], written, units or "UNSPECIF", kind or "INST-VAL")
+            back, _, _ = d.read_irregular(str(gates), o["path"], t0, t1)
+            if [(t, round(v, 4)) for t, v in back] != [(t, round(v, 4)) for t, v in written if t <= t1]:
+                raise RuntimeError(f"{o['path']}: the run's gate file does not read back as written")
             print(f"  {o['path']} = {o['value']} from {o.get('from', 'the start')} to {o.get('to', 'the end')}", flush=True)
         new["GATEFILE"] = str(gates)
     config.write_text(inp.set_envvars(config.read_text(encoding="utf-8"), new), encoding="utf-8")

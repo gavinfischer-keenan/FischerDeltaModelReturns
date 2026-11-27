@@ -1,5 +1,6 @@
 import math
 from calendar import timegm
+from datetime import datetime, timezone
 
 import pytest
 
@@ -198,3 +199,13 @@ def test_drainage_is_a_daily_series():
 
     assert "/1DAY/" in tm.water_path("drainage") and "/15MIN/" in tm.water_path("sac")
     assert tm.daily([1.0] * 96 + [3.0] * 96) == [1.0, 1.0, 3.0]
+
+
+def test_an_irregular_series_blocks_by_decade_or_year():
+    from fdmr_plugins.dsm2 import dss
+
+    t = lambda y, m, d: int(datetime(y, m, d, tzinfo=timezone.utc).timestamp()) + dss.PST  # noqa: E731
+    p = "/HIST+GATE/FALSE_R/INSTALL//IR-DECADE/DWR-BDO_NAVD/"
+    assert dss.irregular_blocks(p, t(2020, 6, 30), t(2022, 1, 2)) == ["/HIST+GATE/FALSE_R/INSTALL/01JAN2020/IR-DECADE/DWR-BDO_NAVD/"]
+    assert len(dss.irregular_blocks(p, t(2017, 11, 30), t(2020, 2, 1))) == 2
+    assert dss.irregular_blocks("/A/B/C//IR-YEAR/F/", t(2018, 3, 1), t(2019, 1, 5))[-1] == "/A/B/C/01JAN2019/IR-YEAR/F/"
