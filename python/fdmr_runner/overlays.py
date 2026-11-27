@@ -468,20 +468,13 @@ def snowpack(store: Store, src: str, group: str, now: int) -> dict | None:
             **({"change_7d_mm": round(swe - week, 1)} if week is not None else {})}
 
 
-def _segment_km(p: np.ndarray, a: np.ndarray, b: np.ndarray) -> float:
-    """Distance from p to the segment a-b, all in km on a local plane."""
-    d = b - a
-    f = 0.0 if not d.any() else float(np.clip(np.dot(p - a, d) / np.dot(d, d), 0.0, 1.0))
-    return float(np.hypot(*(p - (a + f * d))))
-
-
 def nearest_element(geo: dict, lon: float, lat: float) -> tuple[int, float]:
     """The element of a reach's geometry nearest a point, and how far, km: the
     nearest line for a 1D reach (lines per element), the nearest node for a 2D
     mesh (lon/lat per node)."""
     if "lines" in geo:
-        # Every line's segments at once, on the same local plane as _segment_km
-        # (km about the point's latitude): the nearest segment's line.
+        # Every line's segments at once, on a local plane (km about the
+        # point's latitude): the nearest point of each segment, then the nearest segment's line.
         flat = geo.get("_segments")
         if flat is None:
             a, b, line_of = [], [], []
