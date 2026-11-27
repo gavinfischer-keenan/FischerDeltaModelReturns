@@ -16,7 +16,8 @@
 # wait its turn (flock).
 #
 # What ran is recorded (#55): each region's steps before its publish, with
-# whether each worked and how long it took, in $DATA/store/cycle-steps-<region>.json
+# whether each worked, how long it took and its peak memory (#36), in
+# $DATA/store/cycle-steps-<region>.json
 # (publish copies them into the cycle's index.json and reports a failed one);
 # and each mode's last run, in $DATA/publish/cycle-runs.json, served beside the
 # cycles for check.html.
@@ -40,19 +41,16 @@ cd "$ROOT/python" || exit 1
 status=0
 started=$(date +%s)
 
-# step NAME COMMAND...: run one step, and record whether it worked and how long it took.
+# step NAME COMMAND...: run one step, and record whether it worked, how long
+# it took and the most memory any one of its processes needed (fdmr_runner.stepstat).
 step() {
   name=$1; shift
-  t0=$(date +%s)
-  if "$@"; then ok=true; else ok=false; status=1; fi
-  printf '%s{"step":"%s","ok":%s,"seconds":%d}' "$sep" "$name" "$ok" "$(( $(date +%s) - t0 ))" >> "$steps.tmp"
-  sep=","
+  "$PY" -m fdmr_runner.stepstat "$steps.tmp" "$name" -- "$@" || status=1
 }
 
 for region in $REGIONS; do
   steps="$DATA/store/cycle-steps-$region.json"
   printf '[' > "$steps.tmp"
-  sep=""
   rdir="$ROOT/regions/$region"
   store="$DATA/store/fdmr.sqlite"
   echo "== $region: fetch ($MODE)"

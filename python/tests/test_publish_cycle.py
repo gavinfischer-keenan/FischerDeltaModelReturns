@@ -155,3 +155,17 @@ def test_the_channel_maths_that_runs_is_the_one_recorded(cycle, tmp_path):
     with pytest.raises(ValueError, match="channel"):  # the trial asks for maths these gauges cannot give
         publish.publish(REGION, store, out, days=2, datums={}, ahead=2,
                         trial={"name": "t", "maths": {"river": {"channel": publish.WIDE_CHANNEL}}})
+
+
+def test_a_step_is_recorded_with_its_time_and_peak_memory(tmp_path):
+    import sys
+
+    from fdmr_runner import stepstat
+
+    f = tmp_path / "steps.json"
+    f.write_text("[", encoding="utf-8")
+    assert stepstat.run(f, "ok-step", [sys.executable, "-c", "x = bytearray(50_000_000)"]) == 0
+    assert stepstat.run(f, "bad-step", [sys.executable, "-c", "raise SystemExit(3)"]) == 3
+    steps = json.loads(f.read_text(encoding="utf-8") + "]")
+    assert [(s["step"], s["ok"]) for s in steps] == [("ok-step", True), ("bad-step", False)]
+    assert steps[0]["peak_mb"] >= 50
