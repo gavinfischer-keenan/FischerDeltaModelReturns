@@ -52,6 +52,28 @@ def fit(ms: Sequence[ChannelMeasurement], since: int | None = None, min_n: int =
     return ChannelShape(a[0], a[1], w[0], w[1], a[2], w[2], len(use))
 
 
+def wide_channel(width_m: float, slope: float, chezy: float | None = None, manning_n: float | None = None) -> ChannelShape:
+    """A channel's shape where no field measurements are published: a wide
+    channel of fixed width W (its main channel), water-surface slope S and
+    roughness, whose depth follows from flow by uniform flow,
+
+        Chezy:    Q = C W d^(3/2) S^(1/2)   so  A = W d = W^(1/3) (Q / (C S^(1/2)))^(2/3)
+        Manning:  Q = (1/n) W d^(5/3) S^(1/2)  so  A = W^(2/5) (Q n / S^(1/2))^(3/5)
+
+    (wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,
+    chapters 5 and 6). The width is held: valid while the river stays in its
+    main channel, below bankfull; flow over the floodplains is not
+    represented. r2 and n are 0: nothing was fitted."""
+    if (chezy is None) == (manning_n is None):
+        raise ValueError("give a Chezy coefficient or a Manning's n, not both")
+    s = math.sqrt(slope)
+    if chezy is not None:
+        a, b = width_m ** (1 / 3) * (chezy * s) ** (-2 / 3), 2 / 3
+    else:
+        a, b = width_m ** 0.4 * (manning_n / s) ** 0.6, 0.6
+    return ChannelShape(a, b, width_m, 0.0, 0.0, 0.0, 0)
+
+
 def between(up: ChannelShape, down: ChannelShape, f: float) -> ChannelShape:
     """The shape a fraction `f` (0 = up, 1 = down) of the way between two gauges:
     coefficients interpolated in log space, exponents linearly."""

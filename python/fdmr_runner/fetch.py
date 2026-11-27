@@ -445,6 +445,11 @@ def main(argv: list[str] | None = None) -> int:
     import tomllib as _toml
 
     live = _toml.loads((Path(args.region) / "region.toml").read_text(encoding="utf-8")).get("live_stations", [])
+    # A river gauge of Rijkswaterstaat's is read the same way: its discharge, and its forecast if it has one.
+    live = live + [{"source": g.source, "site": g.site, "quantities": [g.parameter, "water_level"],
+                    "forecasts": [g.parameter] if g.forecast and g.forecast.get("source") == g.source else []}
+                   for g in region.gauges if g.source == "rws" and not args.forecast_only
+                   and not any(s.get("site") == g.site and g.parameter in s.get("quantities", []) for s in live)]
     if live:
         from fdmr_adapters.rws import SOURCE as RWS, RwsAdapter
 

@@ -283,7 +283,10 @@
       else error = r.message;
     });
     try {
-      const geometry = (await fetch(`${cycle}/geometry/river.json`).then((r) => r.json())) as ReachGeometry;
+      // The main reach: the cycle's first river-routing reach (the publisher's own choice).
+      const index = (await fetch(`${cycle}/index.json`, { cache: "no-store" }).then((r) => r.json())) as { reaches: { id: string; kind: string }[] };
+      const main = (index.reaches.find((x) => x.kind === "river-routing") ?? index.reaches[0]).id;
+      const geometry = (await fetch(`${cycle}/geometry/${main}.json`).then((r) => r.json())) as ReachGeometry;
       reach = new Reach(geometry);
       map = createMap(mapEl, reach, region);
       map.on("click", (e) => {
@@ -331,7 +334,7 @@
         draft = pick;
         placing = false;
       });
-      request({ type: "open", cycle, reach: "river", particles: FLOW_PARTICLES });
+      request({ type: "open", cycle, reach: main, particles: FLOW_PARTICLES });
       requestAnimationFrame(tick);
     } catch (e) {
       error = String(e);

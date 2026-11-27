@@ -17,9 +17,15 @@ def test_region_package_is_well_formed(path):
         assert g.role in {"release", "main", "tributary"}
         if g.source == "usgs":
             assert g.site.isdigit()
-        else:  # another agency's station: placed by a USGS site beside it, or by its coordinates
-            assert g.source == "cdec" and g.site.isalpha() and g.site.isupper()
+        elif g.source == "cdec":  # placed by a USGS site beside it, or by its coordinates
+            assert g.site.isalpha() and g.site.isupper()
             assert g.usgs_site or (g.lon is not None and g.lat is not None), g.site
+        else:  # another country's agency: placed by its coordinates, its channel given (no USGS measurements)
+            assert g.source == "rws" and g.site == g.site.lower(), g.site
+            assert g.lon is not None and g.lat is not None, g.site
+            if g.role in ("release", "main"):
+                assert g.channel and g.channel["width_m"] > 0 and g.channel["slope"] > 0, g.site
+                assert ("chezy" in g.channel) != ("manning_n" in g.channel), g.site
     for reach in reach_ids:
         gs = r.gauges_for(reach)
         if gs:

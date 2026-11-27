@@ -15,7 +15,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026; parameters read from the full 
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:16`: Roelvink and Jaffe (2015, ref:achete2015), whose calibrated values the region gives
-- `python/fdmr_plugins/registry.py:74`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
+- `python/fdmr_plugins/registry.py:80`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
 - `python/fdmr_runner/delta.py:162`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
 - `regions/sf-bay-delta/dsm2.toml:655`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
 - `runner/dsm2/gtm-sediment.patch:21`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
@@ -28,7 +28,7 @@ Checked: FAO's page of the paper, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:50`: "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
+- `python/fdmr_plugins/registry.py:56`: "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
 - `python/fdmr_plugins/river_routing/heat.py:18`: the surface is FAO-56's clear-sky radiation (Allen et al. 1998, ref:allen1998fao56, Crop
 
 ## brown1987qual2e
@@ -134,11 +134,11 @@ Checked: GitHub release DSM2 v8.5.1, published 2 Jun 2026; built from its tag 26
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:1`: """Suspended sediment with DSM2's General Transport Model (issue #16; ref:dsm2).
-- `python/fdmr_plugins/registry.py:63`: "California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs", "fdmr_plugins.dsm2.study, fdmr_runner.delta")],
-- `python/fdmr_plugins/registry.py:65`: "California DWR, DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.study")],
-- `python/fdmr_plugins/registry.py:67`: "California DWR, DSM2 QUAL (heat; ref:dsm2)", "fdmr_plugins.dsm2.temperature")],
-- `python/fdmr_plugins/registry.py:69`: "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
-- `python/fdmr_plugins/registry.py:75`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
+- `python/fdmr_plugins/registry.py:69`: "California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs", "fdmr_plugins.dsm2.study, fdmr_runner.delta")],
+- `python/fdmr_plugins/registry.py:71`: "California DWR, DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.study")],
+- `python/fdmr_plugins/registry.py:73`: "California DWR, DSM2 QUAL (heat; ref:dsm2)", "fdmr_plugins.dsm2.temperature")],
+- `python/fdmr_plugins/registry.py:75`: "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
+- `python/fdmr_plugins/registry.py:81`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:1`: DSM2 for the Delta reach (specification 7.2; ref:dsm2): DWR's own historical study, run
 - `runner/dsm2/gtm-sediment.patch:1`: FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
 
@@ -204,7 +204,7 @@ Checked: Open Library ISBN records of both printings, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:49`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
+- `python/fdmr_plugins/registry.py:55`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
 
 ## chapra2008qual2k
@@ -217,7 +217,7 @@ Checked: The manual's title page read, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:49`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
+- `python/fdmr_plugins/registry.py:55`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/river_routing/heat.py:10`: 2008, ref:chapra2008qual2k, QUAL2K documentation, after TVA 1972, ref:tva1972);
 
 ## chen2003fvcom
@@ -228,7 +228,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:80`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
+- `python/fdmr_plugins/registry.py:86`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
 
 ## chow1959
 
@@ -238,6 +238,8 @@ Checked: The reprint's publisher page, 26 Nov 2026
 
 Used in:
 
+- `python/fdmr_plugins/registry.py:46`: "Chow 1959, Open-Channel Hydraulics, chapters 5-6 (ref:chow1959); each region's width, slope and roughness "
+- `python/fdmr_plugins/river_routing/channel.py:63`: (wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,
 - `regions/sf-bay-delta/canals.toml:76`: 1959, Open-Channel Hydraulics, Table 5-6, ref:chow1959), and the canal's grade of 3 inches
 
 ## chow1988
@@ -259,7 +261,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:17`: Shelf Science 37:99-110, ref:dimou1993; Visser 1997, Marine Ecology Progress
-- `python/fdmr_plugins/registry.py:97`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
+- `python/fdmr_plugins/registry.py:103`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## elder1959
 
@@ -292,9 +294,21 @@ Checked: Crossref record of the DOI (title, 1979); Open Library ISBN record, 26 
 Used in:
 
 - `crates/fdmr-math/src/dispersion.rs:4`: Coastal Waters* (Academic Press, 1979; ref:fischer1979), chapter 5; Fischer,
-- `python/fdmr_plugins/registry.py:54`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
-- `python/fdmr_plugins/registry.py:96`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
+- `python/fdmr_plugins/registry.py:60`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
+- `python/fdmr_plugins/registry.py:102`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
 - `ui/src/compute/worker.ts:133`: Waters, ref:fischer1979).
+
+## gensen2022
+
+Gensen, M. R. A., Warmink, J. J., Huthoff, F., and Hulscher, S. J. M. H. (2022). Human interventions in a bifurcating river system. Journal of Flood Risk Management 15(1), e12762. https://doi.org/10.1111/jfr3.12762
+
+*Section 2.1: the Rhine distributaries' bankfull discharges correspond to a Lobith discharge of about 5000 m3/s.*
+
+Checked: Crossref record of the DOI; section 2.1 read, 26 Nov 2026
+
+Used in:
+
+- `regions/rhine-meuse/region.toml:55`: Gensen et al. 2022, ref:gensen2022) is not represented; the groyne fields'
 
 ## godin1972
 
@@ -344,6 +358,18 @@ Checked: DataCite record of the DOI and NASA CMR collection ECO_L2T_LSTE version
 Used in:
 
 - `python/fdmr_adapters/ecostress.py:30`: References: ref:ecostress_lst (references.toml).
+
+## huyskens1994
+
+Huyskens, R. B. H., and Barneveld, H. J. (1994). Sobek-model voor de Nederlandse Rijntakken. Waterloopkundig Laboratorium, report Q1895, for RIZA; September 1994. https://open.rijkswaterstaat.nl/publish/pages/111343/112892.pdf
+
+*The calibrated main-channel Chezy coefficients of the Rhine branches from low flow to design high water (tables 3.6, 3.13, 3.22), calibrated on 1992 bed levels. In Dutch.*
+
+Checked: The report read: pp. 3-1 to 3-10 and tables 3.6, 3.13, 3.18, 3.22, 26 Nov 2026
+
+Used in:
+
+- `regions/rhine-meuse/region.toml:59`: Huyskens and Barneveld's 1994 calibration (ref:huyskens1994), before Room
 
 ## jassby1995
 
@@ -525,7 +551,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/noaa_ofs.py:17`: References: ref:noaa_ofs (references.toml).
-- `python/fdmr_plugins/registry.py:80`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
+- `python/fdmr_plugins/registry.py:86`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
 
 ## nws_api
 
@@ -556,7 +582,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/cnrfc.py:11`: References: ref:cnrfc (references.toml).
-- `python/fdmr_plugins/registry.py:59`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
+- `python/fdmr_plugins/registry.py:65`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
 
 ## okubo1971
 
@@ -578,6 +604,17 @@ Used in:
 
 - `python/fdmr_adapters/openet.py:11`: References: ref:openet, and the method: ref:melton2022openet (references.toml).
 
+## osm
+
+OpenStreetMap contributors (2026). OpenStreetMap, through the Overpass API. OpenStreetMap Foundation; Open Database Licence 1.0. https://www.openstreetmap.org/copyright
+
+Checked: Read by the model runner through the Overpass API, 26 Nov 2026
+
+Used in:
+
+- `python/fdmr_adapters/osm.py:12`: References: ref:osm (references.toml).
+- `regions/rhine-meuse/region.toml:78`: gauge): this reach's line is OpenStreetMap's main stream instead (ref:osm;
+
 ## opera_dswx_s1
 
 OPERA (Observational Products for End-Users from Remote Sensing Analysis), NASA Jet Propulsion Laboratory (2024). OPERA Dynamic Surface Water Extent from Sentinel-1, Version 1. NASA Physical Oceanography Distributed Active Archive Center. https://doi.org/10.5067/OPDSWS1-L3V1
@@ -597,7 +634,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:7`: (Partheniades 1965, ref:partheniades1965), no more
-- `python/fdmr_plugins/registry.py:75`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
+- `python/fdmr_plugins/registry.py:81`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:661`: in Partheniades' form (ref:partheniades1965)
 - `runner/dsm2/gtm-sediment.patch:20`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
 
@@ -619,7 +656,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:84`: "Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; "
+- `python/fdmr_plugins/registry.py:90`: "Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; "
 
 ## smap_l4
 
@@ -631,6 +668,17 @@ Used in:
 
 - `python/fdmr_adapters/smap.py:19`: References: ref:smap_l4 (references.toml).
 
+## pdok_nwb_vaarwegen
+
+Rijkswaterstaat (2026). Nationaal Wegenbestand Vaarwegen (NWB Vaarwegen): waterway sections and river-kilometre markers, OGC API through PDOK. PDOK, the Dutch government's open geodata service; CC0 1.0. https://api.pdok.nl/rws/nationaal-wegenbestand-vaarwegen/ogc/v1
+
+Checked: Read by the model runner (vaarwegvakken, kmmarkeringen), 26 Nov 2026
+
+Used in:
+
+- `python/fdmr_adapters/pdok.py:11`: References: ref:pdok_nwb_vaarwegen (references.toml).
+- `regions/rhine-meuse/region.toml:45`: national waterway network (NWB Vaarwegen on PDOK, CC0; ref:pdok_nwb_vaarwegen;
+
 ## rws_ddapi
 
 Rijkswaterstaat (2026). WaterWebservices (DDAPI 2.0): water level, discharge, temperature, chloride and wind, measured and forecast. Rijkswaterstaat, Ministry of Infrastructure and Water Management, the Netherlands; open data (CC0 1.0 / Public Domain Mark 1.0 in the data.overheid.nl catalogue). https://ddapi20-waterwebservices.rijkswaterstaat.nl/webservices-api-docs
@@ -640,7 +688,7 @@ Checked: The API's OpenAPI description read and live requests made, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/rws.py:30`: References: ref:rws_ddapi (references.toml).
-- `regions/rhine-meuse/region.toml:5`: from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws), so a
+- `regions/rhine-meuse/region.toml:5`: from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws).
 
 ## schaffter1997
 
@@ -665,7 +713,7 @@ Checked: NOAA's PDF, title page read, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/extend.py:14`: hour; Schureman 1958, ref:schureman1958, *Manual of Harmonic Analysis and Prediction of Tides*,
-- `python/fdmr_plugins/registry.py:85`: "constituent speeds from Schureman 1958 (ref:schureman1958)",
+- `python/fdmr_plugins/registry.py:91`: "constituent speeds from Schureman 1958 (ref:schureman1958)",
 
 ## sellheim2022
 
@@ -752,7 +800,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/usace_spk.py:17`: References: ref:usace_fcr (references.toml).
-- `python/fdmr_plugins/registry.py:59`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
+- `python/fdmr_plugins/registry.py:65`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
 
 ## usbr2007ea1589
 
@@ -837,7 +885,7 @@ Checked: UNESDOC's record of the report (series 36, 1981), 26 Nov 2026; the full
 Used in:
 
 - `crates/fdmr-math/src/salinity.rs:4`: is the Practical Salinity Scale of 1978 (PSS-78; UNESCO 1981, ref:unesco1981), applied to
-- `python/fdmr_plugins/registry.py:98`: "salinity-from-conductance": [Maths("pss-78", "Practical salinity from specific conductance", "UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)",
+- `python/fdmr_plugins/registry.py:104`: "salinity-from-conductance": [Maths("pss-78", "Practical salinity from specific conductance", "UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)",
 
 ## vanrijn1984
 
@@ -858,7 +906,19 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:18`: Series 158:275-281, ref:visser1997). The flow part is taken with a midpoint (second-order
-- `python/fdmr_plugins/registry.py:97`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
+- `python/fdmr_plugins/registry.py:103`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
+
+## visser2000
+
+Visser, P. J. (2000). Bodemontwikkeling Rijnsysteem: een verkenning van omvang, oorzaken, toekomstige ontwikkelingen en mogelijke maatregelen. Delft University of Technology, for Rijkswaterstaat Directie Oost-Nederland; October 2000. https://repository.tudelft.nl/file/File_4c8c86eb-947e-4ae3-aad8-e7e8567aeb11
+
+*Normalized widths (table 2.1, pp. 6-7; p. 42 for the IJssel's widening downstream) and bed slopes (pp. 42-51, citing Rijkswaterstaat 2000) of the Rhine branches. In Dutch.*
+
+Checked: The report read: table 2.1 and pp. 42-51, 26 Nov 2026
+
+Used in:
+
+- `regions/rhine-meuse/region.toml:102`: with its channel: width (Visser 2000, ref:visser2000, table 2.1 and pp. 42-49),
 
 ## wright2005
 

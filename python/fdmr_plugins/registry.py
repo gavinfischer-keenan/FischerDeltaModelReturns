@@ -38,7 +38,13 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
         "channel": [Maths("power-law-hydraulic-geometry",
                           "Cross-section area and top width as power laws of flow, fitted to each gauge's recent USGS channel measurements",
                           "Leopold and Maddock 1953, USGS Professional Paper 252 (hydraulic geometry; ref:leopold1953)",
-                          "fdmr_plugins.river_routing.channel")],
+                          "fdmr_plugins.river_routing.channel"),
+                    Maths("wide-channel-uniform-flow",
+                          "Where no field measurements are published: a main channel of sourced width, water-surface slope and "
+                          "roughness, depth from flow by uniform flow (Chezy or Manning, hydraulic radius as depth); width held, so "
+                          "valid below bankfull",
+                          "Chow 1959, Open-Channel Hydraulics, chapters 5-6 (ref:chow1959); each region's width, slope and roughness "
+                          "with their own sources", "fdmr_plugins.river_routing.channel.wide_channel")],
         "travel-time": [Maths("measured-release-waves",
                               "Wave scale and water factor per segment, from release changes measured arriving at the next gauge, refitted nightly",
                               "Specification 9.1", "fdmr_plugins.river_routing.calibration, wave")],

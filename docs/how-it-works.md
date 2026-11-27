@@ -111,7 +111,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  inet(["the internet"]) --> e["CT 703 web edge<br/>tripofisch.com routes"] -->|/sturgeon/bay-delta/| cad["Caddy :8091 on CT 705<br/>runner/web"]
+  inet(["the internet"]) --> e["CT 703 web edge<br/>tripofisch.com routes"] -->|"/sturgeon/bay-delta/, /sturgeon/rhine-meuse/"| cad["Caddy :8091 on CT 705<br/>runner/web"]
   cad --> app["the viewer's build<br/>(deploy_app.sh)"]
   cad --> pubd[("/srv/fdmr-data/publish")]
   tm["systemd timers on CT 705<br/>runner/schedule"] --> run["model runner<br/>~/fdmr, ~/venv"] --> pubd

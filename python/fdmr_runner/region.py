@@ -28,6 +28,9 @@ class Gauge:
     lon: float | None = None
     lat: float | None = None
     release_rule: dict | None = None  # a release's forecast where no schedule is published (fdmr_runner.releases)
+    # Where no channel measurements are published: {width_m, slope, chezy or
+    # manning_n, source}, a wide channel (fdmr_plugins.river_routing.channel.wide_channel).
+    channel: dict | None = None
 
     @property
     def place_site(self) -> str | None:

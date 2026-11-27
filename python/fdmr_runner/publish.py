@@ -63,15 +63,19 @@ DEFAULT_SLOPE = 3e-4  # a typical lowland river, used only where no gauge pair g
 
 def segment_slopes(gauges, chainage, store, datums, t0, now) -> list[float]:
     """Water-surface slope between each pair of consecutive main gauges: the drop
-    in (datum + median gauge height) over the distance. Missing or implausible
-    slopes take a neighbour's, or a default."""
-    def surface(site):
-        d = datums.get(site)
+    in (datum + median gauge height) over the distance; a gauge reporting its
+    water level against the region's datum itself (Rijkswaterstaat's, in m NAP)
+    gives it directly. Missing or implausible slopes take a neighbour's, or a default."""
+    def surface(g):
+        if g.source == "rws":
+            wl = [v.value for v in store.values("rws", g.site, "water_level", t0, now + STEP) if v.value is not None]
+            return sorted(wl)[len(wl) // 2] if wl else None
+        d = datums.get(g.site)
         if d is None:
             return None
-        gh = [v.value for v in store.values(SOURCE, site, "gage_height", t0, now + STEP) if v.value is not None]
+        gh = [v.value for v in store.values(SOURCE, g.site, "gage_height", t0, now + STEP) if v.value is not None]
         return d + sorted(gh)[len(gh) // 2] if gh else None
-    z = [surface(g.site) for g in gauges]
+    z = [surface(g) for g in gauges]
     s = []
     for (g1, z1), (g2, z2) in zip(zip(gauges, z), list(zip(gauges, z))[1:]):
         dist = chainage[g2.site] - chainage[g1.site]
@@ -141,6 +145,9 @@ def fit_shapes(gauges, chainage, store: Store) -> dict:
     since = int(time.time()) - 10 * 365 * DAY
 
     def fit(g):
+        if g.channel:  # no field measurements here: the region's sourced main channel
+            c = g.channel
+            return channel.wide_channel(c["width_m"], c["slope"], chezy=c.get("chezy"), manning_n=c.get("manning_n"))
         if not g.place_site:
             return None
         ms = store.channel_measurements(SOURCE, g.place_site)
@@ -233,6 +240,10 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                 issue, got = cnrfc.parse(zb, [g.forecast["point"]])
                 fv = got.get(g.forecast["point"], [])
                 fc = forecast.on_grid([(v.t, v.value) for v in fv], t0, STEP, n) if fv else None
+        elif g.forecast and g.forecast.get("source") == "rws" and not hindcast:
+            # Rijkswaterstaat's own forecast at the gauge (fdmr_adapters.rws), as fetched.
+            fv = store.values("rws", g.site, "discharge_forecast", now - DAY, end + DAY)
+            fc = forecast.on_grid([(v.t, v.value) for v in fv if v.t > now - 3 * 3600], t0, STEP, n) if fv else None
         rule_rec = None
         if fc is None and g.role == "release" and g.release_rule and not hindcast:
             from . import releases
@@ -250,9 +261,11 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
             records.append(model.GaugeRecord(chainage[g.site], shape, flow))
             continue
         if fc is None:
-            how = "held at its last value" + (" (a dam's release: no schedule is published)" if g.role == "release" else "")
+            how = "held at its last value" + (" (a dam's release: no schedule is published)" if g.role == "release" and not g.channel
+                                              else " (no forecast is published for this gauge)" if g.channel else "")
         else:
-            how = (f"River Forecast Center {g.forecast['point']}, joined over a day" +
+            who = "Rijkswaterstaat's forecast" if g.forecast.get("source") == "rws" else f"River Forecast Center {g.forecast['point']}"
+            how = (f"{who}, joined over a day" +
                    (f", to {utc(t0 + fc_end * STEP)}, then held" if fc_end is not None else ", which covers nothing ahead: held"))
         assumed.append({"input": f"{g.source} {g.site} {g.parameter} ({g.role})", "how": how, "last_reading": last_t})
         records.append(model.GaugeRecord(chainage[g.site], shape, flow))
@@ -323,7 +336,8 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                 str(cdir / reach / f"{name}.quality.fdf"), f"{reach}:quality", 1, len(els), 1, i1 - i0, d0, STEP,
                 [("temperature", "degC", True, temperature[i0:i1].ravel().tolist())],
             )
-    issues = [store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") for g in gauges if g.forecast]
+    issues = [store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") if g.forecast.get("source") == cnrfc.SOURCE
+              else store.latest(g.forecast["source"], g.site, f"{g.parameter}_forecast") for g in gauges if g.forecast]
     entry = {
         "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
         "fields": ["flow", "area", "velocity", "volume", "dispersion"],
@@ -547,7 +561,7 @@ def publish(
     store: Store,
     out_dir: Path,
     days: int,
-    reach: str = "river",
+    reach: str | None = None,
     datums: dict[str, float | None] | None = None,
     ahead: int = 14,
     calibration: dict | None = None,
@@ -560,6 +574,8 @@ def publish(
     2026), and release rules and weather forecasts hold; its overlays and
     ledger are left to the caller."""
     region = load_region(region_dir)
+    if reach is None:  # the main reach: the region's first river-routing reach
+        reach = next(r["id"] for r in region.reaches if r.get("kind") == "river-routing")
     gauges, _ = river_chain(region_dir, reach)
     hindcast = as_of is not None
 

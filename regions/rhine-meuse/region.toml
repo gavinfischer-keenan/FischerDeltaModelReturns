@@ -2,17 +2,18 @@
 # #23), to prove it is not tied to one place. Data only.
 #
 # Stage 1 (26 Nov 2026): its live stations are recorded, every 10 minutes,
-# from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws), so a
-# record builds up for checking whatever model runs here. Nothing is published
-# yet (fetch_only): no reach can run until the steps below are done.
+# from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws).
+# Stage 2 (27 Nov 2026): three river reaches run and publish, the Waal, the
+# Nederrijn-Lek and the IJssel, each from its first discharge gauge below the
+# Rhine's splits (below).
 #
-# What porting here has shown is tied to the United States, so far:
-# - river geometry comes from the USGS's national river network (NLDI on
-#   NHDPlus, fdmr_runner.geometry), which covers only the United States; a
-#   European river network (Copernicus EU-Hydro, or OpenStreetMap) is needed;
-# - river channels take their shape (area and width against flow) from USGS's
-#   field measurements at each gauge; Rijkswaterstaat publishes no such
-#   measurements through its API;
+# What porting here showed was tied to the United States, and how each is met:
+# - river geometry came only from the USGS's national river network (NLDI on
+#   NHDPlus): a reach may now take its line from Rijkswaterstaat's waterway
+#   network or OpenStreetMap (`line`), checked against the river kilometres;
+# - river channels took their shape only from USGS's field measurements at
+#   each gauge, which Rijkswaterstaat does not publish: a gauge may now give
+#   its main channel's sourced width, slope and roughness (`channel`);
 # - the tidal network model: DWR's DSM2 runs the Bay-Delta, but no open model
 #   of the Rhine-Meuse delta's channels can be had. Rijkswaterstaat's D-Flow FM
 #   schematizations are released only on request, for its own tasks (checked
@@ -23,8 +24,12 @@
 id = "rhine-meuse"
 name = "Rhine-Meuse delta, Lobith and Eijsden to the North Sea"
 timezone = "Europe/Amsterdam"
-fetch_only = true
-reaches = []
+
+# The map: a Protomaps extract (fdmr_runner.basemap), from the North Sea off
+# the delta to Lobith, and from Eijsden to the IJssel's mouth at Kampen.
+[basemap]
+bbox = [3.3, 50.65, 6.35, 52.75]   # west, south, east, north
+maxzoom = 15
 
 # Each: site (Rijkswaterstaat's code), what it is, and the quantities read
 # (fdmr_adapters.rws.QUANTITIES); `forecasts`, Rijkswaterstaat's own
@@ -33,6 +38,144 @@ reaches = []
 # and temperature (`depth_for` to change which). Chosen from the stations
 # live on 26 Nov 2026; the discharges balance at each split (Lobith 2035 =
 # Waal 1534 + Pannerdensch Kanaal 491; the canal 491 = Nederrijn 210 + IJssel 287).
+# ---- River reaches (stage 2). Each starts at its first discharge gauge below
+# a split, as a reach with no dam does in the Bay-Delta; the Boven-Rijn's
+# three-way split at the Pannerdensche Kop and IJsselkop is not carried across
+# yet (a reach hands its water to one reach only). Lines from Rijkswaterstaat's
+# national waterway network (NWB Vaarwegen on PDOK, CC0; ref:pdok_nwb_vaarwegen;
+# fdmr_runner.geometry `line`), each checked against the river-kilometre markers
+# of the same network (the reach's .json, `river_km_check`).
+#
+# Channel shapes: Rijkswaterstaat publishes no field measurements of area and
+# width against flow, so each gauge's channel is a wide main channel of the
+# river's normalized width, bed slope and calibrated main-channel Chezy
+# coefficient (fdmr_plugins.river_routing.channel.wide_channel; registered
+# maths "wide-channel-uniform-flow"). Limits, all stated: the width is held,
+# so floodplain flow above bankfull (a Lobith discharge of about 5000 m3/s,
+# Gensen et al. 2022, ref:gensen2022) is not represented; the groyne fields'
+# share of the flow is left out; and at low flow the Nederrijn-Lek's weirs
+# (Driel, Amerongen, Hagestein) hold the water in pools, deeper and slower
+# than uniform flow gives, so its speeds there run high. The Chezy values are
+# Huyskens and Barneveld's 1994 calibration (ref:huyskens1994), before Room
+# for the River and the bed's later incision.
+
+[[reaches]]
+id = "waal"
+name = "Waal, Millingen to Gorinchem"
+kind = "river-routing"
+line = { source = "pdok", names = ["Waal"], end = [4.975, 51.830], bbox = [4.9, 51.75, 6.1, 51.95], max_snap_m = 600 }
+mouth = [4.975, 51.830]   # where the Waal becomes the Boven-Merwede, at Gorinchem: tidal below
+certainty = { solid_days = 1, floor = 0.2 }
+maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
+
+[[reaches]]
+id = "nederrijn"
+name = "Nederrijn and Lek, Arnhem to Hagestein"
+kind = "river-routing"
+# Rijkswaterstaat's network follows the shipping route, which leaves the river
+# through the lock channels beside the Driel, Amerongen and Hagestein weirs (gaps
+# of 2.2-2.8 km, and crossing them straight takes the line 1.4 km off the Driel
+# gauge): this reach's line is OpenStreetMap's main stream instead (ref:osm;
+# ODbL, so its .json is too), still checked against Rijkswaterstaat's kilometres.
+line = { source = "osm", names = ["Nederrijn", "Lek"], end = [5.1352, 51.9895], bbox = [5.05, 51.9, 6.0, 52.05], max_snap_m = 600, km_markers = "pdok" }
+mouth = [5.1352, 51.9895]  # the Hagestein weir: tidal below
+certainty = { solid_days = 1, floor = 0.2 }
+maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
+
+[[reaches]]
+id = "ijssel"
+name = "IJssel, Westervoort to the Ketelmeer"
+kind = "river-routing"
+line = { source = "pdok", names = ["Geldersche IJssel"], end = [5.84, 52.59], bbox = [5.75, 51.9, 6.3, 52.65], max_snap_m = 600 }
+mouth = [5.84, 52.59]      # the Ketelmeer
+certainty = { solid_days = 1, floor = 0.2 }
+maths = { channel = "wide-channel-uniform-flow" }   # no field measurements here (the registered alternative)
+
+# The Meuse (Eijsden to Lith) waits: no verified main-channel width was found
+# for its Grensmaas and Bedijkte Maas stretches (issue #23).
+
+# Kampen, the IJssel's last discharge station in Rijkswaterstaat's catalogue,
+# returned no live values on 26 Nov 2026: the IJssel runs from Olst to its mouth
+# on Olst's flow, routed.
+
+# Discharge gauges (Rijkswaterstaat; ETRS89 positions from its catalogue), each
+# with its channel: width (Visser 2000, ref:visser2000, table 2.1 and pp. 42-49),
+# bed slope (Visser 2000, citing Rijkswaterstaat 2000) and main-channel Chezy
+# C, m^0.5/s (Huyskens and Barneveld 1994, tables 3.6, 3.13, 3.22: the middle
+# of each branch's range from low flow to bankfull).
+[[gauges]]
+reach = "waal"
+site = "millingenaanderijn"
+name = "Waal at Millingen aan de Rijn"
+role = "release"
+source = "rws"
+lon = 6.0348
+lat = 51.873
+channel = { width_m = 260, slope = 1.1e-4, chezy = 45 }   # Waal: 260 m (Visser table 2.1, p. 6); 1.1e-4 (p. 49); C 41-49 low flow to bankfull (Huyskens table 3.6)
+
+[[gauges]]
+reach = "waal"
+site = "tiel.waal"
+name = "Waal at Tiel"
+role = "main"
+source = "rws"
+lon = 5.4407
+lat = 51.8824
+channel = { width_m = 260, slope = 1.1e-4, chezy = 45 }
+
+[[gauges]]
+reach = "nederrijn"
+site = "arnhem.nederrijn"
+name = "Nederrijn at Arnhem"
+role = "release"
+source = "rws"
+lon = 5.912
+lat = 51.9754
+forecast = { source = "rws" }
+channel = { width_m = 130, slope = 1.26e-4, chezy = 42 }   # Nederrijn: 130 m (Visser table 2.1, p. 7); 1.26e-4 (p. 44); C 37-47 at bankfull (Huyskens table 3.22)
+
+[[gauges]]
+reach = "nederrijn"
+site = "driel.boven"
+name = "Nederrijn at Driel (above the weir)"
+role = "main"
+source = "rws"
+lon = 5.8106
+lat = 51.9658
+forecast = { source = "rws" }
+channel = { width_m = 130, slope = 1.26e-4, chezy = 42 }
+
+[[gauges]]
+reach = "nederrijn"
+site = "hagestein.boven"
+name = "Lek at Hagestein (above the weir)"
+role = "main"
+source = "rws"
+lon = 5.1352
+lat = 51.9895
+forecast = { source = "rws" }
+channel = { width_m = 130, slope = 1.26e-4, chezy = 42 }   # the Lek: the Nederrijn-Lek bed slope is Visser's average IJsselkop to Hagestein
+
+[[gauges]]
+reach = "ijssel"
+site = "westervoort.1"
+name = "IJssel at Westervoort"
+role = "release"
+source = "rws"
+lon = 5.962
+lat = 51.9705
+channel = { width_m = 80, slope = 1.0e-4, chezy = 41 }   # IJssel at its head: 80 m (Visser p. 42); 1.0e-4 IJsselkop to Wijhe (p. 42); C 37.5-45 at bankfull (Huyskens table 3.13)
+
+[[gauges]]
+reach = "ijssel"
+site = "olst"
+name = "IJssel at Olst"
+role = "main"
+source = "rws"
+lon = 6.1045
+lat = 52.342
+channel = { width_m = 110, slope = 1.0e-4, chezy = 41 }   # Olst: 110 m (Visser p. 42)
+
 [[live_stations]]
 source = "rws"
 site = "lobith.bovenrijn.tolkamer"

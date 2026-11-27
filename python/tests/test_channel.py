@@ -40,3 +40,17 @@ def test_between_runs_from_one_shape_to_the_other():
     assert channel.between(up, down, 1.0).area(200) == pytest.approx(down.area(200))
     mid = channel.between(up, down, 0.5).area(200)
     assert min(up.area(200), down.area(200)) < mid < max(up.area(200), down.area(200))
+
+
+def test_wide_channel_is_uniform_flow_in_a_fixed_width():
+    import math
+
+    from fdmr_plugins.river_routing.channel import wide_channel
+
+    s = wide_channel(260.0, 1e-4, chezy=45.0)
+    d = (1500 / (45.0 * 260.0 * math.sqrt(1e-4))) ** (2 / 3)  # Q = C W d^1.5 S^0.5
+    assert math.isclose(s.depth(1500.0), d, rel_tol=1e-9) and math.isclose(s.width(1500.0), 260.0)
+    m = wide_channel(100.0, 2e-4, manning_n=0.03)
+    dm = (300 * 0.03 / (100.0 * math.sqrt(2e-4))) ** 0.6  # Q = (1/n) W d^(5/3) S^0.5
+    assert math.isclose(m.depth(300.0), dm, rel_tol=1e-9)
+    assert math.isclose(m.velocity(300.0), 300.0 / (100.0 * dm), rel_tol=1e-9)

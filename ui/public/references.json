@@ -19,7 +19,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 74,
+     "line": 80,
      "text": "\"Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 \""
     },
     {
@@ -53,7 +53,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 50,
+     "line": 56,
      "text": "\"FAO-56 clear-sky sunlight (ref:allen1998fao56)\","
     },
     {
@@ -247,27 +247,27 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 63,
+     "line": 69,
      "text": "\"California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs\", \"fdmr_plugins.dsm2.study, fdmr_runner.delta\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 65,
+     "line": 71,
      "text": "\"California DWR, DSM2 QUAL (ref:dsm2)\", \"fdmr_plugins.dsm2.study\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 67,
+     "line": 73,
      "text": "\"California DWR, DSM2 QUAL (heat; ref:dsm2)\", \"fdmr_plugins.dsm2.temperature\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 69,
+     "line": 75,
      "text": "\"DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)\", \"fdmr_plugins.dsm2.fingerprint\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 75,
+     "line": 81,
      "text": "\"(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch\","
     },
     {
@@ -386,7 +386,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 49,
+     "line": 55,
      "text": "\"Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); \""
     },
     {
@@ -410,7 +410,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 49,
+     "line": 55,
      "text": "\"Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); \""
     },
     {
@@ -433,7 +433,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 80,
+     "line": 86,
      "text": "\"NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)\", \"fdmr_plugins.fvcom\")],"
     }
    ]
@@ -449,6 +449,16 @@
    "checked": "The reprint's publisher page, 26 Nov 2026",
    "citation": "Chow, V. T. (1959). Open-Channel Hydraulics. McGraw-Hill, New York; reprinted by The Blackburn Press, Caldwell, New Jersey (ISBN 978-1-932846-18-8). https://blackburnpress.com/ophy.html",
    "used": [
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 46,
+     "text": "\"Chow 1959, Open-Channel Hydraulics, chapters 5-6 (ref:chow1959); each region's width, slope and roughness \""
+    },
+    {
+     "file": "python/fdmr_plugins/river_routing/channel.py",
+     "line": 63,
+     "text": "(wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,"
+    },
     {
      "file": "regions/sf-bay-delta/canals.toml",
      "line": 76,
@@ -493,7 +503,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 97,
+     "line": 103,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
     }
    ]
@@ -554,18 +564,37 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 54,
+     "line": 60,
      "text": "\"Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)\","
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 96,
+     "line": 102,
      "text": "\"Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term \""
     },
     {
      "file": "ui/src/compute/worker.ts",
      "line": 133,
      "text": "Waters, ref:fischer1979)."
+    }
+   ]
+  },
+  {
+   "key": "gensen2022",
+   "authors": "Gensen, M. R. A., Warmink, J. J., Huthoff, F., and Hulscher, S. J. M. H.",
+   "year": 2022,
+   "title": "Human interventions in a bifurcating river system",
+   "kind": "paper",
+   "in": "Journal of Flood Risk Management 15(1), e12762",
+   "doi": "10.1111/jfr3.12762",
+   "note": "Section 2.1: the Rhine distributaries' bankfull discharges correspond to a Lobith discharge of about 5000 m3/s.",
+   "checked": "Crossref record of the DOI; section 2.1 read, 26 Nov 2026",
+   "citation": "Gensen, M. R. A., Warmink, J. J., Huthoff, F., and Hulscher, S. J. M. H. (2022). Human interventions in a bifurcating river system. Journal of Flood Risk Management 15(1), e12762. https://doi.org/10.1111/jfr3.12762",
+   "used": [
+    {
+     "file": "regions/rhine-meuse/region.toml",
+     "line": 55,
+     "text": "Gensen et al. 2022, ref:gensen2022) is not represented; the groyne fields'"
     }
    ]
   },
@@ -666,6 +695,25 @@
      "file": "python/fdmr_adapters/ecostress.py",
      "line": 30,
      "text": "References: ref:ecostress_lst (references.toml)."
+    }
+   ]
+  },
+  {
+   "key": "huyskens1994",
+   "authors": "Huyskens, R. B. H., and Barneveld, H. J.",
+   "year": 1994,
+   "title": "Sobek-model voor de Nederlandse Rijntakken",
+   "kind": "report",
+   "in": "Waterloopkundig Laboratorium, report Q1895, for RIZA; September 1994",
+   "url": "https://open.rijkswaterstaat.nl/publish/pages/111343/112892.pdf",
+   "note": "The calibrated main-channel Chezy coefficients of the Rhine branches from low flow to design high water (tables 3.6, 3.13, 3.22), calibrated on 1992 bed levels. In Dutch.",
+   "checked": "The report read: pp. 3-1 to 3-10 and tables 3.6, 3.13, 3.18, 3.22, 26 Nov 2026",
+   "citation": "Huyskens, R. B. H., and Barneveld, H. J. (1994). Sobek-model voor de Nederlandse Rijntakken. Waterloopkundig Laboratorium, report Q1895, for RIZA; September 1994. https://open.rijkswaterstaat.nl/publish/pages/111343/112892.pdf",
+   "used": [
+    {
+     "file": "regions/rhine-meuse/region.toml",
+     "line": 59,
+     "text": "Huyskens and Barneveld's 1994 calibration (ref:huyskens1994), before Room"
     }
    ]
   },
@@ -988,7 +1036,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 80,
+     "line": 86,
      "text": "\"NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)\", \"fdmr_plugins.fvcom\")],"
     }
    ]
@@ -1044,7 +1092,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 59,
+     "line": 65,
      "text": "\"US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)\", \"fdmr_runner.releases\")],"
     }
    ]
@@ -1085,6 +1133,29 @@
    ]
   },
   {
+   "key": "osm",
+   "authors": "OpenStreetMap contributors",
+   "year": 2026,
+   "title": "OpenStreetMap, through the Overpass API",
+   "kind": "data",
+   "in": "OpenStreetMap Foundation; Open Database Licence 1.0",
+   "url": "https://www.openstreetmap.org/copyright",
+   "checked": "Read by the model runner through the Overpass API, 26 Nov 2026",
+   "citation": "OpenStreetMap contributors (2026). OpenStreetMap, through the Overpass API. OpenStreetMap Foundation; Open Database Licence 1.0. https://www.openstreetmap.org/copyright",
+   "used": [
+    {
+     "file": "python/fdmr_adapters/osm.py",
+     "line": 12,
+     "text": "References: ref:osm (references.toml)."
+    },
+    {
+     "file": "regions/rhine-meuse/region.toml",
+     "line": 78,
+     "text": "gauge): this reach's line is OpenStreetMap's main stream instead (ref:osm;"
+    }
+   ]
+  },
+  {
    "key": "opera_dswx_s1",
    "authors": "OPERA (Observational Products for End-Users from Remote Sensing Analysis), NASA Jet Propulsion Laboratory",
    "year": 2024,
@@ -1120,7 +1191,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 75,
+     "line": 81,
      "text": "\"(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch\","
     },
     {
@@ -1166,7 +1237,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 84,
+     "line": 90,
      "text": "\"Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; \""
     }
    ]
@@ -1190,6 +1261,29 @@
    ]
   },
   {
+   "key": "pdok_nwb_vaarwegen",
+   "authors": "Rijkswaterstaat",
+   "year": 2026,
+   "title": "Nationaal Wegenbestand Vaarwegen (NWB Vaarwegen): waterway sections and river-kilometre markers, OGC API through PDOK",
+   "kind": "data",
+   "in": "PDOK, the Dutch government's open geodata service; CC0 1.0",
+   "url": "https://api.pdok.nl/rws/nationaal-wegenbestand-vaarwegen/ogc/v1",
+   "checked": "Read by the model runner (vaarwegvakken, kmmarkeringen), 26 Nov 2026",
+   "citation": "Rijkswaterstaat (2026). Nationaal Wegenbestand Vaarwegen (NWB Vaarwegen): waterway sections and river-kilometre markers, OGC API through PDOK. PDOK, the Dutch government's open geodata service; CC0 1.0. https://api.pdok.nl/rws/nationaal-wegenbestand-vaarwegen/ogc/v1",
+   "used": [
+    {
+     "file": "python/fdmr_adapters/pdok.py",
+     "line": 11,
+     "text": "References: ref:pdok_nwb_vaarwegen (references.toml)."
+    },
+    {
+     "file": "regions/rhine-meuse/region.toml",
+     "line": 45,
+     "text": "national waterway network (NWB Vaarwegen on PDOK, CC0; ref:pdok_nwb_vaarwegen;"
+    }
+   ]
+  },
+  {
    "key": "rws_ddapi",
    "authors": "Rijkswaterstaat",
    "year": 2026,
@@ -1208,7 +1302,7 @@
     {
      "file": "regions/rhine-meuse/region.toml",
      "line": 5,
-     "text": "from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws), so a"
+     "text": "from Rijkswaterstaat's open data (ref:rws_ddapi; fdmr_adapters.rws)."
     }
    ]
   },
@@ -1250,7 +1344,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 85,
+     "line": 91,
      "text": "\"constituent speeds from Schureman 1958 (ref:schureman1958)\","
     }
    ]
@@ -1410,7 +1504,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 59,
+     "line": 65,
      "text": "\"US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)\", \"fdmr_runner.releases\")],"
     }
    ]
@@ -1566,7 +1660,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 98,
+     "line": 104,
      "text": "\"salinity-from-conductance\": [Maths(\"pss-78\", \"Practical salinity from specific conductance\", \"UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)\","
     }
    ]
@@ -1607,8 +1701,27 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 97,
+     "line": 103,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
+    }
+   ]
+  },
+  {
+   "key": "visser2000",
+   "authors": "Visser, P. J.",
+   "year": 2000,
+   "title": "Bodemontwikkeling Rijnsysteem: een verkenning van omvang, oorzaken, toekomstige ontwikkelingen en mogelijke maatregelen",
+   "kind": "report",
+   "in": "Delft University of Technology, for Rijkswaterstaat Directie Oost-Nederland; October 2000",
+   "url": "https://repository.tudelft.nl/file/File_4c8c86eb-947e-4ae3-aad8-e7e8567aeb11",
+   "note": "Normalized widths (table 2.1, pp. 6-7; p. 42 for the IJssel's widening downstream) and bed slopes (pp. 42-51, citing Rijkswaterstaat 2000) of the Rhine branches. In Dutch.",
+   "checked": "The report read: table 2.1 and pp. 42-51, 26 Nov 2026",
+   "citation": "Visser, P. J. (2000). Bodemontwikkeling Rijnsysteem: een verkenning van omvang, oorzaken, toekomstige ontwikkelingen en mogelijke maatregelen. Delft University of Technology, for Rijkswaterstaat Directie Oost-Nederland; October 2000. https://repository.tudelft.nl/file/File_4c8c86eb-947e-4ae3-aad8-e7e8567aeb11",
+   "used": [
+    {
+     "file": "regions/rhine-meuse/region.toml",
+     "line": 102,
+     "text": "with its channel: width (Visser 2000, ref:visser2000, table 2.1 and pp. 42-49),"
     }
    ]
   },
