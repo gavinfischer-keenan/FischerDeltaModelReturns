@@ -305,6 +305,12 @@ CANDIDATES: tuple[Candidate, ...] = (
               "33 rivers' measured mixing on (U/u*)(d/R)",
               "raising the mixing in bends lowers the long-range spreading below Fischer's K; it needs a held-out "
               "test against measured dye clouds", "#27"),
+    Candidate("1d-tidal-network", "sediment-checks", "hls-turbidity-glint-screened",
+              "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+              "stations, Jul-Nov 2026: with the sun 40 degrees or more from overhead, 40 matchups all within a factor of "
+              "2 (median 1.10, Spearman 0.86); with a higher sun, glint, 2.9 times high (tools/validation/satellite_turbidity)",
+              "the 40-degree cut was found in the same data; it needs a glint screen fixed beforehand and a held-out "
+              "season before it checks the model's mud", "#16"),
     Candidate("fishing", "white-sturgeon", "salinity-bands",
               "FDMR's reading of Sellheim et al. 2022's habitat classes; CDFW's trammel-net survey agrees above "
               "16 psu, where salinity follows place",

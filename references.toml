@@ -924,3 +924,23 @@ in = "PhD thesis, Delft University of Technology; Communications on Hydraulic an
 url = "https://repository.tudelft.nl/record/uuid:789593e2-fd72-4800-9abe-3163d09e2179"
 note = "The Rhine branches' tracer releases (1989, 1990, 1991 and the 1986 Sandoz spill): measured clouds (Figs 4.4.20-21, digitized in tools/validation/rhine_dye), lag coefficients (Tables 4.4.6-4.4.7), dead-zone ratios against discharge (Figs 4.4.10-4.4.13) and velocity heads (Fig. 4.4.15). The groyne-field storage piece (#27) takes its physics and the Rhine branches' place values from here."
 checked = "Scan read from TU Delft's repository: pages 207-220 and 224-225, 27 Nov 2026"
+
+[dogliotti2015]
+authors = "Dogliotti, A. I., Ruddick, K. G., Nechad, B., Doxaran, D., and Knaeps, E."
+year = 2015
+title = "A single algorithm to retrieve turbidity from remotely-sensed data in all coastal and estuarine waters"
+kind = "paper"
+in = "Remote Sensing of Environment 156, 157-168"
+doi = "10.1016/j.rse.2014.09.020"
+note = "Turbidity from red and near-infrared water reflectance, the satellite turbidity check (#16; tools/validation/satellite_turbidity). Coefficients as ACOLITE's defaults (github.com/acolite/acolite, data/Shared/algorithms/Dogliotti/defaults.txt): red A 228.1, C 0.1641; NIR A 3078.9, C 0.2112; switching 0.05-0.07."
+checked = "DOI record read; coefficients read from ACOLITE's defaults, 27 Nov 2026"
+
+[hls2]
+authors = "Neigh, C., Ju, J., Roger, J.-C., Skakun, S., Vermote, E., Claverie, M., Dungan, J., Yin, Z., Freitag, B., and Justice, C."
+year = 2021
+title = "HLS Operational Land Imager Surface Reflectance and TOA Brightness Daily Global 30m v2.0; HLS Sentinel-2 Multi-spectral Instrument Surface Reflectance Daily Global 30m v2.0"
+kind = "data"
+in = "NASA Land Processes Distributed Active Archive Center; doi:10.5067/HLS/HLSS30.002 for the Sentinel-2 product"
+doi = "10.5067/HLS/HLSL30.002"
+note = "Red and near-infrared surface reflectance with Fmask, 30 m, for the satellite turbidity check (#16), through NASA's CMR and the Earthdata login."
+checked = "Both DOI records read, 27 Nov 2026"

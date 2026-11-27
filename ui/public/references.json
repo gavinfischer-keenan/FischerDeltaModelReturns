@@ -668,6 +668,30 @@
    ]
   },
   {
+   "key": "dogliotti2015",
+   "authors": "Dogliotti, A. I., Ruddick, K. G., Nechad, B., Doxaran, D., and Knaeps, E.",
+   "year": 2015,
+   "title": "A single algorithm to retrieve turbidity from remotely-sensed data in all coastal and estuarine waters",
+   "kind": "paper",
+   "in": "Remote Sensing of Environment 156, 157-168",
+   "doi": "10.1016/j.rse.2014.09.020",
+   "note": "Turbidity from red and near-infrared water reflectance, the satellite turbidity check (#16; tools/validation/satellite_turbidity). Coefficients as ACOLITE's defaults (github.com/acolite/acolite, data/Shared/algorithms/Dogliotti/defaults.txt): red A 228.1, C 0.1641; NIR A 3078.9, C 0.2112; switching 0.05-0.07.",
+   "checked": "DOI record read; coefficients read from ACOLITE's defaults, 27 Nov 2026",
+   "citation": "Dogliotti, A. I., Ruddick, K. G., Nechad, B., Doxaran, D., and Knaeps, E. (2015). A single algorithm to retrieve turbidity from remotely-sensed data in all coastal and estuarine waters. Remote Sensing of Environment 156, 157-168. https://doi.org/10.1016/j.rse.2014.09.020",
+   "used": [
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 309,
+     "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
+    },
+    {
+     "file": "tools/validation/satellite_turbidity/hls_check.py",
+     "line": 7,
+     "text": "Turbidity, FNU, by Dogliotti et al. (2015, ref:dogliotti2015):"
+    }
+   ]
+  },
+  {
    "key": "elder1959",
    "authors": "Elder, J. W.",
    "year": 1959,
@@ -1289,6 +1313,30 @@
      "file": "python/fdmr_adapters/snodas.py",
      "line": 19,
      "text": "References: ref:snodas (references.toml)."
+    }
+   ]
+  },
+  {
+   "key": "hls2",
+   "authors": "Neigh, C., Ju, J., Roger, J.-C., Skakun, S., Vermote, E., Claverie, M., Dungan, J., Yin, Z., Freitag, B., and Justice, C.",
+   "year": 2021,
+   "title": "HLS Operational Land Imager Surface Reflectance and TOA Brightness Daily Global 30m v2.0; HLS Sentinel-2 Multi-spectral Instrument Surface Reflectance Daily Global 30m v2.0",
+   "kind": "data",
+   "in": "NASA Land Processes Distributed Active Archive Center; doi:10.5067/HLS/HLSS30.002 for the Sentinel-2 product",
+   "doi": "10.5067/HLS/HLSL30.002",
+   "note": "Red and near-infrared surface reflectance with Fmask, 30 m, for the satellite turbidity check (#16), through NASA's CMR and the Earthdata login.",
+   "checked": "Both DOI records read, 27 Nov 2026",
+   "citation": "Neigh, C., Ju, J., Roger, J.-C., Skakun, S., Vermote, E., Claverie, M., Dungan, J., Yin, Z., Freitag, B., and Justice, C. (2021). HLS Operational Land Imager Surface Reflectance and TOA Brightness Daily Global 30m v2.0; HLS Sentinel-2 Multi-spectral Instrument Surface Reflectance Daily Global 30m v2.0. NASA Land Processes Distributed Active Archive Center; doi:10.5067/HLS/HLSS30.002 for the Sentinel-2 product. https://doi.org/10.5067/HLS/HLSL30.002",
+   "used": [
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 309,
+     "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
+    },
+    {
+     "file": "tools/validation/satellite_turbidity/hls_check.py",
+     "line": 5,
+     "text": "(HLSL30 from Landsat 8/9, HLSS30 from Sentinel-2; 30 m; ref:hls2), red (B04)"
     }
    ]
   },

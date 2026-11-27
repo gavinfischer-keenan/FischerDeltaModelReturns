@@ -344,6 +344,19 @@ Used in:
 - `crates/fdmr-compute/src/mesh.rs:18`: ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
 - `python/fdmr_plugins/registry.py:146`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
+## dogliotti2015
+
+Dogliotti, A. I., Ruddick, K. G., Nechad, B., Doxaran, D., and Knaeps, E. (2015). A single algorithm to retrieve turbidity from remotely-sensed data in all coastal and estuarine waters. Remote Sensing of Environment 156, 157-168. https://doi.org/10.1016/j.rse.2014.09.020
+
+*Turbidity from red and near-infrared water reflectance, the satellite turbidity check (#16; tools/validation/satellite_turbidity). Coefficients as ACOLITE's defaults (github.com/acolite/acolite, data/Shared/algorithms/Dogliotti/defaults.txt): red A 228.1, C 0.1641; NIR A 3078.9, C 0.2112; switching 0.05-0.07.*
+
+Checked: DOI record read; coefficients read from ACOLITE's defaults, 27 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:309`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `tools/validation/satellite_turbidity/hls_check.py:7`: Turbidity, FNU, by Dogliotti et al. (2015, ref:dogliotti2015):
+
 ## elder1959
 
 Elder, J. W. (1959). The dispersion of marked fluid in turbulent shear flow. Journal of Fluid Mechanics 5(4), 544-560. https://doi.org/10.1017/S0022112059000374
@@ -661,6 +674,19 @@ Checked: DataCite record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/snodas.py:19`: References: ref:snodas (references.toml).
+
+## hls2
+
+Neigh, C., Ju, J., Roger, J.-C., Skakun, S., Vermote, E., Claverie, M., Dungan, J., Yin, Z., Freitag, B., and Justice, C. (2021). HLS Operational Land Imager Surface Reflectance and TOA Brightness Daily Global 30m v2.0; HLS Sentinel-2 Multi-spectral Instrument Surface Reflectance Daily Global 30m v2.0. NASA Land Processes Distributed Active Archive Center; doi:10.5067/HLS/HLSS30.002 for the Sentinel-2 product. https://doi.org/10.5067/HLS/HLSL30.002
+
+*Red and near-infrared surface reflectance with Fmask, 30 m, for the satellite turbidity check (#16), through NASA's CMR and the Earthdata login.*
+
+Checked: Both DOI records read, 27 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:309`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `tools/validation/satellite_turbidity/hls_check.py:5`: (HLSL30 from Landsat 8/9, HLSS30 from Sentinel-2; 30 m; ref:hls2), red (B04)
 
 ## cpc_enso
 
