@@ -256,7 +256,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/delta.py:47](../python/fdmr_runner/delta.py#L47) | `BLEND` | `96` | forecasts join the measured series over a day |
 | [python/fdmr_runner/delta.py:274](../python/fdmr_runner/delta.py#L274) | `TO_DSS_M3S_CFS` | `0.3048**3` | m3/s per cfs |
 | [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/geometry.py:28](../python/fdmr_runner/geometry.py#L28) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
+| [python/fdmr_runner/geometry.py:30](../python/fdmr_runner/geometry.py#L30) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
 | [python/fdmr_runner/handoff.py:43](../python/fdmr_runner/handoff.py#L43) | `STEP_DEG` | `0.0002` | sample channel lines about every 20 m to find where they enter the mesh |
 | [python/fdmr_runner/isohaline.py:31](../python/fdmr_runner/isohaline.py#L31) | `KM_PER_DEG_LAT` | `111.195` | mean Earth radius 6371 km |
 | [python/fdmr_runner/land.py:36](../python/fdmr_runner/land.py#L36) | `MATCH_S` | `600` | a band and its airport count as the same pass within this |

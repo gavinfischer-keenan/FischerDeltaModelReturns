@@ -11,8 +11,16 @@ silently. Each cycle records the maths every reach ran (index.json, a reach's
 two cannot drift apart.
 
 To add maths: write it, register it here under its kind and part with its
-source, and give the runner a dispatch for it. A part with one entry has no
-alternative yet.
+source, give the runner a dispatch for it, and name the standard problems it
+passes (CHECKS below). A part with one entry has no alternative yet.
+
+The standard problems (the test harness, #10): every registered maths names
+the tests it must pass, as `path::test` (a Python test or a Rust test
+function), such as pure advection, a dispersing pulse recovering its
+dispersion coefficient, mass kept, a known textbook value; an external model
+(DSM2, NOAA's forecast) names the checks against stations it is judged by in
+every cycle, as `check: ...`. A replacement passes the same problems, then is
+judged against today's choice on the nightly hindcasts (#9).
 """
 
 from __future__ import annotations
@@ -141,3 +149,89 @@ def choices(kind: str, chosen: dict | None = None) -> dict[str, Maths]:
 def record(kind: str, chosen: dict | None = None) -> dict:
     """The maths a reach ran, for its index.json entry: part -> {name, source}."""
     return {p: {"name": m.name, "source": m.source} for p, m in choices(kind, chosen).items()}
+
+
+# The standard problems each registered maths passes (module docstring).
+CHECKS: dict[str, tuple[str, ...]] = {
+    "gauge-blend-lag-route": (
+        "python/tests/test_model.py::test_steady_flow_is_matched_everywhere",
+        "python/tests/test_model.py::test_a_release_change_moves_downstream",
+        "crates/fdmr-math/src/routing.rs::steady_flow_passes_unchanged",
+        "crates/fdmr-math/src/routing.rs::pure_lag_delays_a_step_by_the_travel_time",
+        "crates/fdmr-math/src/routing.rs::attenuation_smooths_but_conserves_volume",
+    ),
+    "power-law-hydraulic-geometry": (
+        "crates/fdmr-math/src/geometry.rs::recovers_an_exact_power_law",
+        "python/tests/test_channel.py::test_recovers_shape_and_velocity",
+        "python/tests/test_channel.py::test_a_floodplain_is_fitted_with_a_hinge",
+        "python/tests/test_channel.py::test_one_regime_stays_a_single_power_law",
+    ),
+    "wide-channel-uniform-flow": ("python/tests/test_channel.py::test_wide_channel_is_uniform_flow_in_a_fixed_width",),
+    "measured-release-waves": (
+        "python/tests/test_wave.py::test_recovers_a_known_travel_time_law",
+        "python/tests/test_calibration.py::test_tracer_events_find_the_water_travel_time",
+    ),
+    "surface-heat-budget": (
+        "python/tests/test_heat.py::test_with_no_heat_exchange_the_release_temperature_is_carried_down_at_the_water_speed",
+        "python/tests/test_heat.py::test_water_far_warmer_than_still_dry_night_air_cools",
+        "python/tests/test_heat.py::test_vapour_pressure_is_the_textbook_value",
+        "check: river temperature against its stations, each cycle (check.html)",
+    ),
+    "fischer-longitudinal": (
+        "crates/fdmr-math/src/dispersion.rs::fischer_k_textbook",
+        "crates/fdmr-math/src/dispersion.rs::change_of_moment_recovers_known_k",
+        "crates/fdmr-math/src/dispersion.rs::fickian_distance_fischer_example",
+        "crates/fdmr-math/src/parcel.rs::moment_method_recovers_k_from_parcels",
+    ),
+    "held-or-rule": (
+        "python/tests/test_releases.py::test_flood_rule_raises_the_release_once_the_top_is_reached",
+        "python/tests/test_releases.py::test_flood_rule_holds_while_there_is_room",
+        "python/tests/test_releases.py::test_missing_inputs_hold_the_release_and_say_why",
+    ),
+    "dsm2-hydro": (
+        "python/tests/test_dsm2.py::test_gate_states_from_tidal_flow_through_the_gate",
+        "check: Delta flows and levels against USGS and CDEC stations, each cycle (check.html)",
+    ),
+    "dsm2-qual-ec": ("check: Delta conductance against stations, each cycle (check.html)",),
+    "dsm2-qual-heat": (
+        "python/tests/test_dsm2.py::test_temperature_study_gives_every_inflow_a_series",
+        "python/tests/test_dsm2.py::test_wet_bulb_gives_back_the_dew_points_vapour_pressure",
+        "check: Delta water temperature against stations, each cycle (check.html)",
+    ),
+    "qual-fingerprint": ("python/tests/test_dsm2.py::test_fingerprint_groups_take_inflows_by_name",),
+    "gtm-cohesive-settled-bed": (
+        "python/tests/test_sediment.py::test_stokes_diameter_matches_the_settling_velocity",
+        "python/tests/test_sediment.py::test_study_assigns_every_inflow_and_names_its_class",
+        "check: suspended sediment against turbidity stations, each Delta cycle (sediment_checks, check.html)",
+    ),
+    "partition-settle-scour": (
+        "crates/fdmr-compute/src/network.rs::a_bound_release_splits_by_the_partition_coefficient",
+        "crates/fdmr-compute/src/network.rs::bound_parcels_settle_at_ws_over_depth",
+        "crates/fdmr-compute/src/network.rs::settling_and_scouring_at_equal_rates_leave_half_on_the_bed",
+    ),
+    "noaa-fvcom-forecast": (
+        "python/tests/test_fvcom.py::test_a_coarse_mesh_covers_the_water_and_averages_exactly",
+        "check: the Bay's currents, levels, salinity and temperature against stations, each cycle (check.html)",
+    ),
+    "network-outflow-match": ("python/tests/test_fvcom.py::test_the_outflow_correction_in_a_channel_is_q_over_the_cross_section",),
+    "tides-plus-outflow-fit": (
+        "python/tests/test_fvcom.py::test_the_fit_recovers_tides_and_drift_from_two_hourly_samples",
+        "python/tests/test_fvcom.py::test_the_extension_joins_the_forecast_without_a_jump",
+    ),
+    "station-misfit-spread": ("python/tests/test_fvcom.py::test_misfits_spread_through_the_water_not_across_land",),
+    "export-carried": ("python/tests/test_canals.py::test_sections_area_and_width",),
+    "intake-lagged": ("python/tests/test_canals.py::test_water_reaches_a_place_after_the_canal_upstream_of_it_has_filled",),
+    "advection-random-walk": (
+        "crates/fdmr-math/src/parcel.rs::no_dispersion_means_pure_advection",
+        "crates/fdmr-math/src/parcel.rs::moment_method_recovers_k_from_parcels",
+        "crates/fdmr-compute/src/mesh.rs::uniform_flow_carries_a_parcel_exactly",
+        "crates/fdmr-compute/src/mesh.rs::spreading_matches_diffusion_and_stays_even_over_a_sloping_bed",
+        "crates/fdmr-compute/src/mesh.rs::mass_is_conserved_under_spreading",
+        "crates/fdmr-compute/src/lib.rs::mass_balances_with_decay_and_outflow",
+    ),
+    "pss-78": ("crates/fdmr-math/src/salinity.rs::delta_waters_read_sensibly",),
+    "first-order": (
+        "crates/fdmr-math/src/decay.rs::half_left_after_one_half_life",
+        "crates/fdmr-math/src/decay.rs::steps_compose",
+    ),
+}

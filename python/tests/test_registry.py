@@ -27,3 +27,23 @@ def test_an_unknown_choice_is_refused():
 
 def test_a_registered_choice_is_taken():
     assert registry.choices("river-routing", {"temperature": "surface-heat-budget"})["temperature"].name == "surface-heat-budget"
+
+
+def test_every_maths_names_standard_problems_that_exist():
+    """The harness (#10): each registered maths passes named tests, which exist."""
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    names = {m.name for parts in registry.REGISTER.values() for impls in parts.values() for m in impls}
+    assert names == set(registry.CHECKS), names ^ set(registry.CHECKS)
+    for name, checks in registry.CHECKS.items():
+        assert checks, name
+        for c in checks:
+            if c.startswith("check: "):
+                continue
+            path, test = c.split("::")
+            text = (root / path).read_text(encoding="utf-8")
+            pattern = rf"def {test}\(" if path.endswith(".py") else rf"fn {test}\("
+            assert re.search(pattern, text), f"{name}: {c} not found"
+
