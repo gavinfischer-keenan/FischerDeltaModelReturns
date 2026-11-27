@@ -58,13 +58,13 @@ def tracer_points(region_dir: Path, reach: str, gauges, chainage, store: Store) 
     line = Centreline(coords=[tuple(c) for c in geo["coords"]], chainage=geo["chainage_m"])
     pts = [{"source": g.source, "id": g.site, "x": chainage[g.site]} for g in gauges]
     for s in load_region(region_dir).stations:
-        if s["reach"] != reach:
+        if s.get("reach") != reach or "lon" not in s:
             continue
         x, off = nearest(line, s["lon"], s["lat"])
         if off > MAX_OFF_LINE_M:
-            print(f"station {s['id']} is {off:.0f} m off the river: skipped", flush=True)
+            print(f"station {s['site']} is {off:.0f} m off the river: skipped", flush=True)
             continue
-        pts.append({"source": s["source"], "id": s["id"], "x": x})
+        pts.append({"source": s["source"], "id": s["site"], "x": x})
     for p in pts:
         p["series"] = {param for param in TRACERS if store.coverage(p["source"], p["id"], param)}
     return sorted(pts, key=lambda p: p["x"])

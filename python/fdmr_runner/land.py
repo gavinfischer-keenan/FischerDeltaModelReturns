@@ -25,12 +25,13 @@ from __future__ import annotations
 
 import json
 import math
-import tomllib
 from pathlib import Path
 
 import numpy as np
 
 from fdmr_store import Store
+
+from .region import load_region
 
 SOURCE, PARAMETER = "ecostress", "land_surface_temperature"
 MATCH_S = 600  # a band and its airport count as the same pass within this
@@ -45,7 +46,7 @@ NIGHT_HOURS = (20, 5)  # from 20:00 to 05:00
 
 
 def load(region_dir: Path) -> tuple[dict, list[dict]] | None:
-    rt = tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("river_temperature", {})
+    rt = load_region(region_dir).river_temperature
     if not rt.get("land") or not rt.get("weather"):
         return None
     return rt["land"], rt["weather"]
@@ -58,8 +59,7 @@ def places(region_dir: Path) -> list[dict]:
     if not got:
         return []
     land, zones = got
-    reaches = [r["id"] for r in tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("reaches", [])
-               if r.get("kind") == "river-routing"]
+    reaches = [r["id"] for r in load_region(region_dir).reaches if r.get("kind") == "river-routing"]
     out = []
     for reach in reaches:
         path = region_dir / f"{reach}.json"

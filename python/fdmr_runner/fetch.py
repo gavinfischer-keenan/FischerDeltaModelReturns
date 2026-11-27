@@ -195,24 +195,26 @@ def main(argv: list[str] | None = None) -> int:
         if cov and cov[1] >= now - DATUM_EVERY_S:
             continue
         attempt(f"{g.site} datum", lambda g=g: usgs.fetch_datum(g.site, int(now)))
-    # Tracer stations (CDEC): hourly readings, from where the store's copy ends.
+    # The region's measuring stations (region.toml [[stations]]), each by its
+    # agency, from where the store's copy ends. Rijkswaterstaat's come with
+    # the river forecasts, below.
     cdec = CdecAdapter(store)
     for s in [] if args.forecast_only else region.stations:
-        if s.get("source") == SOURCE:  # a USGS station: its readings by parameter
-            for p in s.get("measures", []):
-                cov = store.coverage(SOURCE, s["id"], p)
+        if s["source"] == SOURCE:  # a USGS station: its readings by parameter
+            for p in s["quantities"]:
+                cov = store.coverage(SOURCE, s["site"], p)
                 from_t = max(start, cov[1]) if cov and cov[0] <= start + 2 * 86_400 else start
-                attempt(f"{s['id']} {p}", lambda s=s, p=p, f=from_t: usgs.fetch_values(s["id"], p, f"{iso(f)}/{iso(now)}"))
+                attempt(f"{s['site']} {p}", lambda s=s, p=p, f=from_t: usgs.fetch_values(s["site"], p, f"{iso(f)}/{iso(now)}"))
             continue
-        if s.get("source") != CDEC:
+        if s["source"] != CDEC:
             continue
-        for p in s.get("measures", []):
-            cov = store.coverage(CDEC, s["id"], p)
+        for p in s["quantities"]:
+            cov = store.coverage(CDEC, s["site"], p)
             if cov and cov[0] <= start + 2 * 86_400 and cov[1] >= now - max(args.fresh * 60, 2 * 3600):
-                print(f"{s['id']} {p:31s} held    {s['name']}", flush=True)
+                print(f"{s['site']} {p:31s} held    {s['name']}", flush=True)
                 continue
             from_t = max(start, cov[1] + 1) if cov and cov[0] <= start + 2 * 86_400 else start
-            attempt(f"cdec {s['id']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["id"], p, int(f), int(now), duration=s.get("duration", "H")))
+            attempt(f"cdec {s['site']} {p}", lambda s=s, p=p, f=from_t: cdec.fetch_values(s["site"], p, int(f), int(now), duration=s.get("duration", "H")))
     # Stations, dams, pumps and gates shown on the map (overlays.toml): asked
     # in one request per duration and set of sensors. Stations with readings already held
     # are asked from where their newest ends; new ones (and any that have
@@ -222,12 +224,10 @@ def main(argv: list[str] | None = None) -> int:
     ocfg = (overlays.load(Path(args.region)) or {}) if not args.forecast_only else {}
     # SWOT's view of the rivers (region.toml [[river_swot]]): passes come days
     # apart, so asked at most twice a day.
-    import tomllib as _tl
-
     from fdmr_adapters.swot import SOURCE as SWOT
     from fdmr_adapters.swot import SwotAdapter
 
-    for rs in [] if args.forecast_only else _tl.loads((Path(args.region) / "region.toml").read_text(encoding="utf-8")).get("river_swot", []):
+    for rs in [] if args.forecast_only else region.river_swot:
         sw = SwotAdapter(store)
         for r in rs["reaches"]:
             last = store.latest(SWOT, r["id"], "width")
@@ -379,9 +379,7 @@ def main(argv: list[str] | None = None) -> int:
     # file per station and runs days behind, so it is fetched once a day; the
     # Weather Service's observations (its last week) and forecast every run.
     tcfg = (delta.load(Path(args.region)) or {}).get("temperature")
-    import tomllib
-
-    rt = tomllib.loads((Path(args.region) / "region.toml").read_text(encoding="utf-8")).get("river_temperature", {})
+    rt = region.river_temperature
     # The Delta's weather, and each river weather zone's (region.toml [river_temperature]).
     for tcfg in [c for c in [tcfg, *rt.get("weather", [])] if c]:
         wx = NoaaWeatherAdapter(store)
@@ -516,12 +514,10 @@ def main(argv: list[str] | None = None) -> int:
 
     for group, points in groups.items():
         attempt(f"cnrfc {group}", lambda g=group, p=points: cnrfc_group(g, p))
-    # Live stations of a region read from Rijkswaterstaat (region.toml
-    # [[live_stations]], source "rws"; fdmr_adapters.rws): each quantity from
-    # where the store's record ends, and the agency's own forecasts afresh.
-    import tomllib as _toml
-
-    live = _toml.loads((Path(args.region) / "region.toml").read_text(encoding="utf-8")).get("live_stations", [])
+    # Stations read from Rijkswaterstaat (region.toml [[stations]], source
+    # "rws"; fdmr_adapters.rws): each quantity from where the store's record
+    # ends, and the agency's own forecasts afresh.
+    live = [s for s in region.stations if s["source"] == "rws"] if not args.forecast_only else []
     # A river gauge of Rijkswaterstaat's is read the same way: its discharge, and its forecast if it has one.
     live = live + [{"source": g.source, "site": g.site, "quantities": [g.parameter, "water_level"],
                     "forecasts": [g.parameter] if g.forecast and g.forecast.get("source") == g.source else []}

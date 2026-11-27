@@ -34,6 +34,9 @@ def test_day_and_night_by_local_solar_hour():
 
 def region(tmp_path):
     (tmp_path / "region.toml").write_text('''
+id = "t"
+name = "test"
+timezone = "UTC"
 reaches = [{ id = "r", kind = "river-routing" }, { id = "d", kind = "1d-tidal-network" }]
 [river_temperature.land]
 band_m = 1000.0

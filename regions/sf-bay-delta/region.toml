@@ -5,7 +5,6 @@
 id = "sf-bay-delta"
 name = "San Francisco Bay-Delta, Shasta Dam to the Golden Gate"
 timezone = "America/Los_Angeles"
-display_units = "us"   # cubic feet per second, feet, miles, degrees Fahrenheit
 
 [[reaches]]
 id = "river"
@@ -666,47 +665,47 @@ lat = 38.6776572
 [[stations]]
 reach = "river"
 source = "cdec"
-id = "KWK"
+site = "KWK"
 name = "Sacramento R at Keswick"
 lat = 40.600983
 lon = -122.444458
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "river"
 source = "cdec"
-id = "CCR"
+site = "CCR"
 name = "Sacramento R above Clear Creek"
 lat = 40.538
 lon = -122.356
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "river"
 source = "cdec"
-id = "BSF"
+site = "BSF"
 name = "Sacramento R at Balls Ferry Bridge"
 lat = 40.417
 lon = -122.193
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "river"
 source = "cdec"
-id = "BND"
+site = "BND"
 name = "Sacramento R at Bend Bridge"
 lat = 40.288486
 lon = -122.186661
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "river"
 source = "cdec"
-id = "RDB"
+site = "RDB"
 name = "Sacramento R at Red Bluff Diversion Dam"
 lat = 40.154362
 lon = -122.20195
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 # Water temperature along the rivers (specification 7.5; fdmr_plugins.river_routing.heat):
 # stations measuring it live, checked 25-26 Nov 2026 against their own data
@@ -720,190 +719,190 @@ measures = ["water_temperature"]
 [[stations]]
 reach = "river"
 source = "cdec"
-id = "SAC"
+site = "SAC"
 name = "Sacramento R upstream of Hwy 44"
 lat = 40.59258
 lon = -122.36983
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "H"
 
 [[stations]]
 reach = "river"
 source = "usgs"
-id = "11390500"
+site = "11390500"
 name = "Sacramento R below Wilkins Slough"
 lat = 39.00987205
 lon = -121.8246576
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "river"
 source = "usgs"
-id = "11447650"
+site = "11447650"
 name = "Sacramento R at Freeport"
 lat = 38.45566389
 lon = -121.5016167
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "american"
 source = "usgs"
-id = "11446500"
+site = "11446500"
 name = "American R at Fair Oaks"
 lat = 38.6354394
 lon = -121.227692
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "american"
 source = "usgs"
-id = "11446700"
+site = "11446700"
 name = "American R at William B Pond Park"
 lat = 38.59129436
 lon = -121.3327288
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "american"
 source = "usgs"
-id = "11446980"
+site = "11446980"
 name = "American R below Watt Ave Bridge"
 lat = 38.5671281
 lon = -121.3882857
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "feather"
 source = "cdec"
-id = "FTA"
+site = "FTA"
 name = "Feather R below Thermalito Afterbay"
 lat = 39.452924
 lon = -121.639539
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "E"
 
 [[stations]]
 reach = "feather"
 source = "cdec"
-id = "FOW"
+site = "FOW"
 name = "Feather R (CDEC FOW)"
 lat = 39.4025
 lon = -121.6194
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "E"
 
 [[stations]]
 reach = "feather"
 source = "cdec"
-id = "GRL"
+site = "GRL"
 name = "Feather R near Gridley"
 lat = 39.366577
 lon = -121.647369
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "E"
 
 [[stations]]
 reach = "calaveras"
 source = "cdec"
-id = "NGQ"
+site = "NGQ"
 name = "Calaveras R below New Hogan Dam"
 lat = 38.1481
 lon = -120.8239
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "E"
 
 [[stations]]
 reach = "san_joaquin"
 source = "usgs"
-id = "11273400"
+site = "11273400"
 name = "San Joaquin R above Merced R"
 lat = 37.34718815
 lon = -120.9761399
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "san_joaquin"
 source = "usgs"
-id = "11274550"
+site = "11274550"
 name = "San Joaquin R near Crows Landing"
 lat = 37.43218889
 lon = -121.0133444
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "san_joaquin"
 source = "cdec"
-id = "SJP"
+site = "SJP"
 name = "San Joaquin R at Patterson"
 lat = 37.494
 lon = -121.081
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "E"
 
 [[stations]]
 reach = "san_joaquin"
 source = "cdec"
-id = "MRB"
+site = "MRB"
 name = "San Joaquin R at Maze Rd"
 lat = 37.6414
 lon = -121.2276
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "E"
 
 [[stations]]
 reach = "san_joaquin"
 source = "cdec"
-id = "VER"
+site = "VER"
 name = "San Joaquin R at Vernalis (USBR)"
 lat = 37.679376
 lon = -121.265002
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 duration = "H"
 
 [[stations]]
 reach = "tuolumne"
 source = "usgs"
-id = "11289650"
+site = "11289650"
 name = "Tuolumne R below La Grange Dam"
 lat = 37.66629746
 lon = -120.4421023
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "tuolumne"
 source = "usgs"
-id = "11290000"
+site = "11290000"
 name = "Tuolumne R at Modesto"
 lat = 37.627153
 lon = -120.9843777
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "stanislaus"
 source = "usgs"
-id = "11302000"
+site = "11302000"
 name = "Stanislaus R below Goodwin Dam"
 lat = 37.85159385
 lon = -120.6379816
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "stanislaus"
 source = "usgs"
-id = "11302500"
+site = "11302500"
 name = "Stanislaus R at Oakdale"
 lat = 37.77715006
 lon = -120.852988
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 [[stations]]
 reach = "stanislaus"
 source = "usgs"
-id = "11303000"
+site = "11303000"
 name = "Stanislaus R at Ripon"
 lat = 37.72962389
 lon = -121.110454
-measures = ["water_temperature"]
+quantities = ["water_temperature"]
 
 # The weather each river element warms and cools with: its nearest airport's
 # (NOAA GHCNh archive and the Weather Service's observations; ids checked in

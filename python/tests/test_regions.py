@@ -37,3 +37,20 @@ def test_region_package_is_well_formed(path):
 
 def test_both_regions_are_present():
     assert {p.parent.name for p in REGIONS} >= {"sf-bay-delta", "test-colorado"}
+
+
+def test_an_unknown_setting_or_station_key_is_refused(tmp_path):
+    """A misspelt or stale setting is an error, never silently ignored (#63)."""
+    head = 'id = "t"\nname = "test"\ntimezone = "UTC"\n'
+    (tmp_path / "region.toml").write_text(head + 'display_units = "us"\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="display_units"):
+        load_region(tmp_path)
+    (tmp_path / "region.toml").write_text(head + '[[stations]]\nsource = "cdec"\nid = "KWK"\nname = "K"\nmeasures = ["ec"]\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="unknown keys"):
+        load_region(tmp_path)
+
+
+def test_every_station_is_listed_the_same_way():
+    for path in REGIONS:
+        for s in load_region(path).stations:
+            assert {"source", "site", "name", "quantities"} <= set(s), (path.parent.name, s)

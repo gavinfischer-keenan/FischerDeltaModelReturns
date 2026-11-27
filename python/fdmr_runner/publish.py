@@ -547,8 +547,6 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
     reach that measures it. None where the release's temperature is not
     measured. Returns (temperature [step, element], checks)."""
     import math
-    import tomllib
-
     import numpy as np
     from fdmr_plugins.river_routing import heat
 
@@ -556,7 +554,7 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
 
     cfg = next((r for r in region.reaches if r["id"] == reach), {})
     rel = cfg.get("release_temperature")
-    rt = tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("river_temperature", {})
+    rt = region.river_temperature
     zones = rt.get("weather", [])
     if not rel or not zones:
         return None
@@ -605,14 +603,14 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
     # Stations on the reach that measure water temperature (region.toml [[stations]]).
     stations, names = [], []
     for s in region.stations:
-        if s.get("reach") != reach or TEMPERATURE not in s.get("measures", []):
+        if s.get("reach") != reach or TEMPERATURE not in s["quantities"] or "lon" not in s:
             continue
         x, off = on_centreline(line, s["lon"], s["lat"])
         if off > 500:
-            print(f"{reach}: temperature station {s['id']} is {off:.0f} m from the river; left out", flush=True)
+            print(f"{reach}: temperature station {s['site']} is {off:.0f} m from the river; left out", flush=True)
             continue
-        stations.append((x, measured(s.get("source", "cdec"), s["id"], now)))
-        names.append(s["id"])
+        stations.append((x, measured(s["source"], s["site"], now)))
+        names.append(s["site"])
     initial = np.full(len(els), top[0])
     at0 = [(x, m[0]) for x, m in stations if np.isfinite(m[0])]
     if at0:
@@ -644,11 +642,9 @@ def swot_checks(region_dir: Path, store: Store, reach: str, line: Centreline, el
     measured widths over the last 60 days (region.toml [[river_swot]]): per
     SWOT reach, the median of its passes beside the model's width at the
     element nearest its centre, and over all of them the median ratio."""
-    import tomllib
-
     import numpy as np
 
-    cfg = tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("river_swot", [])
+    cfg = load_region(region_dir).river_swot
     rs = next((c for c in cfg if c["reach"] == reach), None)
     if not rs:
         return None

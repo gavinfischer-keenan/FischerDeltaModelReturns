@@ -24,10 +24,11 @@ from __future__ import annotations
 
 import json
 import math
-import tomllib
 from pathlib import Path
 
 from fdmr_store import Store
+
+from .region import load_region
 
 SOURCE = "smap"
 POINT_SPACING_M = 2_000.0  # centreline points kept for a corridor: far closer than its 9 km cells
@@ -37,7 +38,7 @@ FRESH_S = 4 * 86_400  # SMAP's Level 4 runs about two days behind
 OPENET_AGE_DAYS = 45  # OpenET's evapotranspiration runs days to weeks behind: shown up to this old (FDMR's choice)
 
 def load(region_dir: Path) -> dict | None:
-    return tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("soil_moisture")
+    return load_region(region_dir).soil_moisture
 
 
 def areas(region_dir: Path) -> list[dict]:
@@ -45,8 +46,7 @@ def areas(region_dir: Path) -> list[dict]:
     if not cfg:
         return []
     out = []
-    reaches = [r["id"] for r in tomllib.loads((region_dir / "region.toml").read_text(encoding="utf-8")).get("reaches", [])
-               if r.get("kind") == "river-routing"]
+    reaches = [r["id"] for r in load_region(region_dir).reaches if r.get("kind") == "river-routing"]
     for reach in reaches:
         path = region_dir / f"{reach}.json"
         if not path.exists():

@@ -13,7 +13,6 @@
 id = "test-colorado"
 name = "Colorado River, Glen Canyon Dam to Grand Canyon"
 timezone = "America/Phoenix"
-display_units = "us"
 
 [[reaches]]
 id = "river"

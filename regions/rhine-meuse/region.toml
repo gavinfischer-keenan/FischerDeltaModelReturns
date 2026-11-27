@@ -189,81 +189,81 @@ lon = 6.1045
 lat = 52.342
 channel = { width_m = 110, slope = 1.0e-4, chezy = 41 }   # Olst: 110 m (Visser p. 42)
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "lobith.bovenrijn.tolkamer"
 name = "Rhine at Lobith (entering the Netherlands)"
 quantities = ["discharge", "water_level"]
 forecasts = ["discharge"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "lobith.bovenrijn.haven"
 name = "Rhine at Lobith, harbour"
 quantities = ["water_temperature"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "millingenaanderijn"
 name = "Waal at its head (Millingen aan de Rijn)"
 quantities = ["discharge"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "pannerden.pannerdenschkanaal"
 name = "Pannerdensch Kanaal"
 quantities = ["discharge"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "arnhem.nederrijn"
 name = "Nederrijn at Arnhem"
 quantities = ["discharge", "water_level"]
 forecasts = ["discharge"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "westervoort.1"
 name = "IJssel at Westervoort"
 quantities = ["discharge"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "tiel.waal"
 name = "Waal at Tiel"
 quantities = ["discharge"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "nijmegen.waal"
 name = "Waal at Nijmegen"
 quantities = ["water_level"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "dordrecht.oudemaas.benedenmerwede"
 name = "Dordrecht"
 quantities = ["water_level"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "rotterdam.nieuwemaas.boerengat"
 name = "Nieuwe Maas at Rotterdam"
 quantities = ["water_level"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "krimpenaandelek.lek"
 name = "Lek at Krimpen aan de Lek"
 quantities = ["water_level"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "maassluis"
 name = "Nieuwe Waterweg at Maassluis"
 quantities = ["water_level"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "hoekvanholland"
 name = "Hoek van Holland (the sea)"
@@ -271,26 +271,26 @@ quantities = ["water_level", "water_temperature", "chloride"]
 forecasts = ["water_level"]
 depth_cm = -250
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "moerdijk"
 name = "Hollandsch Diep at Moerdijk"
 quantities = ["water_level"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "eijsden.grens"
 name = "Meuse at Eijsden (entering the Netherlands)"
 quantities = ["discharge", "water_level"]
 forecasts = ["discharge"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "venlo"
 name = "Meuse at Venlo"
 quantities = ["discharge", "water_level"]
 
-[[live_stations]]
+[[stations]]
 source = "rws"
 site = "megen.maas"
 name = "Meuse at Megen"

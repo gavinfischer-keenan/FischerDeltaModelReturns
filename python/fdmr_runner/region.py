@@ -1,4 +1,18 @@
-"""Reading region packages (regions/<id>/region.toml). Region packages are data only."""
+"""Reading region packages (regions/<id>/region.toml). Region packages are data only.
+
+`load_region` is the one reader of region.toml (#63): every section the code
+uses is a field of `Region`, and a key it does not know is refused, so a
+misspelt or a stale setting cannot be silently ignored. A region's other
+files (overlays.toml, dsm2.toml, bay.toml, canals.toml, fishing.toml) have
+their own modules' readers.
+
+Every region lists its measuring stations the same way, `[[stations]]`:
+`source` (the agency: an adapter's name), `site`, `name` and `quantities`
+(what it measures); optionally `reach`, `lon` and `lat` (where it is, on a
+river reach), `duration` (CDEC's: "H" hourly, "E" event, "D" daily),
+`forecasts` (the agency's own forecasts of those quantities) and `depth_cm`
+with `depth_for` (the sensor's depth, for the quantities it applies to).
+"""
 
 from __future__ import annotations
 
@@ -45,11 +59,22 @@ class Region:
     timezone: str
     reaches: list[dict]
     gauges: list[Gauge]
-    stations: list[dict] = field(default_factory=list)  # tracer stations: {reach, source, id, name, lat, lon, measures}
+    stations: list[dict] = field(default_factory=list)  # measuring stations (module docstring)
     handoffs: list[dict] = field(default_factory=list)  # {from, to, at, node?}: where one reach's water enters the next
+    river_temperature: dict = field(default_factory=dict)  # the rivers' heat model: weather zones, the land from orbit
+    river_swot: list[dict] = field(default_factory=list)  # SWOT's river reaches, checked against the rivers' widths
+    soil_moisture: dict | None = None  # where rain runs off into the water: areas, OpenET samples
+    basemap: dict | None = None  # the map's own basemap extract: bbox, maxzoom
+    guard: dict = field(default_factory=dict)  # words engine code may not contain (tools/check_seams.py)
 
     def gauges_for(self, reach: str) -> list[Gauge]:
         return [g for g in self.gauges if g.reach == reach]
+
+
+SECTIONS = {"id", "name", "timezone", "reaches", "gauges", "stations", "handoffs", "river_temperature",
+            "river_swot", "soil_moisture", "basemap", "guard"}
+STATION_KEYS = {"source", "site", "name", "quantities", "reach", "lon", "lat", "duration", "forecasts",
+                "depth_cm", "depth_for"}
 
 
 def load_region(path: str | Path) -> Region:
@@ -57,6 +82,14 @@ def load_region(path: str | Path) -> Region:
     if p.is_dir():
         p = p / "region.toml"
     d = tomllib.loads(p.read_text(encoding="utf-8"))
+    unknown = set(d) - SECTIONS
+    if unknown:
+        raise ValueError(f"{p}: unknown settings {sorted(unknown)}")
+    for s in d.get("stations", []):
+        odd = set(s) - STATION_KEYS
+        if odd or not {"source", "site", "name", "quantities"} <= set(s):
+            raise ValueError(f"{p}: station {s.get('site', s)}: unknown keys {sorted(odd)}" if odd
+                             else f"{p}: station {s.get('site', s)} needs source, site, name and quantities")
     return Region(
         id=d["id"],
         name=d["name"],
@@ -65,4 +98,9 @@ def load_region(path: str | Path) -> Region:
         gauges=[Gauge(**g) for g in d.get("gauges", [])],
         stations=d.get("stations", []),
         handoffs=d.get("handoffs", []),
+        river_temperature=d.get("river_temperature", {}),
+        river_swot=d.get("river_swot", []),
+        soil_moisture=d.get("soil_moisture"),
+        basemap=d.get("basemap"),
+        guard=d.get("guard", {}),
     )

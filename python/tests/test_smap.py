@@ -63,7 +63,7 @@ def test_fetch_reads_only_the_areas_cells_and_stores_each_period():
 
 
 def test_summary_gives_latest_and_the_weeks_change(tmp_path):
-    (tmp_path / "region.toml").write_text('reaches = []\n[soil_moisture]\ncorridor_m = 10000.0\n[[soil_moisture.areas]]\nname = "d"\nbox = [0, 0, 1, 1]\n', encoding="utf-8")
+    (tmp_path / "region.toml").write_text('id = "t"\nname = "test"\ntimezone = "UTC"\nreaches = []\n[soil_moisture]\ncorridor_m = 10000.0\n[[soil_moisture.areas]]\nname = "d"\nbox = [0, 0, 1, 1]\n', encoding="utf-8")
     store = Store()
     now = 100 * 86_400
     t = now - 2 * 86_400
@@ -74,7 +74,7 @@ def test_summary_gives_latest_and_the_weeks_change(tmp_path):
 
 
 def test_river_corridors_come_from_the_centrelines(tmp_path):
-    (tmp_path / "region.toml").write_text('reaches = [{ id = "r", kind = "river-routing" }]\n[soil_moisture]\ncorridor_m = 5000.0\n', encoding="utf-8")
+    (tmp_path / "region.toml").write_text('id = "t"\nname = "test"\ntimezone = "UTC"\nreaches = [{ id = "r", kind = "river-routing" }]\n[soil_moisture]\ncorridor_m = 5000.0\n', encoding="utf-8")
     (tmp_path / "r.json").write_text(json.dumps({"coords": [(-121.0 - 0.01 * i, 38.0) for i in range(50)], "chainage_m": [880.0 * i for i in range(50)]}), encoding="utf-8")
     (a,) = soil.areas(tmp_path)
     assert a["site"] == "river:r" and a["radius_m"] == 5000.0 and 15 <= len(a["points"]) <= 25

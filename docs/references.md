@@ -614,7 +614,7 @@ Checked: The dissertation read (pp. 24 and 31), 27 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/region.toml:646`: Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):
+- `regions/sf-bay-delta/region.toml:645`: Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):
 
 ## mcenroe1985
 

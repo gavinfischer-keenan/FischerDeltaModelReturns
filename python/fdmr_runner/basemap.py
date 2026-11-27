@@ -13,9 +13,10 @@ import argparse
 import json
 import subprocess
 import sys
-import tomllib
 import urllib.request
 from pathlib import Path
+
+from .region import load_region
 
 BUILDS = "https://build-metadata.protomaps.dev/builds.json"
 BUILD_BASE = "https://build.protomaps.com/"
@@ -34,8 +35,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--pmtiles", default="pmtiles", help="path to the pmtiles tool")
     args = ap.parse_args(argv)
     region = Path(args.region)
-    cfg = tomllib.loads((region / "region.toml").read_text(encoding="utf-8"))
-    rid, bm = cfg["id"], cfg["basemap"]
+    r = load_region(region)
+    rid, bm = r.id, r.basemap
     w, s, e, n = bm["bbox"]
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
