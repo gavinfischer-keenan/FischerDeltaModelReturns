@@ -281,6 +281,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/publish.py:39](../python/fdmr_runner/publish.py#L39) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
 | [python/fdmr_runner/publish.py:40](../python/fdmr_runner/publish.py#L40) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/publish.py:61](../python/fdmr_runner/publish.py#L61) | `DEFAULT_SLOPE` | `3e-4` | a typical lowland river, used only where no gauge pair gives one |
+| [python/fdmr_runner/publish.py:137](../python/fdmr_runner/publish.py#L137) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
 | [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/soil.py:33](../python/fdmr_runner/soil.py#L33) | `POINT_SPACING_M` | `2_000.0` | centreline points kept for a corridor: far closer than its 9 km cells |
 | [python/fdmr_runner/water_extent.py:28](../python/fdmr_runner/water_extent.py#L28) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 |

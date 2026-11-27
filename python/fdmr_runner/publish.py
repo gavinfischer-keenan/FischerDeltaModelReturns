@@ -134,6 +134,25 @@ def dispersion_field(field, records, slopes):
     return out
 
 
+ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
+
+
+def lateral_field(field, records, slopes):
+    """Lateral mixing for every element and step, m2/s: eps = 0.23 d u*
+    (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
+    depth and slope as the dispersion coefficient. With the element's width it
+    sets how fast a parcel wanders across the channel (the engine's shear
+    spreading, issue #29)."""
+    out = [[0.0] * len(field.elements) for _ in range(field.steps)]
+    for e, el in enumerate(field.elements):
+        k, shape = shape_at(records, el.mid)
+        slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
+        for i in range(field.steps):
+            d = shape.depth(max(field.flow[i][e], 1e-3))
+            out[i][e] = ELDER_LATERAL * d * fdmr_py.shear_velocity(d, slope)
+    return out
+
+
 def element_fickian(field, records, slopes) -> list[float]:
     """How far below a release in each element Fischer's dispersion holds, m,
     at the element's median flow: U times six of Fischer's Lagrangian time
@@ -311,6 +330,12 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                         wave_scale=wave_scale, water_factor=water_factor)
     slopes = segment_slopes(gauges, chainage, store, datums or {}, t0, now)
     dispersion = dispersion_field(field, records, slopes)
+    # Parcels spread by the cross-channel shear unless the region chose Fischer's K alone (#29).
+    from fdmr_plugins import registry
+
+    chosen = next((r.get("maths") for r in region.reaches if r["id"] == reach), None)
+    shear = registry.choices("river-routing", chosen)["dispersion"].name == "cross-channel-shear"
+    lateral = lateral_field(field, records, slopes) if shear else None
     # The solid forecast lasts the reach's set days, or as far as every gauge's
     # forecast reaches, whichever is shorter; with no forecast, nothing is solid.
     rc = next((r.get("certainty", {}) for r in region.reaches if r["id"] == reach), {})
@@ -369,6 +394,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                 ("velocity", "m/s", True, flat(field.velocity)),
                 ("volume", "m3", True, [float(field.area[i][e] * els[e].length) for i in rows for e in range(len(els))]),
                 ("dispersion", "m2/s", True, flat(dispersion)),
+                *([("lateral_mixing", "m2/s", True, flat(lateral))] if lateral is not None else []),
             ],
         )
         if temperature is not None:
@@ -380,7 +406,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
               else store.latest(g.forecast["source"], g.site, f"{g.parameter}_forecast") for g in gauges if g.forecast]
     entry = {
         "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
-        "fields": ["flow", "area", "velocity", "volume", "dispersion"],
+        "fields": ["flow", "area", "velocity", "volume", "dispersion", *(["lateral_mixing"] if lateral is not None else [])],
         "certainty": certainty,
         **({"quality_fields": ["temperature"], "temperature_checks": temp_checks} if temperature is not None else {}),
         **({"swot_checks": sw} if (sw := swot_checks(region_dir, store, reach, line, els, widths, now)) else {}),

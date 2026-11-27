@@ -66,7 +66,15 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                               "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
                               "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
                               "fdmr_plugins.river_routing.heat, fdmr_runner.publish river_temperature")],
-        "dispersion": [Maths("fischer-longitudinal",
+        "dispersion": [Maths("cross-channel-shear",
+                             "Parcels spread by the mechanism behind the dispersion coefficient: each has a place across the channel, "
+                             "moves downstream at the speed there (a parabolic profile, U (1 + c (1/3 - eta^2)), c set so that Taylor's "
+                             "long-time K is Fischer's), and wanders across at Elder's lateral mixing 0.23 d u*, reflected at the banks; "
+                             "far from a release it spreads at Fischer's K, near it as lopsided as the shear makes it",
+                             "Fischer 1966, Longitudinal Dispersion in Laboratory and Natural Streams, sections II-F and III-F, eqs. 23, "
+                             "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
+                             "crates/fdmr-math dispersion.rs shear_profile_c, crates/fdmr-compute lib.rs, fdmr_runner.publish lateral_field"),
+                       Maths("fischer-longitudinal",
                              "Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; "
                              "each element also publishes how far below a release it holds (fickian_m: six Lagrangian "
                              "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
@@ -176,6 +184,10 @@ CHECKS: dict[str, tuple[str, ...]] = {
         "python/tests/test_heat.py::test_water_far_warmer_than_still_dry_night_air_cools",
         "python/tests/test_heat.py::test_vapour_pressure_is_the_textbook_value",
         "check: river temperature against its stations, each cycle (check.html)",
+    ),
+    "cross-channel-shear": (
+        "crates/fdmr-math/src/dispersion.rs::the_shear_profile_gives_fischers_k_by_taylors_integral",
+        "crates/fdmr-compute/src/lib.rs::shear_and_lateral_mixing_spread_a_release_at_taylors_k",
     ),
     "fischer-longitudinal": (
         "crates/fdmr-math/src/dispersion.rs::fischer_k_textbook",

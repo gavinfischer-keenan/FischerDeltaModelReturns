@@ -19,12 +19,12 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 93,
+     "line": 101,
      "text": "\"Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 \""
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 101,
+     "line": 109,
      "text": "\"(ref:achete2015, runner/dsm2/gtm-sediment.patch)\","
     },
     {
@@ -276,27 +276,27 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 82,
+     "line": 90,
      "text": "\"California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs\", \"fdmr_plugins.dsm2.study, fdmr_runner.delta\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 84,
+     "line": 92,
      "text": "\"California DWR, DSM2 QUAL (ref:dsm2)\", \"fdmr_plugins.dsm2.study\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 86,
+     "line": 94,
      "text": "\"California DWR, DSM2 QUAL (heat; ref:dsm2)\", \"fdmr_plugins.dsm2.temperature\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 88,
+     "line": 96,
      "text": "\"DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)\", \"fdmr_plugins.dsm2.fingerprint\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 94,
+     "line": 102,
      "text": "\"(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch\","
     },
     {
@@ -425,7 +425,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 100,
+     "line": 108,
      "text": "\"Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run \""
     },
     {
@@ -487,7 +487,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 106,
+     "line": 114,
      "text": "\"NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)\", \"fdmr_plugins.fvcom\")],"
     }
    ]
@@ -562,7 +562,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 123,
+     "line": 131,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
     }
    ]
@@ -603,6 +603,11 @@
    "citation": "Fischer, H. B. (1966). Longitudinal dispersion in laboratory and natural streams. Report No. KH-R-12, W. M. Keck Laboratory of Hydraulics and Water Resources, California Institute of Technology, Pasadena; June 1966. https://doi.org/10.7907/Z9F769HC",
    "used": [
     {
+     "file": "crates/fdmr-compute/src/lib.rs",
+     "line": 19,
+     "text": "lopsided as the shear makes it (Fischer 1966, ref:fischer1966). A release"
+    },
+    {
      "file": "crates/fdmr-math/src/dispersion.rs",
      "line": 6,
      "text": "ref:fischer1966)."
@@ -613,18 +618,38 @@
      "text": "(Fischer 1966, ref:fischer1966, eq. 57). Taylor's theory \"should be applied"
     },
     {
+     "file": "crates/fdmr-math/src/dispersion.rs",
+     "line": 49,
+     "text": "ε = 0.23 d u* (Fischer 1966, ref:fischer1966, section II-F, eq. 23)."
+    },
+    {
      "file": "docs/maths.md",
-     "line": 22,
+     "line": 23,
      "text": "| dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 72,
+     "line": 75,
+     "text": "\"40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)\","
+    },
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 80,
      "text": "\"time scales, Fischer 1966 eq. 57, ref:fischer1966)\","
     },
     {
      "file": "python/fdmr_runner/publish.py",
-     "line": 140,
+     "line": 137,
+     "text": "ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)"
+    },
+    {
+     "file": "python/fdmr_runner/publish.py",
+     "line": 142,
+     "text": "(Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same"
+    },
+    {
+     "file": "python/fdmr_runner/publish.py",
+     "line": 159,
      "text": "scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's"
     }
    ]
@@ -658,12 +683,12 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 73,
+     "line": 81,
      "text": "\"Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)\","
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 122,
+     "line": 130,
      "text": "\"Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term \""
     },
     {
@@ -1183,7 +1208,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 106,
+     "line": 114,
      "text": "\"NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)\", \"fdmr_plugins.fvcom\")],"
     }
    ]
@@ -1239,7 +1264,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 78,
+     "line": 86,
      "text": "\"US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)\", \"fdmr_runner.releases\")],"
     }
    ]
@@ -1343,7 +1368,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 94,
+     "line": 102,
      "text": "\"(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch\","
     },
     {
@@ -1389,7 +1414,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 110,
+     "line": 118,
      "text": "\"Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; \""
     }
    ]
@@ -1515,7 +1540,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 111,
+     "line": 119,
      "text": "\"constituent speeds from Schureman 1958 (ref:schureman1958)\","
     }
    ]
@@ -1704,7 +1729,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 78,
+     "line": 86,
      "text": "\"US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)\", \"fdmr_runner.releases\")],"
     }
    ]
@@ -1865,7 +1890,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 124,
+     "line": 132,
      "text": "\"salinity-from-conductance\": [Maths(\"pss-78\", \"Practical salinity from specific conductance\", \"UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)\","
     }
    ]
@@ -1906,7 +1931,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 123,
+     "line": 131,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
     }
    ]

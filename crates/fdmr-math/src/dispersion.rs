@@ -45,6 +45,26 @@ pub fn fickian_distance(
     6.0 * 0.30 * velocity * length * length / (hydraulic_radius * shear_velocity)
 }
 
+/// Elder's lateral mixing coefficient as Fischer adopts it for rivers,
+/// ε = 0.23 d u* (Fischer 1966, ref:fischer1966, section II-F, eq. 23).
+pub const ELDER_LATERAL: f64 = 0.23;
+
+/// The strength c of the cross-channel velocity profile
+/// u = U (1 + c (1/3 − η²)), η from −1 at one bank to 1 at the other (its
+/// mean is U, its mean square deviation c² 4/45 U²).
+///
+/// With lateral mixing ε, Taylor's long-time dispersion for this profile is
+/// K = (1/(W ε)) ∫ q² dy, q(y) = ∫₀ʸ u′ dy′, which comes to
+/// K = c² U² W² / (472.5 ε). c is chosen so that K is Fischer's
+/// 0.011 U² W² / (d u*) when ε = 0.23 d u*: c² = 0.011 × 472.5 × 0.23, so
+/// c ≈ 1.093. Water at the banks then moves at 0.27 U and mid-channel at
+/// 1.36 U, and near a release the cloud is as skewed as that shear makes it,
+/// the same mechanism (Fischer 1966, eqs. 40 and 57) at every distance.
+#[must_use]
+pub fn shear_profile_c() -> f64 {
+    (0.011 * 472.5 * ELDER_LATERAL).sqrt()
+}
+
 /// Dispersion coefficient from the change of temporal moments of a tracer
 /// passing two stations (Fischer's change-of-moment method), m²/s:
 ///
@@ -91,6 +111,28 @@ mod tests {
         let six_t = fickian_distance(1.0, 2640.0 * ft, 25.0 * ft, 0.1 * ft) / 3600.0;
         assert!((six_t - 1393.9).abs() < 0.1);
         assert!((six_t / 1200.0 - 1.0).abs() < 0.2);
+    }
+
+    #[test]
+    fn the_shear_profile_gives_fischers_k_by_taylors_integral() {
+        // K = (1/(W ε)) ∫ q² dy by quadrature, for the profile at c, against
+        // Fischer's 0.011 U² W² / (d u*) with ε = 0.23 d u*.
+        let (u, w, d, ustar) = (0.8_f64, 60.0_f64, 2.5_f64, 0.07_f64);
+        let eps = ELDER_LATERAL * d * ustar;
+        let c = shear_profile_c();
+        let n = 20_000;
+        let dy = w / f64::from(n);
+        let (mut q, mut integral) = (0.0, 0.0);
+        for i in 0..n {
+            let eta = 2.0 * (f64::from(i) + 0.5) * dy / w - 1.0;
+            q += u * c * (1.0 / 3.0 - eta * eta) * dy;
+            integral += q * q * dy;
+        }
+        let k = integral / (w * eps);
+        let fischer = fischer_k(u, w, d, ustar);
+        assert!((k / fischer - 1.0).abs() < 1e-3, "{k} against {fischer}");
+        // the banks still move downstream
+        assert!(1.0 - c * 2.0 / 3.0 > 0.2);
     }
 
     #[test]

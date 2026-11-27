@@ -160,6 +160,8 @@ let starts = new Float64Array();
 let ends = new Float64Array();
 /** Each river element's published distance below a release before Fischer's dispersion holds, m. */
 let fickian: (number | null)[] = [];
+/** The main river's element widths, m, where published (the engine's shear spreading, #29). */
+let riverWidths: Float64Array | null = null;
 /** That distance for the latest river release, m, or null (a network or mesh release, or none). */
 let releaseFickian: number | null = null;
 let particles = 0;
@@ -225,6 +227,8 @@ interface Line {
   starts: Float64Array;
   ends: Float64Array;
   fickian: (number | null)[];
+  /** Element widths, m, where published. */
+  widths: Float64Array | null;
   days: Uint8Array[];
   releases: RiverRelease[];
   engine: Engine | null;
@@ -276,6 +280,7 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   starts = Float64Array.from(geometry.elements.map((e) => e.start_m));
   ends = Float64Array.from(geometry.elements.map((e) => e.end_m));
   fickian = geometry.elements.map((e) => e.fickian_m ?? null);
+  riverWidths = widthsOf(geometry);
   days = present(await Promise.all(ix.time.days.map((d) => bytes(`${cycle}/${reach}/${d}.fdf`))));
   // As dense over the water's surface as every other reach, where the river's widths are published.
   particles = lineCount(geometry, n);
@@ -310,6 +315,11 @@ function rebuildSoon(): void {
 }
 
 /** Flow particles for a line reach: as dense over its water as every reach, or `n` without widths. */
+/** A reach's element widths, m, if every element has one. */
+function widthsOf(g: LineGeometry): Float64Array | null {
+  return g.elements.every((e) => e.width_m !== undefined) ? Float64Array.from(g.elements.map((e) => e.width_m!)) : null;
+}
+
 /** The published Fickian distance of the element holding chainage x, m. */
 function fickianAt(st: Float64Array, fk: (number | null)[], x: number): number | null {
   let i = 0;
@@ -330,6 +340,7 @@ async function loadLine(cycle: string, id: string): Promise<void> {
     starts: Float64Array.from(g.elements.map((e) => e.start_m)),
     ends: Float64Array.from(g.elements.map((e) => e.end_m)),
     fickian: g.elements.map((e) => e.fickian_m ?? null),
+    widths: widthsOf(g),
     days: present(await Promise.all((index?.time.days ?? []).map((d) => bytes(`${cycle}/${id}/${d}.fdf`)))),
     releases: [],
     engine: null,
@@ -503,12 +514,14 @@ function build(t: number): void {
     ...meshes.flatMap((m) => m.releases.map((r) => r.start)),
   );
   const e = new Engine(starts, ends, first, 2026);
+  if (riverWidths) e.set_widths(riverWidths);
   for (const d of days) e.load_day(d);
   for (const r of riverReleases) e.add_release(r.x, r.start, r.duration, r.mass, hl(r.halfLife), PARCELS_PER_RELEASE);
   for (const b of riverQuality ?? []) e.load_quality(b);
   engine = e;
   for (const l of lines) {
     const le = new Engine(l.starts, l.ends, first, 2029);
+    if (l.widths) le.set_widths(l.widths);
     for (const d of l.days) le.load_day(d);
     for (const r of l.releases) le.add_release(r.x, r.start, r.duration, r.mass, hl(r.halfLife), PARCELS_PER_RELEASE);
     for (const b of l.quality ?? []) le.load_quality(b);

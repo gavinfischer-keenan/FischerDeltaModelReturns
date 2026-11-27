@@ -27,6 +27,19 @@ impl Engine {
         }
     }
 
+    /// Each element's water-surface width, m (the geometry's `width_m`): with
+    /// a published `lateral_mixing`, parcels spread by the cross-channel shear.
+    ///
+    /// # Errors
+    /// If there is not one width per element.
+    pub fn set_widths(&mut self, widths: &[f64]) -> Result<(), JsError> {
+        if widths.len() != self.core.elements() {
+            return Err(JsError::new("one width per element"));
+        }
+        self.core.set_widths(widths);
+        Ok(())
+    }
+
     /// Load one day's field file, as fetched.
     ///
     /// # Errors

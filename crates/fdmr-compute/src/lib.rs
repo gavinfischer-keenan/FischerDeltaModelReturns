@@ -8,9 +8,19 @@
 //! Parcels move with the local velocity plus a random step for dispersion
 //! (specification section 8.1, `fdmr_math::parcel`). Flow particles move with
 //! the velocity only and carry no mass: they show the water (section 8.4).
+//!
+//! Where the reach publishes its lateral mixing (`lateral_mixing`) and its
+//! widths are given (`set_widths`), parcels spread by the mechanism behind the
+//! dispersion coefficient instead (issue #29): each has a place across the
+//! channel, η from −1 to 1, moves downstream at the speed there,
+//! U (1 + c (1/3 − η²)) (`fdmr_math::dispersion::shear_profile_c`), and
+//! wanders across at the lateral mixing ε, reflected at the banks. Far from a
+//! release this spreads at Fischer's K; near it, the cloud is as drawn out and
+//! lopsided as the shear makes it (Fischer 1966, ref:fischer1966). A release
+//! starts spread evenly across the channel, Fischer's plane source.
 
 use fdmr_format::{FieldFile, FormatError};
-use fdmr_math::{decay, parcel, rng::Rng};
+use fdmr_math::{decay, dispersion, parcel, rng::Rng};
 
 pub mod mesh;
 pub mod network;
@@ -46,6 +56,8 @@ struct Day {
     velocity: Vec<f32>,
     volume: Vec<f32>,
     dispersion: Vec<f32>,
+    /// Lateral mixing ε, m²/s, where published.
+    lateral: Option<Vec<f32>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -67,6 +79,8 @@ pub struct Release {
 #[derive(Debug, Clone, Copy)]
 struct Parcel {
     x: f64,
+    /// Across the channel, −1 to 1 (used where the reach has lateral mixing).
+    lat: f64,
     mass: f64,
     release: usize,
     in_water: bool,
@@ -122,6 +136,8 @@ pub struct Engine {
     outflow: Vec<(f64, f64, Option<f64>)>,
     /// Water-quality fields per element (`<day>.quality.fdf`), loaded to be shown.
     quality: series::Series,
+    /// Each element's water-surface width, m (`set_widths`).
+    widths: Option<Vec<f64>>,
 }
 
 impl Engine {
@@ -140,7 +156,19 @@ impl Engine {
             balance: MassBalance::default(),
             outflow: Vec::new(),
             quality: series::Series::default(),
+            widths: None,
         }
+    }
+
+    /// Each element's water-surface width, m (the reach's geometry `width_m`):
+    /// with the published lateral mixing, parcels spread by the cross-channel
+    /// shear (module docs).
+    ///
+    /// # Panics
+    /// If there is not one width per element.
+    pub fn set_widths(&mut self, widths: &[f64]) {
+        assert_eq!(widths.len(), self.elements(), "one width per element");
+        self.widths = Some(widths.iter().map(|w| w.max(1.0)).collect());
     }
 
     /// Load one day's water-quality file (such as `temperature`, per element),
@@ -222,6 +250,7 @@ impl Engine {
             velocity: take("velocity")?,
             volume: take("volume")?,
             dispersion: take("dispersion")?,
+            lateral: f.field("lateral_mixing").map(|x| x.values.clone()),
         };
         let at = self.days.partition_point(|d| d.t0 < day.t0);
         self.days.insert(at, day);
@@ -283,6 +312,14 @@ impl Engine {
         self.value(|d| &d.dispersion, self.element(x), t)
     }
 
+    /// The lateral mixing ε at x and t, m²/s, where every day holds it.
+    fn lateral_mixing(&self, x: f64, t: f64) -> Option<f64> {
+        if self.days.is_empty() || self.days.iter().any(|d| d.lateral.is_none()) {
+            return None;
+        }
+        Some(self.value(|d| d.lateral.as_deref().unwrap_or(&[]), self.element(x), t))
+    }
+
     /// Add a release. Returns its index.
     pub fn add_release(&mut self, r: Release) -> usize {
         self.releases.push((r, 0));
@@ -312,8 +349,10 @@ impl Engine {
             };
             let each = r.mass / f64::from(r.parcels.max(1));
             for _ in emitted..due {
+                let lat = self.rng.uniform() * 2.0 - 1.0;
                 self.parcels.push(Parcel {
                     x: r.x,
+                    lat,
                     mass: each,
                     release: idx,
                     in_water: true,
@@ -337,8 +376,29 @@ impl Engine {
                 if !p.in_water {
                     continue;
                 }
-                let (u, k) = (self.velocity(p.x, now), self.dispersion(p.x, now));
-                let mut x = parcel::step_along_channel(p.x, u, k, dt, &mut self.rng);
+                let u = self.velocity(p.x, now);
+                let mut lat = p.lat;
+                let mut x = match (self.lateral_mixing(p.x, now), &self.widths) {
+                    (Some(eps), Some(widths)) => {
+                        // Downstream at the speed across the channel where it is,
+                        // then across by the lateral mixing, reflected at the banks.
+                        let w = widths[self.element(p.x)];
+                        let c = dispersion::shear_profile_c();
+                        let x = p.x + u * (1.0 + c * (1.0 / 3.0 - lat * lat)) * dt;
+                        lat += 2.0 / w * (2.0 * eps.max(0.0) * dt).sqrt() * self.rng.normal();
+                        while !(-1.0..=1.0).contains(&lat) {
+                            lat = if lat > 1.0 { 2.0 - lat } else { -2.0 - lat };
+                        }
+                        x
+                    }
+                    _ => parcel::step_along_channel(
+                        p.x,
+                        u,
+                        self.dispersion(p.x, now),
+                        dt,
+                        &mut self.rng,
+                    ),
+                };
                 if x < 0.0 {
                     x = -x; // the top of the reach reflects
                 }
@@ -349,6 +409,7 @@ impl Engine {
                 let q = &mut self.parcels[i];
                 q.mass = kept;
                 q.x = x;
+                q.lat = lat;
                 if x >= len {
                     q.in_water = false;
                     self.balance.in_water -= kept;
@@ -493,6 +554,75 @@ mod tests {
             e.load_day(&uniform_day(n, d * 86_400, u, k)).unwrap();
         }
         e
+    }
+
+    /// A uniform reach as `uniform_day`, with lateral mixing `eps` published too.
+    fn shear_day(n: u32, t0: i64, u: f32, eps: f32) -> Vec<u8> {
+        let mut file = FieldFile::read_from(&mut &uniform_day(n, t0, u, 1.0)[..]).unwrap();
+        let len = file.fields[0].values.len();
+        file.fields.push(Field {
+            name: "lateral_mixing".into(),
+            unit: "m2/s".into(),
+            encoding: Encoding::F32,
+            values: vec![eps; len],
+        });
+        let mut b = Vec::new();
+        file.write_to(&mut b).unwrap();
+        b
+    }
+
+    fn moments(xs: &[f64]) -> (f64, f64, f64) {
+        #[allow(clippy::cast_precision_loss)]
+        let n = xs.len() as f64;
+        let mean = xs.iter().sum::<f64>() / n;
+        let var = xs.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n;
+        let skew = xs.iter().map(|x| (x - mean).powi(3)).sum::<f64>() / n / var.powf(1.5);
+        (mean, var, skew)
+    }
+
+    #[test]
+    fn shear_and_lateral_mixing_spread_a_release_at_taylors_k() {
+        // 50 m wide, U 0.5 m/s, ε 0.05 m²/s: K = c² U² W² / (472.5 ε) = 31.6 m²/s
+        // once the cloud has mixed across (several W²/ε), and before that the
+        // slow water near the banks leaves a tail behind (negative skew).
+        let (n, u, w, eps) = (200u32, 0.5_f64, 50.0_f64, 0.05_f64);
+        let els: Vec<(f64, f64)> = (0..n)
+            .map(|i| (f64::from(i) * 1000.0, f64::from(i + 1) * 1000.0))
+            .collect();
+        let mut e = Engine::new(&els, 0.0, 13);
+        #[allow(clippy::cast_possible_truncation)]
+        for d in 0..3 {
+            e.load_day(&shear_day(n, d * 86_400, u as f32, eps as f32))
+                .unwrap();
+        }
+        e.set_widths(&vec![w; n as usize]);
+        e.add_release(Release {
+            x: 1_000.0,
+            start: 0.0,
+            duration: 0.0,
+            mass: 1000.0,
+            half_life: None,
+            parcels: 20_000,
+        });
+        e.step_to(2_000.0);
+        let (_, _, early_skew) = moments(&e.parcel_snapshot().0);
+        assert!(early_skew < -0.3, "early skew {early_skew}");
+        e.step_to(60_000.0);
+        let (_, v1, _) = moments(&e.parcel_snapshot().0);
+        e.step_to(180_000.0);
+        let (mean, v2, late_skew) = moments(&e.parcel_snapshot().0);
+        let k = (v2 - v1) / (2.0 * 120_000.0);
+        let c = dispersion::shear_profile_c();
+        let taylor = c * c * u * u * w * w / (472.5 * eps);
+        assert!((k / taylor - 1.0).abs() < 0.1, "K {k} against {taylor}");
+        assert!(
+            late_skew.abs() < early_skew.abs() / 2.0,
+            "late skew {late_skew}"
+        );
+        assert!(
+            (mean - (1_000.0 + u * 180_000.0)).abs() < 300.0,
+            "centre {mean}"
+        );
     }
 
     #[test]

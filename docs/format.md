@@ -245,6 +245,7 @@ The fields follow in descriptor order. Each field is `steps x layers x elements`
 | `volume` | m3 | Water volume of the element |
 | `area` | m2 | Cross-section area (1D) |
 | `dispersion` | m2/s | Longitudinal dispersion coefficient (1D) |
+| `lateral_mixing` | m2/s | Lateral mixing across the channel, ε = 0.23 d u* (optional; with the geometry's `width_m`, a reader spreads parcels by the cross-channel shear, issue #29) |
 | `level` | m | Water surface elevation against the region's datum |
 | `temperature` | degC | Water temperature |
 | `salinity` | psu | Salinity |
