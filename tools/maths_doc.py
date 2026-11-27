@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "python"))
 
-from fdmr_plugins.registry import CHECKS, REGISTER  # noqa: E402
+from fdmr_plugins.registry import CANDIDATES, CHECKS, REGISTER  # noqa: E402
 
 KINDS = {
     "river-routing": "Rivers, from a dam's release down past gauges (one dimension along the channel)",
@@ -59,6 +59,15 @@ def build() -> str:
                     c[len("check: "):] if c.startswith("check: ") else f"`{c.split('::')[1]}` ({c.split('::')[0]})"
                     for c in CHECKS.get(m.name, ())))
         out.append("")
+    out += ["## Candidates, not in the live model", "",
+            "Maths or settings that cannot be sourced yet (issue #26). None of them runs: each would be tried, "
+            "judged on data it was not chosen on, and adopted by hand with its source. A registered alternative "
+            "above can be tried on a hindcast, labelled and scored apart, with `python -m fdmr_runner.trial`.", "",
+            "| Kind | Part | Candidate | What is known | Why it is not in | Issue |", "| --- | --- | --- | --- | --- | --- |"]
+    for c in CANDIDATES:
+        cells = [c.kind, c.part, f"**{c.name}**", linked(c.known), c.why_not, c.issue]
+        out.append("| " + " | ".join(x.replace("|", "\\|") for x in cells) + " |")
+    out.append("")
     return "\n".join(out)
 
 

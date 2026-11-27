@@ -103,3 +103,17 @@ Standard problems passed:
 - **advection-random-walk**: `no_dispersion_means_pure_advection` (crates/fdmr-math/src/parcel.rs); `moment_method_recovers_k_from_parcels` (crates/fdmr-math/src/parcel.rs); `uniform_flow_carries_a_parcel_exactly` (crates/fdmr-compute/src/mesh.rs); `spreading_matches_diffusion_and_stays_even_over_a_sloping_bed` (crates/fdmr-compute/src/mesh.rs); `mass_is_conserved_under_spreading` (crates/fdmr-compute/src/mesh.rs); `an_even_start_stays_even_where_the_diffusivity_varies` (crates/fdmr-compute/src/mesh.rs); `mass_balances_with_decay_and_outflow` (crates/fdmr-compute/src/lib.rs)
 - **pss-78**: `delta_waters_read_sensibly` (crates/fdmr-math/src/salinity.rs)
 - **first-order**: `half_left_after_one_half_life` (crates/fdmr-math/src/decay.rs); `steps_compose` (crates/fdmr-math/src/decay.rs)
+
+## Candidates, not in the live model
+
+Maths or settings that cannot be sourced yet (issue #26). None of them runs: each would be tried, judged on data it was not chosen on, and adopted by hand with its source. A registered alternative above can be tried on a hindcast, labelled and scored apart, with `python -m fdmr_runner.trial`.
+
+| Kind | Part | Candidate | What is known | Why it is not in | Issue |
+| --- | --- | --- | --- | --- | --- |
+| 1d-tidal-network | sediment | **two-settling-classes** | Delta microflocs average 1.63 mm/s (Manning and Schoellhamer, 2015 conference abstract, preliminary); South Bay slow class 0.014 mm/s in autumn (Brand et al. 2015, Limnol. Oceanogr. 60:463) | no published Delta source for the mass split between the classes; DWR's own two-class calibration (sand and fines, 2019) was tried and is worse model-wide | #24 |
+| 1d-tidal-network | sediment | **wind-wave-resuspension** | fetch-limited waves (USACE Coastal Engineering Manual II-2); measured wave heights in the Delta's flooded islands (Lacy et al. 2023; Jones et al. 2008) | the wave stress depends on a bed roughness z0 with no Delta value, and DSM2's flooded islands have no sediment bed in GTM | #24 |
+| 1d-tidal-network | sediment | **depth-limited-bed** | critical stress rising as the bed erodes (Schoellhamer et al. 2017, [schoellhamer2017](references.md#schoellhamer2017), p. 807) | its slope comes from Franks Tract alone, r2 0.40 | #24 |
+| 1d-tidal-network | sediment-checks | **turbidity-floor** | USGS site fits give about 3.3 mg/L at 1 FNU; organic matter is 10-16% of suspended solids in October (Mathers et al. 2025) | a derived number, and it changes how the checks score, not the model | #24 |
+| river-routing | lateral-mixing | **bend-mixing** | Fischer 1969 (WRR 5:496): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (Water 15:3120) fit 33 rivers' measured mixing on (U/u*)(d/R) | raising the mixing in bends lowers the long-range spreading below Fischer's K; it needs a held-out test against measured dye clouds | #27 |
+| fishing | white-sturgeon | **salinity-bands** | FDMR's reading of Sellheim et al. 2022's habitat classes; CDFW's trammel-net survey agrees above 16 psu, where salinity follows place | moderate to weak evidence; too little survey salinity to choose new scores | #25 |
+| fishing | white-sturgeon | **run-cue-40-m3s** | FDMR's reading of Schaffter 1997 and Heublein et al. 2017 | not calibrated: the size and the day-over-day timescale are a reading | #25 |

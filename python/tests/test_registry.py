@@ -47,3 +47,13 @@ def test_every_maths_names_standard_problems_that_exist():
             pattern = rf"def {test}\(" if path.endswith(".py") else rf"fn {test}\("
             assert re.search(pattern, text), f"{name}: {c} not found"
 
+
+def test_a_candidate_is_never_a_registered_choice():
+    """Candidates (#26) are listed, not run: none is registered, so no region or trial can choose one."""
+    registered = {m.name for parts in registry.REGISTER.values() for impls in parts.values() for m in impls}
+    for c in registry.CANDIDATES:
+        assert c.name not in registered and c.why_not and c.issue
+        if c.kind in registry.REGISTER and c.part in registry.REGISTER[c.kind]:
+            with pytest.raises(ValueError):
+                registry.choices(c.kind, {c.part: c.name})
+

@@ -633,13 +633,27 @@ def publish(
     calibration: dict | None = None,
     extra_reaches: list[Path] | None = None,
     as_of: int | None = None,
+    trial: dict | None = None,
 ) -> Path:
     """Publish a cycle. With `as_of` (a hindcast), the cycle's "now" is that
     time: nothing measured after it is read; river forecasts are the issue in
     force then where it was kept (fdmr_adapters.cnrfc, archived from 26 Nov
     2026), and release rules and weather forecasts hold; its overlays and
-    ledger are left to the caller."""
+    ledger are left to the caller. With `trial` ({"name", "maths": {reach or
+    "*": {part: name}}}, issue #26), the reaches run those registered maths in
+    place of the region's, and the cycle says so (index.json `trial`)."""
     region = load_region(region_dir)
+    if trial:
+        from fdmr_plugins import registry
+
+        for r in region.reaches:
+            # "*" reaches every reach whose kind has that part; a named reach must have it.
+            parts = {**registry.REGISTER.get(r.get("kind"), {}), **registry.REGISTER["all"]}
+            every = {p: m for p, m in trial["maths"].get("*", {}).items() if p in parts}
+            over = {**every, **trial["maths"].get(r["id"], {})}
+            if over and r.get("kind") in registry.REGISTER:
+                r["maths"] = {**(r.get("maths") or {}), **over}
+                registry.choices(r["kind"], r["maths"])  # an unknown or unregistered choice stops the trial
     if reach is None:  # the main reach: the region's first river-routing reach
         reach = next(r["id"] for r in region.reaches if r.get("kind") == "river-routing")
     gauges, _ = river_chain(region_dir, reach)
@@ -697,6 +711,7 @@ def publish(
         "time": {"start": utc(t0), "step_s": STEP, "days": day_names},
         "now": utc(now),
         "data_age_s": data_age,
+        **({"trial": {"name": trial["name"], "maths": trial["maths"]}} if trial else {}),
         "reaches": entries,
         "status": "ok",
     }
