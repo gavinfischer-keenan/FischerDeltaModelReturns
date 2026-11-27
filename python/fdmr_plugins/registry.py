@@ -291,6 +291,12 @@ CANDIDATES: tuple[Candidate, ...] = (
               "33 rivers' measured mixing on (U/u*)(d/R)",
               "raising the mixing in bends lowers the long-range spreading below Fischer's K; it needs a held-out "
               "test against measured dye clouds", "#27"),
+    Candidate("river-routing", "dispersion", "groyne-field-storage",
+              "van Mazijk 1996 (TU Delft thesis): measured dye clouds lag behind the water in groyne fields "
+              "(its dead-zone ratios per reach); with storage at a = 1e-5/s fitted on one reach, a held-out reach's "
+              "centroid is right and its spread closer (tools/validation/rhine_dye)",
+              "on the held-out reach the peak comes 4 hours late and the whole shape is only 5% better; needs "
+              "further releases as tests", "#27"),
     Candidate("fishing", "white-sturgeon", "salinity-bands",
               "FDMR's reading of Sellheim et al. 2022's habitat classes; CDFW's trammel-net survey agrees above "
               "16 psu, where salinity follows place",
