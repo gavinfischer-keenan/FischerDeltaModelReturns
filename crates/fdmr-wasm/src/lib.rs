@@ -5,14 +5,21 @@
 //! Results come back as typed arrays of numbers: chainage, concentration,
 //! speed. Turning chainage into a place on the map is the UI's job.
 
-use fdmr_compute::mesh::{MeshFate, MeshRelease, MeshTopology, MeshTracer};
+use fdmr_compute::mesh::{MeshRelease, MeshTopology, MeshTracer};
 use fdmr_compute::network::{NetRelease, NetworkTracer, Place, Topology};
+use fdmr_compute::region::{Entry, Region as RegionCore, RiverEnd, Shared};
 use fdmr_compute::{Engine as Core, Release};
+use std::cell::RefCell;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
+
+fn shared<T>(v: T) -> Shared<T> {
+    Rc::new(RefCell::new(v))
+}
 
 #[wasm_bindgen]
 pub struct Engine {
-    core: Core,
+    core: Shared<Core>,
 }
 
 #[wasm_bindgen]
@@ -23,7 +30,7 @@ impl Engine {
     pub fn new(starts: &[f64], ends: &[f64], start_time: f64, seed: u32) -> Self {
         let elements: Vec<(f64, f64)> = starts.iter().copied().zip(ends.iter().copied()).collect();
         Self {
-            core: Core::new(&elements, start_time, u64::from(seed)),
+            core: shared(Core::new(&elements, start_time, u64::from(seed))),
         }
     }
 
@@ -33,10 +40,10 @@ impl Engine {
     /// # Errors
     /// If there is not one width per element.
     pub fn set_widths(&mut self, widths: &[f64]) -> Result<(), JsError> {
-        if widths.len() != self.core.elements() {
+        if widths.len() != self.core.borrow_mut().elements() {
             return Err(JsError::new("one width per element"));
         }
-        self.core.set_widths(widths);
+        self.core.borrow_mut().set_widths(widths);
         Ok(())
     }
 
@@ -46,12 +53,13 @@ impl Engine {
     /// If the bytes are not a field file for this reach.
     pub fn load_day(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_day(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
 
     pub fn seed_flow_particles(&mut self, n: usize) {
-        self.core.seed_flow_particles(n);
+        self.core.borrow_mut().seed_flow_particles(n);
     }
 
     /// Add a release. `half_life` in s, or `NaN` for none. Returns its index.
@@ -64,7 +72,7 @@ impl Engine {
         half_life: f64,
         parcels: u32,
     ) -> usize {
-        self.core.add_release(Release {
+        self.core.borrow_mut().add_release(Release {
             x,
             start,
             duration,
@@ -79,39 +87,39 @@ impl Engine {
     }
 
     pub fn step_to(&mut self, t: f64) {
-        self.core.step_to(t);
+        self.core.borrow_mut().step_to(t);
     }
 
     pub fn drift_frozen(&mut self, dt: f64) {
-        self.core.drift_frozen(dt);
+        self.core.borrow_mut().drift_frozen(dt);
     }
 
     #[must_use]
     pub fn time(&self) -> f64 {
-        self.core.time()
+        self.core.borrow().time()
     }
 
     #[must_use]
     pub fn length(&self) -> f64 {
-        self.core.length()
+        self.core.borrow().length()
     }
 
     /// Flow particles' chainage, m.
     #[must_use]
     pub fn particle_x(&self) -> Vec<f64> {
-        self.core.particle_snapshot().0
+        self.core.borrow().particle_snapshot().0
     }
 
     /// Flow particles' lateral position, -1..1.
     #[must_use]
     pub fn particle_lateral(&self) -> Vec<f32> {
-        self.core.particle_snapshot().1
+        self.core.borrow().particle_snapshot().1
     }
 
     /// Flow particles' speed, m/s.
     #[must_use]
     pub fn particle_speed(&self) -> Vec<f64> {
-        self.core.particle_snapshot().2
+        self.core.borrow().particle_snapshot().2
     }
 
     /// Load one day's water-quality file (such as the river's temperature).
@@ -120,6 +128,7 @@ impl Engine {
     /// If it does not match the reach.
     pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_quality(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -127,41 +136,31 @@ impl Engine {
     /// A field's value where each flow particle is (`NaN` where there is none).
     #[must_use]
     pub fn particle_values(&self, name: &str) -> Vec<f32> {
-        self.core.particle_values(name)
+        self.core.borrow().particle_values(name)
     }
 
     /// Parcels in the water: chainage, m.
     #[must_use]
     pub fn parcel_x(&self) -> Vec<f64> {
-        self.core.parcel_snapshot().0
+        self.core.borrow().parcel_snapshot().0
     }
 
     /// Parcels in the water: concentration where each is, kg/m³.
     #[must_use]
     pub fn parcel_concentration(&self) -> Vec<f64> {
-        self.core.parcel_snapshot().1
+        self.core.borrow().parcel_snapshot().1
     }
 
     /// Concentration in each element, kg/m³.
     #[must_use]
     pub fn concentration(&self) -> Vec<f64> {
-        self.core.concentration()
-    }
-
-    /// Parcels that passed the end since the last call, for the next reach:
-    /// flat triples of (time, mass, half-life or `NaN`).
-    pub fn take_outflow(&mut self) -> Vec<f64> {
-        self.core
-            .take_outflow()
-            .into_iter()
-            .flat_map(|(t, m, h)| [t, m, h.unwrap_or(f64::NAN)])
-            .collect()
+        self.core.borrow().concentration()
     }
 
     /// [released, in water, past the end, decayed], kg.
     #[must_use]
     pub fn mass_balance(&self) -> Vec<f64> {
-        let b = self.core.mass_balance();
+        let b = self.core.borrow().mass_balance();
         vec![b.released, b.in_water, b.past_end, b.decayed]
     }
 }
@@ -173,7 +172,7 @@ impl Engine {
 /// `channels + pool`, fraction 0.5), for the UI to place on the map.
 #[wasm_bindgen]
 pub struct NetworkEngine {
-    core: NetworkTracer,
+    core: Shared<NetworkTracer>,
 }
 
 #[wasm_bindgen]
@@ -209,7 +208,12 @@ impl NetworkEngine {
             link_node: ix(link_node),
         };
         Self {
-            core: NetworkTracer::new(topo, start_time, u64::from(seed), dispersion),
+            core: shared(NetworkTracer::new(
+                topo,
+                start_time,
+                u64::from(seed),
+                dispersion,
+            )),
         }
     }
 
@@ -219,6 +223,7 @@ impl NetworkEngine {
     /// If it does not match the network.
     pub fn load_channels(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_channels(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -229,6 +234,7 @@ impl NetworkEngine {
     /// If it does not match the network.
     pub fn load_nodes(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_nodes(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -239,6 +245,7 @@ impl NetworkEngine {
     /// If it does not match the network.
     pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_quality(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -246,7 +253,7 @@ impl NetworkEngine {
     /// A field's value where each flow particle is (`NaN` where there is none).
     #[must_use]
     pub fn particle_values(&self, name: &str) -> Vec<f32> {
-        self.core.particle_values(name)
+        self.core.borrow().particle_values(name)
     }
 
     /// Load one day's link file.
@@ -255,6 +262,7 @@ impl NetworkEngine {
     /// If it does not match the network.
     pub fn load_links(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_links(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -272,7 +280,7 @@ impl NetworkEngine {
         half_life: f64,
         parcels: u32,
     ) {
-        self.core.add_release(NetRelease {
+        self.core.borrow_mut().add_release(NetRelease {
             at: Place::Channel(channel as usize, fraction.clamp(0.0, 1.0) * length),
             start,
             duration,
@@ -303,7 +311,7 @@ impl NetworkEngine {
         parcels: u32,
         kd: f64,
     ) -> f64 {
-        self.core.add_bound_release(
+        self.core.borrow_mut().add_bound_release(
             NetRelease {
                 at: Place::Channel(channel as usize, fraction.clamp(0.0, 1.0) * length),
                 start,
@@ -322,50 +330,30 @@ impl NetworkEngine {
 
     /// The sediment's settling velocity, m/s (the reach's `sediment` entry), for bound releases.
     pub fn set_settling(&mut self, ws: f64) {
-        self.core.set_settling(ws);
+        self.core.borrow_mut().set_settling(ws);
     }
 
     pub fn clear_releases(&mut self) {
-        self.core.clear_releases();
+        self.core.borrow_mut().clear_releases();
     }
 
     /// Channels another reach tracks (by index): parcels about to enter one are handed on.
     pub fn set_handoff(&mut self, channels: &[u32]) {
         let c: Vec<usize> = channels.iter().map(|&i| i as usize).collect();
-        self.core.set_handoff(&c);
-    }
-
-    /// Take in a parcel handed back from another reach at junction `node`, now.
-    /// `half_life` in s, or `NaN` for none.
-    pub fn take_parcel(&mut self, node: u32, mass: f64, half_life: f64) {
-        self.core.take_parcel(
-            node as usize,
-            mass,
-            if half_life.is_finite() && half_life > 0.0 {
-                Some(half_life)
-            } else {
-                None
-            },
-        );
-    }
-
-    /// Take in a flow particle from another reach at junction `node`, in place
-    /// of the one furthest through its life.
-    pub fn take_particle(&mut self, node: u32) -> bool {
-        self.core.take_particle(node as usize)
+        self.core.borrow_mut().set_handoff(&c);
     }
 
     /// Each channel's water-surface width, m: flow particles then start evenly
     /// over the water's surface rather than by volume, and settling divides
     /// by the water's depth over it.
     pub fn set_widths(&mut self, widths: &[f64]) {
-        self.core.set_widths(widths);
+        self.core.borrow_mut().set_widths(widths);
     }
 
     /// Where flow particles start, count every channel as at least `w` m
     /// wide (placement only, never the physics).
     pub fn set_min_seed_width(&mut self, w: f64) {
-        self.core.set_min_seed_width(w);
+        self.core.borrow_mut().set_min_seed_width(w);
     }
 
     /// Where another reach takes over part way along channels: for each cut,
@@ -378,45 +366,13 @@ impl NetworkEngine {
             .zip(down)
             .map(|((&c, &a), &d)| (c as usize, a, d != 0))
             .collect();
-        self.core.set_cuts(&cuts);
-    }
-
-    /// Take in a parcel coming back from another reach through cut `k`, now.
-    /// `half_life` in s, or `NaN` for none.
-    pub fn take_parcel_at_cut(&mut self, k: u32, mass: f64, half_life: f64) {
-        self.core.take_parcel_at_cut(
-            k as usize,
-            mass,
-            if half_life.is_finite() && half_life > 0.0 {
-                Some(half_life)
-            } else {
-                None
-            },
-        );
-    }
-
-    /// Take in a flow particle from another reach through cut `k`.
-    pub fn take_particle_at_cut(&mut self, k: u32) -> bool {
-        self.core.take_particle_at_cut(k as usize)
+        self.core.borrow_mut().set_cuts(&cuts);
     }
 
     /// The water in the channels now, m³.
     #[must_use]
     pub fn water_volume(&self) -> f64 {
-        self.core.water_volume()
-    }
-
-    /// Flow particles passed to another reach since the last call: flat
-    /// (kind, index) for each, as in `take_handed`.
-    pub fn take_handed_particles(&mut self) -> Vec<f64> {
-        self.core
-            .take_handed_particles()
-            .into_iter()
-            .flat_map(|v| {
-                let (kind, i) = via(v);
-                [kind, i]
-            })
-            .collect()
+        self.core.borrow().water_volume()
     }
 
     /// Exports that carry on into another reach: each a junction index, or a
@@ -424,76 +380,62 @@ impl NetworkEngine {
     /// numbered in this order.
     pub fn set_outlets(&mut self, at: &[u32]) {
         let at: Vec<usize> = at.iter().map(|&i| i as usize).collect();
-        self.core.set_outlets(&at);
-    }
-
-    /// Parcels handed on since the last call: flat (kind, index, time, mass,
-    /// half-life or `NaN`) for each. Kind 0: at junction `index`; 1: at cut
-    /// `index`; 2: through outlet `index`.
-    pub fn take_handed(&mut self) -> Vec<f64> {
-        self.core
-            .take_handed()
-            .into_iter()
-            .flat_map(|h| {
-                let (kind, i) = via(h.via);
-                [kind, i, h.t, h.mass, h.half_life.unwrap_or(f64::NAN)]
-            })
-            .collect()
+        self.core.borrow_mut().set_outlets(&at);
     }
 
     pub fn seed_flow_particles(&mut self, n: usize) {
-        self.core.seed_flow_particles(n);
+        self.core.borrow_mut().seed_flow_particles(n);
     }
 
     pub fn step_to(&mut self, t: f64) {
-        self.core.step_to(t);
+        self.core.borrow_mut().step_to(t);
     }
 
     pub fn drift_frozen(&mut self, dt: f64) {
-        self.core.drift_frozen(dt);
+        self.core.borrow_mut().drift_frozen(dt);
     }
 
     /// Show the flow as net flow (tides filtered out) or moment by moment.
     /// Only the flow particles change; parcels keep the real flow.
     pub fn set_net_flow(&mut self, on: bool) {
-        self.core.set_net_flow(on);
+        self.core.borrow_mut().set_net_flow(on);
     }
 
     #[must_use]
     pub fn time(&self) -> f64 {
-        self.core.time()
+        self.core.borrow().time()
     }
 
     #[must_use]
     pub fn particle_element(&self) -> Vec<u32> {
-        self.core.particles().0
+        self.core.borrow().particles().0
     }
 
     #[must_use]
     pub fn particle_fraction(&self) -> Vec<f32> {
-        self.core.particles().1
+        self.core.borrow().particles().1
     }
 
     #[must_use]
     pub fn parcel_element(&self) -> Vec<u32> {
-        self.core.parcels().0
+        self.core.borrow().parcels().0
     }
 
     #[must_use]
     pub fn parcel_fraction(&self) -> Vec<f32> {
-        self.core.parcels().1
+        self.core.borrow().parcels().1
     }
 
     /// Concentration where each parcel is, kg/m³, in the order of the parcel positions.
     #[must_use]
     pub fn parcel_concentration(&self) -> Vec<f64> {
-        self.core.parcel_concentration()
+        self.core.borrow().parcel_concentration()
     }
 
     /// [released, in water, exported, diverted, out to sea, broken down, handed on], kg.
     #[must_use]
     pub fn mass_balance(&self) -> Vec<f64> {
-        let b = self.core.balance();
+        let b = self.core.borrow().balance();
         vec![
             b.released,
             b.in_water,
@@ -509,7 +451,7 @@ impl NetworkEngine {
     /// Each channel's mean velocity now, m/s, positive downstream.
     #[must_use]
     pub fn velocities(&self) -> Vec<f32> {
-        self.core.velocities()
+        self.core.borrow().velocities()
     }
 }
 
@@ -519,7 +461,7 @@ impl NetworkEngine {
 /// its second and third nodes, for the UI to place on the map.
 #[wasm_bindgen]
 pub struct MeshEngine {
-    core: MeshTracer,
+    core: Shared<MeshTracer>,
 }
 
 #[wasm_bindgen]
@@ -568,7 +510,12 @@ impl MeshEngine {
                 .collect(),
         };
         Self {
-            core: MeshTracer::new(topo, start_time, u64::from(seed), diffusivity),
+            core: shared(MeshTracer::new(
+                topo,
+                start_time,
+                u64::from(seed),
+                diffusivity,
+            )),
         }
     }
 
@@ -578,6 +525,7 @@ impl MeshEngine {
     /// If it does not match the mesh.
     pub fn load_day(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_day(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -588,10 +536,10 @@ impl MeshEngine {
     /// # Errors
     /// If there is not one value per node.
     pub fn set_node_diffusivity(&mut self, k: &[f64]) -> Result<(), JsError> {
-        if k.len() != self.core.node_count() {
+        if k.len() != self.core.borrow_mut().node_count() {
             return Err(JsError::new("one diffusivity per node"));
         }
-        self.core.set_node_diffusivity(k.to_vec());
+        self.core.borrow_mut().set_node_diffusivity(k.to_vec());
         Ok(())
     }
 
@@ -609,8 +557,8 @@ impl MeshEngine {
         half_life: f64,
         parcels: u32,
     ) -> bool {
-        let (x, y) = self.core.point(triangle as usize, w1, w2);
-        self.core.add_release(MeshRelease {
+        let (x, y) = self.core.borrow_mut().point(triangle as usize, w1, w2);
+        self.core.borrow_mut().add_release(MeshRelease {
             x,
             y,
             start,
@@ -625,100 +573,53 @@ impl MeshEngine {
         })
     }
 
-    /// Take in a parcel handed over from another reach at (x, y), m, released at
-    /// `born` (s). `half_life` in s, or `NaN` for none. False if (x, y) is off the mesh.
-    pub fn take_parcel(&mut self, x: f64, y: f64, mass: f64, born: f64, half_life: f64) -> bool {
-        self.core.take_parcel(
-            x,
-            y,
-            mass,
-            born,
-            if half_life.is_finite() && half_life > 0.0 {
-                Some(half_life)
-            } else {
-                None
-            },
-        )
-    }
-
-    /// Take in a flow particle from another reach at (x, y), m, in place of the
-    /// one furthest through its life. False if (x, y) is off the mesh.
-    pub fn take_particle(&mut self, x: f64, y: f64) -> bool {
-        self.core.take_particle(x, y)
-    }
-
     /// The water on the mesh now, m³.
     #[must_use]
     pub fn water_volume(&self) -> f64 {
-        self.core.water_volume()
-    }
-
-    /// Flow particles that crossed a handoff edge since the last call: flat
-    /// (handoff id, x, y) for each.
-    pub fn take_handed_particles(&mut self) -> Vec<f64> {
-        self.core
-            .take_handed_particles()
-            .into_iter()
-            .flat_map(|(id, x, y)| [f64::from(id), x, y])
-            .collect()
-    }
-
-    /// Parcels that crossed a handoff edge since the last call: flat
-    /// (handoff id, x, y, time, mass, half-life or `NaN`) for each.
-    pub fn take_handed(&mut self) -> Vec<f64> {
-        self.core
-            .take_handed()
-            .into_iter()
-            .flat_map(|(fate, mass, half_life)| match fate {
-                MeshFate::Handoff { id, x, y, t } => {
-                    vec![f64::from(id), x, y, t, mass, half_life.unwrap_or(f64::NAN)]
-                }
-                MeshFate::ToSea => Vec::new(),
-            })
-            .collect()
+        self.core.borrow().water_volume()
     }
 
     pub fn clear_releases(&mut self) {
-        self.core.clear_releases();
+        self.core.borrow_mut().clear_releases();
     }
 
     pub fn seed_flow_particles(&mut self, n: usize) {
-        self.core.seed_flow_particles(n);
+        self.core.borrow_mut().seed_flow_particles(n);
     }
 
     pub fn step_to(&mut self, t: f64) {
-        self.core.step_to(t);
+        self.core.borrow_mut().step_to(t);
     }
 
     pub fn drift_frozen(&mut self, dt: f64) {
-        self.core.drift_frozen(dt);
+        self.core.borrow_mut().drift_frozen(dt);
     }
 
     /// Show the flow as net flow (tides filtered out) or moment by moment.
     /// Only the flow particles change; parcels keep the real flow.
     pub fn set_net_flow(&mut self, on: bool) {
-        self.core.set_net_flow(on);
+        self.core.borrow_mut().set_net_flow(on);
     }
 
     #[must_use]
     pub fn time(&self) -> f64 {
-        self.core.time()
+        self.core.borrow().time()
     }
 
     #[must_use]
     pub fn particle_triangle(&self) -> Vec<u32> {
-        self.core.particles().0
+        self.core.borrow().particles().0
     }
 
     /// Two weights per particle (flat), as for positions above.
     #[must_use]
     pub fn particle_weights(&self) -> Vec<f32> {
-        self.core.particles().1
+        self.core.borrow().particles().1
     }
 
     #[must_use]
     pub fn particle_speed(&self) -> Vec<f32> {
-        self.core.particle_speeds()
+        self.core.borrow().particle_speeds()
     }
 
     /// Load one day's water-quality file, to show its fields.
@@ -727,6 +628,7 @@ impl MeshEngine {
     /// If it does not match the mesh.
     pub fn load_quality(&mut self, bytes: &[u8]) -> Result<(), JsError> {
         self.core
+            .borrow_mut()
             .load_quality(bytes)
             .map_err(|e| JsError::new(&e.to_string()))
     }
@@ -734,41 +636,174 @@ impl MeshEngine {
     /// A field's value where each flow particle is (`NaN` where there is none).
     #[must_use]
     pub fn particle_values(&self, name: &str) -> Vec<f32> {
-        self.core.particle_values(name)
+        self.core.borrow().particle_values(name)
     }
 
     #[must_use]
     pub fn parcel_triangle(&self) -> Vec<u32> {
-        self.core.parcels().0
+        self.core.borrow().parcels().0
     }
 
     #[must_use]
     pub fn parcel_weights(&self) -> Vec<f32> {
-        self.core.parcels().1
+        self.core.borrow().parcels().1
     }
 
     /// Depth-averaged concentration where each parcel is, kg/m³.
     #[must_use]
     pub fn parcel_concentration(&self) -> Vec<f64> {
-        self.core.parcel_concentration()
+        self.core.borrow().parcel_concentration()
     }
 
     /// [released, in water, out to sea, handed on, broken down], kg.
     #[must_use]
     pub fn mass_balance(&self) -> Vec<f64> {
-        let b = self.core.balance();
+        let b = self.core.borrow().balance();
         vec![b.released, b.in_water, b.to_sea, b.handed_on, b.decayed]
     }
 }
 
-/// Where something was passed on, as (kind, index) for JavaScript: kind 0 a
-/// junction, 1 a cut, 2 an outlet.
-#[allow(clippy::cast_precision_loss)]
-fn via(v: fdmr_compute::network::Via) -> (f64, f64) {
-    use fdmr_compute::network::Via;
-    match v {
-        Via::Junction(n) => (0.0, n as f64),
-        Via::Cut(k) => (1.0, k as f64),
-        Via::Outlet(k) => (2.0, k as f64),
+/// A region's reaches run together (`fdmr_compute::region`): the region steps
+/// them, passes parcels and flow particles across every join, and keeps one
+/// mass balance for them all. The joins are given as plain numbers: each reach
+/// by the index its `add_` call returned.
+#[wasm_bindgen]
+pub struct Region {
+    core: RegionCore,
+}
+
+#[wasm_bindgen]
+impl Region {
+    #[wasm_bindgen(constructor)]
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            core: RegionCore::new(),
+        }
+    }
+
+    /// Add a river reach, upstream ones first; returns its index.
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn add_river(&mut self, e: &Engine) -> u32 {
+        self.core.add_river(e.core.clone()) as u32
+    }
+
+    /// Add a network (a canal if `canal`); returns its index.
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn add_network(&mut self, n: &NetworkEngine, canal: bool) -> u32 {
+        self.core.add_network(n.core.clone(), canal) as u32
+    }
+
+    /// Add a mesh; returns its index.
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn add_mesh(&mut self, m: &MeshEngine) -> u32 {
+        self.core.add_mesh(m.core.clone()) as u32
+    }
+
+    /// What passes the end of river `from` enters river `to`, `at_m` m along it.
+    pub fn river_to_river(&mut self, from: u32, to: u32, at_m: f64) {
+        self.core.set_river_end(
+            from as usize,
+            RiverEnd::River {
+                to: to as usize,
+                at_m,
+            },
+        );
+    }
+
+    /// What passes the end of river `from` enters network `to` at the head of `channel`.
+    pub fn river_to_network(&mut self, from: u32, to: u32, channel: u32) {
+        self.core.set_river_end(
+            from as usize,
+            RiverEnd::Network {
+                to: to as usize,
+                channel: channel as usize,
+            },
+        );
+    }
+
+    /// River `from` hands on to a reach that is not here: what passes its end is lost at the join.
+    pub fn river_lost(&mut self, from: u32) {
+        self.core.set_river_end(from as usize, RiverEnd::Lost);
+    }
+
+    /// Network `net`'s outlet `k` (its `set_outlets` order) feeds network `to` at junction `node`.
+    pub fn outlet(&mut self, net: u32, k: u32, to: u32, node: u32) {
+        self.core
+            .set_outlet(net as usize, k as usize, to as usize, node as usize);
+    }
+
+    /// What network `net` passes on at junction `node` enters mesh `mesh` at (x, y), m.
+    pub fn junction_out(&mut self, net: u32, node: u32, mesh: u32, x: f64, y: f64) {
+        self.core
+            .set_junction_out(net as usize, node as usize, mesh as usize, x, y);
+    }
+
+    /// What network `net` passes on through cut `k` enters mesh `mesh` at (x, y), m.
+    pub fn cut_out(&mut self, net: u32, k: u32, mesh: u32, x: f64, y: f64) {
+        self.core
+            .set_cut_out(net as usize, k as usize, mesh as usize, x, y);
+    }
+
+    /// Mesh `mesh`'s handoff edge `edge` (its id) passes to network `net`.
+    pub fn edge(&mut self, mesh: u32, edge: u32, net: u32) {
+        self.core.set_edge(mesh as usize, edge, net as usize);
+    }
+
+    /// A crossing of the join between network `net` and mesh `mesh` at (x, y)
+    /// on the mesh, back into `net` at junction `index` (`cut` false) or
+    /// through cut `index` (`cut` true). What crosses back enters at the nearest.
+    pub fn crossing_back(&mut self, mesh: u32, net: u32, cut: bool, index: u32, x: f64, y: f64) {
+        let at = if cut {
+            Entry::Cut(index as usize)
+        } else {
+            Entry::Junction(index as usize)
+        };
+        self.core
+            .add_crossing_back(mesh as usize, net as usize, at, x, y);
+    }
+
+    /// Run every reach on to `t` together.
+    pub fn step_to(&mut self, t: f64) {
+        self.core.step_to(t);
+    }
+
+    /// Drift every reach's flow particles `dt` s with time held, passing them across the joins.
+    pub fn drift_frozen(&mut self, dt: f64) {
+        self.core.drift_frozen(dt);
+    }
+
+    #[must_use]
+    pub fn time(&self) -> f64 {
+        self.core.time()
+    }
+
+    /// Every reach's mass together, kg: [released, in water, past the end of
+    /// a river that hands on to nothing, broken down, exported, diverted, to
+    /// sea from a network, to sea from a mesh, in a canal, carried on down a
+    /// canal, on the bed, lost at a join].
+    #[must_use]
+    pub fn mass_balance(&self) -> Vec<f64> {
+        let b = self.core.balance();
+        vec![
+            b.released,
+            b.in_water,
+            b.past_end,
+            b.decayed,
+            b.exported,
+            b.diverted,
+            b.to_sea,
+            b.mesh_to_sea,
+            b.canal_in_water,
+            b.canal_exported,
+            b.on_bed,
+            b.lost_at_join,
+        ]
+    }
+}
+
+impl Default for Region {
+    fn default() -> Self {
+        Self::new()
     }
 }

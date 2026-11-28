@@ -436,8 +436,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_adapters/usbr_cvo.py:35](../python/fdmr_adapters/usbr_cvo.py#L35) | `CFS` | `0.3048**3` |  |
 | [python/fdmr_adapters/usgs.py:40](../python/fdmr_adapters/usgs.py#L40) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_adapters/usgs.py:57](../python/fdmr_adapters/usgs.py#L57) | `PST_TO_UTC` | `8 * 3600` |  |
-| [crates/fdmr-compute/src/lib.rs:37](../crates/fdmr-compute/src/lib.rs#L37) | `MAX_DT` | `60.0` | Largest time step the engine takes, s. |
+| [crates/fdmr-compute/src/lib.rs:38](../crates/fdmr-compute/src/lib.rs#L38) | `MAX_DT` | `60.0` | Largest time step the engine takes, s. |
 | [crates/fdmr-compute/src/mesh.rs:34](../crates/fdmr-compute/src/mesh.rs#L34) | `MIN_DEPTH` | `0.1` | Water shallower than this, m, does not move parcels (dry or drying). |
+| [crates/fdmr-compute/src/region.rs:41](../crates/fdmr-compute/src/region.rs#L41) | `EXCHANGE_S` | `300.0` | Reaches pass parcels to each other this often, s of model time. A parcel handed back waits at most this long at the join. |
 | [crates/fdmr-format/src/lib.rs:11](../crates/fdmr-format/src/lib.rs#L11) | `VERSION_MAJOR` | `1` |  |
 | [crates/fdmr-format/src/lib.rs:12](../crates/fdmr-format/src/lib.rs#L12) | `VERSION_MINOR` | `0` |  |
 | [crates/fdmr-math/src/dispersion.rs:50](../crates/fdmr-math/src/dispersion.rs#L50) | `ELDER_LATERAL` | `0.23` | Elder's lateral mixing coefficient as Fischer adopts it for rivers, ε = 0.23 d u* (Fischer 1966, [fischer1966](references.md#fischer1966), section II-F, eq. 23). |
@@ -449,5 +450,4 @@ Every number the model is set with: in each region's settings and among the mode
 | [ui/src/compute/worker.ts:124](../ui/src/compute/worker.ts#L124) | `NETWORK_PARTICLES` | `6_000` | A network without channel widths (an older publication) is seeded by volume, with this many. |
 | [ui/src/compute/worker.ts:130](../ui/src/compute/worker.ts#L130) | `NETWORK_DISPERSION` | `50` | own transport (QUAL) with a pulse released at the network's main inflow (tools/pulse_check.py; build plan, network tracer): at 50 the tracer matches QUAL's arrival, spread and peak at five channels across the network; 10 and 200 are clearly worse, 30 and 80 about as good. |
 | [ui/src/compute/worker.ts:146](../ui/src/compute/worker.ts#L146) | `MESH_DIFFUSIVITY` | `1.1` | along the flow, so as an even spreading this errs toward too much across it. Used only where a mesh publishes no diffusivity of its own: the Bay's publisher now works out the same two parts at every node (fdmr_plugins.fvcom.mesh.diffusivity, geometry `diffusivity_m2s`; #10). |
-| [ui/src/compute/worker.ts:149](../ui/src/compute/worker.ts#L149) | `EXCHANGE_S` | `300` | Reaches pass parcels to each other this often, s of model time. A parcel handed back waits at most this long at the join. |
-| [ui/src/compute/worker.ts:152](../ui/src/compute/worker.ts#L152) | `RIVER_SALINITY_PSU` | `0.1` | River water above the Delta, for the salinity layer: shown in the Venice System's fresh class (below 0.5 psu; layers.ts), as a class, not a measurement. |
+| [ui/src/compute/worker.ts:149](../ui/src/compute/worker.ts#L149) | `RIVER_SALINITY_PSU` | `0.1` | River water above the Delta, for the salinity layer: shown in the Venice System's fresh class (below 0.5 psu; layers.ts), as a class, not a measurement. |

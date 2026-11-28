@@ -31,6 +31,7 @@ use fdmr_math::{decay, dispersion, parcel, rng::Rng};
 
 pub mod mesh;
 pub mod network;
+pub mod region;
 mod series;
 
 /// Largest time step the engine takes, s.

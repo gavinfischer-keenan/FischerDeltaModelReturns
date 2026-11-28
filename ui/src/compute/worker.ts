@@ -12,7 +12,7 @@
 // the canals they feed, a network of their own (index.json `handoffs`). Each
 // parcel belongs to one reach at a time, with its mass, so the total balances.
 
-import init, { Engine, MeshEngine, NetworkEngine } from "./pkg/fdmr_wasm.js";
+import init, { Engine, MeshEngine, NetworkEngine, Region } from "./pkg/fdmr_wasm.js";
 import type { Frame, Layer, LineFrame, MeshFrame, NetworkFrame, Reply, Request, Words } from "../compute-interface/messages";
 
 interface ReachEntry {
@@ -144,14 +144,9 @@ const NETWORK_DISPERSION = 50;
 // publisher now works out the same two parts at every node
 // (fdmr_plugins.fvcom.mesh.diffusivity, geometry `diffusivity_m2s`; #10).
 const MESH_DIFFUSIVITY = 1.1;
-// Reaches pass parcels to each other this often, s of model time. A parcel
-// handed back waits at most this long at the join.
-const EXCHANGE_S = 300;
 // River water above the Delta, for the salinity layer: shown in the Venice
 // System's fresh class (below 0.5 psu; layers.ts), as a class, not a measurement.
 const RIVER_SALINITY_PSU = 0.1;
-// How a network says where it passed something on (fdmr-wasm `take_handed`).
-const JUNCTION = 0, CUT = 1, OUTLET = 2;
 
 let engine: Engine | null = null;
 let days: Uint8Array[] = [];
@@ -179,12 +174,10 @@ let netFlow = false;
 /** Water sources the networks carry shares of (from `source:<name>` fields). */
 let sources: string[] = [];
 let riverId = "river";
-/** Mass passed into another reach since the engines were built, kg: counted
- * there as released, so taken off the total once. */
-let handedIn = 0;
-// Mass handed to a reach that could not take it (no reach there, or no place
-// at the join): kept on the books as "lost at a join", never dropped (#60).
-let lostAtJoin = 0;
+/** Every reach together (fdmr-wasm `Region`, fdmr_compute::region): it steps
+ * them, passes parcels and flow particles across every join and keeps their
+ * one mass balance (#60). The worker only says where the joins are. */
+let region: Region | null = null;
 
 interface Net {
   id: string;
@@ -360,42 +353,6 @@ async function loadLine(cycle: string, id: string): Promise<void> {
   rebuildSoon();
 }
 
-/** Hand what passed the end of river reach `from` on to where it joins: a
- * network's junction or another river reach part way along. */
-function handOut(from: string, out: Float64Array | number[]): boolean {
-  const h = index?.handoffs?.find((k) => k.from === from && (k.node !== undefined || k.at_m !== undefined));
-  if (!h) return false;
-  const lose = () => {
-    for (let i = 0; i + 2 < out.length; i += 3) lostAtJoin += out[i + 1];
-    return false;
-  };
-  if (h.at_m !== undefined) {
-    const to = h.to === riverId ? engine : lines.find((l) => l.id === h.to)?.engine;
-    if (!to) return lose();
-    for (let i = 0; i + 2 < out.length; i += 3) {
-      to.add_release(h.at_m, out[i], 0, out[i + 1], out[i + 2], 1);
-      handedIn += out[i + 1];
-    }
-    return true;
-  }
-  const net = nets.find((n) => n.id === h.to && n.engine);
-  const c = net?.entries.get(from);
-  if (!net || c === undefined) return lose();
-  for (let i = 0; i + 2 < out.length; i += 3) {
-    net.engine!.add_release(c, 0, net.topo.length[c], out[i], 0, out[i + 1], out[i + 2], 1);
-    handedIn += out[i + 1];
-  }
-  return true;
-}
-
-/** Whether what passes the end of river reach `from` is handed on (and so counted downstream). */
-function handedOn(from: string): boolean {
-  const h = index?.handoffs?.find((k) => k.from === from && (k.node !== undefined || k.at_m !== undefined));
-  if (!h) return false;
-  if (h.at_m !== undefined) return h.to === riverId ? !!engine : !!lines.find((l) => l.id === h.to)?.engine;
-  return !!nets.find((n) => n.id === h.to && n.engine)?.entries.has(from);
-}
-
 async function loadNetwork(cycle: string, id: string, netDays: string[]): Promise<void> {
   const g = (await fetch(`${cycle}/geometry/${id}.json`).then((r) => r.json())) as NetworkGeometry;
   const nodeIndex = new Map(g.nodes.map((n, i) => [n.id, i]));
@@ -502,14 +459,11 @@ async function loadQuality(): Promise<void> {
   ]);
 }
 
-/** The join between a network and a mesh, when both are loaded. */
-function join(net: Net, mesh: Mesh): Handoff | undefined {
-  return index?.handoffs?.find((h) => h.from === net.id && h.to === mesh.id && (h.cuts || h.junctions));
-}
-
 /** Fresh engines at time t: every release replayed from its start, the reaches
  * run together and passing parcels as they go. */
 function build(t: number): void {
+  region?.free();
+  region = null;
   engine?.free();
   for (const l of lines) l.engine?.free();
   for (const net of nets) net.engine?.free();
@@ -594,8 +548,7 @@ function build(t: number): void {
     if (netFlow) me.set_net_flow(true);
     m.engine = me;
   }
-  handedIn = 0;
-  lostAtJoin = 0;
+  region = makeRegion();
   run(t);
   e.seed_flow_particles(particles);
   for (const l of lines) l.engine!.seed_flow_particles(l.count);
@@ -616,142 +569,71 @@ function meshArea(m: Mesh): number {
 
 /** Run every reach on to `to` together, passing parcels across every join. */
 function run(to: number): void {
-  if (!engine) return;
-  while (engine.time() < to) {
-    const t = Math.min(to, engine.time() + EXCHANGE_S);
-    // Tributaries first (upstream ones first), each into what it joins; then the river.
-    for (const l of lines) {
-      l.engine!.step_to(t);
-      handOut(l.id, l.engine!.take_outflow());
-    }
-    engine.step_to(t);
-    handOut(riverId, engine.take_outflow());
-    // Networks on, then into the meshes that track some of their channels.
-    for (const net of nets) {
-      net.engine!.step_to(t);
-      const h = net.engine!.take_handed(); // (kind, index, time, mass, half-life) ...
-      for (let i = 0; i + 4 < h.length; i += 5) {
-        if (h[i] === OUTLET) {
-          const o = net.outlets[h[i + 1]];
-          const to = o && nets.find((n) => n.id === o.to);
-          if (to?.engine) {
-            to.engine.take_parcel(o.node, h[i + 3], h[i + 4]);
-            handedIn += h[i + 3];
-          } else {
-            lostAtJoin += h[i + 3];
-          }
-          continue;
-        }
-        const at = crossingOut(net, h[i] === JUNCTION ? h[i + 1] : -1, h[i] === CUT ? h[i + 1] : -1);
-        if (at && at.mesh.engine!.take_parcel(at.x, at.y, h[i + 3], h[i + 2], h[i + 4])) handedIn += h[i + 3];
-        else lostAtJoin += h[i + 3];
-      }
-    }
-    // Meshes on, then back into the networks at the nearest crossing of the join.
-    for (const m of meshes) {
-      m.engine!.step_to(t);
-      const h = m.engine!.take_handed(); // (handoff id, x, y, time, mass, half-life) ...
-      for (let i = 0; i + 5 < h.length; i += 6) {
-        const back = crossingIn(m, h[i], h[i + 1], h[i + 2]);
-        if (!back) {
-          lostAtJoin += h[i + 4];
-          continue;
-        }
-        if (back.cut !== null) back.net.engine!.take_parcel_at_cut(back.cut, h[i + 4], h[i + 5]);
-        else back.net.engine!.take_parcel(back.node!, h[i + 4], h[i + 5]);
-        handedIn += h[i + 4];
-      }
-    }
-    exchangeParticles();
-  }
+  region?.step_to(to);
 }
 
-/** Where something leaving network `net` at junction `node` or cut `cut`
- * (-1 for neither) enters the mesh that joins it there. */
-function crossingOut(net: Net, node: number, cut: number): { mesh: Mesh; x: number; y: number } | null {
-  for (const m of meshes) {
-    const j = join(net, m);
-    if (!j) continue;
-    // The cuts are numbered across all of a network's joins, in order (build).
-    if (cut >= 0) {
-      let k = cut;
-      for (const h of index?.handoffs ?? []) {
-        if (h.from !== net.id || !h.cuts || !meshes.some((x) => x.id === h.to)) continue;
-        if (k < h.cuts.length) {
-          const mm = meshes.find((x) => x.id === h.to)!;
-          return { mesh: mm, x: h.cuts[k].x, y: h.cuts[k].y };
-        }
-        k -= h.cuts.length;
-      }
-      return null;
+/** The region of the reaches just built: each join of index.json `handoffs`
+ * given to it as plain numbers (reaches by the index the region gave them). */
+function makeRegion(): Region {
+  const r = new Region();
+  // Tributaries upstream first (as `lines` is sorted), then the main river.
+  const rivers: [string, Engine][] = [...lines.filter((l) => l.engine).map((l): [string, Engine] => [l.id, l.engine!]), [riverId, engine!]];
+  const riverAt = new Map(rivers.map(([id, e]) => [id, r.add_river(e)]));
+  const netAt = new Map(nets.filter((n) => n.engine).map((n) => [n.id, r.add_network(n.engine!, n.canal)]));
+  const meshAt = new Map(meshes.filter((m) => m.engine).map((m) => [m.id, r.add_mesh(m.engine!)]));
+  const hs = index?.handoffs ?? [];
+  // Each river into a network's channel or part way along another river; a
+  // handoff to a reach that is not loaded loses what reaches it, on the books.
+  for (const [id, from] of riverAt) {
+    const h = hs.find((k) => k.from === id && (k.node !== undefined || k.at_m !== undefined));
+    if (!h) continue;
+    if (h.at_m !== undefined) {
+      const to = riverAt.get(h.to);
+      if (to === undefined) r.river_lost(from);
+      else r.river_to_river(from, to, h.at_m);
+      continue;
     }
-    const at = j.junctions?.find((x) => x.node === node);
-    if (at) return { mesh: m, x: at.x, y: at.y };
+    const to = netAt.get(h.to);
+    const c = nets.find((n) => n.id === h.to)?.entries.get(id);
+    if (to === undefined || c === undefined) r.river_lost(from);
+    else r.river_to_network(from, to, c);
   }
-  return null;
-}
-
-/** The crossing nearest where something left mesh `m` by handoff edge
- * `edge` at (x, y): a cut (its number) or a junction, of the network the
- * edge hands to. */
-function crossingIn(m: Mesh, edge: number, x: number, y: number): { net: Net; cut: number | null; node: number | null } | null {
-  const net = nets.find((n) => n.id === m.handoffTo[edge]);
-  if (!net) return null;
-  let best: { net: Net; cut: number | null; node: number | null } | null = null;
-  let d = Infinity;
-  let base = 0;
-  for (const h of index?.handoffs ?? []) {
-    if (h.from !== net.id || !meshes.some((mm) => mm.id === h.to)) continue;
-    const cuts = h.cuts ?? [];
-    if (h.to === m.id) {
-      cuts.forEach((c, k) => {
-        const dd = (c.x - x) ** 2 + (c.y - y) ** 2;
-        if (dd < d) {
-          d = dd;
-          best = { net, cut: base + k, node: null };
-        }
-      });
-      for (const jx of h.junctions ?? []) {
-        const dd = (jx.x - x) ** 2 + (jx.y - y) ** 2;
-        if (dd < d) {
-          d = dd;
-          best = { net, cut: null, node: jx.node };
-        }
-      }
-    }
-    base += cuts.length;
-  }
-  return best;
-}
-
-/** Flow particles that crossed a join carry on in the other reach, one for
- * one, through the same crossing as water does (each engine gives up its
- * oldest to take one in, so its number stays the same): what leaves the
- * Delta carries on as a plume in the Bay, and the other way. */
-function exchangeParticles(): void {
   for (const net of nets) {
-    const h = net.engine?.take_handed_particles(); // (kind, index) ...
-    if (!h?.length) continue;
-    for (let i = 0; i + 1 < h.length; i += 2) {
-      if (h[i] === OUTLET) {
-        const o = net.outlets[h[i + 1]];
-        nets.find((n) => n.id === o?.to)?.engine?.take_particle(o.node);
-        continue;
+    const ni = netAt.get(net.id);
+    if (ni === undefined) continue;
+    // Exports into a loaded canal (net.outlets is in set_outlets order).
+    net.outlets.forEach((o, k) => {
+      const to = netAt.get(o.to);
+      if (to !== undefined) r.outlet(ni, k, to, o.node);
+    });
+    // Its crossings into each mesh, both ways. The cuts are numbered across
+    // all of its joins into meshes, in order, as build gave them to set_cuts.
+    let base = 0;
+    for (const h of hs) {
+      const mi = meshAt.get(h.to);
+      if (h.from !== net.id || mi === undefined) continue;
+      const cuts = h.cuts ?? [];
+      cuts.forEach((c, k) => {
+        r.cut_out(ni, base + k, mi, c.x, c.y);
+        r.crossing_back(mi, ni, true, base + k, c.x, c.y);
+      });
+      for (const j of h.junctions ?? []) {
+        r.junction_out(ni, j.node, mi, j.x, j.y);
+        r.crossing_back(mi, ni, false, j.node, j.x, j.y);
       }
-      const at = crossingOut(net, h[i] === JUNCTION ? h[i + 1] : -1, h[i] === CUT ? h[i + 1] : -1);
-      if (at) at.mesh.engine!.take_particle(at.x, at.y);
+      base += cuts.length;
     }
   }
+  // Each mesh's handoff edges, by id, to the network each hands to.
   for (const m of meshes) {
-    const h = m.engine?.take_handed_particles(); // (handoff id, x, y) ...
-    if (!h?.length) continue;
-    for (let i = 0; i + 2 < h.length; i += 3) {
-      const back = crossingIn(m, h[i], h[i + 1], h[i + 2]);
-      if (!back) continue;
-      if (back.cut !== null) back.net.engine!.take_particle_at_cut(back.cut);
-      else back.net.engine!.take_particle(back.node!);
-    }
+    const mi = meshAt.get(m.id);
+    if (mi === undefined) continue;
+    m.handoffTo.forEach((to, edge) => {
+      const ni = netAt.get(to);
+      if (ni !== undefined) r.edge(mi, edge, ni);
+    });
   }
+  return r;
 }
 
 /** Play on to `to`. Never backwards: going back is a seek, a full rebuild, and
@@ -783,45 +665,6 @@ function reachCertainty(id: string, t: number): number {
 function words(c: number, t: number): Words {
   if (t <= now) return "measured";
   return c >= 0.5 ? "forecast" : "rough_guide";
-}
-
-/** Every reach's mass balance together (see Frame.massBalance). Mass passed
- * from one reach to another is counted as released once. */
-function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Float64Array {
-  const out = new Float64Array(12);
-  out[0] = -handedIn;
-  out[11] = lostAtJoin;
-  const rivers: [string, Engine][] = [[riverId, engine!], ...lines.filter((l) => l.engine).map((l): [string, Engine] => [l.id, l.engine!])];
-  for (const [id, e] of rivers) {
-    const [released, inWater, past, decayed] = e.mass_balance();
-    out[0] += released;
-    out[1] += inWater;
-    if (!handedOn(id)) out[2] += past; // handed on, it is counted downstream instead
-    out[3] += decayed;
-  }
-  for (const n of networks) {
-    const [released, inWater, exported, diverted, toSea, decayed, , onBed] = n.massBalance;
-    out[0] += released;
-    out[3] += decayed;
-    out[10] += onBed ?? 0; // bound to sediment, settled on the bed
-    if (nets.find((x) => x.id === n.id)?.canal) {
-      out[8] += inWater; // in the canals, so far
-      out[9] += exported; // carried on down them, beyond the map
-    } else {
-      out[1] += inWater;
-      out[4] += exported;
-    }
-    out[5] += diverted;
-    out[6] += toSea;
-  }
-  for (const m of meshFrames) {
-    const [released, inWater, toSea, , decayed] = m.massBalance;
-    out[0] += released;
-    out[1] += inWater;
-    out[3] += decayed;
-    out[7] += toSea;
-  }
-  return out;
 }
 
 /** A field's values centred on their mean: water level "either side of mean level" (spec 8.4). */
@@ -957,7 +800,7 @@ function frame(seq?: number): void {
     particleSpeed: engine.particle_speed(),
     parcelX: engine.parcel_x(),
     parcelConcentration: engine.parcel_concentration(),
-    massBalance: combinedBalance(networks, meshFrames),
+    massBalance: region!.mass_balance(), // every reach together (see Frame.massBalance)
     certainty: c,
     words: words(c, t),
     lines: lineFrames,
@@ -1000,11 +843,7 @@ self.addEventListener("message", async (e: MessageEvent<Request>) => {
         advance(r.to);
         break;
       case "drift":
-        engine?.drift_frozen(r.dt);
-        for (const l of lines) l.engine?.drift_frozen(r.dt);
-        for (const net of nets) net.engine?.drift_frozen(r.dt);
-        for (const m of meshes) m.engine?.drift_frozen(r.dt);
-        exchangeParticles();
+        region?.drift_frozen(r.dt);
         break;
       case "release": {
         const base = { start: r.start, duration: r.duration, mass: r.mass, halfLife: r.halfLife };
