@@ -243,6 +243,13 @@ def read_stations(cfg: dict, exp: dict, run_dir: Path, start: int, end: int) -> 
     out: dict[str, dict[str, float]] = {}
     for st in exp["station"]:
         name = st.get("output", st["name"])
+        if st.get("reservoir"):  # a station inside one of DSM2's reservoirs: that reservoir's water (#42)
+            vals = reservoir_ec(run_dir / "output" / "qual_ec.h5", st["reservoir"], first, n)
+            if vals is None:
+                print(f"  reservoir {st['reservoir']}: not read", file=sys.stderr)
+                continue
+            out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(vals, first).items()}
+            continue
         if st["quantity"] == "ec":
             f = run_dir / "output" / f"{modifier}_qual.dss"
             path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{name}/EC//15MIN/{modifier.upper()}+FROM-ALL/"
@@ -261,6 +268,28 @@ def read_stations(cfg: dict, exp: dict, run_dir: Path, start: int, end: int) -> 
             vals = subtidal(vals)
         out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(vals, first).items()}
     return out
+
+
+def reservoir_ec(h5_path: Path, reservoir: str, first: int, n: int) -> list[float | None] | None:
+    """A reservoir's EC (uS/cm) every 15 minutes from `first` (UTC), n steps,
+    from QUAL's HDF5 output (study.with_hdf5_output): None where it has no
+    value, or None if the file or the reservoir is not there."""
+    import h5py
+
+    from fdmr_plugins.dsm2.fields import tidefile_start
+
+    if not h5_path.exists():
+        return None
+    with h5py.File(h5_path, "r") as f:
+        names = [x.decode().strip() for x in f["output/reservoir_names"][:]]
+        consts = [x.decode().strip() for x in f["output/constituent_names"][:]]
+        if reservoir not in names or "ec" not in consts:
+            return None
+        conc = f["output/reservoir concentration"]
+        j0 = (first - tidefile_start(conc.attrs["start_time"][0])) // STEP
+        got = conc[max(j0, 0):max(j0, 0) + n, consts.index("ec"), names.index(reservoir)]
+    vals: list[float | None] = [None] * max(0, -j0) + [float(v) for v in got]
+    return (vals + [None] * n)[:n]
 
 
 def score(exp: dict, series: dict[str, dict[str, dict[str, float]]], measured, other) -> dict:

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from fdmr_runner import experiment as ex
 
 REGION = Path(__file__).resolve().parents[2] / "regions" / "sf-bay-delta"
@@ -62,3 +64,25 @@ def test_every_experiment_is_complete_and_has_its_measurements():
         for st in e["station"]:
             days = [d for d in measured.get((st["name"], st["quantity"]), {}) if e["judge_from"] <= d < e["judge_to"]]
             assert len(days) >= 60, (e["name"], st["name"], st["quantity"], len(days))
+
+
+def test_a_reservoirs_ec_is_read_from_quals_hdf5_output(tmp_path):
+    """A station inside one of DSM2's reservoirs is set against the reservoir's water (#42)."""
+    h5py = pytest.importorskip("h5py")
+    import numpy as np
+
+    from fdmr_runner import experiment
+
+    path = tmp_path / "qual_ec.h5"
+    t0 = 1_764_201_600  # 2025-11-27 00:00 UTC: 2025-11-26 16:00 PST
+    with h5py.File(path, "w") as f:
+        f.create_dataset("output/reservoir_names", data=np.array([b"clifton_court", b"franks_tract"]))
+        f.create_dataset("output/constituent_names", data=np.array([b"ec"]))
+        c = np.zeros((10, 1, 2), dtype=np.float32)
+        c[:, 0, 1] = np.arange(10) * 10.0
+        d = f.create_dataset("output/reservoir concentration", data=c)
+        d.attrs["start_time"] = [b"2025-11-26 16:00:00"]
+    got = experiment.reservoir_ec(path, "franks_tract", t0 + 2 * 900, 4)
+    assert got == [20.0, 30.0, 40.0, 50.0]
+    assert experiment.reservoir_ec(path, "franks_tract", t0 - 900, 2) == [None, 0.0]
+    assert experiment.reservoir_ec(path, "no_such", t0, 2) is None

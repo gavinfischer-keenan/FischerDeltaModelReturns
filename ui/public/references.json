@@ -1412,6 +1412,16 @@
    "citation": "Nelson, M. M., and Tran, A. H. (California Department of Water Resources) (2026). Sacramento-San Joaquin Bay-Delta Continuous (15 Minute) water quality monitoring data collected by the Continuous Environmental Monitoring Program, DWR, 2005-2025, ver 9. Environmental Data Initiative; package edi.1177.9; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/af06602f2547c66d9a8459f2dd7e4188",
    "used": [
     {
+     "file": "regions/sf-bay-delta/experiments.toml",
+     "line": 67,
+     "text": "121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2"
+    },
+    {
+     "file": "regions/sf-bay-delta/experiments.toml",
+     "line": 266,
+     "text": "121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2"
+    },
+    {
      "file": "tools/validation/experiments/prepare_edi.py",
      "line": 18,
      "text": "edi.1177.9 (ref:nelson2026cemp, CC BY 4.0): 15-minute specific conductance"

@@ -63,6 +63,12 @@ quantity = "ec"
 name = "FRK"
 place = "Franks Tract"
 quantity = "ec"
+# The station stands in the tract's open water, mid-tract (38.0464 N,
+# 121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2
+# models as the reservoir franks_tract; DWR's own FRK output is channel 121,
+# Old River along the tract's east edge, 1.5 km away. So it is compared with
+# the reservoir's water (#42).
+reservoir = "franks_tract"
 
 [[experiment.station]]
 name = "HOL"
@@ -256,6 +262,12 @@ quantity = "ec"
 name = "FRK"
 place = "Franks Tract"
 quantity = "ec"
+# The station stands in the tract's open water, mid-tract (38.0464 N,
+# 121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2
+# models as the reservoir franks_tract; DWR's own FRK output is channel 121,
+# Old River along the tract's east edge, 1.5 km away. So it is compared with
+# the reservoir's water (#42).
+reservoir = "franks_tract"
 
 [[experiment.station]]
 name = "HOL"
