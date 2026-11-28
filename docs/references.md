@@ -370,7 +370,7 @@ Checked: Crossref record of the DOI, 27 Nov 2026
 
 Used in:
 
-- `python/fdmr_geo/__init__.py:78`: ref:dijkstra1959), written once (#72): `adj` maps each node to its links
+- `python/fdmr_geo/__init__.py:80`: ref:dijkstra1959), written once (#72): `adj` maps each node to its links
 
 ## dimou1993
 
@@ -546,7 +546,7 @@ Checked: DataCite record of the DOI and NASA CMR collection ECO_L2T_LSTE version
 
 Used in:
 
-- `python/fdmr_adapters/ecostress.py:30`: References: ref:ecostress_lst (references.toml).
+- `python/fdmr_adapters/ecostress.py:31`: References: ref:ecostress_lst (references.toml).
 - `python/fdmr_runner/land.py:131`: return {"source": "NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), land surface temperature",  # ref:ecostress_lst "days": days,
 
 ## huyskens1994
@@ -591,8 +591,8 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_adapters/ecostress.py:61`: to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 7-11),
-- `python/fdmr_adapters/ecostress.py:81`: to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 15-21)."""
+- `python/fdmr_geo/__init__.py:114`: to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 7-11),
+- `python/fdmr_geo/__init__.py:134`: to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 15-21)."""
 - `python/fdmr_plugins/dsm2/grid.py:19`: GRS 1980 (NAD83), Krüger's series for the transverse Mercator (ref:karney2011).
 
 ## kassraftery1995
@@ -796,7 +796,7 @@ Checked: Crossref record of the DOI, 27 Nov 2026
 Used in:
 
 - `python/fdmr_geo/__init__.py:9`: 6,371,008.8 m (Moritz 2000, ref:moritz2000grs80), to the metre's
-- `python/fdmr_geo/__init__.py:22`: M_PER_DEG = 111_195.0  # m per degree of latitude: 2 pi 6,371 km / 360 (GRS80 R1, ref:moritz2000grs80)
+- `python/fdmr_geo/__init__.py:26`: M_PER_DEG = 111_195.0  # m per degree of latitude: 2 pi 6,371 km / 360 (GRS80 R1, ref:moritz2000grs80)
 - `python/fdmr_plugins/river_routing/centreline.py:15`: EARTH_RADIUS_M = 6_371_008.8  # m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, ref:moritz2000grs80)
 
 ## muellersolger2012
@@ -999,7 +999,7 @@ Checked: DataCite record of the DOI and NASA CMR collection OPERA_L3_DSWX-S1_V1,
 Used in:
 
 - `python/fdmr_adapters/opera.py:15`: References: ref:opera_dswx_s1 (references.toml).
-- `python/fdmr_runner/water_extent.py:30`: PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1 (ref:opera_dswx_s1)
+- `python/fdmr_runner/water_extent.py:33`: PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1 (ref:opera_dswx_s1)
 
 ## partheniades1965
 

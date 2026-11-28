@@ -738,7 +738,7 @@
    "used": [
     {
      "file": "python/fdmr_geo/__init__.py",
-     "line": 78,
+     "line": 80,
      "text": "ref:dijkstra1959), written once (#72): `adj` maps each node to its links"
     }
    ]
@@ -1141,7 +1141,7 @@
    "used": [
     {
      "file": "python/fdmr_adapters/ecostress.py",
-     "line": 30,
+     "line": 31,
      "text": "References: ref:ecostress_lst (references.toml)."
     },
     {
@@ -1228,13 +1228,13 @@
    "citation": "Karney, C. F. F. (2011). Transverse Mercator with an accuracy of a few nanometers. Journal of Geodesy 85(8), 475-485. https://doi.org/10.1007/s00190-011-0445-3",
    "used": [
     {
-     "file": "python/fdmr_adapters/ecostress.py",
-     "line": 61,
+     "file": "python/fdmr_geo/__init__.py",
+     "line": 114,
      "text": "to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 7-11),"
     },
     {
-     "file": "python/fdmr_adapters/ecostress.py",
-     "line": 81,
+     "file": "python/fdmr_geo/__init__.py",
+     "line": 134,
      "text": "to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 15-21).\"\"\""
     },
     {
@@ -1670,7 +1670,7 @@
     },
     {
      "file": "python/fdmr_geo/__init__.py",
-     "line": 22,
+     "line": 26,
      "text": "M_PER_DEG = 111_195.0  # m per degree of latitude: 2 pi 6,371 km / 360 (GRS80 R1, ref:moritz2000grs80)"
     },
     {
@@ -2072,7 +2072,7 @@
     },
     {
      "file": "python/fdmr_runner/water_extent.py",
-     "line": 30,
+     "line": 33,
      "text": "PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1 (ref:opera_dswx_s1)"
     }
    ]

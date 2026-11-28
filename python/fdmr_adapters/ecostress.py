@@ -10,11 +10,12 @@ cloud mask says clear, its quality flags (QC bits 0-1) say best or nominal,
 and no cloud lies within CLOUD_BUFFER pixels. That last guard is ours: checked
 26 Nov 2026 against the stations, pixels beside flagged cloud read up to 6
 degC cold (thin cloud and fog at the edges the mask misses). A tile with no clear water is not downloaded past its two small
-masks. Each kept tile is a small `.npz` in the cache folder: the water
-pixels' rows, columns and temperatures, the tile's UTM origin, pixel size and
-zone, and the pass time.
+masks. Each kept tile goes in a tile cache (fdmr_store.tiles; the format
+under EcostressAdapter): the water pixels' rows, columns and temperatures,
+the tile's UTM origin, pixel size and zone, and the pass time.
 
-The land is kept only as means over named places (`fetch_land`): the land
+The land is kept only as means over named places (`LandAsk`, taken from
+the same passes as the water, each layer downloaded once): the land
 surface temperature (layer LST, kept as degC) over the clear land within a
 distance of a place's points (water, cloud within CLOUD_BUFFER pixels and
 poor quality left out), stored under source `ecostress`, site the place's
@@ -36,10 +37,13 @@ import io
 import math
 import time
 from calendar import timegm
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlencode
 
 import numpy as np
+from fdmr_geo import utm
+from fdmr_store.tiles import TileCache
 
 from . import http
 from .http import HttpJsonClient, JsonClient
@@ -53,45 +57,6 @@ TOKEN_FILE = Path.home() / ".config" / "fdmr" / "earthdata-token"
 CLOUD_BUFFER = 5  # pixels (350 m) kept clear of any flagged cloud
 PER_RUN = 12  # new tiles downloaded per fetch at most, newest first, so a backlog never holds up a cycle
 KELVIN = 273.15
-
-
-def utm(lon, lat, zone: int) -> tuple[np.ndarray, np.ndarray]:
-    """WGS84 longitude and latitude (degrees) to UTM easting and northing (m),
-    northern hemisphere: the transverse Mercator projection by Krüger's series
-    to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 7-11),
-    good to well under a metre within the zone."""
-    a, f, k0 = 6378137.0, 1 / 298.257223563, 0.9996
-    n = f / (2 - f)
-    big_a = a / (1 + n) * (1 + n ** 2 / 4 + n ** 4 / 64)
-    alpha = (n / 2 - 2 * n ** 2 / 3 + 5 * n ** 3 / 16, 13 * n ** 2 / 48 - 3 * n ** 3 / 5, 61 * n ** 3 / 240)
-    e = math.sqrt(f * (2 - f))
-    phi = np.radians(np.asarray(lat, dtype=float))
-    lam = np.radians(np.asarray(lon, dtype=float)) - math.radians(zone * 6 - 183)
-    t = np.sinh(np.arctanh(np.sin(phi)) - e * np.arctanh(e * np.sin(phi)))
-    xi = np.arctan2(t, np.cos(lam))
-    eta = np.arctanh(np.sin(lam) / np.sqrt(1 + t * t))
-    east = eta + sum(al * np.cos(2 * j * xi) * np.sinh(2 * j * eta) for j, al in enumerate(alpha, 1))
-    north = xi + sum(al * np.sin(2 * j * xi) * np.cosh(2 * j * eta) for j, al in enumerate(alpha, 1))
-    return 500_000.0 + k0 * big_a * east, k0 * big_a * north
-
-
-def lonlat_from_utm(east, north, zone: int) -> tuple[np.ndarray, np.ndarray]:
-    """UTM easting and northing (m, northern hemisphere) back to WGS84
-    longitude and latitude (degrees): the inverse of `utm`, by Krüger's series
-    to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 15-21)."""
-    a, f, k0 = 6378137.0, 1 / 298.257223563, 0.9996
-    n = f / (2 - f)
-    big_a = a / (1 + n) * (1 + n ** 2 / 4 + n ** 4 / 64)
-    beta = (n / 2 - 2 * n ** 2 / 3 + 37 * n ** 3 / 96, n ** 2 / 48 + n ** 3 / 15, 17 * n ** 3 / 480)
-    delta = (2 * n - 2 * n ** 2 / 3 - 2 * n ** 3, 7 * n ** 2 / 3 - 8 * n ** 3 / 5, 56 * n ** 3 / 15)
-    xi = np.asarray(north, dtype=float) / (k0 * big_a)
-    eta = (np.asarray(east, dtype=float) - 500_000.0) / (k0 * big_a)
-    xi_p = xi - sum(b * np.sin(2 * j * xi) * np.cosh(2 * j * eta) for j, b in enumerate(beta, 1))
-    eta_p = eta - sum(b * np.cos(2 * j * xi) * np.sinh(2 * j * eta) for j, b in enumerate(beta, 1))
-    chi = np.arcsin(np.sin(xi_p) / np.cosh(eta_p))
-    lat = chi + sum(d * np.sin(2 * j * chi) for j, d in enumerate(delta, 1))
-    lon = math.radians(zone * 6 - 183) + np.arctan2(np.sinh(eta_p), np.cos(xi_p))
-    return np.degrees(lon), np.degrees(lat)
 
 
 def read_tif(data: bytes) -> tuple[np.ndarray, dict]:
@@ -159,112 +124,110 @@ def _download(url: str, token: str, sleep=time.sleep) -> bytes:
     return http.request(url, bearer=token, timeout=300, sleep=sleep)
 
 
+@dataclass
+class LandAsk:
+    """The land's surface temperature as means over named places (`places`,
+    each a `site`, its `points` and a `radius_m`), from the passes over `box`
+    since `start`, stored in `store`: asked of `EcostressAdapter.fetch` with
+    the water, so each pass's shared layers are downloaded once."""
+
+    store: object
+    places: list[dict]
+    box: tuple[float, float, float, float]
+    start: int
+
+
 class EcostressAdapter:
+    """Keeps each pass's water in a tile cache (fdmr_store.tiles): `<id>` holds
+    the clear water pixels' `rows`, `cols` and `temperature` (degC), the
+    grid's `shape`, its UTM origin `x0`, `y0`, pixel size `dx` and `zone`,
+    and the pass time `t`. A pass with no clear water is marked `none`, and
+    one whose land was taken, `land`."""
+
     def __init__(self, cache: Path, token: str | None = None, download=_download, client: JsonClient | None = None) -> None:
-        self.cache = Path(cache)
+        self.tiles = TileCache(cache)
         self.token = token if token is not None else TOKEN_FILE.read_text(encoding="utf-8").strip()
         self.download = download
         self.client = client
 
-    def fetch(self, box: tuple[float, float, float, float], start: int, end: int, keep_s: int, per_run: int = PER_RUN) -> int:
-        """Keep the water of the passes over the box since `start` not already
-        kept, newest first and at most `per_run` of them, and drop what is
-        older than `keep_s`; returns how many water pixels were kept."""
-        self.cache.mkdir(parents=True, exist_ok=True)
-        for old in self.cache.glob("*"):
-            if old.stat().st_mtime < end - keep_s - 86_400 and old.suffix in (".npz", ".none", ".land"):
-                old.unlink()
+    def fetch(self, box: tuple[float, float, float, float] | None, start: int, end: int, keep_s: int,
+              per_run: int = PER_RUN, land: LandAsk | None = None) -> int:
+        """Keep the water of the passes over `box` since `start` not already
+        kept, newest first and at most `per_run` of them; with `land`, each
+        place's mean land temperature from its passes not yet done, the same
+        way. A pass wanted for both is downloaded once. What is older than
+        `keep_s` is dropped. Returns how many water pixels and land values
+        were kept."""
+        self.tiles.prune(end - keep_s - 86_400, marks=("none", "land"))
+        newest = lambda gs: sorted(gs, key=lambda g: -g["t"])[:per_run]  # noqa: E731
+        water = newest([g for g in search(box, start, end, self.client)
+                        if not (self.tiles.has(g["id"]) or self.tiles.has(g["id"], "none"))]) if box else []
+        lands = newest([g for g in search(land.box, land.start, end, self.client)
+                        if "LST" in g["urls"] and not self.tiles.has(g["id"], "land")]) if land else []
+        water_ids, land_ids = {g["id"] for g in water}, {g["id"] for g in lands}
         kept = 0
         errors: list[str] = []
-        todo = [g for g in search(box, start, end, self.client)
-                if not any((self.cache / f"{g['id']}{s}").exists() for s in (".npz", ".none"))]
-        for g in sorted(todo, key=lambda g: -g["t"])[:per_run]:
-            try:
-                kept += self._keep_water(g)
-            except Exception as e:  # noqa: BLE001  one tile's failure does not stop the rest; named, tried again next run (#91)
-                errors.append(f"{g['id']}: {e}")
+        for g in sorted({g["id"]: g for g in [*water, *lands]}.values(), key=lambda g: -g["t"]):
+            got: dict[str, tuple[np.ndarray, dict]] = {}
+
+            def layer(name: str, g=g, got=got) -> tuple[np.ndarray, dict]:
+                """One of the pass's layers, downloaded once for both products."""
+                if name not in got:
+                    got[name] = read_tif(self.download(g["urls"][name], self.token))
+                return got[name]
+
+            # One tile's failure does not stop the rest; named, tried again next run (#91).
+            if g["id"] in water_ids:
+                try:
+                    kept += self._keep_water(g, layer)
+                except Exception as e:  # noqa: BLE001
+                    errors.append(f"{g['id']}: {e}")
+            if g["id"] in land_ids:
+                try:
+                    kept += self._keep_land(g, layer, land)
+                    self.tiles.mark(g["id"], "land")  # done, whatever it held
+                except Exception as e:  # noqa: BLE001
+                    errors.append(f"{g['id']} (land): {e}")
         if errors:
             raise http.PartialFetch(kept, errors)
         return kept
 
-    def _keep_water(self, g: dict) -> int:
-        water, where = read_tif(self.download(g["urls"]["water"], self.token))
-        cloud, _ = read_tif(self.download(g["urls"]["cloud"], self.token))
+    def _keep_water(self, g: dict, layer) -> int:
+        water, where = layer("water")
+        cloud, _ = layer("cloud")
         if "WST" not in g["urls"] or not water_pixels(water, cloud, None, None).any():
-            (self.cache / f"{g['id']}.none").touch()
+            self.tiles.mark(g["id"], "none")
             return 0
-        qc, _ = read_tif(self.download(g["urls"]["QC"], self.token))
-        wst, _ = read_tif(self.download(g["urls"]["WST"], self.token))
+        qc, _ = layer("QC")
+        wst, _ = layer("WST")
         ok = water_pixels(water, cloud, qc, wst)
         rows, cols = np.nonzero(ok)
-        np.savez_compressed(self.cache / f"{g['id']}.npz", rows=rows.astype(np.uint16), cols=cols.astype(np.uint16),
-                            temperature=(wst[ok] - KELVIN).astype(np.float32), shape=np.array(ok.shape), t=g["t"], **where)
+        self.tiles.put(g["id"], rows=rows.astype(np.uint16), cols=cols.astype(np.uint16),
+                       temperature=(wst[ok] - KELVIN).astype(np.float32), shape=np.array(ok.shape), t=g["t"], **where)
         return int(ok.sum())
 
+    def _keep_land(self, g: dict, layer, land: LandAsk) -> int:
+        """Each place's mean land surface temperature in the pass, where at
+        least MIN_LAND_PIXELS of its pixels are clear land."""
+        from fdmr_store import Value
 
-class Tile:
-    """A kept tile, to look up: the temperature at a point where the pixel and
-    its eight neighbours are all kept water (no land or cloud mixed in)."""
-
-    def __init__(self, path: Path) -> None:
-        z = np.load(path)
-        self.t, self.zone = int(z["t"]), int(z["zone"])
-        self.x0, self.y0, self.dx = float(z["x0"]), float(z["y0"]), float(z["dx"])
-        self.grid = np.full(tuple(z["shape"]), np.nan, dtype=np.float32)
-        self.grid[z["rows"], z["cols"]] = z["temperature"]
-        self._pure: np.ndarray | None = None
-
-    @property
-    def pure_mask(self) -> np.ndarray:
-        """Pixels whose 3 x 3 pixels are all kept water (never on the tile's
-        edge), worked out once per tile."""
-        if self._pure is None:
-            ok = np.isfinite(self.grid)
-            m = np.zeros_like(ok)
-            rows, cols = ok.shape
-            inner = np.ones((rows - 2, cols - 2), dtype=bool) if rows > 2 and cols > 2 else np.zeros((0, 0), dtype=bool)
-            for dr in (0, 1, 2):
-                for dc in (0, 1, 2):
-                    inner &= ok[dr:dr + rows - 2, dc:dc + cols - 2]
-            if inner.size:
-                m[1:-1, 1:-1] = inner
-            self._pure = m
-        return self._pure
-
-    def pure(self, lon, lat) -> np.ndarray:
-        """Each point's temperature (degC), NaN where its 3 x 3 pixels are not
-        all kept water."""
-        e, n = utm(lon, lat, self.zone)
-        return self.pure_utm(np.atleast_1d(e), np.atleast_1d(n))
-
-    def pure_utm(self, e: np.ndarray, n: np.ndarray) -> np.ndarray:
-        """As `pure`, for points already in this tile's UTM zone (m)."""
-        c = np.floor((e - self.x0) / self.dx).astype(int)
-        r = np.floor((self.y0 - n) / self.dx).astype(int)
-        out = np.full(c.shape, np.nan)
-        inside = (r >= 1) & (c >= 1) & (r < self.grid.shape[0] - 1) & (c < self.grid.shape[1] - 1)
-        ri, ci = r[inside], c[inside]
-        ok = self.pure_mask[ri, ci]
-        vals = np.full(ri.shape, np.nan)
-        vals[ok] = self.grid[ri[ok], ci[ok]]
-        out[inside] = vals
-        return out
-
-    def near(self, lon: float, lat: float, reach: int = 2) -> float | None:
-        """The temperature at the nearest pixel, within `reach` pixels of the
-        point, whose 3 x 3 pixels are all kept water: for a sensor on a bank or
-        a pier."""
-        e, n = utm(lon, lat, self.zone)
-        c0, r0 = int((float(e) - self.x0) // self.dx), int((self.y0 - float(n)) // self.dx)
-        best = None
-        for dr in range(-reach, reach + 1):
-            for dc in range(-reach, reach + 1):
-                r, c = r0 + dr, c0 + dc
-                if not (1 <= r < self.grid.shape[0] - 1 and 1 <= c < self.grid.shape[1] - 1):
-                    continue
-                if np.isfinite(self.grid[r - 1:r + 2, c - 1:c + 2]).all() and (best is None or dr * dr + dc * dc < best[0]):
-                    best = (dr * dr + dc * dc, float(self.grid[r, c]))
-        return None if best is None else best[1]
+        water, where = layer("water")
+        masks = place_masks(where, water.shape, land.places)
+        if not masks:
+            return 0
+        cloud, _ = layer("cloud")
+        if not (cloud == 0).any():
+            return 0
+        qc, _ = layer("QC")
+        lst, _ = layer("LST")
+        ok = land_pixels(water, cloud, qc, lst)
+        n = 0
+        for site, m in masks.items():
+            sel = m & ok
+            if sel.sum() >= MIN_LAND_PIXELS:
+                n += land.store.put_values("ecostress", site, "land_surface_temperature", "degC",
+                                           [Value(g["t"], float(lst[sel].mean()) - KELVIN, None)])
+        return n
 
 
 def place_masks(where: dict, shape: tuple[int, int], places: list[dict]) -> dict[str, np.ndarray]:
@@ -302,39 +265,3 @@ def land_pixels(water: np.ndarray, cloud: np.ndarray, qc: np.ndarray, lst: np.nd
     within `buffer` pixels, quality best or nominal, with a temperature."""
     clear = water_pixels(np.ones_like(water), cloud, qc, lst, buffer)
     return clear & (water == 0)
-
-
-def fetch_land(adapter: "EcostressAdapter", store, places: list[dict], box: tuple[float, float, float, float],
-               start: int, end: int, per_run: int = PER_RUN) -> int:
-    """For the passes since `start` not yet done, newest first and at most
-    `per_run`, each place's mean land surface temperature; returns how many
-    values were stored. A pass is marked done (`<id>.land`) whatever it held."""
-    from fdmr_store import Value
-
-    adapter.cache.mkdir(parents=True, exist_ok=True)
-    todo = [g for g in search(box, start, end, adapter.client)
-            if "LST" in g["urls"] and not (adapter.cache / f"{g['id']}.land").exists()]
-    n = 0
-    errors: list[str] = []
-    for g in sorted(todo, key=lambda g: -g["t"])[:per_run]:
-        try:
-            water, where = read_tif(adapter.download(g["urls"]["water"], adapter.token))
-            masks = place_masks(where, water.shape, places)
-            if masks:
-                cloud, _ = read_tif(adapter.download(g["urls"]["cloud"], adapter.token))
-                if (cloud == 0).any():
-                    qc, _ = read_tif(adapter.download(g["urls"]["QC"], adapter.token))
-                    lst, _ = read_tif(adapter.download(g["urls"]["LST"], adapter.token))
-                    ok = land_pixels(water, cloud, qc, lst)
-                    for site, m in masks.items():
-                        sel = m & ok
-                        if sel.sum() >= MIN_LAND_PIXELS:
-                            n += store.put_values("ecostress", site, "land_surface_temperature", "degC",
-                                                  [Value(g["t"], float(lst[sel].mean()) - KELVIN, None)])
-        except Exception as e:  # noqa: BLE001  one tile's failure does not stop the rest; named, tried again next run (#91)
-            errors.append(f"{g['id']}: {e}")
-            continue
-        (adapter.cache / f"{g['id']}.land").touch()
-    if errors:
-        raise http.PartialFetch(n, errors)
-    return n

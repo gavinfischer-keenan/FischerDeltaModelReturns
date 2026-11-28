@@ -396,10 +396,10 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/water_audit.py:47](../python/fdmr_runner/water_audit.py#L47) | `LISTED_M2` | `50_000.0` | areas of 5 ha or more are listed one by one; smaller ones are counted |
 | [python/fdmr_runner/water_audit.py:48](../python/fdmr_runner/water_audit.py#L48) | `UNCOVERED` | `0.5` | an area with less than half its samples covered is listed as uncovered |
 | [python/fdmr_runner/water_audit.py:50](../python/fdmr_runner/water_audit.py#L50) | `PAD_DEG` | `0.02` | the extent beyond the published reaches |
-| [python/fdmr_runner/water_extent.py:30](../python/fdmr_runner/water_extent.py#L30) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 ([opera_dswx_s1](references.md#opera_dswx_s1)) |
-| [python/fdmr_runner/water_extent.py:31](../python/fdmr_runner/water_extent.py#L31) | `MIN_SEEN` | `0.2` | a pass counts only if it saw at least this share of the area (FDMR's choice) |
-| [python/fdmr_runner/water_extent.py:32](../python/fdmr_runner/water_extent.py#L32) | `MAX_PATCHES` | `10` | the largest this many patches of new water are listed per pass (FDMR's choice) |
-| [python/fdmr_runner/water_extent.py:33](../python/fdmr_runner/water_extent.py#L33) | `PASS_S` | `3600` | tiles within this of each other, s, are one radar pass (FDMR's choice: a pass takes minutes) |
+| [python/fdmr_runner/water_extent.py:33](../python/fdmr_runner/water_extent.py#L33) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 ([opera_dswx_s1](references.md#opera_dswx_s1)) |
+| [python/fdmr_runner/water_extent.py:34](../python/fdmr_runner/water_extent.py#L34) | `MIN_SEEN` | `0.2` | a pass counts only if it saw at least this share of the area (FDMR's choice) |
+| [python/fdmr_runner/water_extent.py:35](../python/fdmr_runner/water_extent.py#L35) | `MAX_PATCHES` | `10` | the largest this many patches of new water are listed per pass (FDMR's choice) |
+| [python/fdmr_runner/water_extent.py:36](../python/fdmr_runner/water_extent.py#L36) | `PASS_S` | `3600` | tiles within this of each other, s, are one radar pass (FDMR's choice: a pass takes minutes) |
 | [python/fdmr_runner/writer.py:21](../python/fdmr_runner/writer.py#L21) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/canal/__init__.py:26](../python/fdmr_plugins/canal/__init__.py#L26) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_plugins/canal/__init__.py:27](../python/fdmr_plugins/canal/__init__.py#L27) | `INCH` | `0.0254` | unit: metres in an inch (exact) |
@@ -448,11 +448,11 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_adapters/cdec_reports.py:38](../python/fdmr_adapters/cdec_reports.py#L38) | `INCH` | `25.4` | mm |
 | [python/fdmr_adapters/cdec_reports.py:39](../python/fdmr_adapters/cdec_reports.py#L39) | `PST` | `8 * 3600` |  |
 | [python/fdmr_adapters/cnrfc.py:32](../python/fdmr_adapters/cnrfc.py#L32) | `KCFS` | `1000 * 0.3048**3` | thousand cubic feet per second, in m3/s |
-| [python/fdmr_adapters/ecostress.py:51](../python/fdmr_adapters/ecostress.py#L51) | `MIN_LAND_PIXELS` | `100` | about half a square kilometre of clear land |
-| [python/fdmr_adapters/ecostress.py:53](../python/fdmr_adapters/ecostress.py#L53) | `CLOUD_BUFFER` | `5` | pixels (350 m) kept clear of any flagged cloud |
-| [python/fdmr_adapters/ecostress.py:54](../python/fdmr_adapters/ecostress.py#L54) | `PER_RUN` | `12` | new tiles downloaded per fetch at most, newest first, so a backlog never holds up a cycle |
-| [python/fdmr_adapters/ecostress.py:55](../python/fdmr_adapters/ecostress.py#L55) | `KELVIN` | `273.15` |  |
-| [python/fdmr_adapters/ecostress.py:152](../python/fdmr_adapters/ecostress.py#L152) | `RETRY_WAITS_S` | `(5, 20)` | waits before each retry of a download the server failed |
+| [python/fdmr_adapters/ecostress.py:55](../python/fdmr_adapters/ecostress.py#L55) | `MIN_LAND_PIXELS` | `100` | about half a square kilometre of clear land |
+| [python/fdmr_adapters/ecostress.py:57](../python/fdmr_adapters/ecostress.py#L57) | `CLOUD_BUFFER` | `5` | pixels (350 m) kept clear of any flagged cloud |
+| [python/fdmr_adapters/ecostress.py:58](../python/fdmr_adapters/ecostress.py#L58) | `PER_RUN` | `12` | new tiles downloaded per fetch at most, newest first, so a backlog never holds up a cycle |
+| [python/fdmr_adapters/ecostress.py:59](../python/fdmr_adapters/ecostress.py#L59) | `KELVIN` | `273.15` |  |
+| [python/fdmr_adapters/ecostress.py:117](../python/fdmr_adapters/ecostress.py#L117) | `RETRY_WAITS_S` | `(5, 20)` | waits before each retry of a download the server failed |
 | [python/fdmr_adapters/geojson.py:14](../python/fdmr_adapters/geojson.py#L14) | `TIMEOUT_S` | `180` | a whole state's centrelines can be tens of megabytes |
 | [python/fdmr_adapters/http.py:33](../python/fdmr_adapters/http.py#L33) | `RETRIED` | `(429, 500, 502, 503, 504)` | answers worth asking again |
 | [python/fdmr_adapters/http.py:34](../python/fdmr_adapters/http.py#L34) | `RETRIES` | `3` | tries after the first (FDMR's choice) |
@@ -464,8 +464,8 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_adapters/noaa_tides.py:33](../python/fdmr_adapters/noaa_tides.py#L33) | `CHUNK_DAYS` | `30` | the API serves 15-minute predictions, and 6-minute readings, a month at a time |
 | [python/fdmr_adapters/nws_precip.py:27](../python/fdmr_adapters/nws_precip.py#L27) | `INCH_MM` | `25.4` |  |
 | [python/fdmr_adapters/nws_precip.py:28](../python/fdmr_adapters/nws_precip.py#L28) | `EARTH_R` | `6_371_200.0` | the grid's own sphere (its crs attribute) |
-| [python/fdmr_adapters/opera.py:33](../python/fdmr_adapters/opera.py#L33) | `NOT_SEEN` | `255` |  |
-| [python/fdmr_adapters/opera.py:34](../python/fdmr_adapters/opera.py#L34) | `PER_RUN` | `24` | tiles downloaded per fetch at most, newest first |
+| [python/fdmr_adapters/opera.py:36](../python/fdmr_adapters/opera.py#L36) | `NOT_SEEN` | `255` |  |
+| [python/fdmr_adapters/opera.py:37](../python/fdmr_adapters/opera.py#L37) | `PER_RUN` | `24` | tiles downloaded per fetch at most, newest first |
 | [python/fdmr_adapters/rws.py:52](../python/fdmr_adapters/rws.py#L52) | `BAD_QUALITY` | `50` | codes above this are gaps |
 | [python/fdmr_adapters/smap.py:48](../python/fdmr_adapters/smap.py#L48) | `PER_RUN` | `48` | three-hour periods read per fetch at most (six days) |
 | [python/fdmr_adapters/smap.py:49](../python/fdmr_adapters/smap.py#L49) | `FILL` | `-9000.0` | SMAP marks no value with -9999 |

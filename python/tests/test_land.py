@@ -1,5 +1,6 @@
 import json
 
+import fdmr_geo
 import numpy as np
 
 from fdmr_adapters import ecostress
@@ -8,7 +9,7 @@ from fdmr_store import Store, Value
 
 
 def test_a_place_is_the_pixels_within_its_radius_of_its_points():
-    e, n = ecostress.utm(-121.5, 38.5, 10)
+    e, n = fdmr_geo.utm(-121.5, 38.5, 10)
     where = {"x0": float(e) - 35 - 700, "y0": float(n) + 35 + 700, "dx": 70.0, "zone": 10}  # the point at pixel (10, 10)'s centre
     got = ecostress.place_masks(where, (21, 21), [{"site": "p", "points": [(-121.5, 38.5)], "radius_m": 140.0},
                                                    {"site": "far", "points": [(-100.0, 38.5)], "radius_m": 140.0}])

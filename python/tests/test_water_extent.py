@@ -1,6 +1,7 @@
+import fdmr_geo
 import numpy as np
 
-from fdmr_adapters import ecostress, opera
+from fdmr_adapters import opera
 from fdmr_runner import water_extent
 
 # The settings as a region gives them (regions/sf-bay-delta/overlays.toml [water_extent]).
@@ -42,7 +43,7 @@ def test_water_always_there_is_not_new():
 
 
 def test_crop_covers_the_box():
-    e, n = ecostress.utm(-121.5, 38.0, 10)
+    e, n = fdmr_geo.utm(-121.5, 38.0, 10)
     where = {"x0": float(e) - 3000, "y0": float(n) + 3000, "dx": 30.0, "zone": 10}
     r0, r1, c0, c1 = opera.crop_rows_cols(where, (300, 300), (-121.51, 37.99, -121.49, 38.01))
     assert 0 < r0 < r1 < 300 and 0 < c0 < c1 < 300

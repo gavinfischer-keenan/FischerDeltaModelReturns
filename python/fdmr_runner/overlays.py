@@ -328,9 +328,11 @@ def satellite_temperature(cfg: dict, cache: Path, lookups: list[NetworkValues], 
     sc = cfg.get("satellite_temperature")
     if not sc or (tiles is None and not cache.exists()):
         return None
-    from fdmr_adapters import ecostress
+    from fdmr_geo import utm
 
-    tiles = tiles if tiles is not None else [ecostress.Tile(p) for p in sorted(cache.glob("*.npz"))]
+    from .satellite import water_tiles
+
+    tiles = tiles if tiles is not None else water_tiles(cache)
     tiles = [t for t in tiles if now - sc.get("days", 14) * 86_400 <= t.t <= now]
     if not tiles:
         return None
@@ -361,7 +363,7 @@ def satellite_temperature(cfg: dict, cache: Path, lookups: list[NetworkValues], 
         projected: dict[int, tuple[np.ndarray, np.ndarray]] = {}
         for tl in tiles:
             if tl.zone not in projected:
-                projected[tl.zone] = tuple(np.atleast_1d(v) for v in ecostress.utm(lon, lat, tl.zone))
+                projected[tl.zone] = tuple(np.atleast_1d(v) for v in utm(lon, lat, tl.zone))
             s = tl.pure_utm(*projected[tl.zone])
             fin = np.isfinite(s)
             if not fin.any():

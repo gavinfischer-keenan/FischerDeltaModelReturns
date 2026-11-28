@@ -21,11 +21,14 @@ some wet fields and smooth ground for water.
 
 from __future__ import annotations
 
+import hashlib
 import json
-
 from pathlib import Path
 
 import numpy as np
+from fdmr_adapters.opera import NOT_SEEN
+from fdmr_geo import lonlat_from_utm, utm
+from fdmr_store.tiles import TileCache
 
 PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1 (ref:opera_dswx_s1)
 MIN_SEEN = 0.2  # a pass counts only if it saw at least this share of the area (FDMR's choice)
@@ -35,8 +38,6 @@ PASS_S = 3600  # tiles within this of each other, s, are one radar pass (FDMR's 
 
 def _grid(box: tuple[float, float, float, float], zone: int, dx: float):
     """A UTM grid (zone, dx metres) over a box: its origin and shape, aligned to dx."""
-    from fdmr_adapters.ecostress import utm
-
     w, s, e, n = box
     xs, ys = utm(np.array([w, e, w, e]), np.array([s, s, n, n]), zone)
     x0 = np.floor(np.min(xs) / dx) * dx
@@ -48,8 +49,6 @@ def _grid(box: tuple[float, float, float, float], zone: int, dx: float):
 
 def _inside(box, zone, x0, y0, rows, cols, dx):
     """Which grid cells' centres are inside the box (longitude, latitude)."""
-    from fdmr_adapters.ecostress import lonlat_from_utm
-
     xs = x0 + (np.arange(cols) + 0.5) * dx
     ys = y0 - (np.arange(rows) + 0.5) * dx
     ee, nn = np.meshgrid(xs, ys)
@@ -61,8 +60,6 @@ def _inside(box, zone, x0, y0, rows, cols, dx):
 def mosaics(tiles: list[dict], box, zone: int, dx: float) -> list[tuple[int, np.ndarray]]:
     """Each pass (tiles within an hour of each other) as one grid over the box:
     1 water, 0 not, 255 not seen."""
-    from fdmr_adapters.opera import NOT_SEEN
-
     x0, y0, rows, cols = _grid(box, zone, dx)
     passes: dict[int, list[dict]] = {}
     for tl in sorted(tiles, key=lambda t: t["t"]):
@@ -92,9 +89,6 @@ def mosaics(tiles: list[dict], box, zone: int, dx: float) -> list[tuple[int, np.
 
 def area_record(tiles: list[dict], area: dict, cfg: dict, baseline: list[dict] | None = None) -> dict | None:
     from scipy.ndimage import label
-
-    from fdmr_adapters.ecostress import lonlat_from_utm
-    from fdmr_adapters.opera import NOT_SEEN
 
     if not tiles:
         return None
@@ -155,11 +149,9 @@ def summary(cfg: dict, cache: Path, now: int) -> dict | None:
     recent_from = now - we["days"] * 86_400
     # The summary changes only when a tile comes or goes, or one moves from
     # the recent window into the baseline: kept beside the tiles until then (#35).
-    import hashlib
-
-    files = sorted(cache.glob("*.npz"))
-    key = hashlib.sha256(json.dumps([we, [(p.name, p.stat().st_size, int(p.stat().st_mtime)) for p in files],
-                                     [_tile_t(p) >= recent_from for p in files]], sort_keys=True).encode()).hexdigest()
+    tc = TileCache(cache)
+    ids = tc.ids()
+    key = hashlib.sha256(json.dumps([we, tc.fingerprint(), [tc.time(i) >= recent_from for i in ids]], sort_keys=True).encode()).hexdigest()
     kept = cache / "summary.json"
     if kept.exists():
         try:
@@ -169,8 +161,7 @@ def summary(cfg: dict, cache: Path, now: int) -> dict | None:
         except ValueError:
             pass
     tiles, baseline = [], []
-    for p in files:
-        z = np.load(p)
+    for _, z in tc.items():
         tl = {"t": int(z["t"]), "water": z["water"], "row0": int(z["row0"]), "col0": int(z["col0"]),
               "x0": float(z["x0"]), "y0": float(z["y0"]), "dx": float(z["dx"]), "zone": int(z["zone"])}
         (tiles if tl["t"] >= recent_from else baseline).append(tl)
@@ -182,12 +173,6 @@ def summary(cfg: dict, cache: Path, now: int) -> dict | None:
     tmp.write_text(json.dumps({"key": key, "summary": out}), encoding="utf-8")
     tmp.replace(kept)
     return out
-
-
-def _tile_t(p: Path) -> int:
-    """A kept tile's pass time, from its file."""
-    with np.load(p) as z:
-        return int(z["t"])
 
 
 def windows(cfg: dict, now: int) -> list[tuple[int, int]]:

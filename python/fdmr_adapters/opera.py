@@ -6,10 +6,10 @@ sees through cloud, every few days. A global adapter. Finding passes is open
 
 Of each pass only its water classification (layer B01_WTR: 0 not water,
 1 open water, 2 partial surface water; 252 and above snow, cloud, ocean mask
-or no data) over the boxes asked for is kept, as a small `.npz` per tile in
-the cache folder: `water` (1 where open or partial water, 0 not, 255 where
+or no data) over the boxes asked for is kept, a tile per pass in a tile cache
+(fdmr_store.tiles): `water` (1 where open or partial water, 0 not, 255 where
 nothing could be seen), the tile's UTM origin, pixel size and zone, the crop's
-offset, and the pass time. When a pass was processed more than once, only the
+offset (`row0`, `col0`), the MGRS `tile` and the pass time `t`. When a pass was processed more than once, only the
 latest processing is used.
 
 References: ref:opera_dswx_s1 (references.toml).
@@ -24,7 +24,10 @@ from urllib.parse import urlencode
 
 import numpy as np
 
-from .ecostress import TOKEN_FILE, _download, read_tif, utm
+from fdmr_geo import utm
+from fdmr_store.tiles import TileCache
+
+from .ecostress import TOKEN_FILE, _download, read_tif
 from . import http
 from .http import HttpJsonClient, JsonClient
 
@@ -78,7 +81,7 @@ def classify(wtr: np.ndarray) -> np.ndarray:
 
 class OperaAdapter:
     def __init__(self, cache: Path, token: str | None = None, download=_download, client: JsonClient | None = None) -> None:
-        self.cache = Path(cache)
+        self.tiles = TileCache(cache)
         self.token = token if token is not None else TOKEN_FILE.read_text(encoding="utf-8").strip()
         self.download = download
         self.client = client
@@ -88,20 +91,19 @@ class OperaAdapter:
         """Keep the water over the box from the passes in any of `windows`
         ((start, end) pairs) not yet kept, newest first, at most `per_run`;
         drop kept passes outside every window. Returns how many tiles were kept."""
-        self.cache.mkdir(parents=True, exist_ok=True)
         inside = lambda t: any(a <= t <= b for a, b in windows)  # noqa: E731
-        for old in self.cache.glob("*.npz"):
+        for old in self.tiles.ids():
             try:
-                t_old = int(np.load(old)["t"])
+                t_old = self.tiles.time(old)
             except Exception:
                 t_old = -1
             if not inside(t_old):
-                old.unlink()
+                self.tiles.drop(old)
         todo = [g for a, b in windows for g in search(short_name, box, a, b, self.client)]
         todo = sorted({g["id"]: g for g in todo}.values(), key=lambda g: -g["t"])
         kept = 0
         errors: list[str] = []
-        for g in [g for g in todo if not (self.cache / f"{g['id']}.npz").exists()][:per_run]:
+        for g in [g for g in todo if not self.tiles.has(g["id"])][:per_run]:
             try:
                 wtr, where = read_tif(self.download(g["url"], self.token))
             except Exception as e:  # noqa: BLE001  one tile's failure does not stop the rest; named, tried again next run (#91)
@@ -111,8 +113,7 @@ class OperaAdapter:
             if rc is None:
                 continue
             r0, r1, c0, c1 = rc
-            np.savez_compressed(self.cache / f"{g['id']}.npz", water=classify(wtr[r0:r1, c0:c1]), t=g["t"], tile=g["tile"],
-                                row0=r0, col0=c0, **where)
+            self.tiles.put(g["id"], water=classify(wtr[r0:r1, c0:c1]), t=g["t"], tile=g["tile"], row0=r0, col0=c0, **where)
             kept += 1
         if errors:
             raise http.PartialFetch(kept, errors)

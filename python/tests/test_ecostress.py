@@ -1,17 +1,20 @@
+import fdmr_geo
 import numpy as np
 import pytest
 
 from fdmr_adapters import ecostress
+from fdmr_runner.satellite import WaterTile
 from fdmr_store import Store, Value
+from fdmr_store.tiles import TileCache
 
 
 def test_utm_matches_standard_values():
     # On the central meridian the northing is 0.9996 times the meridian arc:
     # 4,984,944.378 m from the equator to 45 degrees on WGS84.
-    e, n = ecostress.utm(-123.0, 45.0, 10)
+    e, n = fdmr_geo.utm(-123.0, 45.0, 10)
     assert float(e) == pytest.approx(500_000, abs=1e-6) and float(n) == pytest.approx(0.9996 * 4_984_944.378, abs=0.01)
     # On the equator at the zone's edge, 3 degrees out: easting 833,978.56 m.
-    e, n = ecostress.utm(-120.0, 0.0, 10)
+    e, n = fdmr_geo.utm(-120.0, 0.0, 10)
     assert float(e) == pytest.approx(833_978.56, abs=0.01) and abs(float(n)) < 1e-6
 
 
@@ -34,10 +37,10 @@ def test_water_beside_cloud_is_not_kept():
 def make_tile(tmp_path, values: np.ndarray, t: int, x0: float, y0: float, name="a"):
     ok = np.isfinite(values)
     rows, cols = np.nonzero(ok)
-    p = tmp_path / f"{name}.npz"
-    np.savez_compressed(p, rows=rows.astype(np.uint16), cols=cols.astype(np.uint16), temperature=values[ok].astype(np.float32),
-                        shape=np.array(values.shape), t=t, x0=x0, y0=y0, dx=70.0, zone=10)
-    return ecostress.Tile(p)
+    cache = TileCache(tmp_path)
+    cache.put(name, rows=rows.astype(np.uint16), cols=cols.astype(np.uint16), temperature=values[ok].astype(np.float32),
+              shape=np.array(values.shape), t=t, x0=x0, y0=y0, dx=70.0, zone=10)
+    return WaterTile(cache.get(name))
 
 
 def lonlat_of(tile, row, col):
@@ -45,12 +48,12 @@ def lonlat_of(tile, row, col):
     from scipy.optimize import minimize
 
     target = (tile.x0 + (col + 0.5) * tile.dx, tile.y0 - (row + 0.5) * tile.dx)
-    f = lambda p: sum((np.array(ecostress.utm(p[0], p[1], 10)) - target) ** 2)
+    f = lambda p: sum((np.array(fdmr_geo.utm(p[0], p[1], 10)) - target) ** 2)
     return minimize(f, [-122.0, 38.0], method="Nelder-Mead", options={"xatol": 1e-9, "fatol": 1e-6}).x
 
 
 def test_only_pixels_with_water_all_round_count(tmp_path):
-    e, n = ecostress.utm(-121.7, 38.05, 10)
+    e, n = fdmr_geo.utm(-121.7, 38.05, 10)
     v = np.full((7, 7), 15.0)
     v[0, :] = np.nan  # land along the top row
     tile = make_tile(tmp_path, v, 0, float(e) - 210, float(n) + 210)
@@ -74,7 +77,7 @@ class Lookup:
 
 
 def test_check_scores_satellite_against_stations_and_models(tmp_path):
-    e, n = ecostress.utm(-121.7, 38.05, 10)
+    e, n = fdmr_geo.utm(-121.7, 38.05, 10)
     t = 1_800_000_000
     tile = make_tile(tmp_path, np.full((9, 9), 15.0), t, float(e) - 300, float(n) + 300)
     lon, lat = lonlat_of(tile, 4, 4)
@@ -139,6 +142,47 @@ def test_a_server_error_is_retried_and_a_refusal_is_not(monkeypatch):
 def test_utm_back_to_longitude_and_latitude():
     lons = np.array([-121.5, -122.9, -120.1])
     lats = np.array([38.1, 37.3, 39.9])
-    e, n = ecostress.utm(lons, lats, 10)
-    lo, la = ecostress.lonlat_from_utm(e, n, 10)
+    e, n = fdmr_geo.utm(lons, lats, 10)
+    lo, la = fdmr_geo.lonlat_from_utm(e, n, 10)
     assert np.allclose(lo, lons, atol=1e-7) and np.allclose(la, lats, atol=1e-7)
+
+
+def test_a_pass_wanted_for_water_and_land_is_downloaded_once(tmp_path):
+    """#92: the water and the land come from the same passes; each layer of a
+    pass is downloaded once for both, and each product is marked done."""
+    import io
+
+    tifffile = pytest.importorskip("tifffile")
+    e, n = fdmr_geo.utm(-121.5, 38.5, 10)
+    x0, y0 = float(e) - 70 * 10, float(n) + 70 * 10
+
+    def tif(a):
+        buf = io.BytesIO()
+        keys = (1, 1, 0, 2, 1024, 0, 1, 1, 3072, 0, 1, 32610)  # UTM zone 10N (EPSG 32610), as the test above
+        tifffile.imwrite(buf, a, extratags=[(33550, "d", 3, (70.0, 70.0, 0.0)), (33922, "d", 6, (0.0, 0.0, 0.0, x0, y0, 0.0)),
+                                            (34735, "H", len(keys), keys)])
+        return buf.getvalue()
+
+    water = np.zeros((21, 21), np.uint8)
+    water[:, :10] = 1  # water on the west half, land on the east
+    layers = {"water": tif(water), "cloud": tif(np.zeros((21, 21), np.uint8)), "QC": tif(np.zeros((21, 21), np.uint16)),
+              "WST": tif(np.full((21, 21), 290.0, np.float32)), "LST": tif(np.full((21, 21), 300.0, np.float32))}
+    got: list[str] = []
+
+    def download(url, token):
+        got.append(url)
+        return layers[url]
+
+    g = {"id": "pass1", "t": 1_800_000_000, "urls": {k: k for k in layers}}
+    ecostress_search = ecostress.search
+    ecostress.search = lambda box, start, end, client=None: [g]
+    try:
+        store = Store()
+        a = ecostress.EcostressAdapter(tmp_path, token="t", download=download)
+        place = {"site": "p", "points": [(-121.5 + 0.004, 38.5)], "radius_m": 300.0}
+        n_kept = a.fetch((-122, 38, -121, 39), 0, g["t"] + 60, 86_400 * 14, land=ecostress.LandAsk(store, [place], (-122, 38, -121, 39), 0))
+    finally:
+        ecostress.search = ecostress_search
+    assert sorted(got) == ["LST", "QC", "WST", "cloud", "water"]  # each once
+    assert a.tiles.has("pass1") and a.tiles.has("pass1", "land")
+    assert n_kept > 0

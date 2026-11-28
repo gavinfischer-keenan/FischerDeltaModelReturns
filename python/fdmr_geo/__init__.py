@@ -12,12 +12,16 @@ makes. Longer paths along a river use great circles on the same radius
 (fdmr_plugins.river_routing.centreline).
 
 Points are (lon, lat) in degrees. Functions take plain floats, or numpy
-arrays where noted.
+arrays where noted. Satellite tiles on the Sentinel-2 grid are in UTM: `utm`
+and `lonlat_from_utm` project to and from it exactly (Karney 2011), not on
+the flat plane.
 """
 
 from __future__ import annotations
 
 import math
+
+import numpy as np
 
 M_PER_DEG = 111_195.0  # m per degree of latitude: 2 pi 6,371 km / 360 (GRS80 R1, ref:moritz2000grs80)
 
@@ -36,8 +40,6 @@ def distance_m(a: tuple[float, float], b: tuple[float, float]) -> float:
 
 def distances_m(lon, lat, p: tuple[float, float]):
     """The distance from each of many points (numpy arrays) to `p`, m, on the plane about `p`."""
-    import numpy as np
-
     return np.hypot((np.asarray(lon) - p[0]) * math.cos(math.radians(p[1])), np.asarray(lat) - p[1]) * M_PER_DEG
 
 
@@ -101,3 +103,45 @@ def shortest_path(adj: dict, src, dst) -> list[tuple] | None:
         n = u
     path.append((src, None))
     return path[::-1]
+
+
+# --- UTM: the satellites' tiles (#92) --------------------------------------------
+
+
+def utm(lon, lat, zone: int) -> tuple[np.ndarray, np.ndarray]:
+    """WGS84 longitude and latitude (degrees) to UTM easting and northing (m),
+    northern hemisphere: the transverse Mercator projection by Krüger's series
+    to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 7-11),
+    good to well under a metre within the zone."""
+    a, f, k0 = 6378137.0, 1 / 298.257223563, 0.9996
+    n = f / (2 - f)
+    big_a = a / (1 + n) * (1 + n ** 2 / 4 + n ** 4 / 64)
+    alpha = (n / 2 - 2 * n ** 2 / 3 + 5 * n ** 3 / 16, 13 * n ** 2 / 48 - 3 * n ** 3 / 5, 61 * n ** 3 / 240)
+    e = math.sqrt(f * (2 - f))
+    phi = np.radians(np.asarray(lat, dtype=float))
+    lam = np.radians(np.asarray(lon, dtype=float)) - math.radians(zone * 6 - 183)
+    t = np.sinh(np.arctanh(np.sin(phi)) - e * np.arctanh(e * np.sin(phi)))
+    xi = np.arctan2(t, np.cos(lam))
+    eta = np.arctanh(np.sin(lam) / np.sqrt(1 + t * t))
+    east = eta + sum(al * np.cos(2 * j * xi) * np.sinh(2 * j * eta) for j, al in enumerate(alpha, 1))
+    north = xi + sum(al * np.sin(2 * j * xi) * np.cosh(2 * j * eta) for j, al in enumerate(alpha, 1))
+    return 500_000.0 + k0 * big_a * east, k0 * big_a * north
+
+
+def lonlat_from_utm(east, north, zone: int) -> tuple[np.ndarray, np.ndarray]:
+    """UTM easting and northing (m, northern hemisphere) back to WGS84
+    longitude and latitude (degrees): the inverse of `utm`, by Krüger's series
+    to the third order in n (Karney 2011, ref:karney2011, J. Geodesy 85:475, equations 15-21)."""
+    a, f, k0 = 6378137.0, 1 / 298.257223563, 0.9996
+    n = f / (2 - f)
+    big_a = a / (1 + n) * (1 + n ** 2 / 4 + n ** 4 / 64)
+    beta = (n / 2 - 2 * n ** 2 / 3 + 37 * n ** 3 / 96, n ** 2 / 48 + n ** 3 / 15, 17 * n ** 3 / 480)
+    delta = (2 * n - 2 * n ** 2 / 3 - 2 * n ** 3, 7 * n ** 2 / 3 - 8 * n ** 3 / 5, 56 * n ** 3 / 15)
+    xi = np.asarray(north, dtype=float) / (k0 * big_a)
+    eta = (np.asarray(east, dtype=float) - 500_000.0) / (k0 * big_a)
+    xi_p = xi - sum(b * np.sin(2 * j * xi) * np.cosh(2 * j * eta) for j, b in enumerate(beta, 1))
+    eta_p = eta - sum(b * np.cos(2 * j * xi) * np.sinh(2 * j * eta) for j, b in enumerate(beta, 1))
+    chi = np.arcsin(np.sin(xi_p) / np.cosh(eta_p))
+    lat = chi + sum(d * np.sin(2 * j * chi) for j, d in enumerate(delta, 1))
+    lon = math.radians(zone * 6 - 183) + np.arctan2(np.sinh(eta_p), np.cos(xi_p))
+    return np.degrees(lon), np.degrees(lat)

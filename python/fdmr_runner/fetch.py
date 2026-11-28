@@ -44,7 +44,7 @@ from fdmr_adapters.cdec_reports import CdecReports
 from fdmr_adapters.cnrfc import SOURCE as CNRFC
 from fdmr_adapters.cnrfc import CnrfcAdapter
 from fdmr_adapters.cpc import CpcAdapter
-from fdmr_adapters.ecostress import EcostressAdapter, fetch_land
+from fdmr_adapters.ecostress import EcostressAdapter, LandAsk
 from fdmr_adapters.ndbc import SOURCE as NDBC
 from fdmr_adapters.ndbc import NdbcAdapter
 from fdmr_adapters.noaa_tides import OBSERVED
@@ -364,17 +364,12 @@ def plan_swot(r: Run) -> None:
 
 
 def plan_map_stations(r: Run) -> None:
-    """What the map shows (overlays.toml): water temperature from orbit, the
-    stations of agencies other than CDEC, and CDEC's stations, dams, pumps and
+    """What the map shows (overlays.toml): the stations of agencies other than CDEC, and CDEC's stations, dams, pumps and
     gates in one request per duration and set of sensors (those with readings
     held from where their newest ends, new ones from the start)."""
     o = r.overlays
     if not r.gauges_too:
         return
-    if o.get("satellite_temperature"):
-        sat = o["satellite_temperature"]
-        keep = sat.get("days", 14) * DAY
-        r.attempt("ecostress", lambda: EcostressAdapter(r.beside_store / sat["cache"]).fetch(tuple(sat["box"]), int(r.now - keep), int(r.now), keep))
     back = r.now - OBSERVED_DAYS * DAY
     for s in o.get("stations", []):
         src = s.get("source", CDEC)
@@ -409,20 +404,31 @@ def plan_map_stations(r: Run) -> None:
             r.attempt(f"cdec {len(new)} new stations ({dur})", lambda n=new, d=dur, sh=shown: sum(r.cdec.fetch_many(n, sh, int(r.start), int(r.now), d).values()))
 
 
+def plan_ecostress(r: Run) -> None:
+    """ECOSTRESS's passes, once for both products: the water's surface
+    temperature (overlays.toml [satellite_temperature]), kept as tiles, and
+    the land's along the rivers and at their weather zones' airports
+    (region.toml [river_temperature.land]), as means over places."""
+    if not r.gauges_too:
+        return
+    sat = r.overlays.get("satellite_temperature")
+    places = land.places(r.region_dir)
+    if not (sat or places):
+        return
+    keep = sat.get("days", 14) * DAY if sat else 0
+    lkeep = int(land.load(r.region_dir)[0].get("days", 14)) * DAY if places else 0
+    ask = LandAsk(r.store, places, land.box(places), int(r.now - lkeep)) if places else None
+    adapter = EcostressAdapter(r.beside_store / (sat["cache"] if sat else "ecostress"))
+    r.attempt("ecostress", lambda: adapter.fetch(tuple(sat["box"]) if sat else None, int(r.now - keep), int(r.now), max(keep, lkeep), land=ask))
+
+
 def plan_land(r: Run) -> None:
-    """The land: its surface temperature along the rivers and at their weather
-    zones' airports, from orbit (region.toml [river_temperature.land]); how wet
-    it is where rain runs off (region.toml [soil_moisture], NASA SMAP), the rain
+    """The land: how wet it is where rain runs off (region.toml [soil_moisture], NASA SMAP), the rain
     and snowmelt reaching it, and the water it gives back to the air (OpenET,
     where the region asks); and where the water is, from radar passes
     (overlays.toml [water_extent])."""
     if not r.gauges_too:
         return
-    places = land.places(r.region_dir)
-    if places:
-        lkeep = int(land.load(r.region_dir)[0].get("days", 14)) * DAY
-        r.attempt("ecostress land", lambda: fetch_land(EcostressAdapter(r.beside_store / "ecostress"), r.store, places,
-                                                       land.box(places), int(r.now - lkeep), int(r.now)))
     areas = soil.areas(r.region_dir)
     if areas:
         since = int(r.now - LAND_DAYS * DAY)
@@ -673,6 +679,7 @@ def main(argv: list[str] | None = None) -> int:
     plan_stations(r)
     plan_swot(r)
     plan_map_stations(r)
+    plan_ecostress(r)
     plan_land(r)
     plan_ocean(r)
     plan_reports(r)
