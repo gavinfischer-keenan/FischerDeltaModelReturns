@@ -194,6 +194,31 @@ This net flow is driven by the tides, through the tract's openings, with no rive
 
 **What we do about it.** We set no asymmetry at the tract's openings ourselves. That would be tuning one place until the gauges agree. It stays a recorded misfit, with its cause known, unless a published source for the openings' flood and ebb behaviour turns up. DWR's own historical runs should be checked for the same reversal next.
 
+### A trial: the flooded islands' openings passing water unequally (28 Nov 2026)
+
+**Why the circulation can't form.** DSM2 takes the flow through each opening of a reservoir as Q = C √(2g Δh), with C = COEF_IN for flow into it and COEF_OUT for flow out (hydrolib/reservoirs.f90). With them equal, the flood and the ebb pass each opening alike, and tidal pumping cannot happen. DWR's own 2012 calibration report lists "Franks Tract area representation / improve flow around Franks Tract" among its remaining issues (Liu and Sandhu 2012, DWR-1403, slide 27, ref:liu2012dsm2).
+
+**What was tried.** DWR already sets one flooded island's openings unequal: Liberty Island, in 7500, out 5625. The trial gave every flooded-island reservoir DWR left equal (Franks Tract, Little Franks Tract, Mildred Island) that same ratio, COEF_OUT = 0.75 COEF_IN.
+- Nothing was fitted to the gauges.
+- The prediction, written down before the runs: water should come in through False River and leave along Old River.
+- All four experiments were rerun (`--reservoir-out-ratio`; the run's own copy of DWR's grid file).
+
+**What it did:**
+
+| Net flow, m³/s, judged period | Measured | As built | Unequal openings |
+|---|---|---|---|
+| False River, 2021, barrier in | −51 | +52 | +40 |
+| False River, 2015, barrier in | −48 | +47 | +37 |
+| Old River at the San Joaquin, 2021, no barrier | −5 | −88 | −77 |
+| Holland Cut, 2021, barrier in | +5 | −13 | −15 |
+| Old River at Quimby Island, 2021, barrier in | +2 | −33 | −34 |
+
+- **The direction was right, the size far too small.** False River moved about 10 m³/s the measured way in both years, against a gap of about 100. The circulation did not reverse.
+- **Salinity.** The stations moved by a few per cent at most. Across all four experiments' station fits: 15 better, 11 worse, 88 within 5%. The Suisun Marsh years did not change.
+- **Verdict.** Not adopted: the live model keeps DWR's coefficients. Liberty's ratio is one island's calibration, and a stronger one chosen here would be fitted to these gauges.
+
+**Where it goes next.** Each opening's own in/out losses, from its measured shape and which way it faces the flow, with real currents in the flooded islands. That is #115, the flooded-island element. #41 and #42 stay open.
+
 ## What this says about the model
 
 **What these experiments test:**

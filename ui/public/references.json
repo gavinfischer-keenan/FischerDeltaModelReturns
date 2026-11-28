@@ -525,7 +525,7 @@
    "used": [
     {
      "file": "crates/fdmr-compute/src/network.rs",
-     "line": 636,
+     "line": 715,
      "text": "(Chapra 1997, ref:chapra1997); that share's parcels settle and are"
     },
     {
@@ -1233,6 +1233,24 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 56,
      "text": "\"Leopold and Maddock 1953, USGS Professional Paper 252 (hydraulic geometry; ref:leopold1953); the hinge's \""
+    }
+   ]
+  },
+  {
+   "key": "liu2012dsm2",
+   "authors": "Liu, L. and Sandhu, N.",
+   "year": 2012,
+   "title": "DSM2 Version 8.1 Calibration Status Update",
+   "kind": "report",
+   "in": "California Department of Water Resources, Delta Modeling Section; DSM2 Users Group meeting, 1 November 2012 (State Water Board exhibit DWR-1403)",
+   "url": "https://waterboards.ca.gov/waterrights/water_issues/programs/bay_delta/california_waterfix/exhibits/docs/petitioners_exhibit/dwr/part2_rebuttal/DWR-1403.pdf",
+   "checked": "Read 28 Nov 2026: slide 27, Issues Remaining",
+   "citation": "Liu, L. and Sandhu, N. (2012). DSM2 Version 8.1 Calibration Status Update. California Department of Water Resources, Delta Modeling Section; DSM2 Users Group meeting, 1 November 2012 (State Water Board exhibit DWR-1403). https://waterboards.ca.gov/waterrights/water_issues/programs/bay_delta/california_waterfix/exhibits/docs/petitioners_exhibit/dwr/part2_rebuttal/DWR-1403.pdf",
+   "used": [
+    {
+     "file": "tools/validation/experiments/results.md",
+     "line": 199,
+     "text": "Why the circulation can't form.** DSM2 takes the flow through each opening of a reservoir as Q = C √(2g Δh), with C = COEF_IN for flow into it and COEF_OUT for flow out (hydrolib/reservoirs.f90). With"
     }
    ]
   },

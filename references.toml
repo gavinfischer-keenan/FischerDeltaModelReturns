@@ -249,6 +249,15 @@ in = "U.S. Environmental Protection Agency and U.S. Geological Survey (the flowl
 url = "https://www.epa.gov/system/files/documents/2023-04/NHDPlusV2_User_Guide.pdf"
 checked = "EPA's user guide gives this citation; the USGS data catalogue uses the same, 28 Nov 2026. Slopes read by the model runner from the USGS water data GeoServer (wmadata:nhdflowline_network), 28 Nov 2026"
 
+[liu2012dsm2]
+authors = "Liu, L. and Sandhu, N."
+year = 2012
+title = "DSM2 Version 8.1 Calibration Status Update"
+kind = "report"
+in = "California Department of Water Resources, Delta Modeling Section; DSM2 Users Group meeting, 1 November 2012 (State Water Board exhibit DWR-1403)"
+url = "https://waterboards.ca.gov/waterrights/water_issues/programs/bay_delta/california_waterfix/exhibits/docs/petitioners_exhibit/dwr/part2_rebuttal/DWR-1403.pdf"
+checked = "Read 28 Nov 2026: slide 27, Issues Remaining"
+
 [usgs3dep]
 authors = "U.S. Geological Survey"
 year = 2026

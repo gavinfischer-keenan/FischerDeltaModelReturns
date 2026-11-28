@@ -607,6 +607,16 @@ Used in:
 - `crates/fdmr-math/src/geometry.rs:5`: at-a-station hydraulic geometry of Leopold and Maddock (ref:leopold1953).
 - `python/fdmr_plugins/registry.py:56`: "Leopold and Maddock 1953, USGS Professional Paper 252 (hydraulic geometry; ref:leopold1953); the hinge's "
 
+## liu2012dsm2
+
+Liu, L. and Sandhu, N. (2012). DSM2 Version 8.1 Calibration Status Update. California Department of Water Resources, Delta Modeling Section; DSM2 Users Group meeting, 1 November 2012 (State Water Board exhibit DWR-1403). https://waterboards.ca.gov/waterrights/water_issues/programs/bay_delta/california_waterfix/exhibits/docs/petitioners_exhibit/dwr/part2_rebuttal/DWR-1403.pdf
+
+Checked: Read 28 Nov 2026: slide 27, Issues Remaining
+
+Used in:
+
+- `tools/validation/experiments/results.md:199`: Why the circulation can't form.** DSM2 takes the flow through each opening of a reservoir as Q = C √(2g Δh), with C = COEF_IN for flow into it and COEF_OUT for flow out (hydrolib/reservoirs.f90). With
+
 ## mcconnell2023
 
 McConnell, C. (2023). Modeling riparian geomorphology and vegetation on a regulated river to assess change, prioritize ecological restoration areas, and inform restoration design. PhD dissertation, University of California, Davis. https://escholarship.org/uc/item/29g03887
