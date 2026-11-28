@@ -9,7 +9,9 @@ Every adapter asks through here (#65), so there is one policy for all of them:
 - **The waits:** a back-off doubling from `backoff_s`; on a 429, the
   server's Retry-After (seconds or a date), within `max_wait_s`. All the
   waits for one address together stay within `max_wait_s` (#90), and there
-  is no wait after the last try.
+  is no wait after the last try. A server that does not answer at all
+  (a timeout) is tried once more, not until the retries run out: each try
+  costs a whole timeout (four took 20 minutes of a Delta cycle, 28 Nov 2026).
 - **What is sent:** the User-Agent below and nothing more. A token
   (`bearer`) goes only to the host asked, never on through a redirect.
 
@@ -32,6 +34,7 @@ RETRIED = (429, 500, 502, 503, 504)  # answers worth asking again
 RETRIES = 3  # tries after the first (FDMR's choice)
 BACKOFF_S = 5.0  # first wait before a retry, doubling each time (FDMR's choice)
 MAX_WAIT_S = 120.0  # all the waits for one address, together, at most this (FDMR's choice: a cycle is hourly, #90)
+MAX_TIMEOUTS = 1  # after a timeout one more try, then give up: a server that does not answer costs a whole timeout each try (FDMR's choice)
 
 
 def _retry_after(e: urllib.error.HTTPError) -> float | None:
@@ -48,6 +51,11 @@ def _retry_after(e: urllib.error.HTTPError) -> float | None:
         return None
 
 
+def _timed_out(e: Exception) -> bool:
+    """Whether a failure was the server not answering in time."""
+    return isinstance(e, TimeoutError) or isinstance(getattr(e, "reason", None), TimeoutError) or "timed out" in str(e)
+
+
 def request(url: str, *, method: str = "GET", data: bytes | None = None, headers: dict[str, str] | None = None,
             accept: str | None = None, bearer: str | None = None, byte_range: tuple[int, int] | None = None,
             timeout: float = 60.0, retries: int = RETRIES, backoff_s: float = BACKOFF_S,
@@ -58,7 +66,7 @@ def request(url: str, *, method: str = "GET", data: bytes | None = None, headers
         h["Accept"] = accept
     if byte_range:
         h["Range"] = f"bytes={byte_range[0]}-{byte_range[1] - 1}"
-    waited, last = 0.0, None
+    waited, last, timeouts = 0.0, None, 0
     for attempt in range(retries + 1):
         wait = backoff_s * 2**attempt
         try:
@@ -76,7 +84,9 @@ def request(url: str, *, method: str = "GET", data: bytes | None = None, headers
                 wait = ra if ra is not None else wait * 4
         except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException, OSError) as e:
             last = e  # a connection that failed, or dropped while the reply was read
-        if attempt == retries:
+            if _timed_out(e):
+                timeouts += 1
+        if attempt == retries or timeouts > MAX_TIMEOUTS:
             break
         wait = min(wait, max_wait_s - waited)
         if wait <= 0:

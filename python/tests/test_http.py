@@ -109,3 +109,12 @@ def test_usgs_key_comes_from_the_environment(monkeypatch, tmp_path):
     (tmp_path / "key").write_text("fromfile" + chr(10))
     monkeypatch.setattr(usgs, "API_KEY_FILE", tmp_path / "key")
     assert usgs.api_key() == "fromfile"
+
+
+def test_a_server_that_does_not_answer_is_tried_once_more_then_given_up(monkeypatch):
+    """Each try costs a whole timeout; four cost a Delta cycle 20 minutes."""
+    seen, waits = [], []
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen([urllib.error.URLError(TimeoutError("timed out"))] * 5, seen))
+    with pytest.raises(RuntimeError):
+        HttpJsonClient(sleep=waits.append).get_json("https://example.test")
+    assert len(seen) == 2 and len(waits) == 1

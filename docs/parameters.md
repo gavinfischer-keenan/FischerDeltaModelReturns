@@ -416,10 +416,11 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_adapters/ecostress.py:54](../python/fdmr_adapters/ecostress.py#L54) | `PER_RUN` | `12` | new tiles downloaded per fetch at most, newest first, so a backlog never holds up a cycle |
 | [python/fdmr_adapters/ecostress.py:55](../python/fdmr_adapters/ecostress.py#L55) | `KELVIN` | `273.15` |  |
 | [python/fdmr_adapters/ecostress.py:152](../python/fdmr_adapters/ecostress.py#L152) | `RETRY_WAITS_S` | `(5, 20)` | waits before each retry of a download the server failed |
-| [python/fdmr_adapters/http.py:31](../python/fdmr_adapters/http.py#L31) | `RETRIED` | `(429, 500, 502, 503, 504)` | answers worth asking again |
-| [python/fdmr_adapters/http.py:32](../python/fdmr_adapters/http.py#L32) | `RETRIES` | `3` | tries after the first (FDMR's choice) |
-| [python/fdmr_adapters/http.py:33](../python/fdmr_adapters/http.py#L33) | `BACKOFF_S` | `5.0` | first wait before a retry, doubling each time (FDMR's choice) |
-| [python/fdmr_adapters/http.py:34](../python/fdmr_adapters/http.py#L34) | `MAX_WAIT_S` | `120.0` | all the waits for one address, together, at most this (FDMR's choice: a cycle is hourly, #90) |
+| [python/fdmr_adapters/http.py:33](../python/fdmr_adapters/http.py#L33) | `RETRIED` | `(429, 500, 502, 503, 504)` | answers worth asking again |
+| [python/fdmr_adapters/http.py:34](../python/fdmr_adapters/http.py#L34) | `RETRIES` | `3` | tries after the first (FDMR's choice) |
+| [python/fdmr_adapters/http.py:35](../python/fdmr_adapters/http.py#L35) | `BACKOFF_S` | `5.0` | first wait before a retry, doubling each time (FDMR's choice) |
+| [python/fdmr_adapters/http.py:36](../python/fdmr_adapters/http.py#L36) | `MAX_WAIT_S` | `120.0` | all the waits for one address, together, at most this (FDMR's choice: a cycle is hourly, #90) |
+| [python/fdmr_adapters/http.py:37](../python/fdmr_adapters/http.py#L37) | `MAX_TIMEOUTS` | `1` | after a timeout one more try, then give up: a server that does not answer costs a whole timeout each try (FDMR's choice) |
 | [python/fdmr_adapters/noaa_ofs.py:31](../python/fdmr_adapters/noaa_ofs.py#L31) | `HOUR` | `3600` | unit: seconds in an hour |
 | [python/fdmr_adapters/noaa_tides.py:33](../python/fdmr_adapters/noaa_tides.py#L33) | `CHUNK_DAYS` | `30` | the API serves 15-minute predictions, and 6-minute readings, a month at a time |
 | [python/fdmr_adapters/nws_precip.py:27](../python/fdmr_adapters/nws_precip.py#L27) | `INCH_MM` | `25.4` |  |
