@@ -18,7 +18,7 @@ def test_overlay_fetch_asks_cdec_only_for_its_own_sensors():
     from fdmr_adapters import cdec
     from fdmr_runner import overlays
 
-    groups = overlays.fetch_groups({"stations": [{"site": "ABC"}, {"site": "SCQC1", "source": "ndbc"}]})
+    groups = overlays.fetch_groups({"default_source": "cdec", "stations": [{"site": "ABC"}, {"site": "SCQC1", "source": "ndbc"}]})
     assert groups and all(p in cdec.SENSORS for _, _, ps in groups for p in ps)
     assert all("SCQC1" not in sites for _, sites, _ in groups)
 

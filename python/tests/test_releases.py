@@ -40,7 +40,7 @@ def test_flood_rule_raises_the_release_once_the_top_is_reached():
     i_now = 4
     # 100 m3/s in, 20 out: 80 m3/s fills 1.0e6 m3 of space in about 3.5 hours.
     setup(store, now, storage=9.0e6, toc=10.0e6, release=20.0, inflow_m3s=100.0)
-    rule = {"reservoir": "R", "report": "R", "inflow": {"group": "g", "point": "IN"}}
+    rule = {"reservoir_source": "cdec", "flood_pool_source": "usace-spk", "reservoir": "R", "report": "R", "inflow": {"group": "g", "point": "IN"}}
     out, rec = releases.rule_forecast(store, rule, 25.0, t0, STEP, n, i_now, now)
     assert "reaches_top_at" in rec and rec["flood_space_m3"] == 1_000_000
     assert out[i_now] == 25.0 and out[-1] == pytest.approx(105.0)  # the gauge's 25 plus the dam's rise from 20 to 100
@@ -51,7 +51,7 @@ def test_flood_rule_holds_while_there_is_room():
     t0, n = 0, 4 * 48
     now = t0 + 4 * STEP
     setup(store, now, storage=1.0e6, toc=100.0e6, release=20.0, inflow_m3s=30.0)
-    rule = {"reservoir": "R", "report": "R", "inflow": {"group": "g", "point": "IN"}}
+    rule = {"reservoir_source": "cdec", "flood_pool_source": "usace-spk", "reservoir": "R", "report": "R", "inflow": {"group": "g", "point": "IN"}}
     out, rec = releases.rule_forecast(store, rule, 25.0, t0, STEP, n, 4, now)
     assert "reaches_top_at" not in rec and set(x for x in out[4:] if x is not None) == {25.0}
 
@@ -66,5 +66,5 @@ def test_release_forecast_upstream_moves_the_gauge():
 
 
 def test_missing_inputs_hold_the_release_and_say_why():
-    out, rec = releases.rule_forecast(Store(), {"reservoir": "R", "report": "R", "inflow": {"group": "g", "point": "IN"}}, 25.0, 0, STEP, 10, 2, 2 * STEP)
+    out, rec = releases.rule_forecast(Store(), {"reservoir_source": "cdec", "flood_pool_source": "usace-spk", "reservoir": "R", "report": "R", "inflow": {"group": "g", "point": "IN"}}, 25.0, 0, STEP, 10, 2, 2 * STEP)
     assert out is None and rec["how"].startswith("held: no top of conservation")

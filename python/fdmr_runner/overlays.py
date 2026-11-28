@@ -65,6 +65,15 @@ GATE_DAYS = 3  # a gate's state is read from its flow over the last this many da
 DAILY_AGE_DAYS = 3  # a daily value is posted the day after: one this many days old still counts as latest (FDMR's choice)
 
 
+def station_source(cfg: dict, st: dict) -> str:
+    """A station's source: its own, or overlays.toml's `default_source` (#66:
+    no source is assumed in the engine)."""
+    s = st.get("source") or (cfg or {}).get("default_source")
+    if not s:
+        raise ValueError(f"station {st.get('site')}: no source, and overlays.toml gives no default_source")
+    return s
+
+
 def load(region_dir: Path) -> dict | None:
     p = region_dir / "overlays.toml"
     return tomllib.loads(p.read_text(encoding="utf-8")) if p.exists() else None
@@ -219,11 +228,11 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
             if d <= MODEL_NEAR_KM and (near is None or d < near[2]):
                 near = (lk, c, d)
         for p, field in SHOWN.items():
-            vs = [v for v in store.values(st.get("source", "cdec"), st["site"], p, now - LATEST_S, now + 1) if v.value is not None]
+            vs = [v for v in store.values(station_source(cfg, st), st["site"], p, now - LATEST_S, now + 1) if v.value is not None]
             if not vs:
                 continue
             v = vs[-1]
-            units[p] = store.unit(st.get("source", "cdec"), st["site"], p) or ""
+            units[p] = store.unit(station_source(cfg, st), st["site"], p) or ""
             r = {"v": round(v.value, 3), "t": v.t}
             if field and near:
                 m = near[0].at(field, near[1], v.t)
@@ -235,7 +244,7 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
             if not (field and near):
                 continue
             pairs = []
-            for v in store.values(st.get("source", "cdec"), st["site"], p, now - CHECK_DAYS * 86_400, now + 1):
+            for v in store.values(station_source(cfg, st), st["site"], p, now - CHECK_DAYS * 86_400, now + 1):
                 m = near[0].at(field, near[1], v.t) if v.value is not None else None
                 if m is not None:
                     pairs.append(v.value - m)
@@ -244,7 +253,7 @@ def stations(cfg: dict, cdir: Path, index: dict, store: Store, now: int, lookups
                 checks[p] = {"readings": len(d), "mean_misfit": round(float(d.mean()), 3),
                              "rms_misfit": round(float(np.sqrt((d ** 2).mean())), 3)}
         out.append({"site": st["site"], "name": st["name"], "lon": st["lon"], "lat": st["lat"],
-                    "source": st.get("source", "cdec"), "readings": readings,
+                    "source": station_source(cfg, st), "readings": readings,
                     **({"model_reach": near[0].reach, "model_km": round(near[2], 2)} if near else {}),
                     **({"checks": checks} if checks else {})})
     return out, units
@@ -327,7 +336,7 @@ def satellite_temperature(cfg: dict, cache: Path, lookups: list[NetworkValues], 
     reading_s = sc.get("reading_s", 1800)
     per_station: dict[str, list[float]] = {}
     for st in cfg.get("stations", []):
-        src = st.get("source", "cdec")
+        src = station_source(cfg, st)
         for tl in tiles:
             vs = [v for v in store.values(src, st["site"], "water_temperature", tl.t - reading_s, tl.t + reading_s) if v.value is not None]
             if not vs:
@@ -396,7 +405,7 @@ def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict]
     model never disagree; without it, no state is claimed."""
     out = []
     for s in cfg.get("structures", []):
-        src = s.get("source", cdec.SOURCE)
+        src = station_source(cfg, s)
         # A daily value is posted the day after; allow it three days.
         max_age = LATEST_S if s.get("duration", "H") != "D" else DAILY_AGE_DAYS * 86_400
         readings = {}
@@ -597,10 +606,10 @@ def fetch_groups(cfg: dict) -> list[tuple[str, list[str], list[str]]]:
     one request each, stations and structures alike."""
     groups: dict[tuple[str, tuple[str, ...]], list[str]] = {}
     for s in cfg.get("stations", []):
-        if s.get("source", cdec.SOURCE) == cdec.SOURCE:
+        if station_source(cfg, s) == cdec.SOURCE:
             groups.setdefault((s.get("duration", "H"), tuple(p for p in SHOWN if p in cdec.SENSORS)), []).append(s["site"])
     for s in cfg.get("structures", []):
-        if s.get("source", cdec.SOURCE) == cdec.SOURCE:
+        if station_source(cfg, s) == cdec.SOURCE:
             daily = set(s.get("daily", []))  # series this one reports daily only
             for dur, ps in ((s.get("duration", "H"), tuple(p for p in s.get("show", []) if p not in daily)),
                             ("D", tuple(p for p in s.get("show", []) if p in daily))):

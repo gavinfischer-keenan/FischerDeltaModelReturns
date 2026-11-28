@@ -13,6 +13,8 @@
 id = "test-colorado"
 name = "Colorado River, Glen Canyon Dam to Grand Canyon"
 timezone = "America/Phoenix"
+# Every gauge's source unless it names its own (fdmr_adapters.usgs): no source is assumed in the engine (#66).
+gauge_source = "usgs"
 
 [[reaches]]
 id = "river"

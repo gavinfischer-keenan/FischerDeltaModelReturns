@@ -108,3 +108,9 @@ kind = "ts"
 path = "ui/src/ui"
 engine = true
 may_use = ["compute_interface", "text"]
+
+# Data sources are named only through their adapters (fdmr_adapters.<name>.SOURCE)
+# or the region's own config, never as a literal in engine code (#66). The
+# fetch dispatcher maps each configured source to its adapter, so it may.
+[source_names]
+allowed = ["python/fdmr_runner/fetch.py"]

@@ -5,6 +5,8 @@
 id = "sf-bay-delta"
 name = "San Francisco Bay-Delta, Shasta Dam to the Golden Gate"
 timezone = "America/Los_Angeles"
+# Every gauge's source unless it names its own (fdmr_adapters.usgs): no source is assumed in the engine (#66).
+gauge_source = "usgs"
 
 [[reaches]]
 id = "river"
@@ -312,7 +314,7 @@ reach = "river"
 site = "11370500"
 name = "Sacramento R at Keswick"
 role = "release"
-release_rule = { reservoir = "SHA", report = "Shasta", inflow = { group = "UpperSacramento", point = "SHDC1" } }
+release_rule = { reservoir_source = "cdec", flood_pool_source = "usace-spk", reservoir = "SHA", report = "Shasta", inflow = { group = "UpperSacramento", point = "SHDC1" } }
 
 [[gauges]]
 reach = "river"
@@ -416,7 +418,7 @@ reach = "american"
 site = "11446500"
 name = "American R at Fair Oaks (Nimbus Dam's release)"
 role = "release"
-release_rule = { reservoir = "FOL", report = "Folsom", inflow = { group = "american", point = "FOLC1" } }
+release_rule = { reservoir_source = "cdec", flood_pool_source = "usace-spk", reservoir = "FOL", report = "Folsom", inflow = { group = "american", point = "FOLC1" } }
 
 [[gauges]]
 reach = "feather"
@@ -428,7 +430,7 @@ parameter = "regulated_release"
 duration = "H"
 lon = -121.633
 lat = 39.450
-release_rule = { reservoir = "ORO", report = "Oroville", inflow = { group = "FeatherYuba", point = "ORDC1" } }
+release_rule = { reservoir_source = "cdec", flood_pool_source = "usace-spk", reservoir = "ORO", report = "Oroville", inflow = { group = "FeatherYuba", point = "ORDC1" } }
 
 [[gauges]]
 reach = "feather"
@@ -521,7 +523,7 @@ source = "cdec"
 parameter = "reservoir_outflow"
 duration = "H"
 usgs_site = "11308900"
-release_rule = { reservoir = "NHG", report = "New Hogan", inflow = { group = "N_SanJoaquin", point = "NHGC1" } }
+release_rule = { reservoir_source = "cdec", flood_pool_source = "usace-spk", reservoir = "NHG", report = "New Hogan", inflow = { group = "N_SanJoaquin", point = "NHGC1" } }
 
 [[gauges]]
 reach = "san_joaquin"

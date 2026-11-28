@@ -80,7 +80,7 @@ def test_check_scores_satellite_against_stations_and_models(tmp_path):
     lon, lat = lonlat_of(tile, 4, 4)
     store = Store()
     store.put_values("cdec", "AAA", "water_temperature", "degC", [Value(t - 600, 14.5, None), Value(t + 3600, 9.0, None)])
-    cfg = {"satellite_temperature": {"days": 14}, "stations": [{"site": "AAA", "lon": lon, "lat": lat}]}
+    cfg = {"default_source": "cdec", "satellite_temperature": {"days": 14}, "stations": [{"site": "AAA", "lon": lon, "lat": lat}]}
     got = ecostress_check = __import__("fdmr_runner.overlays", fromlist=["x"]).satellite_temperature(
         cfg, tmp_path, [Lookup([[[lon, lat]], [[-100.0, 10.0]]], 14.0)], store, t + 60, tiles=[tile])
     assert got["passes"] == 1

@@ -34,6 +34,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
 
+from fdmr_adapters import cnrfc, ndbc, noaa_tides
 from fdmr_adapters.noaa_tides import PARAMETER as TIDE
 from fdmr_plugins.dsm2 import dss, study
 from fdmr_plugins.river_routing.calibration import running_mean
@@ -118,8 +119,8 @@ def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forec
     i_now = known[-1]
     fc = f.get("forecast")
     how = "held"
-    if fc and fc["source"] == "noaa-tides":
-        pv = store.values("noaa-tides", fc["station"], TIDE, t0 - DAY, t0 + (n + 1) * STEP)
+    if fc and fc["source"] == noaa_tides.SOURCE:
+        pv = store.values(noaa_tides.SOURCE, fc["station"], TIDE, t0 - DAY, t0 + (n + 1) * STEP)
         pred = on_grid([(v.t, v.value) for v in pv], t0, STEP, n)
         week = max(0, i_now - 7 * 96)
         fit = fit_tide(g[week : i_now + 1], pred[week : i_now + 1], STEP)
@@ -129,7 +130,7 @@ def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forec
         tide = [None if v is None else scale * v + offset for v in shifted(pred, shift)]
         g, _ = extend(g, tide, i_now, n, BLEND)
         how = f"tide {fc['station']}: {shift * STEP / 60:+.0f} min, x{scale:.3f}, {offset:+.3f} m"
-    elif fc and fc["source"] == "cnrfc" and use_river_forecasts:
+    elif fc and fc["source"] == cnrfc.SOURCE and use_river_forecasts:
         # Live, the latest; a hindcast, the issue in force then if kept: the rivers' rule (#74).
         from .forecast import cnrfc_forecast
 
@@ -188,7 +189,7 @@ def weather(store: Store, tcfg: dict, t0: int, n: int, now: int, use_forecast: b
         per = []
         for s in tcfg["stations"]:
             pts = {}
-            for src, key in ((nw.GHCNH, "ghcnh"), (nw.NWS, "nws"), ("ndbc", "ndbc")):  # an NDBC weather station too
+            for src, key in ((nw.GHCNH, "ghcnh"), (nw.NWS, "nws"), (ndbc.SOURCE, ndbc.SOURCE)):  # an NDBC weather station too
                 if key in s:
                     pts.update({v.t: v.value for v in store.values(src, s[key], p, t0 - DAY, now + 1) if v.value is not None})
             per.append(on_grid(sorted(pts.items()), t0, STEP, i_cut + 1, max_gap_s=6 * 3600))

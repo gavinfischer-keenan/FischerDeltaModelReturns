@@ -14,6 +14,9 @@
 #   estuarine populations. Ecological Applications 5(1): 272-289. ref:jassby1995
 #   Mueller-Solger, A. 2012. Notes on estimating X2 (draft, IEP), which
 #   records CDEC's CX2 method and these station distances. ref:muellersolger2012
+# Every station's source unless it names its own: no source is assumed in the engine (#66).
+default_source = "cdec"
+
 [[isohalines]]
 id = "x2"
 reach = "delta"

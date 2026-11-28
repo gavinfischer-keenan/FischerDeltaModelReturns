@@ -41,6 +41,9 @@ KEEP_LOGS = 120  # nightly review logs kept: the last 120 nights
 TAIL_LINES = 60  # each step's last lines of output kept in the log: enough for every check's result (FDMR's choice)
 
 
+# Kinds of reach the nightly hindcast does not rerun yet (#66: named by the region, not here).
+NOT_HINDCAST = ("2d-field", "canal-network")
+
 def run(cmd: list[str], log: list[dict], what: str) -> bool:
     t0 = time.time()
     p = subprocess.run(cmd, capture_output=True, text=True)
@@ -89,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         db = ledger.connect(Path(args.store).parent / "ledger" / f"{region.id}.sqlite")
         kept = ledger.record(db, region_dir, cdir, index, store, kind="hindcast")
         hindcast = {"as_of": index["now"], "cycle": index["cycle"], "kept": kept, "reaches": [r["id"] for r in index["reaches"]],
-                    "inputs": index.get("hindcast", {}).get("inputs", ""), "not_hindcast": ["the Bay", "the export canals"]}
+                    "inputs": index.get("hindcast", {}).get("inputs", ""), "not_hindcast": [r.get("name", r["id"]) for r in region.reaches if r.get("kind") in NOT_HINDCAST]}
         db.close()
     store = Store(args.store)
     db = ledger.connect(Path(args.store).parent / "ledger" / f"{region.id}.sqlite")

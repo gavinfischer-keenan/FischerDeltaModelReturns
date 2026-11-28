@@ -23,8 +23,8 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class Gauge:
-    """A flow gauge on a river reach. Most are USGS's; a CDEC station
-    (`source = "cdec"`, with its `parameter` and `duration`) serves where
+    """A flow gauge on a river reach. Most are USGS's; another agency's station
+    (its `source`, with its `parameter` and `duration`) serves where
     USGS has none live, such as a dam's release reported by its operator.
     `usgs_site` names the USGS site at the same place, if any: its position
     on the river and its field measurements (for the channel's shape) are
@@ -35,7 +35,7 @@ class Gauge:
     name: str
     role: str  # "release", "main" or "tributary"
     forecast: dict | None = None  # {source, group, point}
-    source: str = "usgs"
+    source: str = ""  # the region's gauge_source unless it names its own (#66)
     parameter: str = "discharge"
     duration: str | None = None  # CDEC: "E" event, "H" hourly, "D" daily
     usgs_site: str | None = None
@@ -49,7 +49,9 @@ class Gauge:
     @property
     def place_site(self) -> str | None:
         """The USGS site that places this gauge and gives its channel shape."""
-        return self.site if self.source == "usgs" else self.usgs_site
+        from fdmr_adapters import usgs
+
+        return self.site if self.source == usgs.SOURCE else self.usgs_site
 
 
 @dataclass(frozen=True)
@@ -88,10 +90,19 @@ class Region:
         return int(datetime(d.year, d.month, d.day, tzinfo=tz).timestamp())
 
 
-SECTIONS = {"id", "name", "timezone", "reaches", "gauges", "stations", "handoffs", "river_temperature",
+SECTIONS = {"id", "name", "timezone", "gauge_source", "reaches", "gauges", "stations", "handoffs", "river_temperature",
             "river_swot", "soil_moisture", "basemap", "guard"}
 STATION_KEYS = {"source", "site", "name", "quantities", "reach", "lon", "lat", "duration", "forecasts",
                 "depth_cm", "depth_for"}
+
+
+def _gauge_source(d: dict, g: dict) -> str:
+    """A gauge's source: its own, or the region's `gauge_source` (#66: no
+    source is assumed in the engine)."""
+    s = g.get("source") or d.get("gauge_source")
+    if not s:
+        raise ValueError(f"gauge {g.get('site')}: no source, and the region gives no gauge_source")
+    return s
 
 
 def load_region(path: str | Path) -> Region:
@@ -112,7 +123,7 @@ def load_region(path: str | Path) -> Region:
         name=d["name"],
         timezone=d["timezone"],
         reaches=d.get("reaches", []),
-        gauges=[Gauge(**g) for g in d.get("gauges", [])],
+        gauges=[Gauge(**{"source": _gauge_source(d, g), **{k: v for k, v in g.items() if k != "source"}}) for g in d.get("gauges", [])],
         stations=d.get("stations", []),
         handoffs=d.get("handoffs", []),
         river_temperature=d.get("river_temperature", {}),

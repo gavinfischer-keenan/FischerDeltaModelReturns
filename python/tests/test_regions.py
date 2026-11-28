@@ -54,3 +54,24 @@ def test_every_station_is_listed_the_same_way():
     for path in REGIONS:
         for s in load_region(path).stations:
             assert {"source", "site", "name", "quantities"} <= set(s), (path.parent.name, s)
+
+
+def test_no_source_is_assumed_for_a_gauge_or_a_station(tmp_path):
+    """#66: a gauge without a source takes the region's gauge_source, and
+    without one the region is refused; a station likewise overlays.toml's."""
+    import pytest
+
+    from fdmr_runner import overlays
+    from fdmr_runner.region import load_region
+
+    (tmp_path / "region.toml").write_text('id = "x"\nname = "X"\ntimezone = "UTC"\n'
+                                          '[[gauges]]\nreach = "r"\nsite = "1"\nname = "G"\nrole = "main"\n')
+    with pytest.raises(ValueError, match="gauge_source"):
+        load_region(tmp_path)
+    (tmp_path / "region.toml").write_text('id = "x"\nname = "X"\ntimezone = "UTC"\ngauge_source = "usgs"\n'
+                                          '[[gauges]]\nreach = "r"\nsite = "1"\nname = "G"\nrole = "main"\n')
+    assert load_region(tmp_path).gauges[0].source == "usgs"
+    with pytest.raises(ValueError, match="default_source"):
+        overlays.station_source({}, {"site": "S"})
+    assert overlays.station_source({"default_source": "cdec"}, {"site": "S"}) == "cdec"
+    assert overlays.station_source({"default_source": "cdec"}, {"site": "S", "source": "ndbc"}) == "ndbc"

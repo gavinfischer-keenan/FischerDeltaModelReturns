@@ -250,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
         if bridges:  # gaps in the network crossed straight (such as a lock channel beside a weir)
             out["bridged_gaps"] = [{"lon": x, "lat": y, "m": d} for x, y, d in bridges]
         out["river_km_check"] = river_km_check(out, load_region(args.region).gauges_for(args.reach),
-                                               pdok.km_markers(tuple(ln.get("bbox", (3.0, 50.5, 7.5, 53.5)))))
+                                               pdok.km_markers(tuple(ln["bbox"])))
     elif cfg.get("line", {}).get("source") == "nhd":
         # Where NLDI's network does not follow the water (a floodway's low
         # channel): NHD's flowlines by name, joined and walked.

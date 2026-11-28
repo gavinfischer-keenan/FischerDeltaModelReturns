@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import fdmr_geo
+from fdmr_adapters import rws, swot
 import fdmr_py
 from fdmr_adapters import cnrfc
 from fdmr_adapters.usgs import SOURCE, UsgsAdapter
@@ -110,8 +111,8 @@ def storage_field(store: Store, cfg: dict | None, field, t0: int, now: int, n: i
         return None
     measured = regular([(v.t, v.value) for v in vals], t0, STEP, i_now + 1)
     fc = None
-    if cfg["source"] == "rws" and not hindcast:
-        fv = store.values("rws", cfg["site"], "discharge_forecast", now - DAY, now + 30 * DAY)
+    if cfg["source"] == rws.SOURCE and not hindcast:
+        fv = store.values(rws.SOURCE, cfg["site"], "discharge_forecast", now - DAY, now + 30 * DAY)
         fc = forecast.on_grid([(v.t, v.value) for v in fv if v.t > now - 3 * 3600], t0, STEP, n) if fv else None
     q, _ = forecast.extend(measured, fc, i_now, n, BLEND_S // STEP)
     assumed.append({"input": f"{cfg['source']} {cfg['site']} discharge (groyne fields)",
@@ -136,8 +137,8 @@ def segment_slopes(gauges, chainage, store, datums, t0, now, bed_slope: float | 
     gauge, or the water level itself where an agency reports it against the
     region's datum (Rijkswaterstaat's, in m NAP)."""
     def surface(g):
-        if g.source == "rws":
-            wl = [v.value for v in store.values("rws", g.site, "water_level", t0, now + STEP) if v.value is not None]
+        if g.source == rws.SOURCE:
+            wl = [v.value for v in store.values(rws.SOURCE, g.site, "water_level", t0, now + STEP) if v.value is not None]
             return sorted(wl)[len(wl) // 2] if wl else None
         d = datums.get(g.site)
         if d is None:
@@ -233,9 +234,9 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         if g.forecast and g.forecast.get("source") == cnrfc.SOURCE:
             # Live, the latest; a hindcast, the issue in force then if kept (forecast.cnrfc_forecast, #74).
             fc = forecast.cnrfc_forecast(store, g.forecast, t0, STEP, n, now, end, hindcast)
-        elif g.forecast and g.forecast.get("source") == "rws" and not hindcast:
+        elif g.forecast and g.forecast.get("source") == rws.SOURCE and not hindcast:
             # Rijkswaterstaat's own forecast at the gauge (fdmr_adapters.rws), as fetched.
-            fv = store.values("rws", g.site, "discharge_forecast", now - DAY, end + DAY)
+            fv = store.values(rws.SOURCE, g.site, "discharge_forecast", now - DAY, end + DAY)
             fc = forecast.on_grid([(v.t, v.value) for v in fv if v.t > now - 3 * 3600], t0, STEP, n) if fv else None
         rule_rec = None
         if fc is None and g.role == "release" and g.release_rule and not hindcast:
@@ -258,7 +259,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
             how = "held at its last value" + (" (the reach's top: no forecast or release schedule is published for it)" if g.role == "release" and not g.channel
                                               else " (no forecast is published for this gauge)" if g.channel else "")
         else:
-            who = "Rijkswaterstaat's forecast" if g.forecast.get("source") == "rws" else f"River Forecast Center {g.forecast['point']}"
+            who = "Rijkswaterstaat's forecast" if g.forecast.get("source") == rws.SOURCE else f"River Forecast Center {g.forecast['point']}"
             how = (f"{who}, joined over a day" +
                    (f", to {utc(t0 + fc_end * STEP)}, then held" if fc_end is not None else ", which covers nothing ahead: held"))
         assumed.append({"input": f"{g.source} {g.site} {g.parameter} ({g.role})", "how": how, "last_reading": last_t})
@@ -476,7 +477,7 @@ def swot_checks(region_dir: Path, store: Store, reach: str, line: Centreline, el
     mids = np.array([e.mid for e in els])
     rows = []
     for r in rs["reaches"]:
-        vs = [v.value for v in store.values("swot", r["id"], "width", now - 60 * 86_400, now + 1) if v.value is not None]
+        vs = [v.value for v in store.values(swot.SOURCE, r["id"], "width", now - 60 * 86_400, now + 1) if v.value is not None]
         if len(vs) < 2:
             continue
         x, off = on_centreline(line, r["lon"], r["lat"])

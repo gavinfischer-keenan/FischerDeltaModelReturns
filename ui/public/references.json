@@ -29,7 +29,7 @@
     },
     {
      "file": "python/fdmr_runner/delta.py",
-     "line": 168,
+     "line": 169,
      "text": "how += f\"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)\""
     },
     {
@@ -240,17 +240,17 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 40,
+     "line": 44,
      "text": "1974, ref:dwr1974b200v2, p. 117 and Table 7). Middle values taken."
     },
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 48,
+     "line": 52,
      "text": "(Bulletin 200, Vol. II, p. 132, ref:dwr1974b200v2). Twelve radial-gate checks keep each pool"
     },
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 136,
+     "line": 140,
      "text": "cylinder pipe\" (DWR Bulletin 200, Vol. II, p. 24, ref:dwr1974b200v2)."
     }
    ]
@@ -269,12 +269,12 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 35,
+     "line": 39,
      "text": "DWR Bulletin 132-16 (2017, ref:dwr2017b132), Table 1-5: 66.7 miles (107.3 km) from Clifton"
     },
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 127,
+     "line": 131,
      "text": "27.6 miles of pipeline (DWR Bulletin 132-16, Table 1-5, ref:dwr2017b132); the line built is 44.4 km."
     }
    ]
@@ -292,7 +292,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 50,
+     "line": 54,
      "text": "Subsidence Study, 2017, p. 5-4, ref:dwr2017cass), so speed is flow over this section: 4 ft/s"
     }
    ]
@@ -498,7 +498,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 96,
+     "line": 100,
      "text": "Feasibility Studies, 2014, p. ES-1, ref:ccwd2014); Pumping Plant No. 1 stands at milepost"
     }
    ]
@@ -534,7 +534,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 105,
+     "line": 109,
      "text": "ref:cvrwqcb_r5_2022_0006_009). The stretch"
     }
    ]
@@ -696,7 +696,7 @@
     },
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 76,
+     "line": 80,
      "text": "1959, Open-Channel Hydraulics, Table 5-6, ref:chow1959), and the canal's grade of 3 inches"
     }
    ]
@@ -1018,7 +1018,7 @@
     },
     {
      "file": "python/fdmr_runner/delta.py",
-     "line": 365,
+     "line": 366,
      "text": "Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily"
     },
     {
@@ -1170,7 +1170,7 @@
     },
     {
      "file": "python/fdmr_runner/overlays.py",
-     "line": 120,
+     "line": 129,
      "text": "X2 as Jassby et al. 1995 define it (ref:jassby1995).\"\"\""
     },
     {
@@ -1469,7 +1469,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 660,
+     "line": 662,
      "text": "Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):"
     }
    ]
@@ -1520,77 +1520,77 @@
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 11,
+     "line": 13,
      "text": "bed_slope = 3.56e-4   # NHDPlus V2 slope, length-weighted over 257 flowlines, 411.5 km down from COMID 2495224 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 40,
+     "line": 42,
      "text": "bed_slope = 7.70e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 36.5 km down from COMID 948021150 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 50,
+     "line": 52,
      "text": "bed_slope = 2.66e-4   # NHDPlus V2 slope, length-weighted over 98 flowlines, 95.3 km down from COMID 7972411 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 62,
+     "line": 64,
      "text": "bed_slope = 1.97e-3   # NHDPlus V2 slope, length-weighted over 112 flowlines, 37.7 km down from COMID 8062589 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give "
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 70,
+     "line": 72,
      "text": "bed_slope = 9.29e-4   # NHDPlus V2 slope, length-weighted over 10 flowlines, 19.3 km down from COMID 948020363 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 78,
+     "line": 80,
      "text": "bed_slope = 5.04e-4   # NHDPlus V2 slope, length-weighted over 16 flowlines, 61.7 km down from COMID 3953347 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 86,
+     "line": 88,
      "text": "bed_slope = 9.95e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 56.4 km down from COMID 20192498 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give "
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 95,
+     "line": 97,
      "text": "bed_slope = 2.28e-3   # NHDPlus V2 slope, length-weighted over 44 flowlines, 69.2 km down from COMID 17067102 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give "
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 104,
+     "line": 106,
      "text": "bed_slope = 1.49e-4   # NHDPlus V2 slope, length-weighted over 58 flowlines, 76.8 km down from COMID 2829236 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 118,
+     "line": 120,
      "text": "bed_slope = 8.60e-4   # NHDPlus V2 slope, length-weighted over 60 flowlines, 85.4 km down from COMID 2823750 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 127,
+     "line": 129,
      "text": "bed_slope = 7.99e-4   # NHDPlus V2 slope, length-weighted over 56 flowlines, 92.4 km down from COMID 348551 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give no"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 136,
+     "line": 138,
      "text": "bed_slope = 8.96e-4   # NHDPlus V2 slope, length-weighted over 35 flowlines, 82.7 km down from COMID 2824488 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 145,
+     "line": 147,
      "text": "bed_slope = 3.15e-3   # NHDPlus V2 slope, length-weighted over 110 flowlines, 123.3 km down from COMID 8009269 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give"
     },
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 178,
+     "line": 180,
      "text": "bed_slope = 8.34e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 42.9 km down from COMID 948020626 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give"
     },
     {
      "file": "regions/test-colorado/region.toml",
-     "line": 19,
+     "line": 21,
      "text": "bed_slope = 1.47e-3   # NHDPlus V2 slope, length-weighted over 193 flowlines, 144.8 km down from COMID 20733845 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges giv"
     }
    ]
@@ -1609,7 +1609,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 69,
+     "line": 73,
      "text": "ref:jrp2022dmc)."
     }
    ]
@@ -2146,7 +2146,7 @@
     },
     {
      "file": "python/fdmr_runner/soil.py",
-     "line": 147,
+     "line": 148,
      "text": "return {\"source\": \"NASA SMAP Level 4 SPL4SMGP v008 (NSIDC DAAC)\",  # ref:smap_l4 \"corridor_m\": float(load(region_dir).get(\"corridor_m\", 10_000.0)),"
     }
    ]
@@ -2360,7 +2360,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 131,
+     "line": 135,
      "text": "Aqueduct, ref:scwa_nba). Full, so speed is flow over its area."
     }
    ]
@@ -2522,7 +2522,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 97,
+     "line": 101,
      "text": "3.97 (DOE/USBR EA-1589, 2007, p. 1, ref:usbr2007ea1589). The canal is drawn 4.96 km past the"
     }
    ]
@@ -2541,7 +2541,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/canals.toml",
-     "line": 113,
+     "line": 117,
      "text": "Engineering Data\", archived 2009, ref:usbr_ccc_projectdata). The only published section."
     }
    ]
@@ -2634,7 +2634,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/region.toml",
-     "line": 155,
+     "line": 157,
      "text": "bed_slope = 1.1e-4   # the Toe Drain's water surface from 3.89 m at its top to 1.23 m at its foot over 23.4 km, USGS 3DEP elevations along the reach's line (ref:usgs3dep, read 28 Nov 2026). The DEM is"
     }
    ]

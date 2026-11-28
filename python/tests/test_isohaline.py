@@ -97,7 +97,7 @@ def test_gate_state_and_structure_readings():
     flows = [(now - 20 * 3600 + h * 3600, (120.0 if h % 2 else -60.0) if h < 10 else 0.4) for h in range(20)]
     store.put_values("cdec", "DLC", "discharge", "m3/s", [Value(t, q) for t, q in flows])
     store.put_values("cdec", "HRO", "pumping", "m3/s", [Value(now - 30 * 3600, 146.3)])
-    cfg = {"structures": [
+    cfg = {"default_source": "cdec", "structures": [
         {"id": "dcc", "kind": "gate", "name": "Gates", "site": "DLC", "lon": 0.0, "lat": 0.0, "duration": "H",
          "show": ["discharge"], "state": {"live_gate": "DLC"}},
         {"id": "banks", "kind": "pumps", "name": "Pumps", "site": "HRO", "lon": 0.0, "lat": 0.0, "duration": "D", "show": ["pumping"]},
@@ -128,6 +128,7 @@ def test_landmarks_take_their_place_and_the_nearest_model_element(tmp_path):
     (tmp_path / "geometry" / "mesh.json").write_text(json.dumps({"lon": [-122.2, -122.1, -122.05], "lat": [38.0, 38.0, 38.005]}))
     index = {"reaches": [{"id": "net"}, {"id": "mesh"}]}
     cfg = {
+        "default_source": "cdec",
         "stations": [{"site": "S1", "name": "Station", "lon": -121.985, "lat": 38.001}],
         "structures": [{"id": "pumps", "name": "Pumps", "lon": -121.98, "lat": 38.0295}],
         "landmarks": [

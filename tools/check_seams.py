@@ -83,6 +83,15 @@ def main() -> int:
         guard |= set(tomllib.loads(region.read_text(encoding="utf-8")).get("guard", {}).get("words", []))
     guard_re = re.compile(r"\b(" + "|".join(re.escape(w) for w in sorted(guard)) + r")\b", re.I) if guard else None
 
+    # Data sources are named only through their adapters (#66): a string
+    # literal of an adapter's SOURCE in other engine code is a problem, except
+    # in the files seams.toml [source_names] allows (the fetch dispatcher).
+    seams = tomllib.loads((root / "seams.toml").read_text(encoding="utf-8"))
+    allowed = {root / f for f in seams.get("source_names", {}).get("allowed", [])}
+    sources = sorted({m.group(1) for f in (root / "python" / "fdmr_adapters").glob("*.py")
+                      for m in re.finditer(r'(?m)^SOURCE = "([a-z0-9-]+)"', f.read_text(encoding="utf-8"))})
+    source_re = re.compile(r"""["'](""" + "|".join(re.escape(x) for x in sources) + r""")["']""") if sources else None
+
     problems: list[str] = []
     for name, mod in modules.items():
         path = root / mod["path"]
@@ -105,6 +114,13 @@ def main() -> int:
                 for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                     if m := guard_re.search(line):
                         problems.append(f"{name}: place-specific word '{m.group(1)}' in {f.relative_to(root)}:{i}")
+        if mod.get("engine") and kind == "python" and name != "adapters" and source_re:
+            for f in files(path, CODE_SUFFIXES):
+                if f in allowed:
+                    continue
+                for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+                    if (m := source_re.search(line)) and not line.lstrip().startswith("#"):
+                        problems.append(f"{name}: source '{m.group(1)}' named outside its adapter in {f.relative_to(root)}:{i}")
 
     for p in problems:
         print(p)

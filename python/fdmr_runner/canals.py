@@ -29,6 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import fdmr_geo
+from fdmr_adapters import nhd
 import numpy as np
 
 FT = 0.3048
@@ -39,10 +40,9 @@ SNAP_M = 30.0  # ends of a source's pieces closer than this join
 # Published steps, s. The pumping behind the flow is measured daily and the
 # water's quality changes over hours, so hourly is ample and keeps the files small.
 STEP_S = 3600
-SOURCES = {
-    "dwr-swp": "https://gis.data.cnra.ca.gov/api/download/v1/items/0c1e0a5ca1ba488ea740fa0d654df4c8/geojson?layers=0",
-    "nhd": "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query",
-}
+# Where each line source is read: the national one through its adapter; any
+# other the region names in canals.toml [sources] (#66).
+SOURCES = {"nhd": nhd.URL}
 
 
 def load(region_dir: Path) -> dict | None:
@@ -117,12 +117,13 @@ def _lines(geom: dict) -> list[list[tuple[float, float]]]:
     return [[(round(p[0], 6), round(p[1], 6)) for p in c] for c in cs]
 
 
-def fetch_pieces(canal: dict, client, cache: dict) -> list[list[tuple[float, float]]]:
-    """The source's line pieces making up a canal (`source`, `pieces`)."""
+def fetch_pieces(canal: dict, client, cache: dict, urls: dict | None = None) -> list[list[tuple[float, float]]]:
+    """The source's line pieces making up a canal (`source`, `pieces`): from a
+    GeoJSON download the region names (canals.toml [sources]), or NHD."""
     src, want = canal["source"], canal["pieces"]
-    if src == "dwr-swp":
+    if src in (urls or {}):
         if src not in cache:
-            cache[src] = client.get_json(SOURCES[src])
+            cache[src] = client.get_json(urls[src])
         feats = [f for f in cache[src]["features"] if all(f["properties"].get(k) == v for k, v in want.items())]
     elif src == "nhd":
         pts = [canal["start"], canal["end"], *([canal["via"]] if "via" in canal else [])]
@@ -160,10 +161,10 @@ def build(region_dir: Path, client) -> dict:
     cache: dict = {}
     out = {"built": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "source": cfg.get("source_note", ""), "canals": {}}
     for c in cfg["canal"]:
-        line = canal_line(c, fetch_pieces(c, client, cache))
+        line = canal_line(c, fetch_pieces(c, client, cache, cfg.get("sources")))
         out["canals"][c["id"]] = {"length_m": round(length(line), 1), "coords": [list(p) for p in line]}
         if "via" in c:
-            out["canals"][c["id"]]["via_m"] = round(length(stitch(fetch_pieces(c, client, cache), c["start"], c["via"])), 1)
+            out["canals"][c["id"]]["via_m"] = round(length(stitch(fetch_pieces(c, client, cache, cfg.get("sources")), c["start"], c["via"])), 1)
     return out
 
 

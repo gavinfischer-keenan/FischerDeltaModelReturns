@@ -26,11 +26,12 @@ import json
 import math
 from pathlib import Path
 
+from fdmr_adapters import nws_precip, openet, smap, snodas
 from fdmr_store import Store
 
 from .region import load_region
 
-SOURCE = "smap"
+SOURCE = smap.SOURCE
 POINT_SPACING_M = 2_000.0  # centreline points kept for a corridor: far closer than its 9 km cells
 FRESH_S = 4 * 86_400  # SMAP's Level 4 runs about two days behind
 
@@ -97,28 +98,28 @@ def water_in(store: Store, site: str, now: int) -> dict:
     normal for those days, and its snowmelt over the 7 days to the latest day
     SNODAS gives, with its snowpack then (mm)."""
     out: dict = {}
-    last = store.latest("nws-precip", site, "precipitation_24h")
+    last = store.latest(nws_precip.SOURCE, site, "precipitation_24h")
     if last and last[0] >= now - 4 * 86_400:
         t = last[0]
-        day, _ = _sum(store, "nws-precip", site, "precipitation_24h", t, t + 1)
-        week, nw = _sum(store, "nws-precip", site, "precipitation_24h", t - 6 * 86_400, t + 1)
-        normal, nn = _sum(store, "nws-precip", site, "precipitation_normal_24h", t - 6 * 86_400, t + 1)
+        day, _ = _sum(store, nws_precip.SOURCE, site, "precipitation_24h", t, t + 1)
+        week, nw = _sum(store, nws_precip.SOURCE, site, "precipitation_24h", t - 6 * 86_400, t + 1)
+        normal, nn = _sum(store, nws_precip.SOURCE, site, "precipitation_normal_24h", t - 6 * 86_400, t + 1)
         out.update({"rain_day_end": t, "rain_24h_mm": round(day, 1), "rain_7d_mm": round(week, 1), "rain_7d_days": nw})
         if nn == nw and normal > 0:
             out["rain_7d_percent_normal"] = round(100 * week / normal)
     samples = [f"{site}/s{k}" for k in range(1, SAMPLE_GRID[0] * SAMPLE_GRID[1] + 1)]
-    lasts = [x[0] for x in (store.latest("openet", s, "evapotranspiration") for s in samples) if x]
+    lasts = [x[0] for x in (store.latest(openet.SOURCE, s, "evapotranspiration") for s in samples) if x]
     if lasts and min(lasts) >= now - OPENET_AGE_DAYS * 86_400:  # OpenET runs days to weeks behind
         t = min(lasts)  # the last day every sample has
-        weeks = [_sum(store, "openet", s, "evapotranspiration", t - 6 * 86_400, t + 1) for s in samples]
+        weeks = [_sum(store, openet.SOURCE, s, "evapotranspiration", t - 6 * 86_400, t + 1) for s in samples]
         weeks = [w for w, n in weeks if n == 7]
         if weeks:
             out.update({"et_day_end": t + 86_400, "et_7d_mm": round(sum(weeks) / len(weeks), 1), "et_samples": len(weeks)})
-    last = store.latest("snodas", site, "snow_water_equivalent")
+    last = store.latest(snodas.SOURCE, site, "snow_water_equivalent")
     if last and last[0] >= now - 4 * 86_400:
         t = last[0]
-        melt, nm = _sum(store, "snodas", site, "snowmelt_24h", t - 6 * 86_400, t + 1)
-        swe, _ = _sum(store, "snodas", site, "snow_water_equivalent", t, t + 1)
+        melt, nm = _sum(store, snodas.SOURCE, site, "snowmelt_24h", t - 6 * 86_400, t + 1)
+        swe, _ = _sum(store, snodas.SOURCE, site, "snow_water_equivalent", t, t + 1)
         out.update({"snow_day_end": t, "snowmelt_7d_mm": round(melt, 1), "snowmelt_7d_days": nm, "snow_water_mm": round(swe, 1)})
     return out
 

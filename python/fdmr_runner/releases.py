@@ -68,9 +68,10 @@ def rule_forecast(store: Store, rule: dict, gauge_now: float, t0: int, step: int
         return out, {"how": f"follows the River Forecast Center's release forecast {p} upstream (its changes added to today's release)",
                      "largest_rise_m3s": round(float(rises), 2)}
     site = rule["reservoir"]
-    toc = _latest(store, "usace-spk", site, "top_of_conservation", now - REPORT_AGE_DAYS * DAY, now + 1)
-    storage = _latest(store, "cdec", site, "reservoir_storage", now - STORAGE_AGE_DAYS * DAY, now + 1)
-    release = _latest(store, "cdec", site, "reservoir_outflow", now - REPORT_AGE_DAYS * DAY, now + 1)
+    # Where the reservoir's figures come from: the rule says (region.toml), not the engine (#66).
+    toc = _latest(store, rule["flood_pool_source"], site, "top_of_conservation", now - REPORT_AGE_DAYS * DAY, now + 1)
+    storage = _latest(store, rule["reservoir_source"], site, "reservoir_storage", now - STORAGE_AGE_DAYS * DAY, now + 1)
+    release = _latest(store, rule["reservoir_source"], site, "reservoir_outflow", now - REPORT_AGE_DAYS * DAY, now + 1)
     inflow = _forecast_grid(store, rule["inflow"]["point"], t0, step, n, now)
     if toc is None or storage is None or release is None or inflow is None:
         missing = [k for k, v in (("top of conservation", toc), ("storage", storage), ("release", release), ("inflow forecast", inflow)) if v is None]

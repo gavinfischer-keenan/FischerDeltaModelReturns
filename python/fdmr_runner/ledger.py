@@ -130,7 +130,7 @@ def check_points(region_dir: Path, cdir: Path, index: dict, store: Store) -> lis
                 near = (lk, c, d)
         if not near:
             continue
-        src = st.get("source", "cdec")
+        src = overlays.station_source(ocfg, st)
         for p, f in overlays.SHOWN.items():
             if f and f in reaches[near[0].reach].get("quality_fields", []) and store.latest(src, st["site"], p):
                 points.append({"reach": near[0].reach, "source": src, "site": st["site"], "parameter": p,
@@ -158,7 +158,7 @@ def check_points(region_dir: Path, cdir: Path, index: dict, store: Store) -> lis
         ids = {e["id"]: i for i, e in enumerate(json.loads((cdir / "geometry" / f"{net}.json").read_text(encoding="utf-8"))["elements"])}
         for c in dcfg.get("checks", []):
             if "channel" in c and c["channel"] in ids:
-                points.append({"reach": net, "source": c.get("source", "cdec"), "site": c["site"], "parameter": c.get("parameter", "discharge"),
+                points.append({"reach": net, "source": c["source"], "site": c["site"], "parameter": c.get("parameter", "discharge"),
                                "field": "flow", "element": ids[c["channel"]], "name": c["name"]})
     return points
 

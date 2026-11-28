@@ -91,7 +91,7 @@ def level_checks(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> 
         got = ledger.series(cdir, r, r.get("time", index["time"]), "level", cols, t_from)
         levels[rid] = None if got is None else (got[0], got[1], got[2], {c: j for j, c in enumerate(cols)})
     for st, lk, r, c, d in placed:
-        src = st.get("source", "cdec")
+        src = overlays.station_source(cfg, st)
         got = levels.get(r["id"])
         if got is None:
             continue

@@ -23,6 +23,10 @@
 
 source_note = "Canal lines: DWR i17 State Water Project Centerline (CC-BY 4.0); USGS National Hydrography Dataset."
 
+# Where each line source named below is downloaded (GeoJSON); NHD's is its adapter's (#66).
+[sources]
+dwr-swp = "https://gis.data.cnra.ca.gov/api/download/v1/items/0c1e0a5ca1ba488ea740fa0d654df4c8/geojson?layers=0"
+
 [[canal]]
 id = "swp"
 name = "California Aqueduct (State Water Project)"
