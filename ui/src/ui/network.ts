@@ -24,8 +24,9 @@ export interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
   nodes: { id: number; lon: number; lat: number; kind?: string }[];
   lines: [number, number][][];
-  /** `lon`, `lat`: where the pool lies, if published. */
-  pools?: { id: string; nodes: number[]; area_m2: number; lon?: number; lat?: number }[];
+  /** `lon`, `lat`: where the pool lies, if published. `points`: places spread
+   * evenly over its mapped water, if published, to draw what is in it on the water. */
+  pools?: { id: string; nodes: number[]; area_m2: number; lon?: number; lat?: number; points?: [number, number][] }[];
 }
 
 export class NetworkPlace {
@@ -66,10 +67,13 @@ export class NetworkPlace {
   }
 
   /** Where element `e` at fraction `f` is, nudged sideways by `lateral` x `halfWidthM`.
-   * For a pool, `seed` spreads things steadily over it. */
+   * For a pool, `seed` spreads things steadily over it: on its published
+   * water points where it has them, else over a disc about its size. */
   place(e: number, f: number, lateral = 0, halfWidthM = 0, seed = 0): [number, number] {
     if (e < this.channels) return pointOnLine(this.geometry.lines[e], this.cum[e], f, lateral, halfWidthM);
     const p = e - this.channels;
+    const pts = this.geometry.pools?.[p]?.points;
+    if (pts?.length) return pts[(seed * 2654435761) % pts.length];
     const [lon, lat] = this.poolCentre[p] ?? [0, 0];
     const a = ((seed * 2654435761) % 1000) / 1000 * 2 * Math.PI;
     const r = Math.sqrt(((seed * 40503) % 997) / 997) * (this.poolRadiusM[p] ?? 0);

@@ -34,7 +34,7 @@
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 655,
+     "line": 669,
      "text": "Jaffe (2015, ref:achete2015, section 3.1 and table 1),"
     },
     {
@@ -144,7 +144,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 529,
+     "line": 543,
      "text": "ref:brown1987qual2e)."
     }
    ]
@@ -270,12 +270,12 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 696,
+     "line": 710,
      "text": "DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov"
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 708,
+     "line": 722,
      "text": "DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above)."
     }
    ]
@@ -525,7 +525,7 @@
    "used": [
     {
      "file": "crates/fdmr-compute/src/network.rs",
-     "line": 614,
+     "line": 636,
      "text": "(Chapra 1997, ref:chapra1997); that share's parcels settle and are"
     },
     {
@@ -1671,6 +1671,11 @@
      "file": "regions/rhine-meuse/region.toml",
      "line": 82,
      "text": "gauge): this reach's line is OpenStreetMap's main stream instead (ref:osm;"
+    },
+    {
+     "file": "regions/sf-bay-delta/dsm2.toml",
+     "line": 470,
+     "text": "hand from the map sources there, 28 Nov 2026: OpenStreetMap elements (ref:osm)"
     }
    ]
   },
@@ -1715,7 +1720,7 @@
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 662,
+     "line": 676,
      "text": "in Partheniades' form (ref:partheniades1965)"
     },
     {
@@ -1863,7 +1868,7 @@
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 678,
+     "line": 692,
      "text": "(ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa"
     }
    ]
@@ -2159,6 +2164,11 @@
      "file": "regions/sf-bay-delta/dsm2.toml",
      "line": 463,
      "text": "2026; ref:nhd)."
+    },
+    {
+     "file": "regions/sf-bay-delta/dsm2.toml",
+     "line": 471,
+     "text": "or the NHD waterbody holding a point (ref:nhd). The tool prints each one's"
     }
    ]
   },
@@ -2385,7 +2395,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 691,
+     "line": 705,
      "text": "Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section"
     }
    ]

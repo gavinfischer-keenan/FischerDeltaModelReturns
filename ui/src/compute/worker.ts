@@ -68,7 +68,7 @@ interface LineGeometry {
 interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
   nodes: { id: number; kind?: string }[];
-  pools?: { id: string }[];
+  pools?: { id: string; area_m2?: number }[];
   exports?: { name: string; node?: number; pool?: string }[];
   links?: { pool: string; node: number }[];
 }
@@ -203,6 +203,8 @@ interface Net {
   quality: Uint8Array[] | null;
   /** Each channel's water-surface width, m, if published. */
   widths: Float64Array | null;
+  /** Each pool's water surface, m² (flooded islands, forebays): flow particles live there too. */
+  poolAreas: Float64Array;
   /** How many flow particles it carries. */
   count: number;
   /** Canals: what reaches it is pumped out of another network. */
@@ -398,6 +400,7 @@ async function loadNetwork(cycle: string, id: string, netDays: string[]): Promis
     nodeIndex,
     outlets: [],
     widths: g.elements.every((e) => e.width_m !== undefined) ? Float64Array.from(g.elements.map((e) => e.width_m!)) : null,
+    poolAreas: Float64Array.from((g.pools ?? []).map((p) => p.area_m2 ?? 0)),
   });
   if (QUALITY_LAYERS.has(layer)) await loadQuality();
   // Play the river's (and any other reach's) handoffs into it from the start.
@@ -529,12 +532,15 @@ function build(t: number): void {
       // depth over them); the floor applies only to where particles start (#50).
       ne.set_widths(net.widths);
       ne.set_min_seed_width(MIN_COUNTED_WIDTH_M);
+      // Pools (flooded islands, forebays, a marina) hold water too: particles there by their surface.
+      ne.set_pool_areas(net.poolAreas);
       const w = net.widths.map((x) => Math.max(x, MIN_COUNTED_WIDTH_M));
       // The network's own water surface: not channels a mesh tracks, nor past a cut.
       const ownedSet = new Set(owned);
       const cutAt = new Map(cuts.map((c) => [c.element, c.inside === "down" ? c.at : 1 - c.at]));
       let area = 0;
       for (let c = 0; c < w.length; c++) if (!ownedSet.has(c)) area += w[c] * T.length[c] * (cutAt.get(c) ?? 1);
+      for (const a of net.poolAreas) area += a;
       net.count = Math.round((PARTICLES_PER_KM2 * area) / 1e6);
     }
     net.engine = ne;

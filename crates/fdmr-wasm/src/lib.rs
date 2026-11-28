@@ -356,6 +356,12 @@ impl NetworkEngine {
         self.core.borrow_mut().set_min_seed_width(w);
     }
 
+    /// Each pool's water surface, m² (the geometry's pools' `area_m2`): flow
+    /// particles then start over the pools too, by their share of the surface.
+    pub fn set_pool_areas(&mut self, areas: &[f64]) {
+        self.core.borrow_mut().set_pool_areas(areas);
+    }
+
     /// Where another reach takes over part way along channels: for each cut,
     /// its channel, its place along it (0 to 1 from the upstream end) and
     /// whether the other reach's part is downstream (1) or upstream (0).

@@ -438,8 +438,11 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     (pub / "geometry").mkdir(parents=True)
     extras = grid.read_extras(tidefile)
     exports = cfg.get("exports", {})
+    # Points over each pool's mapped water (fdmr_runner.pool_water), where the region has them.
+    pw = region_dir / "pool_water.json"
+    water = {k: v["points"] for k, v in json.loads(pw.read_text(encoding="utf-8"))["pools"].items()} if pw.exists() else None
     geo = grid.add_extras(grid.geometry(reach, channels, nodes, widths=grid.read_widths(tidefile)), extras, nodes, exports,
-                          centres=cfg.get("pool_centres"))
+                          centres=cfg.get("pool_centres"), water=water)
     (pub / "geometry" / f"{reach}.json").write_text(json.dumps(geo, separators=(",", ":")), encoding="utf-8")
     start = (now - 14 * DAY) // DAY * DAY
     qual_file = run_dir / "output" / "qual_ec.h5"

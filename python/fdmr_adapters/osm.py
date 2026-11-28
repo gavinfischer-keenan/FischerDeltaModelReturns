@@ -62,3 +62,31 @@ def ways(names: list[str], bbox: tuple[float, float, float, float], get=query) -
     return out
 
 
+
+
+def outlines(elements: list[str], get=query) -> list[list[tuple[float, float]]]:
+    """The edges of mapped areas (water), each element "way/<id>" or
+    "relation/<id>" (a multipolygon), as lines of (lon, lat). A relation's
+    member ways are given as they are, unjoined: a point is inside the area
+    when a ray from it crosses its edges an odd number of times, which needs
+    every edge, not whole rings, and holds for holes too."""
+    kinds = {"way": "way", "relation": "relation"}
+    parts = []
+    for e in elements:
+        kind, _, ident = e.partition("/")
+        if kind not in kinds or not ident.isdigit():
+            raise ValueError(f"not an OpenStreetMap way or relation: {e}")
+        parts.append(f"{kind}({ident});")
+    d = get(f"[out:json][timeout:120];({''.join(parts)});out geom;")
+    out = []
+    for el in d.get("elements", []):
+        if el.get("type") == "way" and el.get("geometry"):
+            out.append([(g["lon"], g["lat"]) for g in el["geometry"]])
+        for m in el.get("members", []) if el.get("type") == "relation" else []:
+            if m.get("type") == "way" and m.get("geometry"):
+                out.append([(g["lon"], g["lat"]) for g in m["geometry"]])
+    found = {f"{el['type']}/{el['id']}" for el in d.get("elements", [])}
+    missing = set(elements) - found
+    if missing:
+        raise ValueError(f"OpenStreetMap has no {sorted(missing)}")
+    return out

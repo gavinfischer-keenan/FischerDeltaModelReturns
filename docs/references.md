@@ -18,7 +18,7 @@ Used in:
 - `python/fdmr_plugins/registry.py:116`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
 - `python/fdmr_plugins/registry.py:124`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
 - `python/fdmr_runner/delta.py:162`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
-- `regions/sf-bay-delta/dsm2.toml:655`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
+- `regions/sf-bay-delta/dsm2.toml:669`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
 - `runner/dsm2/gtm-sediment.patch:27`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
 
 ## allen1998fao56
@@ -79,7 +79,7 @@ Checked: EPA NEPIS record and document; title page read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/dsm2.toml:529`: ref:brown1987qual2e).
+- `regions/sf-bay-delta/dsm2.toml:543`: ref:brown1987qual2e).
 
 ## brownlie1981
 
@@ -150,8 +150,8 @@ Checked: The report read (chapter 4, the erosion-coefficient calibration), 27 No
 
 Used in:
 
-- `regions/sf-bay-delta/dsm2.toml:696`: DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov
-- `regions/sf-bay-delta/dsm2.toml:708`: DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above).
+- `regions/sf-bay-delta/dsm2.toml:710`: DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov
+- `regions/sf-bay-delta/dsm2.toml:722`: DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above).
 
 ## dwr_i17_swp
 
@@ -281,7 +281,7 @@ Checked: Open Library ISBN records of both printings, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/network.rs:614`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
+- `crates/fdmr-compute/src/network.rs:636`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
 - `python/fdmr_plugins/registry.py:73`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/registry.py:123`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
@@ -849,6 +849,7 @@ Used in:
 
 - `python/fdmr_adapters/osm.py:12`: References: ref:osm (references.toml).
 - `regions/rhine-meuse/region.toml:82`: gauge): this reach's line is OpenStreetMap's main stream instead (ref:osm;
+- `regions/sf-bay-delta/dsm2.toml:470`: hand from the map sources there, 28 Nov 2026: OpenStreetMap elements (ref:osm)
 
 ## opera_dswx_s1
 
@@ -870,7 +871,7 @@ Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:7`: (Partheniades 1965, ref:partheniades1965), no more
 - `python/fdmr_plugins/registry.py:117`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
-- `regions/sf-bay-delta/dsm2.toml:662`: in Partheniades' form (ref:partheniades1965)
+- `regions/sf-bay-delta/dsm2.toml:676`: in Partheniades' form (ref:partheniades1965)
 - `runner/dsm2/gtm-sediment.patch:26`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
 
 ## patton2020
@@ -948,7 +949,7 @@ Checked: Crossref record of the DOI; the paper read (Table 3, sections 2.1 and 5
 Used in:
 
 - `python/fdmr_plugins/registry.py:297`: "critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)",
-- `regions/sf-bay-delta/dsm2.toml:678`: (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
+- `regions/sf-bay-delta/dsm2.toml:692`: (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
 
 ## schureman1958
 
@@ -1107,6 +1108,7 @@ Used in:
 - `python/fdmr_adapters/nhd.py:11`: References: ref:nhd (references.toml).
 - `regions/sf-bay-delta/canals.toml:13`: nhd: USGS National Hydrography Dataset, flowlines (ref:nhd; public domain),
 - `regions/sf-bay-delta/dsm2.toml:463`: 2026; ref:nhd).
+- `regions/sf-bay-delta/dsm2.toml:471`: or the NHD waterbody holding a point (ref:nhd). The tool prints each one's
 
 ## nldi
 
@@ -1215,4 +1217,4 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/dsm2.toml:691`: Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section
+- `regions/sf-bay-delta/dsm2.toml:705`: Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section

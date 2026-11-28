@@ -465,6 +465,20 @@ parameter = "specific_conductance"
 clifton_court = { lon = -121.5754, lat = 37.8386 }   # "Clifton Court Forebay", 8.96 km2 (DSM2: 8.53)
 liberty = { lon = -121.6796, lat = 38.2788 }         # Liberty Island's flooded area, unnamed, 12.9 km2
 
+# Where each pool's water is mapped, so the map draws what is in a pool on its
+# water (fdmr_runner.pool_water, which writes pool_water.json). Each chosen by
+# hand from the map sources there, 28 Nov 2026: OpenStreetMap elements (ref:osm)
+# or the NHD waterbody holding a point (ref:nhd). The tool prints each one's
+# mapped area beside DSM2's. Mildred Island, Little Franks Tract, Decker
+# Island, Tule Red and Yolo Flyway have no outline of their own in either
+# source (Mildred and Little Franks lie inside larger river areas; the last
+# three are restorations newer than the maps): they keep a disc about their size.
+[pool_water]
+franks_tract = { osm = ["relation/2110099"] }                 # "Franks Tract"
+clifton_court = { osm = ["way/4909086"] }                     # "Clifton Court Forebay"
+discovery_bay = { osm = ["relation/11837351", "way/4909024", "relation/1240908", "way/4908684"] }  # the town's lagoons, Willow Lake and Lido Bay
+liberty = { nhd_at = { lon = -121.6796, lat = 38.2788 } }     # the waterbody pool_centres.liberty is the centroid of
+
 # DSM2's external flows that are exports: water pumped out of the Delta, which a
 # release can be carried into (Phase 2's "toward the pumps"). Name in DSM2, and
 # the words shown for it. Every other withdrawal (farm intakes, small

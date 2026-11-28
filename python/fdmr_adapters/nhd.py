@@ -19,6 +19,8 @@ from . import http
 from .lines import line_between  # noqa: F401  (the walk along the pieces)
 
 URL = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6/query"
+# Waterbody - Large Scale: lakes, ponds, reservoirs, flooded areas, as outlines.
+WATERBODY_URL = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/12/query"
 ATTRIBUTION = "U.S. Geological Survey, National Hydrography Dataset (public domain)"
 
 
@@ -48,3 +50,21 @@ def flowlines(names: list[str], bbox: tuple[float, float, float, float], get=get
         for ln in _lines(f["geometry"]):
             out.append([(hash((round(x, 6), round(y, 6))), x, y) for x, y, *_ in ln])
     return out
+
+
+def waterbody_at(lon: float, lat: float, get=get_json) -> tuple[dict, list[list[tuple[float, float]]]]:
+    """The NHD waterbody (Waterbody - Large Scale) holding the point: its
+    attributes and its outline's rings of (lon, lat)."""
+    q = urllib.parse.urlencode({
+        "geometry": f"{lon},{lat}", "geometryType": "esriGeometryPoint", "inSR": 4326,
+        "spatialRel": "esriSpatialRelIntersects", "outFields": "*", "returnGeometry": "true",
+        "outSR": 4326, "f": "geojson",
+    })
+    feats = get(f"{WATERBODY_URL}?{q}").get("features", [])
+    if not feats:
+        raise ValueError(f"no NHD waterbody at {lon}, {lat}")
+    f = max(feats, key=lambda x: float({k.lower(): v for k, v in x.get("properties", {}).items()}.get("areasqkm") or 0))
+    g = f["geometry"]
+    polys = [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"] if g["type"] == "MultiPolygon" else []
+    rings = [[(x, y) for x, y, *_ in ring] for poly in polys for ring in poly]
+    return {k.lower(): v for k, v in f.get("properties", {}).items()}, rings

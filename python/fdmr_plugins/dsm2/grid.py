@@ -158,10 +158,12 @@ def read_extras(tidefile: Path) -> Extras:
 
 
 def add_extras(geo: dict, extras: Extras, nodes: dict[int, tuple[float, float]], exports: dict[str, str],
-               centres: dict[str, dict] | None = None) -> dict:
+               centres: dict[str, dict] | None = None, water: dict[str, list] | None = None) -> dict:
     """The network geometry with pools, their links, boundary kinds and the
     named exports (docs/format.md, network reaches). `centres`: where a pool
-    lies ({"lon", "lat"}), for drawing, where its links alone do not say."""
+    lies ({"lon", "lat"}), for drawing, where its links alone do not say.
+    `water`: points spread over a pool's mapped water (fdmr_runner.pool_water),
+    for drawing what is in it on its water."""
     kinds = {**{n: "flow_boundary" for n in extras.flow_nodes}, **{n: "stage_boundary" for n in extras.stage_nodes}}
     listed = {n["id"] for n in geo["nodes"]}
     for n in geo["nodes"]:
@@ -174,7 +176,8 @@ def add_extras(geo: dict, extras: Extras, nodes: dict[int, tuple[float, float]],
     at = centres or {}
     geo["pools"] = [
         {**p, "nodes": [lk["node"] for lk in extras.links if lk["pool"] == p["id"]],
-         **({"lon": at[p["id"]]["lon"], "lat": at[p["id"]]["lat"]} if p["id"] in at else {})}
+         **({"lon": at[p["id"]]["lon"], "lat": at[p["id"]]["lat"]} if p["id"] in at else {}),
+         **({"points": (water or {})[p["id"]]} if p["id"] in (water or {}) else {})}
         for p in extras.pools
     ]
     geo["links"] = extras.links

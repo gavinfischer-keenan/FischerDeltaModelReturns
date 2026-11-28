@@ -212,6 +212,8 @@ def write_days(
                     ec_nodes = np.full((steps, n_aux), np.nan)
                     ec_nodes[:, len(node_ids):] = pool_ec
                     node_fields.append(("ec", "uS/cm", True, ec_nodes.ravel().tolist()))
+                    # Each pool's salinity, by the channels' own conversion (PSS-78), for the map's salinity layer.
+                    node_fields.append(("salinity", "psu", True, fdmr_py.practical_salinity(ec_nodes.ravel().tolist())))
                 fdmr_py.write_field_file(
                     str(out_dir / f"{name}.nodes.fdf"), f"{reach}:nodes", 1, n_aux, 1, steps, a, step, node_fields
                 )

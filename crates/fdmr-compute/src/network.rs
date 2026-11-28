@@ -200,6 +200,9 @@ pub struct NetworkTracer {
     /// m (`set_min_seed_width`), so narrow channels still show their water
     /// moving. Particle placement only: never the physics (#50).
     min_seed_width: f64,
+    /// Each pool's water surface, m², if given (`set_pool_areas`): where flow
+    /// particles start evenly over the water's surface, pools get their share.
+    pool_area: Vec<f64>,
     /// Per junction then pool, the outlet its exports go through to another
     /// reach, if any (`set_outlets`).
     outlet: Vec<Option<usize>>,
@@ -254,6 +257,7 @@ impl NetworkTracer {
             cuts: Vec::new(),
             widths: Vec::new(),
             min_seed_width: 0.0,
+            pool_area: Vec::new(),
             outlet: Vec::new(),
             handed: Vec::new(),
             settling: None,
@@ -287,6 +291,13 @@ impl NetworkTracer {
     /// channels' own widths (#50).
     pub fn set_min_seed_width(&mut self, w: f64) {
         self.min_seed_width = w.max(0.0);
+    }
+
+    /// Each pool's water surface, m². With the channels' widths given, flow
+    /// particles start evenly over all the network's water, pools included:
+    /// a flooded island or a forebay shows its water like a channel does.
+    pub fn set_pool_areas(&mut self, areas: &[f64]) {
+        self.pool_area = areas.iter().map(|a| a.max(0.0)).collect();
     }
 
     /// Exports that carry on into another reach (the export canals): each a
@@ -540,17 +551,28 @@ impl NetworkTracer {
         } else {
             None
         };
+        // A pool's own value, where the junction-and-pool file holds the field
+        // (a pool's salinity, from QUAL); else none, and the UI draws it grey.
+        let per_node = if self.nodes.has(name) {
+            self.nodes.at(self.time, name)
+        } else {
+            None
+        };
+        let n = self.topo.up.len();
         let (el, _) = self.particles();
         el.iter()
             .map(|&e| {
-                per_channel
-                    .as_ref()
-                    .and_then(|v| v.get(e as usize))
-                    .map_or(f32::NAN, |&x| {
-                        #[allow(clippy::cast_possible_truncation)]
-                        let y = x as f32;
-                        y
-                    })
+                let e = e as usize;
+                let v = if e < n {
+                    per_channel.as_ref().and_then(|v| v.get(e))
+                } else {
+                    per_node.as_ref().and_then(|v| v.get(self.topo.nodes + e - n))
+                };
+                v.map_or(f32::NAN, |&x| {
+                    #[allow(clippy::cast_possible_truncation)]
+                    let y = x as f32;
+                    y
+                })
             })
             .collect()
     }
@@ -1047,16 +1069,17 @@ impl NetworkTracer {
         for i in 0..self.particles.len() {
             self.ages[i] += dt;
             let p = self.advance(self.particles[i], dt, now, 0.0);
-            // A particle that leaves, settles in a pool or has lived its life starts again elsewhere.
+            // A particle that leaves or has lived its life starts again
+            // elsewhere. In a pool it stays, well mixed, until the water
+            // carries it out (`advance`) or its life ends.
             let renew = match p {
-                Place::Channel(..) => self.ages[i] > self.lives[i],
+                Place::Channel(..) | Place::Pool(_) => self.ages[i] > self.lives[i],
                 Place::Gone(fate) => {
                     if let Some(via) = fate.via() {
                         self.handed_particles.push(via);
                     }
                     true
                 }
-                Place::Pool(_) => true,
             };
             if renew {
                 self.particles[i] = self.random_place(now);
@@ -1069,9 +1092,19 @@ impl NetworkTracer {
     }
 
     /// A place anywhere in the network's own water, evenly over its surface
-    /// (`set_widths`), or else by volume: not in a channel another reach
-    /// tracks, nor past a cut.
+    /// (`set_widths`, and `set_pool_areas` for its pools), or else by volume:
+    /// not in a channel another reach tracks, nor past a cut.
     fn random_place(&mut self, now: &Now) -> Place {
+        let surface = !self.widths.is_empty();
+        let pools: Vec<f64> = (0..self.topo.pools)
+            .map(|q| {
+                if surface {
+                    self.pool_area.get(q).copied().unwrap_or(0.0)
+                } else {
+                    now.pool_volume.get(q).copied().unwrap_or(0.0).max(0.0)
+                }
+            })
+            .collect();
         let own: Vec<f64> = (0..now.volume.len())
             .map(|c| {
                 if self.handed_channel.get(c).copied().unwrap_or(false) {
@@ -1084,12 +1117,18 @@ impl NetworkTracer {
                 }
             })
             .collect();
-        let total: f64 = own.iter().sum();
+        let total: f64 = own.iter().sum::<f64>() + pools.iter().sum::<f64>();
         let mut r = self.rng.uniform() * total;
         for (c, v) in own.iter().enumerate() {
             if r < *v {
                 let (a, b) = self.own_part(c);
                 return Place::Channel(c, a + self.rng.uniform() * (b - a));
+            }
+            r -= v;
+        }
+        for (q, v) in pools.iter().enumerate() {
+            if r < *v {
+                return Place::Pool(q);
             }
             r -= v;
         }
@@ -1763,6 +1802,72 @@ mod tests {
             (b.on_bed / (b.on_bed + b.in_water) - 0.5).abs() < 0.08,
             "{b:?}"
         );
+    }
+
+    /// Channel 0 (junction 0 to 1, 1000 m) and a pool of `area` m² linked to
+    /// junction 1, with the pool's EC in the junction-and-pool file.
+    fn with_pool(area: f64, link_flow: f32) -> NetworkTracer {
+        let mut t = NetworkTracer::new(
+            Topology {
+                up: vec![0],
+                down: vec![1],
+                length: vec![1000.0],
+                nodes: 2,
+                sea: vec![],
+                pools: 1,
+                link_pool: vec![0],
+                link_node: vec![1],
+            },
+            0.0,
+            9,
+            0.0,
+        );
+        t.load_channels(&channels(400, &[0.0])).unwrap();
+        let rep = |v: Vec<f32>| v.iter().copied().cycle().take(v.len() * 400).collect::<Vec<_>>();
+        t.load_nodes(&file(
+            0,
+            400,
+            3,
+            vec![
+                ("export", rep(vec![0.0; 3])),
+                ("withdrawal", rep(vec![0.0; 3])),
+                ("volume", rep(vec![f32::NAN, f32::NAN, 2.0e6])),
+                ("ec", rep(vec![f32::NAN, f32::NAN, 750.0])),
+            ],
+        ))
+        .unwrap();
+        t.load_links(&file(0, 400, 1, vec![("flow", rep(vec![link_flow]))])).unwrap();
+        t.set_widths(&[100.0]);
+        t.set_pool_areas(&[area]);
+        t
+    }
+
+    #[test]
+    fn flow_particles_live_in_pools_by_their_surface_and_take_the_pools_value() {
+        // The channel's surface is 100 m x 1000 m = 0.1 km2; the pool's 0.3 km2:
+        // three in four particles start in the pool.
+        let mut t = with_pool(300_000.0, 0.0);
+        t.seed_flow_particles(4000);
+        let (el, _) = t.particles();
+        let in_pool = el.iter().filter(|&&e| e == 1).count();
+        assert!((in_pool as f64 / 4000.0 - 0.75).abs() < 0.03, "{in_pool}");
+        // With no water leaving, they stay in the pool through a step.
+        t.step_to(600.0);
+        let (el2, _) = t.particles();
+        assert!(el2.iter().filter(|&&e| e == 1).count() + 100 >= in_pool);
+        // The pool's EC from the junction-and-pool file; none for a field only channels have.
+        let ec = t.particle_values("ec");
+        assert!(el2.iter().zip(&ec).all(|(&e, &v)| (e == 1) == ((v - 750.0).abs() < 1e-3)));
+        let flow = t.particle_values("flow_up");
+        assert!(el2.iter().zip(&flow).all(|(&e, v)| e != 1 || v.is_nan()));
+    }
+
+    #[test]
+    fn without_pool_areas_no_flow_particle_starts_in_a_pool() {
+        let mut t = with_pool(300_000.0, 0.0);
+        t.set_pool_areas(&[]);
+        t.seed_flow_particles(500);
+        assert!(t.particles().0.iter().all(|&e| e == 0));
     }
 
     #[test]
