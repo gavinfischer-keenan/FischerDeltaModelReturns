@@ -382,7 +382,7 @@ Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:18`: ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
 - `crates/fdmr-math/src/parcel.rs:33`: well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,
-- `crates/fdmr-math/src/parcel.rs:90`: depth H changes, ∇K + K ∇H / H (Dimou and Adams 1993, ref:dimou1993;
+- `crates/fdmr-math/src/parcel.rs:99`: depth H changes, ∇K + K ∇H / H (Dimou and Adams 1993, ref:dimou1993;
 - `python/fdmr_plugins/registry.py:188`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## dogliotti2015
@@ -1343,7 +1343,7 @@ Used in:
 
 - `crates/fdmr-compute/src/lib.rs:27`: behind the water β (van Mazijk 1996, ref:vanmazijk1996).
 - `crates/fdmr-math/src/dispersion.rs:73`: ref:vanmazijk1996, section 4.4). The rate sets only the cloud's shape (how
-- `crates/fdmr-math/src/parcel.rs:71`: delayed by β (van Mazijk 1996, ref:vanmazijk1996, section 4.4). One uniform
+- `crates/fdmr-math/src/parcel.rs:80`: delayed by β (van Mazijk 1996, ref:vanmazijk1996, section 4.4). One uniform
 - `python/fdmr_plugins/registry.py:97`: "van Mazijk 1996, section 4.4, Figs 4.4.10-4.4.15, p. 217 (ref:vanmazijk1996); the exchange rate "
 - `python/fdmr_plugins/river_routing/storage.py:6`: groyne fields' share of the cross-section (van Mazijk 1996, ref:vanmazijk1996,
 - `python/tests/test_storage.py:28`: assert "ref:vanmazijk1996" in text
@@ -1373,7 +1373,7 @@ Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:19`: ref:visser1997). K is one value everywhere, or one per node, linear within
 - `crates/fdmr-math/src/parcel.rs:34`: ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is
-- `crates/fdmr-math/src/parcel.rs:91`: Visser 1997, ref:visser1997). `k` K, m²/s; `kx`, `ky` its gradient; `h`
+- `crates/fdmr-math/src/parcel.rs:100`: Visser 1997, ref:visser1997). `k` K, m²/s; `kx`, `ky` its gradient; `h`
 - `python/fdmr_plugins/registry.py:188`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## visser2000

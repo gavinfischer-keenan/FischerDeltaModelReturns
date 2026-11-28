@@ -761,8 +761,13 @@
     },
     {
      "file": "crates/fdmr-math/src/parcel.rs",
-     "line": 28,
+     "line": 33,
      "text": "well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,"
+    },
+    {
+     "file": "crates/fdmr-math/src/parcel.rs",
+     "line": 99,
+     "text": "depth H changes, ∇K + K ∇H / H (Dimou and Adams 1993, ref:dimou1993;"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
@@ -2748,6 +2753,11 @@
      "text": "ref:vanmazijk1996, section 4.4). The rate sets only the cloud's shape (how"
     },
     {
+     "file": "crates/fdmr-math/src/parcel.rs",
+     "line": 80,
+     "text": "delayed by β (van Mazijk 1996, ref:vanmazijk1996, section 4.4). One uniform"
+    },
+    {
      "file": "python/fdmr_plugins/registry.py",
      "line": 97,
      "text": "\"van Mazijk 1996, section 4.4, Figs 4.4.10-4.4.15, p. 217 (ref:vanmazijk1996); the exchange rate \""
@@ -2825,8 +2835,13 @@
     },
     {
      "file": "crates/fdmr-math/src/parcel.rs",
-     "line": 29,
+     "line": 34,
      "text": "ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is"
+    },
+    {
+     "file": "crates/fdmr-math/src/parcel.rs",
+     "line": 100,
+     "text": "Visser 1997, ref:visser1997). `k` K, m²/s; `kx`, `ky` its gradient; `h`"
     },
     {
      "file": "python/fdmr_plugins/registry.py",

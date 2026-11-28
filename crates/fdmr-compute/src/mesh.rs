@@ -26,7 +26,7 @@
 //! Where the water is too shallow to move (a drying mudflat) a parcel waits.
 
 use fdmr_format::FormatError;
-use fdmr_math::{decay, rng::Rng};
+use fdmr_math::{decay, parcel, rng::Rng};
 
 use crate::{series::Series, MAX_DT};
 
@@ -596,9 +596,9 @@ impl MeshTracer {
             (k, 0.0, 0.0)
         };
         if k > 0.0 {
-            let sd = (2.0 * k * dt).sqrt();
-            dx += (kx + k * s1.hx / s1.h) * dt + sd * self.rng.normal();
-            dy += (ky + k * s1.hy / s1.h) * dt + sd * self.rng.normal();
+            let (rx, ry) = parcel::step_2d(k, kx, ky, s1.h, s1.hx, s1.hy, dt, &mut self.rng);
+            dx += rx;
+            dy += ry;
         }
         self.walk(t, x, y, dx, dy, time)
     }

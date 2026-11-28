@@ -471,19 +471,13 @@ impl Engine {
                 }
                 // Dead-zone storage: into it at the exchange rate, out at that rate over β.
                 let beta = self.storage_ratio(p.x, now).unwrap_or(0.0).max(0.0);
-                let mut stored = p.stored && beta > 0.0;
+                let was = p.stored && beta > 0.0;
+                let mut stored = was;
                 let mut lat = p.lat;
                 if beta > 0.0 {
-                    let rate = if stored {
-                        dispersion::DEAD_ZONE_EXCHANGE / beta
-                    } else {
-                        dispersion::DEAD_ZONE_EXCHANGE
-                    };
-                    if self.rng.uniform() < 1.0 - (-rate * dt).exp() {
-                        stored = !stored;
-                        if !stored {
-                            lat = self.rng.uniform() * 2.0 - 1.0;
-                        }
+                    stored = parcel::dead_zone_switch(was, beta, dt, &mut self.rng);
+                    if was && !stored {
+                        lat = self.rng.uniform() * 2.0 - 1.0; // back in the flow, anywhere across it
                     }
                 }
                 if stored {
@@ -499,25 +493,18 @@ impl Engine {
                 let mut x = if let (Some(eps), Some(widths)) =
                     (self.lateral_mixing(p.x, now), &self.widths)
                 {
-                    {
-                        // Downstream at the speed across the channel where it is,
-                        // then across by the lateral mixing, reflected at the banks.
-                        let w = widths[self.element(p.x)];
-                        let c = dispersion::shear_profile_c();
-                        let x = p.x + u * (1.0 + c * (1.0 / 3.0 - lat * lat)) * dt;
-                        lat += 2.0 / w * (2.0 * eps.max(0.0) * dt).sqrt() * self.rng.normal();
-                        while !(-1.0..=1.0).contains(&lat) {
-                            lat = if lat > 1.0 { 2.0 - lat } else { -2.0 - lat };
-                        }
-                        x
-                    }
+                    // Downstream at the speed across the channel where it is,
+                    // then across by the lateral mixing, reflected at the banks.
+                    let w = widths[self.element(p.x)];
+                    let c = dispersion::shear_profile_c();
+                    let (x, l) = parcel::step_shear(p.x, lat, u, c, eps, w, dt, &mut self.rng);
+                    lat = l;
+                    x
                 } else {
-                    {
-                        // Fischer's K alone: the random walk, with the drift that keeps
-                        // a well-mixed tracer mixed where K and the cross-section change (#51).
-                        let (k, drift) = self.spreading(p.x, now);
-                        parcel::step_along_channel(p.x, u + drift, k, dt, &mut self.rng)
-                    }
+                    // Fischer's K alone: the random walk, with the drift that keeps
+                    // a well-mixed tracer mixed where K and the cross-section change (#51).
+                    let (k, drift) = self.spreading(p.x, now);
+                    parcel::step_along_channel(p.x, u + drift, k, dt, &mut self.rng)
                 };
                 if x < 0.0 {
                     x = -x; // the top of the reach reflects
