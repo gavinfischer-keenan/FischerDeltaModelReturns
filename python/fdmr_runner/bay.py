@@ -45,6 +45,8 @@ from fdmr_plugins.fvcom import extend, fields, mesh
 from fdmr_plugins.fvcom.flux import mesh_outflow
 from fdmr_plugins.fvcom.layout import Layout, read_layout
 
+from . import writer
+
 HOUR = 3600
 DAY = 86_400
 # Hours before the forecast's end over which the extension's non-tidal offset is taken.
@@ -54,7 +56,7 @@ MESH_VERSION = 2
 
 
 def stamp(t: int) -> str:
-    return datetime.fromtimestamp(t, timezone.utc).strftime("%Y%m%dT%H%MZ")
+    return writer.folder_name(t)
 
 
 def load(region_dir: Path) -> dict | None:
@@ -648,10 +650,10 @@ def publish(cfg: dict, region_dir: Path, coarse: mesh.Coarse, edges: dict, hours
     (pub / "geometry" / f"{reach}.json").write_text(json.dumps(mesh.geometry(coarse, reach, edges, k), separators=(",", ":"), allow_nan=False), encoding="utf-8")
     start, end = min(data), max(data) + HOUR
     days = fields.write_days(data, reach, pub / reach, start, end)
-    rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {})
-    cert = rc.get("certainty", {})
-    solid, floor = cert.get("solid_days", 2) * DAY, cert.get("floor", 0.2)
-    utc = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%dT%H:%MZ")  # noqa: E731
+    reaches = load_region(region_dir).reaches
+    rc = next((r for r in reaches if r["id"] == reach), {})
+    solid, floor = writer.certainty_for(reaches, reach)  # region.toml only (#77)
+    utc = writer.utc
     entry = {
         "id": reach, "kind": rc.get("kind", "2d-field"), "dims": 2, "elements": len(coarse.x), "layers": 1,
         "fields": list(fields.FIELDS), "quality_fields": list(fields.QUALITY),
@@ -662,14 +664,8 @@ def publish(cfg: dict, region_dir: Path, coarse: mesh.Coarse, edges: dict, hours
         **(extras or {}),
     }
     (pub / "reach.json").write_text(json.dumps(entry, separators=(",", ":")), encoding="utf-8")
-    tmp = out_root / ".latest.tmp"
-    if tmp.is_symlink() or tmp.exists():
-        tmp.unlink()
-    tmp.symlink_to(pub.name)
-    tmp.replace(out_root / "latest")
-    olds = sorted(p for p in out_root.iterdir() if p.is_dir() and not p.is_symlink() and p.name != pub.name)
-    for p in olds[: max(0, len(olds) - (keep - 1))]:
-        shutil.rmtree(p)
+    writer.swap_link(out_root, pub.name)
+    writer.prune_folders(out_root, keep, pub.name)
     return pub
 
 

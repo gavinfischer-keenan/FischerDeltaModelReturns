@@ -32,6 +32,8 @@ import fdmr_geo
 from fdmr_adapters import nhd
 import numpy as np
 
+from . import writer
+
 FT = 0.3048
 INCH = 0.0254
 REACH = "canals"
@@ -400,14 +402,8 @@ def publish(region_dir: Path, net_dir: Path, out_root: Path, keep: int = 3) -> P
         "flow_source": f"the {net_id} reach's exports ({net.get('flow_source', '')})",
     }
     (pub / "reach.json").write_text(json.dumps(entry, separators=(",", ":")), encoding="utf-8")
-    tmp = Path(out_root) / ".latest.tmp"
-    if tmp.is_symlink() or tmp.exists():
-        tmp.unlink()
-    tmp.symlink_to(stamp)
-    tmp.replace(Path(out_root) / "latest")
-    olds = sorted(p for p in Path(out_root).iterdir() if p.is_dir() and not p.is_symlink() and p.name != stamp)
-    for p in olds[: max(0, len(olds) - (keep - 1))]:
-        shutil.rmtree(p)
+    writer.swap_link(Path(out_root), stamp)
+    writer.prune_folders(Path(out_root), keep, stamp)
     return pub
 
 

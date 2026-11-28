@@ -42,6 +42,7 @@ from fdmr_plugins.river_routing.model import filled
 from fdmr_store import Store
 
 from .forecast import extend, fit_tide, on_grid, repeat_last_day, shifted
+from . import writer
 
 STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
 DAY = 86_400
@@ -463,11 +464,10 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
                              temp_file=temp_file if temp_file.exists() else None,
                              sediment_file=sed_file if sed_file.exists() else None)
     sources = [f"source:{g}" for g in cfg.get("fingerprint", {})] if fp_file.exists() else []
-    rc = next((r for r in load_region(region_dir).reaches if r["id"] == reach), {}).get("certainty", {})
-    solid, floor = rc.get("solid_days", 5) * DAY, rc.get("floor", 0.2)
+    solid, floor = writer.certainty_for(load_region(region_dir).reaches, reach)  # region.toml only (#77)
     import fdmr_py
 
-    utc = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%dT%H:%MZ")  # noqa: E731
+    utc = writer.utc
     steps = (end - start) // STEP
     entry = {
         "id": reach, "kind": "1d-tidal-network", "dims": 1, "network": True,
@@ -495,17 +495,8 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         **({"problems": problems} if problems else {}),
     }
     (pub / "reach.json").write_text(json.dumps(entry, separators=(",", ":")), encoding="utf-8")
-    tmp = out_root / ".latest.tmp"
-    if tmp.is_symlink() or tmp.exists():
-        tmp.unlink()
-    tmp.symlink_to(stamp)
-    tmp.replace(out_root / "latest")
-    # Keep the newest few.
-    import shutil
-
-    olds = sorted(p for p in out_root.iterdir() if p.is_dir() and not p.is_symlink() and p.name != stamp)
-    for p in olds[: max(0, len(olds) - (keep - 1))]:
-        shutil.rmtree(p)
+    writer.swap_link(out_root, stamp)
+    writer.prune_folders(out_root, keep, stamp)  # keep the newest few
     return pub
 
 

@@ -44,13 +44,15 @@ from fdmr_store import Store
 from . import forecast
 from .region import load_region
 
+from . import writer
+
 STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
 STALE_REACH_S = 13 * 3600  # a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice)
 DAY = 86_400
 BLEND_S = DAY  # the gap between forecast and measurement at now closes over a day
 
 
-def utc(t: float, fmt: str = "%Y-%m-%dT%H:%MZ") -> str:
+def utc(t: float, fmt: str = writer.TIME_FMT) -> str:
     return datetime.fromtimestamp(t, timezone.utc).strftime(fmt)
 
 
@@ -281,10 +283,9 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                             field, t0, now, n, i_now, hindcast, assumed)
     # The solid forecast lasts the reach's set days, or as far as every gauge's
     # forecast reaches, whichever is shorter; with no forecast, nothing is solid.
-    rc = next((r.get("certainty", {}) for r in region.reaches if r["id"] == reach), {})
+    set_solid, floor = writer.certainty_for(region.reaches, reach)  # region.toml only (#77)
     covered = (min(fc_ends) - i_now) * STEP if fc_ends and None not in fc_ends else 0
-    solid = min(rc.get("solid_days", 5) * DAY, covered)
-    floor = rc.get("floor", 0.2)
+    solid = min(set_solid, covered)
     certainty = [round(fdmr_py.certainty_at((i - i_now) * STEP, solid, ahead * DAY, floor), 4) for i in range(n)]
 
     # Water temperature (specification 7.5), with every tributary already done mixing in.
@@ -778,11 +779,7 @@ def publish(
         k += 1
         final = out_dir / f"{cycle}.r{k}"
     os.rename(cdir, final)
-    tmp = out_dir / ".current.tmp"
-    if tmp.is_symlink() or tmp.exists():
-        tmp.unlink()
-    tmp.symlink_to(final.name)
-    os.replace(tmp, out_dir / "current")
+    writer.swap_link(out_dir, final.name, "current")
     return final
 
 

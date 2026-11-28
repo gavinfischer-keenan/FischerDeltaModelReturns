@@ -17,7 +17,7 @@ Used in:
 - `python/fdmr_plugins/dsm2/sediment.py:16`: Roelvink and Jaffe (2015, ref:achete2015), whose calibrated values the region gives
 - `python/fdmr_plugins/registry.py:125`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
 - `python/fdmr_plugins/registry.py:133`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
-- `python/fdmr_runner/delta.py:169`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
+- `python/fdmr_runner/delta.py:170`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
 - `regions/sf-bay-delta/dsm2.toml:671`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
 - `runner/dsm2/gtm-sediment.patch:27`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
 
@@ -484,7 +484,7 @@ Used in:
 - `crates/fdmr-py/src/lib.rs:104`: Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal
 - `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).
 - `python/fdmr_plugins/registry.py:166`: "surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)",
-- `python/fdmr_runner/delta.py:366`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
+- `python/fdmr_runner/delta.py:367`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
 - `python/fdmr_runner/experiment.py:13`: (ref:godin1972), then each day's mean, as the agencies filter their gauges.
 - `python/fdmr_runner/isohaline.py:13`: Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
 - `regions/sf-bay-delta/dsm2.toml:326`: flow through the same channel filtered by Godin's filter (ref:godin1972; fdmr_runner.delta.
@@ -622,7 +622,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/correct.py:297`: the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
-- `python/fdmr_runner/bay.py:508`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
+- `python/fdmr_runner/bay.py:510`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
 
 ## kurobe2022
 
