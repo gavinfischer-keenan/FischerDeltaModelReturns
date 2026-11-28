@@ -28,6 +28,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
+import fdmr_geo
 import numpy as np
 
 FT = 0.3048
@@ -51,7 +52,7 @@ def load(region_dir: Path) -> dict | None:
 
 def metres(a, b) -> float:
     k = math.cos(math.radians((a[1] + b[1]) / 2))
-    return math.hypot((a[0] - b[0]) * 111_195 * k, (a[1] - b[1]) * 111_195)
+    return math.hypot((a[0] - b[0]) * fdmr_geo.M_PER_DEG * k, (a[1] - b[1]) * fdmr_geo.M_PER_DEG)
 
 
 def length(line) -> float:

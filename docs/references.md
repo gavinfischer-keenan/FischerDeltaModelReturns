@@ -537,7 +537,7 @@ Checked: DataCite record of the DOI and NASA CMR collection ECO_L2T_LSTE version
 Used in:
 
 - `python/fdmr_adapters/ecostress.py:30`: References: ref:ecostress_lst (references.toml).
-- `python/fdmr_runner/land.py:130`: return {"source": "NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), land surface temperature",  # ref:ecostress_lst "days": days,
+- `python/fdmr_runner/land.py:131`: return {"source": "NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), land surface temperature",  # ref:ecostress_lst "days": days,
 
 ## huyskens1994
 
@@ -622,7 +622,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/correct.py:297`: the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
-- `python/fdmr_runner/bay.py:507`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
+- `python/fdmr_runner/bay.py:508`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
 
 ## kurobe2022
 
@@ -973,7 +973,7 @@ Used in:
 
 - `python/fdmr_adapters/osm.py:12`: References: ref:osm (references.toml).
 - `python/fdmr_runner/water_audit.py:7`: The map is OpenStreetMap's (ref:osm), through the Overpass API, in the
-- `python/fdmr_runner/water_audit.py:238`: f"(ref:osm; {a['attribution']}), in the box {', '.join(f'{x:.3f}' for x in a['bbox'])} (west, south, east, north).",
+- `python/fdmr_runner/water_audit.py:239`: f"(ref:osm; {a['attribution']}), in the box {', '.join(f'{x:.3f}' for x in a['bbox'])} (west, south, east, north).",
 - `regions/rhine-meuse/region.toml:82`: gauge): this reach's line is OpenStreetMap's main stream instead (ref:osm;
 - `regions/sf-bay-delta/dsm2.toml:472`: hand from the map sources there, 28 Nov 2026: OpenStreetMap elements (ref:osm)
 

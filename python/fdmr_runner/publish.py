@@ -26,6 +26,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import fdmr_geo
 import fdmr_py
 from fdmr_adapters import cnrfc
 from fdmr_adapters.usgs import SOURCE, UsgsAdapter
@@ -391,12 +392,12 @@ def centreline_join(region_dir: Path, a: str, b: str) -> float:
 
 
 def on_centreline(line: Centreline, lon: float, lat: float) -> tuple[float, float]:
-    """(chainage m, distance m) of the centreline point nearest (lon, lat)."""
-    import math
-
-    k = math.cos(math.radians(lat))
-    i = min(range(len(line.coords)), key=lambda j: math.hypot((line.coords[j][0] - lon) * k, line.coords[j][1] - lat))
-    return line.chainage[i], math.hypot((line.coords[i][0] - lon) * k, line.coords[i][1] - lat) * 111_195
+    """(chainage m, distance m) of the point on the centreline nearest
+    (lon, lat): on a segment, between its ends' chainage, not at the nearest
+    vertex (#69)."""
+    i, f, off, _ = fdmr_geo.nearest_on_line(line.coords, (lon, lat))
+    j = min(i + 1, len(line.chainage) - 1)
+    return line.chainage[i] + f * (line.chainage[j] - line.chainage[i]), off
 
 
 def river_temperature(region_dir: Path, region, store: Store, reach: str, line: Centreline, field, records,
@@ -407,7 +408,6 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
     zone, tributaries mixing in, then corrected toward every station on the
     reach that measures it. None where the release's temperature is not
     measured. Returns (temperature [step, element], checks)."""
-    import math
     import numpy as np
     from fdmr_plugins.river_routing import heat
 
@@ -439,7 +439,9 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
 
     els = field.elements
     lonlat = [line.point_at(e.mid) for e in els]
-    zone_of = [min(range(len(zones)), key=lambda z: math.hypot(zones[z]["lon"] - lo, zones[z]["lat"] - la)) for lo, la in lonlat]
+    # The nearest zone by distance on the ground, not raw degrees, which at
+    # 38 degrees north stretch east-west (#69).
+    zone_of = [min(range(len(zones)), key=lambda z: fdmr_geo.distance_m((lo, la), (zones[z]["lon"], zones[z]["lat"]))) for lo, la in lonlat]
     for z in set(zone_of):
         name = zones[z]["name"]
         if name not in weather_cache:

@@ -23,12 +23,14 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Sequence
 
+import fdmr_geo
+
 Point = tuple[float, float]  # lon, lat
 
 
 def _xy(p: Point, lat0: float) -> tuple[float, float]:
     k = math.cos(math.radians(lat0))
-    return p[0] * k * 111_195, p[1] * 111_195
+    return p[0] * k * fdmr_geo.M_PER_DEG, p[1] * fdmr_geo.M_PER_DEG
 
 
 def heading(a: Point, b: Point) -> float:

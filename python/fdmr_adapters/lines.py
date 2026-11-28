@@ -8,10 +8,12 @@ from __future__ import annotations
 import heapq
 import math
 
+import fdmr_geo
+
 
 def _dist(a: tuple[float, float], b: tuple[float, float]) -> float:
     k = math.cos(math.radians((a[1] + b[1]) / 2))
-    return math.hypot((a[0] - b[0]) * k, a[1] - b[1]) * 111_195
+    return math.hypot((a[0] - b[0]) * k, a[1] - b[1]) * fdmr_geo.M_PER_DEG
 
 
 def line_between(segments: list[list[tuple[int, float, float]]], start: tuple[float, float], end: tuple[float, float],

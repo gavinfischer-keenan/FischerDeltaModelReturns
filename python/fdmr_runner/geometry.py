@@ -21,6 +21,7 @@ import sys
 import time
 from pathlib import Path
 
+import fdmr_geo
 from fdmr_adapters.nldi import NldiAdapter
 from fdmr_plugins.river_routing.centreline import chain
 
@@ -47,7 +48,7 @@ def position(nldi: NldiAdapter, g) -> "object":
         raise ValueError(f"gauge {g.site} has no USGS site and no coordinates")
     p = nldi.point_position(g.lon, g.lat, g.site)
     k = math.cos(math.radians(g.lat))
-    off = math.hypot((p.lon - g.lon) * k, p.lat - g.lat) * 111_195
+    off = math.hypot((p.lon - g.lon) * k, p.lat - g.lat) * fdmr_geo.M_PER_DEG
     if off > MAX_SNAP_M:
         raise ValueError(f"gauge {g.site} is {off:.0f} m from any river: check its coordinates")
     return p
@@ -83,7 +84,7 @@ def build(region_dir: Path, reach: str, extra_km: float, nldi: NldiAdapter, paus
         # nearest point of the main stem serves, if close.
         k = math.cos(math.radians(p.lat))
         near = min(range(len(line.coords)), key=lambda i: math.hypot((line.coords[i][0] - p.lon) * k, line.coords[i][1] - p.lat))
-        off = math.hypot((line.coords[near][0] - p.lon) * k, line.coords[near][1] - p.lat) * 111_195
+        off = math.hypot((line.coords[near][0] - p.lon) * k, line.coords[near][1] - p.lat) * fdmr_geo.M_PER_DEG
         if off > MAX_SNAP_M or line.chainage[near] < start:
             raise ValueError(f"main gauge {g.site} is not on the main stem downstream of {release.site} ({off:.0f} m off)")
         positions[g.site] = line.chainage[near] - start
@@ -109,7 +110,7 @@ def build(region_dir: Path, reach: str, extra_km: float, nldi: NldiAdapter, paus
         other = json.loads((Path(region_dir) / f"{cfg['joins']}.json").read_text(encoding="utf-8"))["coords"]
         kk = math.cos(math.radians(other[0][1]))
         for xy, s in zip(line.coords, line.chainage):
-            if s - start > JOIN_AFTER_M and min(math.hypot((xy[0] - o[0]) * kk, xy[1] - o[1]) for o in other) * 111_195 < JOIN_WITHIN_M:
+            if s - start > JOIN_AFTER_M and min(math.hypot((xy[0] - o[0]) * kk, xy[1] - o[1]) for o in other) * fdmr_geo.M_PER_DEG < JOIN_WITHIN_M:
                 mouth = list(xy)
                 break
         else:
@@ -143,7 +144,7 @@ def along(coords: list[tuple[float, float]]) -> list[float]:
     out = [0.0]
     for (x0, y0), (x1, y1) in zip(coords, coords[1:]):
         k = math.cos(math.radians((y0 + y1) / 2))
-        out.append(out[-1] + math.hypot((x1 - x0) * k, y1 - y0) * 111_195)
+        out.append(out[-1] + math.hypot((x1 - x0) * k, y1 - y0) * fdmr_geo.M_PER_DEG)
     return out
 
 
@@ -160,7 +161,7 @@ def build_from_line(region_dir: Path, reach: str, coords: list[tuple[float, floa
     def nearest(lon: float, lat: float) -> tuple[int, float]:
         k = math.cos(math.radians(lat))
         i = min(range(len(coords)), key=lambda j: math.hypot((coords[j][0] - lon) * k, coords[j][1] - lat))
-        return i, math.hypot((coords[i][0] - lon) * k, coords[i][1] - lat) * 111_195
+        return i, math.hypot((coords[i][0] - lon) * k, coords[i][1] - lat) * fdmr_geo.M_PER_DEG
 
     gauges = [g for g in region.gauges_for(reach) if g.role in ("release", "main")]
     at: dict[str, float] = {}
@@ -200,7 +201,7 @@ def river_km_check(geo: dict, gauges, markers: list[tuple[float, float, float]],
     def km_at(lon, lat):
         k = math.cos(math.radians(lat))
         best = min(markers, key=lambda m: math.hypot((m[0] - lon) * k, m[1] - lat), default=None)
-        if best is None or math.hypot((best[0] - lon) * k, best[1] - lat) * 111_195 > within_m:
+        if best is None or math.hypot((best[0] - lon) * k, best[1] - lat) * fdmr_geo.M_PER_DEG > within_m:
             return None
         return best[2]
     first = next(iter(geo["gauges_m"]))

@@ -304,20 +304,20 @@ Every number the model is set with: in each region's settings and among the mode
 
 | Where | Constant | Value | Note and source |
 | --- | --- | --- | --- |
-| [python/fdmr_runner/bay.py:47](../python/fdmr_runner/bay.py#L47) | `HOUR` | `3600` | unit: seconds in an hour |
-| [python/fdmr_runner/bay.py:48](../python/fdmr_runner/bay.py#L48) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/bay.py:50](../python/fdmr_runner/bay.py#L50) | `ANOMALY_H` | `72` | Hours before the forecast's end over which the extension's non-tidal offset is taken. |
-| [python/fdmr_runner/bay.py:52](../python/fdmr_runner/bay.py#L52) | `MESH_VERSION` | `2` | Raised whenever the coarsening changes, so meshes and hours made the old way are made again. |
-| [python/fdmr_runner/bay.py:356](../python/fdmr_runner/bay.py#L356) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
+| [python/fdmr_runner/bay.py:48](../python/fdmr_runner/bay.py#L48) | `HOUR` | `3600` | unit: seconds in an hour |
+| [python/fdmr_runner/bay.py:49](../python/fdmr_runner/bay.py#L49) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/bay.py:51](../python/fdmr_runner/bay.py#L51) | `ANOMALY_H` | `72` | Hours before the forecast's end over which the extension's non-tidal offset is taken. |
+| [python/fdmr_runner/bay.py:53](../python/fdmr_runner/bay.py#L53) | `MESH_VERSION` | `2` | Raised whenever the coarsening changes, so meshes and hours made the old way are made again. |
+| [python/fdmr_runner/bay.py:357](../python/fdmr_runner/bay.py#L357) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
 | [python/fdmr_runner/calibrate.py:39](../python/fdmr_runner/calibrate.py#L39) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
 | [python/fdmr_runner/calibrate.py:49](../python/fdmr_runner/calibrate.py#L49) | `MIN_PAIR_M` | `40_000` | m: a tracer pair at least this far apart, or weather swamps its travel time (below; FDMR's choice) |
 | [python/fdmr_runner/calibrate.py:50](../python/fdmr_runner/calibrate.py#L50) | `MIN_COVER` | `0.25` | a pair corrects only segments it covers at least this share of |
 | [python/fdmr_runner/calibrate.py:51](../python/fdmr_runner/calibrate.py#L51) | `MAX_OFF_LINE_M` | `1_500` | a station further than this from the river centreline is misplaced |
-| [python/fdmr_runner/canals.py:33](../python/fdmr_runner/canals.py#L33) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
-| [python/fdmr_runner/canals.py:34](../python/fdmr_runner/canals.py#L34) | `INCH` | `0.0254` | unit: metres in an inch (exact) |
-| [python/fdmr_runner/canals.py:36](../python/fdmr_runner/canals.py#L36) | `SEGMENT_M` | `1000.0` | the longest channel a canal is cut into, so quality can change along it |
-| [python/fdmr_runner/canals.py:37](../python/fdmr_runner/canals.py#L37) | `SNAP_M` | `30.0` | ends of a source's pieces closer than this join |
-| [python/fdmr_runner/canals.py:40](../python/fdmr_runner/canals.py#L40) | `STEP_S` | `3600` | Published steps, s. The pumping behind the flow is measured daily and the water's quality changes over hours, so hourly is ample and keeps the files small. |
+| [python/fdmr_runner/canals.py:34](../python/fdmr_runner/canals.py#L34) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
+| [python/fdmr_runner/canals.py:35](../python/fdmr_runner/canals.py#L35) | `INCH` | `0.0254` | unit: metres in an inch (exact) |
+| [python/fdmr_runner/canals.py:37](../python/fdmr_runner/canals.py#L37) | `SEGMENT_M` | `1000.0` | the longest channel a canal is cut into, so quality can change along it |
+| [python/fdmr_runner/canals.py:38](../python/fdmr_runner/canals.py#L38) | `SNAP_M` | `30.0` | ends of a source's pieces closer than this join |
+| [python/fdmr_runner/canals.py:41](../python/fdmr_runner/canals.py#L41) | `STEP_S` | `3600` | Published steps, s. The pumping behind the flow is measured daily and the water's quality changes over hours, so hourly is ample and keeps the files small. |
 | [python/fdmr_runner/delta.py:43](../python/fdmr_runner/delta.py#L43) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
 | [python/fdmr_runner/delta.py:44](../python/fdmr_runner/delta.py#L44) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/delta.py:47](../python/fdmr_runner/delta.py#L47) | `BLEND` | `96` | forecasts join the measured series over a day |
@@ -328,17 +328,16 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/fetch.py:48](../python/fdmr_runner/fetch.py#L48) | `DATUM_EVERY_S` | `30 * 86_400` | a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey) |
 | [python/fdmr_runner/fetch.py:49](../python/fdmr_runner/fetch.py#L49) | `AVAILABLE_EVERY_S` | `86_400` | USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely) |
 | [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/geometry.py:30](../python/fdmr_runner/geometry.py#L30) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
-| [python/fdmr_runner/geometry.py:36](../python/fdmr_runner/geometry.py#L36) | `TRACE_KM` | `1500` | Building a reach's centreline from the national hydrography (NLDI), once, when a region is set up (FDMR's choices, generous: a trace past the river's end is cut where the reach ends). how far downstream a reach's line is traced, km |
-| [python/fdmr_runner/geometry.py:37](../python/fdmr_runner/geometry.py#L37) | `JOIN_TRACE_KM` | `400` | how far downstream a tributary is traced to find where it joins, km |
-| [python/fdmr_runner/geometry.py:38](../python/fdmr_runner/geometry.py#L38) | `JOIN_AFTER_M` | `500` | a tributary joins no nearer its own start than this, m |
-| [python/fdmr_runner/geometry.py:39](../python/fdmr_runner/geometry.py#L39) | `JOIN_WITHIN_M` | `150` | it joins where it comes within this of the reach's centreline, m |
+| [python/fdmr_runner/geometry.py:31](../python/fdmr_runner/geometry.py#L31) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
+| [python/fdmr_runner/geometry.py:37](../python/fdmr_runner/geometry.py#L37) | `TRACE_KM` | `1500` | Building a reach's centreline from the national hydrography (NLDI), once, when a region is set up (FDMR's choices, generous: a trace past the river's end is cut where the reach ends). how far downstream a reach's line is traced, km |
+| [python/fdmr_runner/geometry.py:38](../python/fdmr_runner/geometry.py#L38) | `JOIN_TRACE_KM` | `400` | how far downstream a tributary is traced to find where it joins, km |
+| [python/fdmr_runner/geometry.py:39](../python/fdmr_runner/geometry.py#L39) | `JOIN_AFTER_M` | `500` | a tributary joins no nearer its own start than this, m |
+| [python/fdmr_runner/geometry.py:40](../python/fdmr_runner/geometry.py#L40) | `JOIN_WITHIN_M` | `150` | it joins where it comes within this of the reach's centreline, m |
 | [python/fdmr_runner/handoff.py:43](../python/fdmr_runner/handoff.py#L43) | `STEP_DEG` | `0.0002` | sample channel lines about every 20 m to find where they enter the mesh |
-| [python/fdmr_runner/isohaline.py:33](../python/fdmr_runner/isohaline.py#L33) | `KM_PER_DEG_LAT` | `111.195` | mean Earth radius 6371 km |
-| [python/fdmr_runner/land.py:37](../python/fdmr_runner/land.py#L37) | `MATCH_S` | `600` | a band and its airport count as the same pass within this |
-| [python/fdmr_runner/land.py:38](../python/fdmr_runner/land.py#L38) | `POINT_SPACING_M` | `200.0` | centreline points kept for the bands, about this far apart |
-| [python/fdmr_runner/land.py:44](../python/fdmr_runner/land.py#L44) | `DAY_HOURS` | `(8, 17)` | Local solar hours counted as day and as night when comparing the land's temperature with the airport's (FDMR's choice: well clear of the hours around sunrise and sunset, when the land heats and cools fastest). from 08:00 to 17:00 local solar time |
-| [python/fdmr_runner/land.py:45](../python/fdmr_runner/land.py#L45) | `NIGHT_HOURS` | `(20, 5)` | from 20:00 to 05:00 |
+| [python/fdmr_runner/land.py:38](../python/fdmr_runner/land.py#L38) | `MATCH_S` | `600` | a band and its airport count as the same pass within this |
+| [python/fdmr_runner/land.py:39](../python/fdmr_runner/land.py#L39) | `POINT_SPACING_M` | `200.0` | centreline points kept for the bands, about this far apart |
+| [python/fdmr_runner/land.py:45](../python/fdmr_runner/land.py#L45) | `DAY_HOURS` | `(8, 17)` | Local solar hours counted as day and as night when comparing the land's temperature with the airport's (FDMR's choice: well clear of the hours around sunrise and sunset, when the land heats and cools fastest). from 08:00 to 17:00 local solar time |
+| [python/fdmr_runner/land.py:46](../python/fdmr_runner/land.py#L46) | `NIGHT_HOURS` | `(20, 5)` | from 20:00 to 05:00 |
 | [python/fdmr_runner/ledger.py:42](../python/fdmr_runner/ledger.py#L42) | `HOUR` | `3600` | unit: seconds in an hour |
 | [python/fdmr_runner/ledger.py:45](../python/fdmr_runner/ledger.py#L45) | `MATCH_S` | `30 * 60` | a reading counts for a prediction within this of its time |
 | [python/fdmr_runner/ledger.py:46](../python/fdmr_runner/ledger.py#L46) | `WINDOW_DAYS` | `30` | scores cover the last 30 days of kept cycles (FDMR's choice) |
@@ -347,6 +346,8 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/levels.py:33](../python/fdmr_runner/levels.py#L33) | `MODEL_NEAR_KM` | `1.0` | km: a station is checked against a reach it stands within this of (FDMR's choice) |
 | [python/fdmr_runner/levels.py:34](../python/fdmr_runner/levels.py#L34) | `MAX_LAG_S` | `3 * 3600` | s: the largest shift searched when lining the tides up, 3 hours (FDMR's choice) |
 | [python/fdmr_runner/levels.py:35](../python/fdmr_runner/levels.py#L35) | `MIN_FRACTION` | `0.6` | of the window's steps with both values |
+| [python/fdmr_runner/lock.py:22](../python/fdmr_runner/lock.py#L22) | `WAIT_S` | `30 * 60` | half an hour: longer than a Delta cycle (about 15 min), shorter than an hour of hourly cycles queueing |
+| [python/fdmr_runner/lock.py:23](../python/fdmr_runner/lock.py#L23) | `POLL_S` | `5.0` |  |
 | [python/fdmr_runner/nightly.py:38](../python/fdmr_runner/nightly.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
 | [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `TAIL_LINES` | `60` | each step's last lines of output kept in the log: enough for every check's result (FDMR's choice) |
@@ -355,22 +356,21 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/ocean.py:28](../python/fdmr_runner/ocean.py#L28) | `WEEKLY_AGE_DAYS` | `21` | a weekly Nino index older than this is not shown (FDMR's choice: three missed weeks) |
 | [python/fdmr_runner/ocean.py:29](../python/fdmr_runner/ocean.py#L29) | `CHANGE_DAYS` | `28` | the weekly index's change is over four weeks, the week found within a few days of it (FDMR's choice) |
 | [python/fdmr_runner/ocean.py:30](../python/fdmr_runner/ocean.py#L30) | `ONI_AGE_DAYS` | `150` | the Oceanic Nino Index, a three-month mean issued monthly, is shown up to this old (FDMR's choice) |
-| [python/fdmr_runner/overlays.py:36](../python/fdmr_runner/overlays.py#L36) | `LATEST_S` | `26 * 3600` | a reading older than this is not "latest" |
-| [python/fdmr_runner/overlays.py:59](../python/fdmr_runner/overlays.py#L59) | `CHECK_DAYS` | `14` | each station's readings against the model over this many days |
-| [python/fdmr_runner/overlays.py:60](../python/fdmr_runner/overlays.py#L60) | `MODEL_NEAR_KM` | `1.0` | a station further than this from every channel gets no model value |
-| [python/fdmr_runner/overlays.py:61](../python/fdmr_runner/overlays.py#L61) | `MIN_DAY_HOURS` | `18` | a day's mean needs this many hourly readings, three quarters of the day (FDMR's choice) |
-| [python/fdmr_runner/overlays.py:62](../python/fdmr_runner/overlays.py#L62) | `MIN_CHECK_READINGS` | `24` | a station's check against the model needs this many readings, a day's hourly (FDMR's choice) |
-| [python/fdmr_runner/overlays.py:63](../python/fdmr_runner/overlays.py#L63) | `GATE_DAYS` | `3` | a gate's state is read from its flow over the last this many days (FDMR's choice) |
-| [python/fdmr_runner/overlays.py:64](../python/fdmr_runner/overlays.py#L64) | `DAILY_AGE_DAYS` | `3` | a daily value is posted the day after: one this many days old still counts as latest (FDMR's choice) |
+| [python/fdmr_runner/overlays.py:37](../python/fdmr_runner/overlays.py#L37) | `LATEST_S` | `26 * 3600` | a reading older than this is not "latest" |
+| [python/fdmr_runner/overlays.py:60](../python/fdmr_runner/overlays.py#L60) | `CHECK_DAYS` | `14` | each station's readings against the model over this many days |
+| [python/fdmr_runner/overlays.py:61](../python/fdmr_runner/overlays.py#L61) | `MODEL_NEAR_KM` | `1.0` | a station further than this from every channel gets no model value |
+| [python/fdmr_runner/overlays.py:62](../python/fdmr_runner/overlays.py#L62) | `MIN_DAY_HOURS` | `18` | a day's mean needs this many hourly readings, three quarters of the day (FDMR's choice) |
+| [python/fdmr_runner/overlays.py:63](../python/fdmr_runner/overlays.py#L63) | `MIN_CHECK_READINGS` | `24` | a station's check against the model needs this many readings, a day's hourly (FDMR's choice) |
+| [python/fdmr_runner/overlays.py:64](../python/fdmr_runner/overlays.py#L64) | `GATE_DAYS` | `3` | a gate's state is read from its flow over the last this many days (FDMR's choice) |
+| [python/fdmr_runner/overlays.py:65](../python/fdmr_runner/overlays.py#L65) | `DAILY_AGE_DAYS` | `3` | a daily value is posted the day after: one this many days old still counts as latest (FDMR's choice) |
 | [python/fdmr_runner/overlays.py:253](../python/fdmr_runner/overlays.py#L253) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
 | [python/fdmr_runner/overlays.py:254](../python/fdmr_runner/overlays.py#L254) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
 | [python/fdmr_runner/overlays.py:255](../python/fdmr_runner/overlays.py#L255) | `MIN_SLOW_DAYS` | `20` | the slow part is given only with at least this many days of hourly residual (FDMR's choice) |
-| [python/fdmr_runner/pool_water.py:31](../python/fdmr_runner/pool_water.py#L31) | `POINT_SPACING_M` | `60.0` | one point per 60 m x 60 m: dots on water, never more than the eye resolves |
-| [python/fdmr_runner/pool_water.py:32](../python/fdmr_runner/pool_water.py#L32) | `MAX_POINTS` | `1500` | per pool: plenty for the particles a pool holds (8 per km2, worker.ts) |
-| [python/fdmr_runner/pool_water.py:33](../python/fdmr_runner/pool_water.py#L33) | `M_PER_DEG` | `111_195.0` | mean Earth radius 6371 km |
-| [python/fdmr_runner/publish.py:45](../python/fdmr_runner/publish.py#L45) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
-| [python/fdmr_runner/publish.py:46](../python/fdmr_runner/publish.py#L46) | `STALE_REACH_S` | `13 * 3600` | a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice) |
-| [python/fdmr_runner/publish.py:47](../python/fdmr_runner/publish.py#L47) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/pool_water.py:32](../python/fdmr_runner/pool_water.py#L32) | `POINT_SPACING_M` | `60.0` | one point per 60 m x 60 m: dots on water, never more than the eye resolves |
+| [python/fdmr_runner/pool_water.py:33](../python/fdmr_runner/pool_water.py#L33) | `MAX_POINTS` | `1500` | per pool: plenty for the particles a pool holds (8 per km2, worker.ts) |
+| [python/fdmr_runner/publish.py:46](../python/fdmr_runner/publish.py#L46) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/publish.py:47](../python/fdmr_runner/publish.py#L47) | `STALE_REACH_S` | `13 * 3600` | a linked reach (the Delta, the Bay) older than this, two missed 6-hourly runs, is reported (FDMR's choice) |
+| [python/fdmr_runner/publish.py:48](../python/fdmr_runner/publish.py#L48) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/reach_slope.py:26](../python/fdmr_runner/reach_slope.py#L26) | `SNAP_EVERY_M` | `1500.0` | a point every 1.5 km along a named-flowline reach: NHDPlus flowlines are a few km long |
 | [python/fdmr_runner/releases.py:36](../python/fdmr_runner/releases.py#L36) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/releases.py:39](../python/fdmr_runner/releases.py#L39) | `REPORT_AGE_DAYS` | `4` | the flood-control report and the release, daily, still used this old: a long weekend (FDMR's choice) |
@@ -381,14 +381,13 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/soil.py:66](../python/fdmr_runner/soil.py#L66) | `SAMPLE_GRID` | `(3, 2)` | OpenET samples across an area: columns, rows |
 | [python/fdmr_runner/soil.py:67](../python/fdmr_runner/soil.py#L67) | `SAMPLE_SIZE` | `(0.10, 0.08)` | degrees of longitude, latitude: about 8.8 by 8.9 km, 19,000 acres (OpenET allows 50,000 a query) |
 | [python/fdmr_runner/trial.py:38](../python/fdmr_runner/trial.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/water_audit.py:42](../python/fdmr_runner/water_audit.py#L42) | `SAMPLES` | `60` | points inside each area: its coverage to within a few per cent |
-| [python/fdmr_runner/water_audit.py:43](../python/fdmr_runner/water_audit.py#L43) | `MIN_HALF_WIDTH_M` | `30.0` | a channel or river with no published width counts as 60 m wide |
-| [python/fdmr_runner/water_audit.py:44](../python/fdmr_runner/water_audit.py#L44) | `LINE_SLACK_M` | `30.0` | mapped banks and modelled lines differ by about this much |
-| [python/fdmr_runner/water_audit.py:45](../python/fdmr_runner/water_audit.py#L45) | `POOL_SLACK_M` | `60.0` | a pool's water points are 60 m apart (pool_water.POINT_SPACING_M) |
-| [python/fdmr_runner/water_audit.py:46](../python/fdmr_runner/water_audit.py#L46) | `LISTED_M2` | `50_000.0` | areas of 5 ha or more are listed one by one; smaller ones are counted |
-| [python/fdmr_runner/water_audit.py:47](../python/fdmr_runner/water_audit.py#L47) | `UNCOVERED` | `0.5` | an area with less than half its samples covered is listed as uncovered |
-| [python/fdmr_runner/water_audit.py:48](../python/fdmr_runner/water_audit.py#L48) | `M_PER_DEG` | `111_195.0` | mean Earth radius 6371 km |
-| [python/fdmr_runner/water_audit.py:49](../python/fdmr_runner/water_audit.py#L49) | `PAD_DEG` | `0.02` | the extent beyond the published reaches |
+| [python/fdmr_runner/water_audit.py:43](../python/fdmr_runner/water_audit.py#L43) | `SAMPLES` | `60` | points inside each area: its coverage to within a few per cent |
+| [python/fdmr_runner/water_audit.py:44](../python/fdmr_runner/water_audit.py#L44) | `MIN_HALF_WIDTH_M` | `30.0` | a channel or river with no published width counts as 60 m wide |
+| [python/fdmr_runner/water_audit.py:45](../python/fdmr_runner/water_audit.py#L45) | `LINE_SLACK_M` | `30.0` | mapped banks and modelled lines differ by about this much |
+| [python/fdmr_runner/water_audit.py:46](../python/fdmr_runner/water_audit.py#L46) | `POOL_SLACK_M` | `60.0` | a pool's water points are 60 m apart (pool_water.POINT_SPACING_M) |
+| [python/fdmr_runner/water_audit.py:47](../python/fdmr_runner/water_audit.py#L47) | `LISTED_M2` | `50_000.0` | areas of 5 ha or more are listed one by one; smaller ones are counted |
+| [python/fdmr_runner/water_audit.py:48](../python/fdmr_runner/water_audit.py#L48) | `UNCOVERED` | `0.5` | an area with less than half its samples covered is listed as uncovered |
+| [python/fdmr_runner/water_audit.py:50](../python/fdmr_runner/water_audit.py#L50) | `PAD_DEG` | `0.02` | the extent beyond the published reaches |
 | [python/fdmr_runner/water_extent.py:30](../python/fdmr_runner/water_extent.py#L30) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 ([opera_dswx_s1](references.md#opera_dswx_s1)) |
 | [python/fdmr_runner/water_extent.py:31](../python/fdmr_runner/water_extent.py#L31) | `MIN_SEEN` | `0.2` | a pass counts only if it saw at least this share of the area (FDMR's choice) |
 | [python/fdmr_runner/water_extent.py:32](../python/fdmr_runner/water_extent.py#L32) | `MAX_PATCHES` | `10` | the largest this many patches of new water are listed per pass (FDMR's choice) |
@@ -428,8 +427,6 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/river_routing/model.py:26](../python/fdmr_plugins/river_routing/model.py#L26) | `WAVE_TO_WATER` | `1.5` | a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, [chow1959](references.md#chow1959)); refitted nightly per segment |
 | [python/fdmr_plugins/river_routing/storage.py:29](../python/fdmr_plugins/river_routing/storage.py#L29) | `HEAD_OFF_M` | `0.01` | m: below this velocity head the groyne fields' eddies do not exchange (van Mazijk 1996, p. 217) |
 | [python/fdmr_plugins/river_routing/storage.py:30](../python/fdmr_plugins/river_routing/storage.py#L30) | `HEAD_ON_M` | `0.02` | m: above this they exchange fully (van Mazijk 1996, p. 217) |
-| [python/fdmr_adapters/areas.py:16](../python/fdmr_adapters/areas.py#L16) | `M_PER_DEG_LAT` | `110_574.0` |  |
-| [python/fdmr_adapters/areas.py:17](../python/fdmr_adapters/areas.py#L17) | `M_PER_DEG_LON_EQUATOR` | `111_320.0` |  |
 | [python/fdmr_adapters/cdec.py:31](../python/fdmr_adapters/cdec.py#L31) | `PST_TO_UTC` | `8 * 3600` |  |
 | [python/fdmr_adapters/cdec.py:32](../python/fdmr_adapters/cdec.py#L32) | `CHUNK_DAYS` | `90` | one request per 90 days keeps each answer small |
 | [python/fdmr_adapters/cdec.py:33](../python/fdmr_adapters/cdec.py#L33) | `FT` | `0.3048` | unit: metres in an international foot (exact) |

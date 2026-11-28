@@ -13,8 +13,8 @@ import math
 
 import numpy as np
 
-M_PER_DEG_LAT = 110_574.0
-M_PER_DEG_LON_EQUATOR = 111_320.0
+import fdmr_geo
+
 
 
 def members(lat: np.ndarray, lon: np.ndarray, area: dict) -> np.ndarray:
@@ -24,8 +24,10 @@ def members(lat: np.ndarray, lon: np.ndarray, area: dict) -> np.ndarray:
         return (lon >= w) & (lon <= e) & (lat >= s) & (lat <= n)
     m = np.zeros(lat.shape, bool)
     for plo, pla in area["points"]:
-        dx = (lon - plo) * M_PER_DEG_LON_EQUATOR * math.cos(math.radians(pla))
-        dy = (lat - pla) * M_PER_DEG_LAT
+        # On the plane about the point (fdmr_geo): the equator's degree lengths
+        # stood in here before, 0.4% short north-south (#69).
+        dx = (lon - plo) * fdmr_geo.M_PER_DEG * math.cos(math.radians(pla))
+        dy = (lat - pla) * fdmr_geo.M_PER_DEG
         m |= dx * dx + dy * dy <= area["radius_m"] ** 2
     return m
 

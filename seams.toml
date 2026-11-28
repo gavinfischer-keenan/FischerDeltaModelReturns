@@ -29,12 +29,19 @@ package = "fdmr_store"
 engine = true
 may_use = []
 
+[modules.geo]
+kind = "python"
+path = "python/fdmr_geo"
+package = "fdmr_geo"
+engine = true
+may_use = []
+
 [modules.adapters]
 kind = "python"
 path = "python/fdmr_adapters"
 package = "fdmr_adapters"
 engine = true
-may_use = ["store"]
+may_use = ["geo", "store"]
 
 [modules.regions]
 kind = "data"
@@ -53,7 +60,7 @@ kind = "python"
 path = "python/fdmr_runner"
 package = "fdmr_runner"
 engine = true
-may_use = ["store", "adapters", "bindings", "plugins"]
+may_use = ["geo", "store", "adapters", "bindings", "plugins"]
 
 [modules.bindings]
 kind = "rust"
@@ -68,7 +75,7 @@ kind = "python"
 path = "python/fdmr_plugins"
 package = "fdmr_plugins"
 engine = true
-may_use = ["bindings", "store"]
+may_use = ["geo", "bindings", "store"]
 
 [modules.compute]
 kind = "rust"

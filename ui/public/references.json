@@ -1128,7 +1128,7 @@
     },
     {
      "file": "python/fdmr_runner/land.py",
-     "line": 130,
+     "line": 131,
      "text": "return {\"source\": \"NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), land surface temperature\",  # ref:ecostress_lst \"days\": days,"
     }
    ]
@@ -1302,7 +1302,7 @@
     },
     {
      "file": "python/fdmr_runner/bay.py",
-     "line": 507,
+     "line": 508,
      "text": "correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's"
     }
    ]
@@ -2006,7 +2006,7 @@
     },
     {
      "file": "python/fdmr_runner/water_audit.py",
-     "line": 238,
+     "line": 239,
      "text": "f\"(ref:osm; {a['attribution']}), in the box {', '.join(f'{x:.3f}' for x in a['bbox'])} (west, south, east, north).\","
     },
     {

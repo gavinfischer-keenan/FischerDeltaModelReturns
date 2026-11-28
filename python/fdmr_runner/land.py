@@ -27,6 +27,7 @@ import json
 import math
 from pathlib import Path
 
+import fdmr_geo
 import numpy as np
 
 from fdmr_store import Store
@@ -75,7 +76,7 @@ def places(region_dir: Path) -> list[dict]:
         # Each point takes the nearest zone, as the heat model's elements do.
         by_zone: dict[int, list] = {}
         for lo, la in keep:
-            z = min(range(len(zones)), key=lambda z: math.hypot(zones[z]["lon"] - lo, zones[z]["lat"] - la))
+            z = min(range(len(zones)), key=lambda z: fdmr_geo.distance_m((lo, la), (zones[z]["lon"], zones[z]["lat"])))  # on the ground (#69)
             by_zone.setdefault(z, []).append((lo, la))
         for z, pts in sorted(by_zone.items()):
             out.append({"site": f"band:{reach}:{zones[z]['name']}", "points": pts, "radius_m": float(land.get("band_m", 1000.0))})

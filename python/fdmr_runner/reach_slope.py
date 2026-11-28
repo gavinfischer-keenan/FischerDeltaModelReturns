@@ -14,12 +14,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 import tomllib
 from datetime import date
 from pathlib import Path
 
+import fdmr_geo
 from fdmr_adapters import nhdplus
 from fdmr_adapters.nldi import NldiAdapter
 
@@ -47,7 +47,7 @@ def reach_slope(region_dir: Path, reach: str, nldi: NldiAdapter | None = None, g
         comids, run, last = set(), 0.0, None
         for x, y, *_ in geo["coords"]:
             if last is not None:
-                run += math.hypot((x - last[0]) * 111_195 * math.cos(math.radians(y)), (y - last[1]) * 111_195)
+                run += fdmr_geo.distance_m(last, (x, y))
             if last is None or run >= SNAP_EVERY_M:
                 comids.add(nldi.point_position(x, y, reach).comid)
                 run = 0.0

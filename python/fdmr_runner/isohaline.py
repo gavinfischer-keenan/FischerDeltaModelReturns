@@ -28,9 +28,11 @@ from pathlib import Path
 
 import numpy as np
 
+import fdmr_geo
+
 from fdmr_plugins.fvcom.correct import tidal_mean
 
-KM_PER_DEG_LAT = 111.195  # mean Earth radius 6371 km
+KM_PER_DEG_LAT = fdmr_geo.M_PER_DEG / 1000  # km per degree of latitude (fdmr_geo)
 
 
 def _xy(lon: float, lat: float, lat0: float) -> tuple[float, float]:

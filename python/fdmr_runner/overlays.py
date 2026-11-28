@@ -26,6 +26,7 @@ import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 
+import fdmr_geo
 import numpy as np
 
 from fdmr_adapters import cdec
@@ -87,16 +88,15 @@ class NetworkValues:
     skip: frozenset = frozenset()  # channels another reach covers (a mesh's), not this one's to answer for
 
     def channel_near(self, lon: float, lat: float) -> tuple[int, float]:
-        """The channel nearest a point, and how far it is, km."""
-        c = math.cos(math.radians(lat))
+        """The channel nearest a point, and how far it is, km: measured to the
+        nearest point on each channel's line, not its nearest vertex (#69)."""
         best = (math.inf, -1)
         for k, line in enumerate(self.geo["lines"]):
-            if k in self.skip:
+            if k in self.skip or not line:
                 continue
-            a = np.asarray(line)
-            d = float(np.min(((a[:, 0] - lon) * c) ** 2 + (a[:, 1] - lat) ** 2))
-            best = min(best, (d, k))
-        return best[1], math.sqrt(best[0]) * isohaline.KM_PER_DEG_LAT
+            off = fdmr_geo.nearest_on_line([tuple(p) for p in line], (lon, lat))[2]
+            best = min(best, (off, k))
+        return best[1], best[0] / 1000
 
     def at(self, field: str, channel: int, t: int) -> float | None:
         """The field in a channel at time t, linear between steps; None outside."""
@@ -182,11 +182,11 @@ def isohalines(cfg: dict, cdir: Path, index: dict, store: Store, now: int) -> li
 
 
 def axis_km(axis: isohaline.Axis, lon: float, lat: float) -> float:
-    """The km along an axis of the point on it nearest (lon, lat)."""
-    lat0 = sum(a["lat"] for a in axis.anchors) / len(axis.anchors)
-    p = np.array(isohaline._xy(lon, lat, lat0))
-    xy = np.array([isohaline._xy(lo, la, lat0) for lo, la in axis.lonlat])
-    return float(axis.line_km[int(np.argmin(np.hypot(*(xy - p).T)))])
+    """The km along an axis of the point on it nearest (lon, lat): on a
+    segment, between its ends' km, not at the nearest vertex (#69)."""
+    i, f, _, _ = fdmr_geo.nearest_on_line(axis.lonlat, (lon, lat))
+    j = min(i + 1, len(axis.line_km) - 1)
+    return float(axis.line_km[i] + f * (axis.line_km[j] - axis.line_km[i]))
 
 
 def model_lookups(cdir: Path, index: dict, load: bool = True) -> list[NetworkValues]:
@@ -485,7 +485,7 @@ def nearest_element(geo: dict, lon: float, lat: float) -> tuple[int, float]:
                     line_of.append(np.array([k]))
             flat = geo["_segments"] = (np.concatenate(a), np.concatenate(b), np.concatenate(line_of))
         a, b, line_of = flat
-        sx, sy = isohaline.KM_PER_DEG_LAT * math.cos(math.radians(lat)), isohaline.KM_PER_DEG_LAT
+        sx, sy = fdmr_geo.M_PER_DEG / 1000 * math.cos(math.radians(lat)), fdmr_geo.M_PER_DEG / 1000
         p = np.array([lon * sx, lat * sy])
         a_km, b_km = a * (sx, sy), b * (sx, sy)
         d = b_km - a_km
@@ -496,7 +496,7 @@ def nearest_element(geo: dict, lon: float, lat: float) -> tuple[int, float]:
         return int(line_of[i]), float(dist[i])
     lo, la = np.asarray(geo["lon"]), np.asarray(geo["lat"])
     c = math.cos(math.radians(lat))
-    d = np.hypot((lo - lon) * c, la - lat) * isohaline.KM_PER_DEG_LAT
+    d = np.hypot((lo - lon) * c, la - lat) * fdmr_geo.M_PER_DEG / 1000
     k = int(np.argmin(d))
     return k, float(d[k])
 

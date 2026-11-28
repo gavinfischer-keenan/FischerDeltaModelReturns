@@ -37,6 +37,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
+import fdmr_geo
 import numpy as np
 
 from fdmr_adapters import noaa_ofs
@@ -523,7 +524,7 @@ def currents_check(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict]
     pairs_r, pairs_m, used = [], [], set()
     node_of = {}
     for iy, ix in cells:
-        d = np.hypot((coarse.lon - r.lon[ix]) * np.cos(np.radians(r.lat[iy])), coarse.lat - r.lat[iy]) * 111_195
+        d = np.hypot((coarse.lon - r.lon[ix]) * np.cos(np.radians(r.lat[iy])), coarse.lat - r.lat[iy]) * fdmr_geo.M_PER_DEG
         k = int(np.argmin(d))
         if d[k] <= near_m:
             node_of[(iy, ix)] = k
@@ -570,7 +571,7 @@ def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict
     store = Store(store_path)
     sts, nodes = [], []
     for st in q["stations"]:
-        d = np.hypot((coarse.lon - st["lon"]) * np.cos(np.radians(st["lat"])), coarse.lat - st["lat"]) * 111_195
+        d = np.hypot((coarse.lon - st["lon"]) * np.cos(np.radians(st["lat"])), coarse.lat - st["lat"]) * fdmr_geo.M_PER_DEG
         k = int(np.argmin(d))
         if d[k] <= q.get("near_m", 2000.0):
             sts.append(st)

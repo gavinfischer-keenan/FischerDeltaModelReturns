@@ -26,11 +26,12 @@ import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 
+import fdmr_geo
 from fdmr_adapters import nhd, osm
 
 POINT_SPACING_M = 60.0  # one point per 60 m x 60 m: dots on water, never more than the eye resolves
 MAX_POINTS = 1500  # per pool: plenty for the particles a pool holds (8 per km2, worker.ts)
-M_PER_DEG = 111_195.0  # mean Earth radius 6371 km
+M_PER_DEG = fdmr_geo.M_PER_DEG  # m per degree of latitude (fdmr_geo)
 
 
 def inside(x: float, y: float, edges: list[list[tuple[float, float]]]) -> bool:

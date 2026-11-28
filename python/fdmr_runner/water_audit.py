@@ -35,6 +35,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import fdmr_geo
 import numpy as np
 
 from fdmr_adapters import osm
@@ -45,7 +46,7 @@ LINE_SLACK_M = 30.0  # mapped banks and modelled lines differ by about this much
 POOL_SLACK_M = 60.0  # a pool's water points are 60 m apart (pool_water.POINT_SPACING_M)
 LISTED_M2 = 50_000.0  # areas of 5 ha or more are listed one by one; smaller ones are counted
 UNCOVERED = 0.5  # an area with less than half its samples covered is listed as uncovered
-M_PER_DEG = 111_195.0  # mean Earth radius 6371 km
+M_PER_DEG = fdmr_geo.M_PER_DEG  # m per degree of latitude (fdmr_geo)
 PAD_DEG = 0.02  # the extent beyond the published reaches
 
 KINDS = {
