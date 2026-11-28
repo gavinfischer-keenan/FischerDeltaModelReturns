@@ -192,7 +192,9 @@ mod tests {
         let long: Vec<f64> = (0..2000)
             .map(|i| {
                 let t = f64::from(i) / 4.0;
-                (t / 12.42 * std::f64::consts::TAU).sin() + 0.4 * (t / 23.93 * std::f64::consts::TAU).cos() + t / 300.0
+                (t / 12.42 * std::f64::consts::TAU).sin()
+                    + 0.4 * (t / 23.93 * std::f64::consts::TAU).cos()
+                    + t / 300.0
             })
             .collect();
         for per_hour in [4.0, 12.0] {
