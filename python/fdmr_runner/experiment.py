@@ -109,7 +109,7 @@ def daily(values: list[float | None], first: int, step: int = STEP, min_n: int =
 
 def subtidal(values: list[float | None]) -> list[float | None]:
     x = np.array([np.nan if v is None else v for v in values], dtype=float)
-    m = tidal_mean(x, 3600 / STEP)
+    m = tidal_mean(x, 3600 / STEP, edges="missing")  # no held ends in a judged mean (#71)
     return [None if not np.isfinite(v) else float(v) for v in m]
 
 
@@ -167,6 +167,7 @@ def held(lock: str | None):
 def settings_for(cfg: dict) -> study.RunSettings:
     root = DSM2_ROOT
     return study.RunSettings(
+        reservoir_out_ratio=dict(cfg.get("reservoir_out_ratio", {})),
         study=root / "inputs" / cfg["inputs"] / cfg["study"], replace=[], version=cfg["version"], version_settings=[],
         reference_year=cfg["reference_year"], tool=str(root / "bin" / "dsstool"), hydro=str(root / "bin" / "hydro"),
         qual=str(root / "bin" / "qual"), mains=["hydro.inp", "qual_ec.inp"],
@@ -380,9 +381,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rescore", action="store_true", help="only score the daily series already in WORK")
     ap.add_argument("--keep", action="store_true", help="keep DSM2's run folders (they are large)")
     ap.add_argument("--lock", help="hold this lock while DSM2 runs (the cycle's lock)")
+    ap.add_argument("--reservoir-out-ratio", default="",
+                    help="a trial: name=ratio,... sets those reservoirs' COEF_OUT to ratio x COEF_IN, in place of the region's")
     args = ap.parse_args(argv)
     region_dir, work, out = Path(args.region), Path(args.work), Path(args.out)
     cfg = load_dsm2(region_dir)
+    if args.reservoir_out_ratio:
+        cfg = {**cfg, "reservoir_out_ratio": {k: float(v) for k, v in (x.split("=") for x in args.reservoir_out_ratio.split(","))}}
     exps = [e for e in load(region_dir) if not args.only or e["name"] == args.only]
     out.mkdir(parents=True, exist_ok=True)
     for exp in exps:
@@ -402,6 +407,7 @@ def main(argv: list[str] | None = None) -> int:
                                               "seconds": round(time.time() - t), "model_version": model_version(region_dir, None),
                                               "inputs": cfg["inputs"], "dsm2": cfg["output_a"],
                                               "period": [exp["run_from"], exp["judge_to"]], "override": sc.get("override", []),
+                                              "reservoir_out_ratio": cfg.get("reservoir_out_ratio", {}),
                                               "phases": phases}))
                 if not args.keep:
                     c = time.time()

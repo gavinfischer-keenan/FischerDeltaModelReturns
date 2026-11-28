@@ -904,7 +904,12 @@
     },
     {
      "file": "crates/fdmr-math/src/signal.rs",
-     "line": 152,
+     "line": 149,
+     "text": "Godin's three running means, h (Godin 1972, ref:godin1972)."
+    },
+    {
+     "file": "crates/fdmr-math/src/signal.rs",
+     "line": 161,
      "text": "(Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The"
     },
     {
@@ -1155,12 +1160,12 @@
    "used": [
     {
      "file": "python/fdmr_plugins/fvcom/correct.py",
-     "line": 284,
+     "line": 297,
      "text": "the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to"
     },
     {
      "file": "python/fdmr_runner/bay.py",
-     "line": 505,
+     "line": 507,
      "text": "correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's"
     }
    ]

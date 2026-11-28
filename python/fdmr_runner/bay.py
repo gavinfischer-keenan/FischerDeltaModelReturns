@@ -253,7 +253,9 @@ def dsm2_outflow(delta_dir: Path, join: dict, tidal: bool = False) -> tuple[np.n
     """DSM2's flow from the Delta into the Bay across the join (m3/s; with
     `tidal`, tidally filtered, fdmr_plugins.fvcom.correct.tidal_mean), at its
     published steps: the sum over the crossings (dsm2_cut_flows). Near the
-    record's ends the nearest full-window mean is held."""
+    record's ends the nearest full-window mean is held: the Bay's outflow
+    correction needs a value at every step, and its ends are the forecast's,
+    where it fades anyway (not "missing" as X2 and the skill scores use, #71)."""
     t, q = dsm2_cut_flows(delta_dir, join)
     q = q.sum(axis=1)
     if not tidal or len(t) < 2:

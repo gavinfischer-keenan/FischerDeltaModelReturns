@@ -209,3 +209,28 @@ def test_an_irregular_series_blocks_by_decade_or_year():
     assert dss.irregular_blocks(p, t(2020, 6, 30), t(2022, 1, 2)) == ["/HIST+GATE/FALSE_R/INSTALL/01JAN2020/IR-DECADE/DWR-BDO_NAVD/"]
     assert len(dss.irregular_blocks(p, t(2017, 11, 30), t(2020, 2, 1))) == 2
     assert dss.irregular_blocks("/A/B/C//IR-YEAR/F/", t(2018, 3, 1), t(2019, 1, 5))[-1] == "/A/B/C/01JAN2019/IR-YEAR/F/"
+
+
+def test_reservoir_out_ratio_changes_only_the_named_reservoirs_outflow():
+    from fdmr_plugins.dsm2.study import with_reservoir_ratio
+
+    text = """RESERVOIR
+NAME AREA BOT_ELEV
+franks_tract 141.786 -7.754
+END
+RESERVOIR_CONNECTION
+RES_NAME               NODE    COEF_IN    COEF_OUT
+franks_tract            103       3000        3000
+franks_tract            216       1500        1500   # a comment
+liberty                 322       7500        5625
+END
+"""
+    out, changed = with_reservoir_ratio(text, {"franks_tract": 0.75})
+    assert [(c["node"], c["coef_out"]) for c in changed] == [(103, 2250.0), (216, 1125.0)]
+    rows = [r.split("#")[0].split() for r in out.splitlines()]
+    assert ["franks_tract", "103", "3000", "2250"] in rows
+    assert ["liberty", "322", "7500", "5625"] in rows  # untouched
+    import pytest
+
+    with pytest.raises(ValueError):
+        with_reservoir_ratio(text, {"mildred": 0.75})

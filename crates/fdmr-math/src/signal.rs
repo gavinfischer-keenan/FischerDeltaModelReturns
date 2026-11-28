@@ -146,25 +146,68 @@ pub fn running_mean_held(x: &[f64], w: usize) -> Vec<f64> {
     out
 }
 
+/// Godin's three running means, h (Godin 1972, ref:godin1972).
+pub const GODIN_HOURS: [f64; 3] = [24.0, 24.0, 25.0];
+
+/// Godin's windows in samples, for a series sampled `per_hour` times an hour.
+fn godin_windows(per_hour: f64) -> [usize; 3] {
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    GODIN_HOURS.map(|h| (h * per_hour).round().max(1.0) as usize)
+}
+
 /// The subtidal part of a series sampled `per_hour` times an hour: Godin's
 /// filter, running means over 24, 24 and 25 hours in turn, which takes out the
 /// diurnal and semidiurnal tides far more cleanly than one long running mean
 /// (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
-/// ends are held as [`running_mean_held`] holds them.
+/// ends are held as [`running_mean_held`] holds them: within [`godin_edge`]
+/// samples of either end the value is not a full tidal mean.
 #[must_use]
 pub fn godin(x: &[f64], per_hour: f64) -> Vec<f64> {
     let mut m = x.to_vec();
-    for h in [24.0, 24.0, 25.0] {
-        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let w = (h * per_hour).round().max(1.0) as usize;
+    for w in godin_windows(per_hour) {
         m = running_mean_held(&m, w);
     }
     m
 }
 
+/// How many samples at each end of a series [`godin`] cannot fully average:
+/// within this many of either end, one of its running means held its nearest
+/// full-window value instead (36.5 h at any sampling rate, half of each
+/// window, rounded up). A caller comparing or publishing tidal means marks
+/// them missing (#71).
+#[must_use]
+pub fn godin_edge(per_hour: f64) -> usize {
+    godin_windows(per_hour).iter().map(|w| w.div_ceil(2)).sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn beyond_the_edge_a_series_filters_as_if_it_went_on() {
+        // A tidal mean away from the ends does not depend on where the record
+        // stops: filter a stretch alone and inside a longer record, and they
+        // agree everywhere beyond `godin_edge` of the stretch's ends.
+        let long: Vec<f64> = (0..2000)
+            .map(|i| {
+                let t = f64::from(i) / 4.0;
+                (t / 12.42 * std::f64::consts::TAU).sin() + 0.4 * (t / 23.93 * std::f64::consts::TAU).cos() + t / 300.0
+            })
+            .collect();
+        for per_hour in [4.0, 12.0] {
+            let (a, b) = (300, 1700);
+            let whole = godin(&long, per_hour);
+            let part = godin(&long[a..b], per_hour);
+            let e = godin_edge(per_hour);
+            assert_eq!(e, (36.5 * per_hour).round() as usize);
+            for (k, v) in part.iter().enumerate().skip(e).take(b - a - 2 * e) {
+                assert!((v - whole[a + k]).abs() < 1e-9, "per_hour {per_hour} k {k}");
+            }
+            // Inside the edge it is not the tidal mean (the held value differs).
+            assert!((part[e / 2] - whole[a + e / 2]).abs() > 1e-6);
+        }
+    }
 
     #[test]
     fn a_gap_makes_only_its_own_windows_missing() {

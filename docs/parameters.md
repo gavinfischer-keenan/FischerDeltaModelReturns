@@ -292,7 +292,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/bay.py:48](../python/fdmr_runner/bay.py#L48) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/bay.py:50](../python/fdmr_runner/bay.py#L50) | `ANOMALY_H` | `72` | Hours before the forecast's end over which the extension's non-tidal offset is taken. |
 | [python/fdmr_runner/bay.py:52](../python/fdmr_runner/bay.py#L52) | `MESH_VERSION` | `2` | Raised whenever the coarsening changes, so meshes and hours made the old way are made again. |
-| [python/fdmr_runner/bay.py:354](../python/fdmr_runner/bay.py#L354) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
+| [python/fdmr_runner/bay.py:356](../python/fdmr_runner/bay.py#L356) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
 | [python/fdmr_runner/calibrate.py:39](../python/fdmr_runner/calibrate.py#L39) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
 | [python/fdmr_runner/calibrate.py:49](../python/fdmr_runner/calibrate.py#L49) | `MIN_PAIR_M` | `40_000` | m: a tracer pair at least this far apart, or weather swamps its travel time (below; FDMR's choice) |
 | [python/fdmr_runner/calibrate.py:50](../python/fdmr_runner/calibrate.py#L50) | `MIN_COVER` | `0.25` | a pair corrects only segments it covers at least this share of |
@@ -318,7 +318,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/geometry.py:38](../python/fdmr_runner/geometry.py#L38) | `JOIN_AFTER_M` | `500` | a tributary joins no nearer its own start than this, m |
 | [python/fdmr_runner/geometry.py:39](../python/fdmr_runner/geometry.py#L39) | `JOIN_WITHIN_M` | `150` | it joins where it comes within this of the reach's centreline, m |
 | [python/fdmr_runner/handoff.py:43](../python/fdmr_runner/handoff.py#L43) | `STEP_DEG` | `0.0002` | sample channel lines about every 20 m to find where they enter the mesh |
-| [python/fdmr_runner/isohaline.py:31](../python/fdmr_runner/isohaline.py#L31) | `KM_PER_DEG_LAT` | `111.195` | mean Earth radius 6371 km |
+| [python/fdmr_runner/isohaline.py:33](../python/fdmr_runner/isohaline.py#L33) | `KM_PER_DEG_LAT` | `111.195` | mean Earth radius 6371 km |
 | [python/fdmr_runner/land.py:37](../python/fdmr_runner/land.py#L37) | `MATCH_S` | `600` | a band and its airport count as the same pass within this |
 | [python/fdmr_runner/land.py:38](../python/fdmr_runner/land.py#L38) | `POINT_SPACING_M` | `200.0` | centreline points kept for the bands, about this far apart |
 | [python/fdmr_runner/land.py:44](../python/fdmr_runner/land.py#L44) | `DAY_HOURS` | `(8, 17)` | Local solar hours counted as day and as night when comparing the land's temperature with the airport's (FDMR's choice: well clear of the hours around sunrise and sunset, when the land heats and cools fastest). from 08:00 to 17:00 local solar time |
@@ -370,7 +370,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/dsm2/fields.py:36](../python/fdmr_plugins/dsm2/fields.py#L36) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_plugins/dsm2/fields.py:38](../python/fdmr_plugins/dsm2/fields.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/dsm2/grid.py:17](../python/fdmr_plugins/dsm2/grid.py#L17) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
-| [python/fdmr_plugins/dsm2/study.py:54](../python/fdmr_plugins/dsm2/study.py#L54) | `RAIN_SEASON` | `(12, 1, 2, 3)` | months whose island returns are rain running off |
+| [python/fdmr_plugins/dsm2/study.py:60](../python/fdmr_plugins/dsm2/study.py#L60) | `RAIN_SEASON` | `(12, 1, 2, 3)` | months whose island returns are rain running off |
 | [python/fdmr_plugins/dsm2/temperature.py:38](../python/fdmr_plugins/dsm2/temperature.py#L38) | `MPH` | `3600 / 1609.344` | m/s to mph |
 | [python/fdmr_plugins/dsm2/temperature.py:39](../python/fdmr_plugins/dsm2/temperature.py#L39) | `INHG` | `1 / 33.8639` | hPa to inches of mercury |
 | [python/fdmr_plugins/fvcom/correct.py:33](../python/fdmr_plugins/fvcom/correct.py#L33) | `MIN_H` | `0.5` | m: shoals that dry still pass a little water |
@@ -444,6 +444,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [crates/fdmr-math/src/dispersion.rs:50](../crates/fdmr-math/src/dispersion.rs#L50) | `ELDER_LATERAL` | `0.23` | Elder's lateral mixing coefficient as Fischer adopts it for rivers, ε = 0.23 d u* (Fischer 1966, [fischer1966](references.md#fischer1966), section II-F, eq. 23). |
 | [crates/fdmr-math/src/dispersion.rs:77](../crates/fdmr-math/src/dispersion.rs#L77) | `DEAD_ZONE_EXCHANGE` | `1.0e-5` | [vanmazijk1996](references.md#vanmazijk1996), section 4.4). The rate sets only the cloud's shape (how long its tail is), not its lag. Empirical (FDMR): fitted on one measured cloud and judged on another branch's, held out (`tools/validation/rhine_dye/simulate.py`). |
 | [crates/fdmr-math/src/salinity.rs:10](../crates/fdmr-math/src/salinity.rs#L10) | `SEAWATER_SC` | `53_087.0` | Conductivity of standard seawater (salinity 35) at 25 °C, µS/cm. |
+| [crates/fdmr-math/src/signal.rs:150](../crates/fdmr-math/src/signal.rs#L150) | `GODIN_HOURS` | `[24.0, 24.0, 25.0]` | Godin's three running means, h (Godin 1972, [godin1972](references.md#godin1972)). |
 | [ui/src/compute/worker.ts:113](../ui/src/compute/worker.ts#L113) | `PARCELS_PER_RELEASE` | `20_000` |  |
 | [ui/src/compute/worker.ts:118](../ui/src/compute/worker.ts#L118) | `PARTICLES_PER_KM2` | `8` | Flow particles per km² of water surface, the same in every reach reach, so that the water looks the same on both sides of a join: before 26 Nov 2026 the Delta's channels held about six times the Bay's density and its particles ran into the Bay's sparse field in single file. |
 | [ui/src/compute/worker.ts:122](../ui/src/compute/worker.ts#L122) | `MIN_COUNTED_WIDTH_M` | `100` | In particle numbers, a channel counts as at least this wide, m, so that the narrow sloughs still show their water moving (issue #3). Drawn, its particles still sit within its own width. |

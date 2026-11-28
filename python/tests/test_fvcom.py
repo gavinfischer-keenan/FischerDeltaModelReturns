@@ -228,3 +228,22 @@ def test_the_flow_across_a_meshs_edges_is_velocity_times_length_times_depth():
         h = (c.depth[a] + d["level"][a] + c.depth[b] + d["level"][b]) / 2
         old += (u * nxx + v * nyy) * max(h, 0.0)
     assert q[1] == old
+
+
+def test_a_tidal_mean_compared_as_one_has_no_held_ends():
+    # #71: within 36.5 h of either end no full tidal window fits; there the
+    # values are missing, not the nearest full-window value held.
+    import fdmr_py
+
+    from fdmr_plugins.fvcom.correct import tidal_mean
+
+    t = np.arange(24 * 4 * 10) / 4.0  # ten days at four an hour
+    x = 50 + 20 * np.sin(2 * np.pi * t / 12.42) + t / 10
+    held, missing = tidal_mean(x, 4.0), tidal_mean(x, 4.0, edges="missing")
+    e = fdmr_py.godin_edge(4.0)
+    assert e == 146  # 36.5 hours
+    assert np.isnan(missing[:e]).all() and np.isnan(missing[-e:]).all()
+    assert np.isfinite(missing[e:-e]).all()
+    assert np.array_equal(missing[e:-e], held[e:-e])
+    with pytest.raises(ValueError):
+        tidal_mean(x, 4.0, edges="trimmed")

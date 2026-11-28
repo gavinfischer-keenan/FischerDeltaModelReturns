@@ -19,14 +19,20 @@ node's returns in the reference year's rain season (December to March), when
 returns are runoff; in the irrigation season they are drainage from the
 farms, gathered in a few places. Where it is drier, the extra use goes to
 each node in proportion to its uses over the run.
+
+A run may also change how its flooded islands' openings pass water
+(`reservoir_out_ratio`): for each named reservoir, every connection's outflow
+coefficient becomes that ratio times its inflow coefficient. Only the run's
+own copy of DWR's reservoir grid file is changed, and the main file includes
+that copy instead (`with_reservoir_ratio`).
 """
 
 from __future__ import annotations
 
 import subprocess
 import time
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -136,6 +142,36 @@ class RunSettings:
     # read a long temp_dir (27 Nov 2026). On a machine whose /tmp is memory,
     # a folder on disk (#36).
     temp_dir: str = "/tmp"
+    # For each named reservoir, its connections' outflow coefficient as a
+    # ratio of the inflow one (DSM2's COEF_OUT / COEF_IN); none: DWR's as given.
+    reservoir_out_ratio: Mapping[str, float] = field(default_factory=dict)
+
+
+def with_reservoir_ratio(text: str, out_ratio: Mapping[str, float]) -> tuple[str, list[dict]]:
+    """A reservoir grid file with each named reservoir's connections' COEF_OUT
+    set to its ratio times COEF_IN, and the rows changed. DSM2 takes the
+    flow out of a reservoir as COEF_OUT sqrt(2 g dz) and the flow in as
+    COEF_IN sqrt(2 g dz) (hydrolib/reservoirs.f90), so the ratio is the share
+    of the inflow conductance the outflow keeps."""
+    out, inside, changed = [], False, []
+    for line in text.splitlines():
+        s = inp.strip_comment(line).strip()
+        if s.upper() == "RESERVOIR_CONNECTION":
+            inside = True
+        elif s.upper() == "END":
+            inside = False
+        parts = s.split()
+        if inside and len(parts) == 4 and parts[0] in out_ratio:
+            name, node, cin, cout = parts
+            new = round(float(cin) * out_ratio[name], 3)
+            changed.append({"reservoir": name, "node": int(node), "coef_in": float(cin),
+                            "coef_out_dwr": float(cout), "coef_out": new})
+            line = f"{name:<22} {node:>5} {cin:>10} {new:>10g}    # COEF_OUT was {cout}: {out_ratio[name]} x COEF_IN (fdmr)"
+        out.append(line)
+    missing = set(out_ratio) - {c["reservoir"] for c in changed}
+    if missing:
+        raise ValueError(f"no connections found for reservoirs {sorted(missing)}")
+    return "\n".join(out) + "\n", changed
 
 
 def same_day_in(year: int, t: int) -> int:
@@ -237,6 +273,27 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
         if main.startswith("qual"):
             text = with_hdf5_output(text, f"${{DSM2OUTPUTDIR}}/{Path(main).stem}.h5")
         (run_dir / main).write_text(text, encoding="utf-8")
+    reservoirs: list[dict] = []
+    if settings.reservoir_out_ratio:
+        # The run's own copy of the grid file holding the reservoir connections.
+        for main in settings.mains:
+            text = (run_dir / main).read_text(encoding="utf-8")
+            for key, _, rows in inp.blocks(text):
+                if key != "GRID":
+                    continue
+                for (token,) in (r for r in rows if len(r) == 1):
+                    src = Path(inp.expand(token, env_dwr))
+                    src = src if src.is_absolute() else (settings.study / src).resolve()
+                    if "RESERVOIR_CONNECTION" not in src.read_text(encoding="utf-8", errors="replace").upper():
+                        continue
+                    new_text, reservoirs = with_reservoir_ratio(src.read_text(encoding="utf-8", errors="replace"),
+                                                                settings.reservoir_out_ratio)
+                    copy = run_dir / src.name
+                    copy.write_text(new_text, encoding="utf-8")
+                    text = text.replace(token, str(copy), 1)
+            (run_dir / main).write_text(text, encoding="utf-8")
+        if not reservoirs:
+            raise ValueError("reservoir_out_ratio is set but no main file includes a reservoir grid file")
     env_run = {**env_dwr, **{k: v for k, v in inp.envvars((run_dir / "config.inp").read_text(encoding="utf-8")).items()}}
 
     # Every series the run reads from a replaced file.
@@ -332,6 +389,7 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
     if missing:
         raise ValueError(f"live series not used by the study: {missing}")
     return {"live": sorted(used), "reference_year": len(filled), "files": {k: new[k] for k in settings.replace}, "env": env_dwr,
+            "reservoirs": reservoirs,
             "depletion": {"series": len(held), "days": sum(1 for c in depletion_change if c != 0.0),
                           "change": depletion_change, "start": t0 - 86_400}}
 

@@ -109,6 +109,12 @@ fn godin(x: Vec<f64>, per_hour: f64) -> Vec<f64> {
     fdmr_math::signal::godin(&x, per_hour)
 }
 
+/// How many samples at each end `godin` cannot fully average (`fdmr_math::signal::godin_edge`).
+#[pyfunction]
+fn godin_edge(per_hour: f64) -> usize {
+    fdmr_math::signal::godin_edge(per_hour)
+}
+
 /// `shear_velocity` for every depth at once (one slope), m/s.
 #[pyfunction]
 fn shear_velocities(depths: Vec<f64>, slope: f64) -> Vec<f64> {
@@ -237,6 +243,7 @@ fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(shear_velocities, m)?)?;
     m.add_function(wrap_pyfunction!(fischer_ks, m)?)?;
     m.add_function(wrap_pyfunction!(godin, m)?)?;
+    m.add_function(wrap_pyfunction!(godin_edge, m)?)?;
     // Elder's lateral mixing coefficient, as the engine uses it: written once (#70).
     m.add("ELDER_LATERAL", dispersion::ELDER_LATERAL)?;
     m.add_function(wrap_pyfunction!(fickian_distance, m)?)?;

@@ -442,7 +442,8 @@ Checked: Open Library ISBN record and library catalogue records, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/series.rs:69`: A copy with every field tidally filtered (Godin's filter, ref:godin1972), element by
-- `crates/fdmr-math/src/signal.rs:152`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
+- `crates/fdmr-math/src/signal.rs:149`: Godin's three running means, h (Godin 1972, ref:godin1972).
+- `crates/fdmr-math/src/signal.rs:161`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
 - `crates/fdmr-py/src/lib.rs:104`: Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal
 - `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).
 - `python/fdmr_runner/delta.py:359`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
@@ -567,8 +568,8 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/fvcom/correct.py:284`: the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
-- `python/fdmr_runner/bay.py:505`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
+- `python/fdmr_plugins/fvcom/correct.py:297`: the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
+- `python/fdmr_runner/bay.py:507`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
 
 ## kurobe2022
 

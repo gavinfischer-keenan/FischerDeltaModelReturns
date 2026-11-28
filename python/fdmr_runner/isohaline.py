@@ -11,7 +11,9 @@ along the chain.
 
 The field (such as specific conductance) is tidally averaged per channel with
 Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
-definition requires. Walking up the axis from the sea, the position is where
+definition requires. Where a full tidal window does not fit (within 36.5 hours
+of the record's ends, or of a gap in it) a channel's value is missing, never
+an unaveraged or held one, so X2 there is missing (#71). Walking up the axis from the sea, the position is where
 the field first falls below the threshold, interpolated linearly between the
 two channels either side. Where even the seaward end is below the threshold,
 or the landward end above it, the position is outside the axis and is given as
@@ -158,12 +160,6 @@ def crossing(km: np.ndarray, values: np.ndarray, threshold: float) -> tuple[floa
     return None, "landward"
 
 
-def _runs(ok: np.ndarray) -> list[tuple[int, int]]:
-    """(start, end) of each run of True in `ok`."""
-    edges = np.diff(np.concatenate([[0], ok.astype(np.int8), [0]]))
-    return list(zip(np.nonzero(edges == 1)[0], np.nonzero(edges == -1)[0]))
-
-
 def series(axis: Axis, day_files: list[Path], field: str, threshold: float, every_s: int = 3600) -> dict:
     """The isohaline's position from a network reach's water-quality day files:
     {"t0", "step_s", "km": [...], "outside": [...]} every `every_s` seconds,
@@ -187,12 +183,12 @@ def series(axis: Axis, day_files: list[Path], field: str, threshold: float, ever
     for d0, _, k, v in days:
         if v is not None:
             x[(d0 - t0) // step:(d0 - t0) // step + k] = v
-    # Tidally averaged channel by channel, each unbroken run of values on its
-    # own: a gap is never filled with unaveraged values (#71).
+    # Tidally averaged channel by channel: a gap makes only the windows it
+    # falls in missing, and the record's ends, where no full window fits, are
+    # missing too, never held (#71).
     m = np.full(x.shape, np.nan)
     for j in range(x.shape[1]):
-        for a, b in _runs(np.isfinite(x[:, j])):
-            m[a:b, j] = tidal_mean(x[a:b, j], 3600 / step)
+        m[:, j] = tidal_mean(x[:, j], 3600 / step, edges="missing")
     every = max(1, every_s // step)
     first = (-t0) % every_s // step  # on the whole hour
     kms, outside = [], []

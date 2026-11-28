@@ -121,16 +121,29 @@ def running_mean(x: np.ndarray, w: int) -> np.ndarray:
     return m
 
 
-def tidal_mean(x: np.ndarray, per_hour: float) -> np.ndarray:
+def tidal_mean(x: np.ndarray, per_hour: float, edges: str = "held") -> np.ndarray:
     """The subtidal part of a series sampled `per_hour` times an hour: Godin's
     filter, running means over 24, 24 and 25 hours in turn, which takes out the
     diurnal and semidiurnal tides far more cleanly than one long running mean
     (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).
     The engine's own (fdmr_math::signal::godin, through fdmr_py), so the
-    published net flows and the browser's agree (#70)."""
+    published net flows and the browser's agree (#70).
+
+    Within 36.5 hours of either end (fdmr_py.godin_edge) a full tidal window
+    does not fit, and the nearest full-window value is held. With
+    `edges="missing"` those values are NaN instead: for any series compared or
+    published as a tidal mean (#71). A missing value inside the series makes
+    only the windows it falls in missing."""
     import fdmr_py
 
-    return np.asarray(fdmr_py.godin(np.asarray(x, dtype=float).tolist(), float(per_hour)), dtype=float)
+    m = np.asarray(fdmr_py.godin(np.asarray(x, dtype=float).tolist(), float(per_hour)), dtype=float)
+    if edges == "missing":
+        e = min(int(fdmr_py.godin_edge(float(per_hour))), len(m))
+        m[:e] = np.nan
+        m[len(m) - e:] = np.nan
+    elif edges != "held":
+        raise ValueError(f"edges must be 'held' or 'missing', not {edges!r}")
+    return m
 
 
 def match_crossings(coarse, join_edges: list[list[int]], open_edges: list[list[int]], cxy: np.ndarray, data: dict,

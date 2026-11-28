@@ -372,12 +372,13 @@ def net_check(store: Store, run_dir: Path, c: dict, start: int, end: int) -> dic
         t0 = tidefile_start(flow.attrs["start_time"][0])
         q = flow[:, nums.index(c["channel"]), :].mean(axis=1) / TO_DSS["CFS"]  # every 5 minutes
     tq = t0 + 300 * np.arange(len(q))
-    qf = tidal_mean(q, 12.0)
+    qf = tidal_mean(q, 12.0, edges="missing")  # no held ends in a compared mean (#71)
     days = range(start, end - DAY + 1, DAY)
     rows = []
     for d in days:
         sel = (tq >= d) & (tq < d + DAY)
-        model = float(qf[sel].mean()) if sel.sum() >= 12 * 18 else None
+        ok = sel & np.isfinite(qf)
+        model = float(qf[ok].mean()) if ok.sum() >= 12 * 18 else None
         vs = [v for v in store.values(c["source"], c["site"], c["parameter"], d, d + DAY - 1) if v.value is not None]
         if c.get("duration") == "D":
             meas = vs[0].value if vs else None
