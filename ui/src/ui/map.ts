@@ -184,18 +184,19 @@ export function drawFrame(
   const pts: GeoJSON.Feature[] = [];
   // Each flow particle's colour from the layer (layers.ts), faded with certainty.
   const coloured = f.layer !== "plain" && f.layer !== "contaminant";
-  const paint = (value?: Float32Array, shares?: Float32Array) => (i: number): string | undefined => {
+  // Each reach's particles fade by that reach's own certainty (#60).
+  const paint = (value?: Float32Array, shares?: Float32Array, certainty: number = f.certainty) => (i: number): string | undefined => {
     if (!coloured) return undefined;
     const c = f.layer === "source" ? (shares ? blend(f.sources, shares, i) : undefined) : colour(f.layer, value ? value[i] : NaN);
-    return c && fade(c, f.certainty);
+    return c && fade(c, certainty);
   };
   // The main river and every other river reach, the same way.
-  const rivers: [Reach, Pick<Frame, "particleX" | "particleLateral" | "particleSpeed" | "parcelX" | "parcelConcentration" | "particleValue" | "particleShares">][] = [
+  const rivers: [Reach, Pick<Frame, "particleX" | "particleLateral" | "particleSpeed" | "parcelX" | "parcelConcentration" | "particleValue" | "particleShares" | "certainty">][] = [
     [reach, f],
     ...f.lines.flatMap((lf) => (lines.has(lf.id) ? [[lines.get(lf.id)!, lf] as [Reach, typeof lf]] : [])),
   ];
   for (const [r, rf] of rivers) {
-    const col = paint(rf.particleValue, rf.particleShares);
+    const col = paint(rf.particleValue, rf.particleShares, rf.certainty);
     for (let i = 0; i < rf.particleX.length; i++) {
       pts.push({
         type: "Feature",
@@ -207,7 +208,7 @@ export function drawFrame(
   for (const nf of f.networks) {
     const net = nets.find((x) => x.id === nf.id);
     if (!net) continue;
-    const netCol = paint(nf.particleValue, nf.particleShares);
+    const netCol = paint(nf.particleValue, nf.particleShares, nf.certainty);
     for (let i = 0; i < nf.particleElement.length; i++) {
       const e = nf.particleElement[i];
       if (net.hidden.has(e)) continue; // another reach shows that water
@@ -222,7 +223,7 @@ export function drawFrame(
   for (const mf of f.meshes) {
     const mesh = meshes.find((x) => x.id === mf.id);
     if (!mesh) continue;
-    const meshCol = paint(mf.particleValue, mf.particleShares);
+    const meshCol = paint(mf.particleValue, mf.particleShares, mf.certainty);
     for (let i = 0; i < mf.particleTriangle.length; i++) {
       pts.push({
         type: "Feature",

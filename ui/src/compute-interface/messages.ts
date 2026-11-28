@@ -37,6 +37,8 @@ export type Request = { seq?: number } & (
  * out as the main river's fields in Frame. */
 export interface LineFrame {
   id: string;
+  /** This reach's own certainty at the frame's time (specification 8.2). */
+  certainty: number;
   particleX: Float64Array;
   particleLateral: Float32Array;
   particleSpeed: Float64Array;
@@ -51,6 +53,8 @@ export interface LineFrame {
  * upstream junction. */
 export interface NetworkFrame {
   id: string;
+  /** This reach's own certainty at the frame's time (specification 8.2). */
+  certainty: number;
   /** Each channel's mean velocity, m/s, positive downstream. */
   velocity: Float32Array;
   particleElement: Uint32Array;
@@ -71,6 +75,8 @@ export interface NetworkFrame {
  * two barycentric weights (for its second and third nodes), two per thing. */
 export interface MeshFrame {
   id: string;
+  /** This reach's own certainty at the frame's time (specification 8.2). */
+  certainty: number;
   particleTriangle: Uint32Array;
   particleWeights: Float32Array;
   /** Speed of each flow particle, m/s. */
@@ -102,7 +108,9 @@ export interface Frame {
   /** Every reach together, kg: [released so far, in the water, past the end of
    * the last reach, broken down, taken by the pumps, taken by other diversions,
    * out of a network at its sea boundary, out of a mesh to the open ocean,
-   * in the export canals so far, carried on down the canals beyond the map].
+   * in the export canals so far, carried on down the canals beyond the map,
+   * bound to sediment and settled on a network's bed, lost at a join between
+   * reaches (handed on where no reach could take it)]: 12 slots.
    * Mass handed from one reach to the next is counted once. */
   massBalance: Float64Array;
   /** Certainty of the flow at this moment, 1 down toward 0 (specification 8.2). */

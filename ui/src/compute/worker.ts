@@ -21,7 +21,7 @@ interface ReachEntry {
   certainty: number[];
   network?: boolean;
   dims?: number;
-  time?: { days: string[] };
+  time?: { days: string[]; start?: string; step_s?: number };
   quality_fields?: string[];
   /** A network reach with a sediment run: the mud's settling velocity (#16). */
   sediment?: { settling_velocity_m_s: number };
@@ -181,6 +181,9 @@ let riverId = "river";
 /** Mass passed into another reach since the engines were built, kg: counted
  * there as released, so taken off the total once. */
 let handedIn = 0;
+// Mass handed to a reach that could not take it (no reach there, or no place
+// at the join): kept on the books as "lost at a join", never dropped (#60).
+let lostAtJoin = 0;
 
 interface Net {
   id: string;
@@ -361,9 +364,13 @@ async function loadLine(cycle: string, id: string): Promise<void> {
 function handOut(from: string, out: Float64Array | number[]): boolean {
   const h = index?.handoffs?.find((k) => k.from === from && (k.node !== undefined || k.at_m !== undefined));
   if (!h) return false;
+  const lose = () => {
+    for (let i = 0; i + 2 < out.length; i += 3) lostAtJoin += out[i + 1];
+    return false;
+  };
   if (h.at_m !== undefined) {
     const to = h.to === riverId ? engine : lines.find((l) => l.id === h.to)?.engine;
-    if (!to) return false;
+    if (!to) return lose();
     for (let i = 0; i + 2 < out.length; i += 3) {
       to.add_release(h.at_m, out[i], 0, out[i + 1], out[i + 2], 1);
       handedIn += out[i + 1];
@@ -372,7 +379,7 @@ function handOut(from: string, out: Float64Array | number[]): boolean {
   }
   const net = nets.find((n) => n.id === h.to && n.engine);
   const c = net?.entries.get(from);
-  if (!net || c === undefined) return false;
+  if (!net || c === undefined) return lose();
   for (let i = 0; i + 2 < out.length; i += 3) {
     net.engine!.add_release(c, 0, net.topo.length[c], out[i], 0, out[i + 1], out[i + 2], 1);
     handedIn += out[i + 1];
@@ -587,6 +594,7 @@ function build(t: number): void {
     m.engine = me;
   }
   handedIn = 0;
+  lostAtJoin = 0;
   run(t);
   e.seed_flow_particles(particles);
   for (const l of lines) l.engine!.seed_flow_particles(l.count);
@@ -628,11 +636,14 @@ function run(to: number): void {
           if (to?.engine) {
             to.engine.take_parcel(o.node, h[i + 3], h[i + 4]);
             handedIn += h[i + 3];
+          } else {
+            lostAtJoin += h[i + 3];
           }
           continue;
         }
         const at = crossingOut(net, h[i] === JUNCTION ? h[i + 1] : -1, h[i] === CUT ? h[i + 1] : -1);
         if (at && at.mesh.engine!.take_parcel(at.x, at.y, h[i + 3], h[i + 2], h[i + 4])) handedIn += h[i + 3];
+        else lostAtJoin += h[i + 3];
       }
     }
     // Meshes on, then back into the networks at the nearest crossing of the join.
@@ -641,7 +652,10 @@ function run(to: number): void {
       const h = m.engine!.take_handed(); // (handoff id, x, y, time, mass, half-life) ...
       for (let i = 0; i + 5 < h.length; i += 6) {
         const back = crossingIn(m, h[i], h[i + 1], h[i + 2]);
-        if (!back) continue;
+        if (!back) {
+          lostAtJoin += h[i + 4];
+          continue;
+        }
         if (back.cut !== null) back.net.engine!.take_parcel_at_cut(back.cut, h[i + 4], h[i + 5]);
         else back.net.engine!.take_parcel(back.node!, h[i + 4], h[i + 5]);
         handedIn += h[i + 4];
@@ -753,6 +767,17 @@ function certaintyAt(t: number): number {
   return certainty[i] ?? 1;
 }
 
+/** A reach's own certainty at time t, on its own time axis (format 1.1: the
+ * Delta's and the Bay's are their own), so each reach fades by its own (#60). */
+function reachCertainty(id: string, t: number): number {
+  const r = index?.reaches.find((x) => x.id === id);
+  if (!r?.certainty?.length) return certaintyAt(t);
+  const t0 = r.time?.start ? epoch(r.time.start) : start;
+  const st = r.time?.step_s ?? step;
+  const i = Math.max(0, Math.min(r.certainty.length - 1, Math.round((t - t0) / st)));
+  return r.certainty[i] ?? 1;
+}
+
 /** The three tiers of section 3.4, as in fdmr-math's certainty::words. */
 function words(c: number, t: number): Words {
   if (t <= now) return "measured";
@@ -762,8 +787,9 @@ function words(c: number, t: number): Words {
 /** Every reach's mass balance together (see Frame.massBalance). Mass passed
  * from one reach to another is counted as released once. */
 function combinedBalance(networks: NetworkFrame[], meshFrames: MeshFrame[]): Float64Array {
-  const out = new Float64Array(11);
+  const out = new Float64Array(12);
   out[0] = -handedIn;
+  out[11] = lostAtJoin;
   const rivers: [string, Engine][] = [[riverId, engine!], ...lines.filter((l) => l.engine).map((l): [string, Engine] => [l.id, l.engine!])];
   for (const [id, e] of rivers) {
     const [released, inWater, past, decayed] = e.mass_balance();
@@ -877,6 +903,7 @@ function frame(seq?: number): void {
       const e = n.engine!;
       return {
         id: n.id,
+        certainty: reachCertainty(n.id, t),
         velocity: e.velocities(),
         particleElement: e.particle_element(),
         particleFraction: e.particle_fraction(),
@@ -893,6 +920,7 @@ function frame(seq?: number): void {
       const e = m.engine!;
       return {
         id: m.id,
+        certainty: reachCertainty(m.id, t),
         particleTriangle: e.particle_triangle(),
         particleWeights: e.particle_weights(),
         particleSpeed: e.particle_speed(),
@@ -909,6 +937,7 @@ function frame(seq?: number): void {
       const e = l.engine!;
       return {
         id: l.id,
+        certainty: reachCertainty(l.id, t),
         particleX: e.particle_x(),
         particleLateral: e.particle_lateral(),
         particleSpeed: e.particle_speed(),

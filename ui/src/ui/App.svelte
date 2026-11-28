@@ -35,7 +35,7 @@
   let playing = $state(false);
   let hoursPerSecond = $state(2);
   let t = $state(0);
-  let balance = $state<number[]>([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  let balance = $state<number[]>(new Array(12).fill(0)); // the slots of Frame.massBalance
   let fickianM = $state<number | null>(null);
   const LAYERS: Layer[] = ["plain", "contaminant", "speed", "temperature", "salinity", "sediment", "level", "source"];
   let layer = $state<Layer>("plain");
@@ -410,6 +410,7 @@
           {#if balance[6] > 0} · {text.mass_to_sea}: {balance[6].toFixed(1)} kg{/if}
           {#if balance[7] > 0} · {text.mass_to_ocean}: {balance[7].toFixed(1)} kg{/if}
           {#if balance[10] > 0} · {text.mass_on_bed}: {balance[10].toFixed(1)} kg{/if}
+          {#if balance[11] > 0} · {text.mass_lost_at_join}: {balance[11].toFixed(1)} kg{/if}
           {#if balance[2] > 0} · {text.mass_past_end}: {balance[2].toFixed(1)} kg{/if}
           · {text.mass_decayed}: {balance[3].toFixed(1)} kg
         </div>

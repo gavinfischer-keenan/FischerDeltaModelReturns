@@ -116,5 +116,6 @@
   "overlay_landmarks": "Landmarks",
   "release_kd": "Sticks to sediment (partition coefficient Kd, L/kg; blank for dissolved; the Delta only)",
   "mass_on_bed": "Settled on the bed with the mud",
-  "fickian_note": "The cloud spreads by the river's shear and its mixing across the channel: from about {km} km below this release it settles into Fischer's even spreading; nearer, it is drawn out and lopsided (Fischer 1966)"
+  "fickian_note": "The cloud spreads by the river's shear and its mixing across the channel: from about {km} km below this release it settles into Fischer's even spreading; nearer, it is drawn out and lopsided (Fischer 1966)",
+  "mass_lost_at_join": "lost at a join between reaches"
 }
