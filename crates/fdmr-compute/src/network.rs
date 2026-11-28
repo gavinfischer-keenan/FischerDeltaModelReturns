@@ -21,6 +21,7 @@ use std::collections::HashMap;
 
 use fdmr_math::{decay, parcel, rng::Rng};
 
+use crate::particles::{FlowParticles, NetFlow};
 use crate::{series::Series, MAX_DT};
 
 /// How the network is joined. Junctions and pools are indices from 0.
@@ -173,16 +174,13 @@ pub struct NetworkTracer {
     links: Series,
     /// Tidally filtered copies of the channel, junction and link files, which
     /// the flow particles move on in net-flow mode; built by `set_net_flow`.
-    net: Option<[Series; 3]>,
-    net_on: bool,
+    net: NetFlow<[Series; 3]>,
     dispersion: f64,
     time: f64,
     rng: Rng,
     parcels: Vec<Parcel>,
-    particles: Vec<Place>,
-    /// Each flow particle's age and life, s (`crate::PARTICLE_LIFE_S`).
-    ages: Vec<f64>,
-    lives: Vec<f64>,
+    /// The flow particles: each one's place, age and life, s (`crate::PARTICLE_LIFE_S`).
+    flow: FlowParticles<Place>,
     /// Flow particles passed to another reach: the junction each reached.
     handed_particles: Vec<Via>,
     balance: NetBalance,
@@ -251,15 +249,12 @@ impl NetworkTracer {
             nodes: Series::default(),
             quality: Series::default(),
             links: Series::default(),
-            net: None,
-            net_on: false,
+            net: NetFlow::default(),
             dispersion,
             time: start_time,
             rng: Rng::new(seed),
             parcels: Vec::new(),
-            particles: Vec::new(),
-            ages: Vec::new(),
-            lives: Vec::new(),
+            flow: FlowParticles::default(),
             handed_particles: Vec::new(),
             balance: NetBalance::default(),
             handed_channel: Vec::new(),
@@ -329,9 +324,9 @@ impl NetworkTracer {
     /// for one not in a pool with mapped water.
     #[must_use]
     pub fn particle_pool_positions(&self) -> Vec<(f64, f64)> {
-        (0..self.particles.len())
+        (0..self.flow.len())
             .map(
-                |i| match (self.particles[i], self.pool_at.get(i).copied().flatten()) {
+                |i| match (self.flow.places[i], self.pool_at.get(i).copied().flatten()) {
                     (Place::Pool(q), Some((p, x, y))) if p == q => self.pool_water[q]
                         .as_ref()
                         .map_or((f64::NAN, f64::NAN), |w| w.lonlat(x, y)),
@@ -344,9 +339,9 @@ impl NetworkTracer {
     /// Move each pool particle over its pool's water by `dt` s; a particle new
     /// to a pool starts anywhere on it.
     fn drift_in_pools(&mut self, dt: f64) {
-        self.pool_at.resize(self.particles.len(), None);
-        for i in 0..self.particles.len() {
-            let Place::Pool(q) = self.particles[i] else {
+        self.pool_at.resize(self.flow.len(), None);
+        for i in 0..self.flow.len() {
+            let Place::Pool(q) = self.flow.places[i] else {
                 self.pool_at[i] = None;
                 continue;
             };
@@ -465,13 +460,7 @@ impl NetworkTracer {
         let Some(place) = self.at_cut(k) else {
             return false;
         };
-        let Some(i) = crate::oldest(&self.ages, &self.lives) else {
-            return false;
-        };
-        self.particles[i] = place;
-        self.ages[i] = 0.0;
-        self.lives[i] = crate::particle_life(&mut self.rng);
-        true
+        self.flow.take_in(&mut self.rng, |_| place)
     }
 
     /// Parcels passed to another reach since the last call.
@@ -506,13 +495,7 @@ impl NetworkTracer {
         let Some(place) = self.entry(node) else {
             return false;
         };
-        let Some(i) = crate::oldest(&self.ages, &self.lives) else {
-            return false;
-        };
-        self.particles[i] = place;
-        self.ages[i] = 0.0;
-        self.lives[i] = crate::particle_life(&mut self.rng);
-        true
+        self.flow.take_in(&mut self.rng, |_| place)
     }
 
     /// Flow particles passed to another reach since the last call: the junction each reached.
@@ -573,7 +556,7 @@ impl NetworkTracer {
     /// # Errors
     /// If the file is not a network channel file for this topology.
     pub fn load_channels(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
-        self.net = None;
+        self.net.invalidate();
         self.channels
             .load_day(bytes, &["flow_up", "flow_down", "area"])?;
         if self.channels.elements != self.topo.up.len() {
@@ -589,7 +572,7 @@ impl NetworkTracer {
     /// # Errors
     /// If the file is not a junction file for this topology.
     pub fn load_nodes(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
-        self.net = None;
+        self.net.invalidate();
         self.nodes
             .load_day(bytes, &["export", "withdrawal", "volume"])?;
         if self.nodes.elements != self.topo.nodes + self.topo.pools {
@@ -661,7 +644,7 @@ impl NetworkTracer {
     /// # Errors
     /// If the file is not a link file for this topology.
     pub fn load_links(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
-        self.net = None;
+        self.net.invalidate();
         self.links.load_day(bytes, &["flow"])?;
         if self.links.elements != self.topo.link_pool.len() {
             return Err(FormatError::Invalid(
@@ -796,14 +779,9 @@ impl NetworkTracer {
     /// always move with the real, instant flow. The filtered copies are built
     /// on first use and again after more days are loaded.
     pub fn set_net_flow(&mut self, on: bool) {
-        self.net_on = on;
-        if on && self.net.is_none() {
-            self.net = Some([
-                self.channels.tidal_mean(),
-                self.nodes.tidal_mean(),
-                self.links.tidal_mean(),
-            ]);
-        }
+        let (c, n, l) = (&self.channels, &self.nodes, &self.links);
+        self.net
+            .set(on, || [c.tidal_mean(), n.tidal_mean(), l.tidal_mean()]);
     }
 
     /// The conditions the parcels move in: the real flow at `t`.
@@ -814,9 +792,9 @@ impl NetworkTracer {
     /// The conditions the flow particles move in: the real flow, or in
     /// net-flow mode the tidally filtered flow.
     fn particle_conditions(&self, t: f64) -> Option<Now> {
-        match (&self.net, self.net_on) {
-            (Some([c, n, l]), true) => self.conditions_in(t, c, n, l),
-            _ => self.conditions(t),
+        match self.net.active() {
+            Some([c, n, l]) => self.conditions_in(t, c, n, l),
+            None => self.conditions(t),
         }
     }
 
@@ -1085,7 +1063,7 @@ impl NetworkTracer {
                 }
                 self.parcels[i] = Parcel { place, mass, ..p };
             }
-            if self.net_on {
+            if self.net.is_on() {
                 if let Some(pnow) = self.particle_conditions(self.time + dt / 2.0) {
                     self.move_particles(dt, &pnow);
                 }
@@ -1134,25 +1112,22 @@ impl NetworkTracer {
     /// Move the flow particles `dt` s under the conditions at the current time,
     /// without advancing it (for "now": the water keeps moving, the clock does not).
     pub fn drift_frozen(&mut self, dt: f64) {
-        let mut left = dt;
-        while left > 0.0 {
-            let step = left.min(MAX_DT);
+        crate::particles::in_steps(dt, |step| {
             if let Some(now) = self.particle_conditions(self.time) {
                 self.move_particles(step, &now);
             }
-            left -= step;
-        }
+        });
     }
 
     fn move_particles(&mut self, dt: f64, now: &Now) {
-        for i in 0..self.particles.len() {
-            self.ages[i] += dt;
-            let p = self.advance(self.particles[i], dt, now, 0.0);
+        for i in 0..self.flow.len() {
+            let old = self.flow.age(i, dt);
+            let p = self.advance(self.flow.places[i], dt, now, 0.0);
             // A particle that leaves or has lived its life starts again
             // elsewhere. In a pool it stays, well mixed, until the water
             // carries it out (`advance`) or its life ends.
             let renew = match p {
-                Place::Channel(..) | Place::Pool(_) => self.ages[i] > self.lives[i],
+                Place::Channel(..) | Place::Pool(_) => old,
                 Place::Gone(fate) => {
                     if let Some(via) = fate.via() {
                         self.handed_particles.push(via);
@@ -1161,11 +1136,10 @@ impl NetworkTracer {
                 }
             };
             if renew {
-                self.particles[i] = self.random_place(now);
-                self.ages[i] = 0.0;
-                self.lives[i] = crate::particle_life(&mut self.rng);
+                let place = self.random_place(now);
+                self.flow.renew(i, place, &mut self.rng);
             } else {
-                self.particles[i] = p;
+                self.flow.places[i] = p;
             }
         }
         self.drift_in_pools(dt);
@@ -1232,25 +1206,12 @@ impl NetworkTracer {
 
     /// Seed `n` flow particles through the network, more where there is more water.
     pub fn seed_flow_particles(&mut self, n: usize) {
-        self.particles.clear();
-        self.ages.clear();
-        self.lives.clear();
+        self.flow = FlowParticles::default();
         let Some(now) = self.particle_conditions(self.time) else {
             return;
         };
-        for _ in 0..n {
-            let p = self.random_place(&now);
-            self.particles.push(p);
-        }
-        // Each part way through its life, so that they do not all start again at once.
-        self.lives = (0..n)
-            .map(|_| crate::particle_life(&mut self.rng))
-            .collect();
-        self.ages = self
-            .lives
-            .iter()
-            .map(|l| l * self.rng.uniform())
-            .collect::<Vec<_>>();
+        let places = (0..n).map(|_| self.random_place(&now)).collect();
+        self.flow.seed(places, &mut self.rng);
         self.handed_particles.clear();
         self.pool_at.clear();
         self.drift_in_pools(0.0);
@@ -1259,7 +1220,7 @@ impl NetworkTracer {
     /// Flow particles: channel index and position along it (0 at its upstream junction, 1 downstream).
     #[must_use]
     pub fn particles(&self) -> (Vec<u32>, Vec<f32>) {
-        self.places(self.particles.iter().copied())
+        self.places(self.flow.places.iter().copied())
     }
 
     /// Parcels in the water: channel index (pools follow the channels: channels + pool) and position.
@@ -1746,16 +1707,17 @@ mod tests {
         t.seed_flow_particles(300);
         // Seeded part way through their lives.
         assert!(t
+            .flow
             .ages
             .iter()
-            .zip(&t.lives)
+            .zip(&t.flow.lives)
             .all(|(a, l)| *a >= 0.0 && a <= l));
         t.step_to(10.0 * 3600.0);
         // Ten hours on, every one has started again at least once (lives are 3 to 9 h).
         assert!(
-            t.ages.iter().all(|a| *a < crate::PARTICLE_LIFE_S.1),
+            t.flow.ages.iter().all(|a| *a < crate::PARTICLE_LIFE_S.1),
             "{:?}",
-            t.ages.iter().copied().fold(0.0, f64::max)
+            t.flow.ages.iter().copied().fold(0.0, f64::max)
         );
         assert_eq!(t.particles().0.len(), 300);
     }
@@ -1789,7 +1751,7 @@ mod tests {
         );
         // Flow particles start only in the network's own water.
         t.seed_flow_particles(500);
-        for p in &t.particles {
+        for p in &t.flow.places {
             if let Place::Channel(1, x) = *p {
                 assert!(x <= 500.0);
             }
@@ -2105,10 +2067,10 @@ mod tests {
     fn a_flow_particle_from_another_reach_replaces_the_oldest() {
         let mut t = split();
         t.seed_flow_particles(20);
-        let i = crate::oldest(&t.ages, &t.lives).unwrap();
+        let i = crate::oldest(&t.flow.ages, &t.flow.lives).unwrap();
         assert!(t.take_particle(0));
-        assert_eq!(t.particles.len(), 20);
-        assert_eq!(t.ages[i].to_bits(), 0.0_f64.to_bits());
-        assert!(matches!(t.particles[i], Place::Channel(..)));
+        assert_eq!(t.flow.len(), 20);
+        assert_eq!(t.flow.ages[i].to_bits(), 0.0_f64.to_bits());
+        assert!(matches!(t.flow.places[i], Place::Channel(..)));
     }
 }

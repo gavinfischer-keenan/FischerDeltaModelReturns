@@ -28,6 +28,7 @@
 use fdmr_format::FormatError;
 use fdmr_math::{decay, parcel, rng::Rng};
 
+use crate::particles::{FlowParticles, NetFlow};
 use crate::{series::Series, MAX_DT};
 
 /// Water shallower than this, m, does not move parcels (dry or drying).
@@ -136,8 +137,7 @@ pub struct MeshTracer {
     fields: Series,
     /// A tidally filtered copy of the fields, which the flow particles move on
     /// in net-flow mode; built by `set_net_flow`.
-    net: Option<Series>,
-    net_on: bool,
+    net: NetFlow<Series>,
     /// Water-quality fields at the nodes (`<day>.quality.fdf`), loaded to be shown.
     quality: Series,
     diffusivity: f64,
@@ -146,10 +146,8 @@ pub struct MeshTracer {
     time: f64,
     rng: Rng,
     parcels: Vec<Parcel>,
-    particles: Vec<MeshPlace>,
-    /// Each flow particle's age and life, s (`crate::PARTICLE_LIFE_S`).
-    ages: Vec<f64>,
-    lives: Vec<f64>,
+    /// The flow particles: each one's place, age and life, s (`crate::PARTICLE_LIFE_S`).
+    flow: FlowParticles<MeshPlace>,
     /// Flow particles that crossed a handoff edge: (handoff id, x, y).
     handed_particles: Vec<(u32, f64, f64)>,
     balance: MeshBalance,
@@ -160,6 +158,36 @@ pub struct MeshTracer {
 /// Edge `e` of a triangle runs from its node `e` to node `e + 1`.
 fn edge(t: &[usize; 3], e: usize) -> (usize, usize) {
     (t[e], t[(e + 1) % 3])
+}
+
+/// The gradient (∂/∂x, ∂/∂y) of a field linear over a triangle, from its
+/// values `f` at the triangle's corners `n` (nodes at `xs`, `ys`), `area2`
+/// twice the triangle's area.
+fn tri_gradient(xs: &[f64], ys: &[f64], n: [usize; 3], f: &[f64], area2: f64) -> (f64, f64) {
+    let gx = (f[n[0]] * (ys[n[1]] - ys[n[2]])
+        + f[n[1]] * (ys[n[2]] - ys[n[0]])
+        + f[n[2]] * (ys[n[0]] - ys[n[1]]))
+        / area2;
+    let gy = (f[n[0]] * (xs[n[2]] - xs[n[1]])
+        + f[n[1]] * (xs[n[0]] - xs[n[2]])
+        + f[n[2]] * (xs[n[1]] - xs[n[0]]))
+        / area2;
+    (gx, gy)
+}
+
+/// A point anywhere in triangle `t`, evenly by area: two uniform draws,
+/// folded back into the triangle where they fall in its mirror image.
+fn random_in_triangle(topo: &MeshTopology, t: usize, rng: &mut Rng) -> (f64, f64) {
+    let (mut a, mut b) = (rng.uniform(), rng.uniform());
+    if a + b > 1.0 {
+        (a, b) = (1.0 - a, 1.0 - b);
+    }
+    let n = topo.tri[t];
+    let (xs, ys) = (&topo.x, &topo.y);
+    (
+        xs[n[0]] + a * (xs[n[1]] - xs[n[0]]) + b * (xs[n[2]] - xs[n[0]]),
+        ys[n[0]] + a * (ys[n[1]] - ys[n[0]]) + b * (ys[n[2]] - ys[n[0]]),
+    )
 }
 
 fn key(a: usize, b: usize) -> (usize, usize) {
@@ -214,17 +242,14 @@ impl MeshTracer {
             area2,
             grid,
             fields: Series::default(),
-            net: None,
-            net_on: false,
+            net: NetFlow::default(),
             quality: Series::default(),
             diffusivity,
             node_k: None,
             time: start_time,
             rng: Rng::new(seed),
             parcels: Vec::new(),
-            particles: Vec::new(),
-            ages: Vec::new(),
-            lives: Vec::new(),
+            flow: FlowParticles::default(),
             handed_particles: Vec::new(),
             balance: MeshBalance::default(),
             handed: Vec::new(),
@@ -236,7 +261,7 @@ impl MeshTracer {
     /// # Errors
     /// If the file is not a field file for this mesh.
     pub fn load_day(&mut self, bytes: &[u8]) -> Result<(), FormatError> {
-        self.net = None;
+        self.net.invalidate();
         self.fields.load_day(bytes, &["u", "v", "level"])?;
         if self.fields.elements != self.topo.x.len() {
             return Err(FormatError::Invalid(
@@ -380,14 +405,7 @@ impl MeshTracer {
         let l = self.bary(t, x, y);
         let n = self.topo.tri[t];
         let (xs, ys) = (&self.topo.x, &self.topo.y);
-        let kx = (k[n[0]] * (ys[n[1]] - ys[n[2]])
-            + k[n[1]] * (ys[n[2]] - ys[n[0]])
-            + k[n[2]] * (ys[n[0]] - ys[n[1]]))
-            / self.area2[t];
-        let ky = (k[n[0]] * (xs[n[2]] - xs[n[1]])
-            + k[n[1]] * (xs[n[0]] - xs[n[2]])
-            + k[n[2]] * (xs[n[1]] - xs[n[0]]))
-            / self.area2[t];
+        let (kx, ky) = tri_gradient(xs, ys, n, k, self.area2[t]);
         let here = (l[0] * k[n[0]] + l[1] * k[n[1]] + l[2] * k[n[2]]).max(0.0);
         (here, kx, ky)
     }
@@ -397,18 +415,16 @@ impl MeshTracer {
     /// Parcels always move with the real, instant flow. The filtered copy is
     /// built on first use and again after more days are loaded.
     pub fn set_net_flow(&mut self, on: bool) {
-        self.net_on = on;
-        if on && self.net.is_none() {
-            self.net = Some(self.fields.tidal_mean());
-        }
+        let fields = &self.fields;
+        self.net.set(on, || fields.tidal_mean());
     }
 
     /// The conditions the flow particles move in: the real fields, or in
     /// net-flow mode the tidally filtered ones.
     fn particle_conditions(&self, t: f64) -> Option<Now> {
-        match (&self.net, self.net_on) {
-            (Some(net), true) => self.conditions_in(t, net),
-            _ => self.conditions(t),
+        match self.net.active() {
+            Some(net) => self.conditions_in(t, net),
+            None => self.conditions(t),
         }
     }
 
@@ -445,14 +461,7 @@ impl MeshTracer {
         let h = at(&now.h);
         // The gradient of the linear depth over the triangle.
         let (xs, ys, hs) = (&self.topo.x, &self.topo.y, &now.h);
-        let hx = (hs[n[0]] * (ys[n[1]] - ys[n[2]])
-            + hs[n[1]] * (ys[n[2]] - ys[n[0]])
-            + hs[n[2]] * (ys[n[0]] - ys[n[1]]))
-            / self.area2[t];
-        let hy = (hs[n[0]] * (xs[n[2]] - xs[n[1]])
-            + hs[n[1]] * (xs[n[0]] - xs[n[2]])
-            + hs[n[2]] * (xs[n[1]] - xs[n[0]]))
-            / self.area2[t];
+        let (hx, hy) = tri_gradient(xs, ys, n, hs, self.area2[t]);
         if h < MIN_DEPTH {
             return Sample {
                 u: 0.0,
@@ -641,7 +650,7 @@ impl MeshTracer {
                     ..p
                 };
             }
-            if self.net_on {
+            if self.net.is_on() {
                 if let Some(pnow) = self.particle_conditions(self.time + dt / 2.0) {
                     self.move_particles(dt, &pnow);
                 }
@@ -654,23 +663,20 @@ impl MeshTracer {
 
     /// Move the flow particles `dt` s at the current time without advancing it.
     pub fn drift_frozen(&mut self, dt: f64) {
-        let mut left = dt;
-        while left > 0.0 {
-            let step = left.min(MAX_DT);
+        crate::particles::in_steps(dt, |step| {
             if let Some(now) = self.particle_conditions(self.time) {
                 self.move_particles(step, &now);
             }
-            left -= step;
-        }
+        });
     }
 
     fn move_particles(&mut self, dt: f64, now: &Now) {
         let time = self.time;
-        for i in 0..self.particles.len() {
-            self.ages[i] += dt;
-            let p = self.advance(self.particles[i], dt, now, 0.0, time);
+        for i in 0..self.flow.len() {
+            let old = self.flow.age(i, dt);
+            let p = self.advance(self.flow.places[i], dt, now, 0.0, time);
             let renew = match p {
-                MeshPlace::In(..) => self.ages[i] > self.lives[i],
+                MeshPlace::In(..) => old,
                 MeshPlace::Gone(MeshFate::Handoff { id, x, y, .. }) => {
                     self.handed_particles.push((id, x, y));
                     true
@@ -678,11 +684,10 @@ impl MeshTracer {
                 MeshPlace::Gone(MeshFate::ToSea) => true,
             };
             if renew {
-                self.particles[i] = self.random_wet_place(now);
-                self.ages[i] = 0.0;
-                self.lives[i] = crate::particle_life(&mut self.rng);
+                let place = self.random_wet_place(now);
+                self.flow.renew(i, place, &mut self.rng);
             } else {
-                self.particles[i] = p;
+                self.flow.places[i] = p;
             }
         }
     }
@@ -733,23 +738,11 @@ impl MeshTracer {
         let Some(t) = self.locate(x, y) else {
             return false;
         };
-        let Some(i) = crate::oldest(&self.ages, &self.lives) else {
-            return false;
-        };
-        let (mut a, mut b) = (self.rng.uniform(), self.rng.uniform());
-        if a + b > 1.0 {
-            (a, b) = (1.0 - a, 1.0 - b);
-        }
-        let n = self.topo.tri[t];
-        let (xs, ys) = (&self.topo.x, &self.topo.y);
-        self.particles[i] = MeshPlace::In(
-            t,
-            xs[n[0]] + a * (xs[n[1]] - xs[n[0]]) + b * (xs[n[2]] - xs[n[0]]),
-            ys[n[0]] + a * (ys[n[1]] - ys[n[0]]) + b * (ys[n[2]] - ys[n[0]]),
-        );
-        self.ages[i] = 0.0;
-        self.lives[i] = crate::particle_life(&mut self.rng);
-        true
+        let topo = &self.topo;
+        self.flow.take_in(&mut self.rng, |rng| {
+            let (x, y) = random_in_triangle(topo, t, rng);
+            MeshPlace::In(t, x, y)
+        })
     }
 
     /// A point anywhere on the mesh, evenly by area.
@@ -764,37 +757,21 @@ impl MeshTracer {
             }
             r -= a;
         }
-        let (mut a, mut b) = (self.rng.uniform(), self.rng.uniform());
-        if a + b > 1.0 {
-            (a, b) = (1.0 - a, 1.0 - b);
-        }
-        let n = self.topo.tri[t];
-        let (xs, ys) = (&self.topo.x, &self.topo.y);
-        MeshPlace::In(
-            t,
-            xs[n[0]] + a * (xs[n[1]] - xs[n[0]]) + b * (xs[n[2]] - xs[n[0]]),
-            ys[n[0]] + a * (ys[n[1]] - ys[n[0]]) + b * (ys[n[2]] - ys[n[0]]),
-        )
+        let (x, y) = random_in_triangle(&self.topo, t, &mut self.rng);
+        MeshPlace::In(t, x, y)
     }
 
     /// Seed `n` flow particles over the wet water, evenly by area, each part
     /// way through its life so that they do not all start again at once.
     pub fn seed_flow_particles(&mut self, n: usize) {
         let now = self.particle_conditions(self.time);
-        self.particles = (0..n)
+        let places = (0..n)
             .map(|_| match &now {
                 Some(now) => self.random_wet_place(now),
                 None => self.random_place(),
             })
             .collect();
-        self.lives = (0..n)
-            .map(|_| crate::particle_life(&mut self.rng))
-            .collect();
-        self.ages = self
-            .lives
-            .iter()
-            .map(|l| l * self.rng.uniform())
-            .collect::<Vec<_>>();
+        self.flow.seed(places, &mut self.rng);
         self.handed_particles.clear();
     }
 
@@ -818,7 +795,7 @@ impl MeshTracer {
     /// barycentric weights (for the triangle's second and third nodes).
     #[must_use]
     pub fn particles(&self) -> (Vec<u32>, Vec<f32>) {
-        self.places(self.particles.iter().copied())
+        self.places(self.flow.places.iter().copied())
     }
 
     /// Parcels in the water, as for `particles`.
@@ -910,7 +887,8 @@ impl MeshTracer {
             .then(|| series.end().map(|end| self.time.min(end)))
             .flatten()
             .and_then(|t| series.at(t, name));
-        self.particles
+        self.flow
+            .places
             .iter()
             .filter_map(|p| match *p {
                 MeshPlace::In(t, x, y) => Some(at.as_ref().map_or(f32::NAN, |v| {
@@ -930,9 +908,10 @@ impl MeshTracer {
     #[must_use]
     pub fn particle_speeds(&self) -> Vec<f32> {
         let Some(now) = self.particle_conditions(self.time) else {
-            return vec![0.0; self.particles.len()];
+            return vec![0.0; self.flow.len()];
         };
-        self.particles
+        self.flow
+            .places
             .iter()
             .filter_map(|p| match *p {
                 MeshPlace::In(t, x, y) => {
@@ -1114,20 +1093,21 @@ mod tests {
         let mut t = tracer(0.0, 0.0, 0.0);
         t.seed_flow_particles(200);
         assert!(t
+            .flow
             .ages
             .iter()
-            .zip(&t.lives)
+            .zip(&t.flow.lives)
             .all(|(a, l)| *a >= 0.0 && a <= l));
         t.step_to(10.0 * 3600.0);
         // Ten hours on, every one has started again at least once (lives are 3 to 9 h).
-        assert!(t.ages.iter().all(|a| *a < crate::PARTICLE_LIFE_S.1));
+        assert!(t.flow.ages.iter().all(|a| *a < crate::PARTICLE_LIFE_S.1));
         assert_eq!(t.particles().0.len(), 200);
         // A particle from another reach takes the oldest one's place, in the triangle it arrives in.
-        let i = crate::oldest(&t.ages, &t.lives).unwrap();
+        let i = crate::oldest(&t.flow.ages, &t.flow.lives).unwrap();
         let at = t.locate(150.0, 50.0).unwrap();
         assert!(t.take_particle(150.0, 50.0));
         assert!(
-            matches!(t.particles[i], MeshPlace::In(tri, x, y) if tri == at && t.inside(at, x, y))
+            matches!(t.flow.places[i], MeshPlace::In(tri, x, y) if tri == at && t.inside(at, x, y))
         );
         assert!(!t.take_particle(150.0, 250.0)); // off the mesh
         assert_eq!(t.particles().0.len(), 200);
