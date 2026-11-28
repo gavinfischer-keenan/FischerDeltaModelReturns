@@ -785,6 +785,8 @@ Checked: Crossref record of the DOI, 27 Nov 2026
 
 Used in:
 
+- `python/fdmr_geo/__init__.py:9`: 6,371,008.8 m (Moritz 2000, ref:moritz2000grs80), to the metre's
+- `python/fdmr_geo/__init__.py:22`: M_PER_DEG = 111_195.0  # m per degree of latitude: 2 pi 6,371 km / 360 (GRS80 R1, ref:moritz2000grs80)
 - `python/fdmr_plugins/river_routing/centreline.py:15`: EARTH_RADIUS_M = 6_371_008.8  # m: the mean Earth radius R1 of the Geodetic Reference System 1980 (Moritz 2000, ref:moritz2000grs80)
 
 ## muellersolger2012
