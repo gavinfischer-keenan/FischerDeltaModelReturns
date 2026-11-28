@@ -56,7 +56,7 @@ async function get(name) {
   if (!index) { document.getElementById("out").textContent = "No published cycle found at " + base; return; }
   const ov = index.overlays ? await get(index.overlays) : null;
   const skill = index.skill ? await get(index.skill) : null;
-  let h = `<p>Region <b>${esc(index.region)}</b>, cycle <b>${esc(index.cycle)}</b>, status ${esc(index.status)}, newest data by source: ${esc(Object.entries(index.data_age_s || {}).map(([k, s]) => `${k} ${Math.round(s / 60)} min old`).join(", "))}. Files: <a href="${base}index.json">index.json</a> · <a href="${base}overlays.json">overlays.json</a> · <a href="${base}skill.json">skill.json</a></p>`;
+  let h = `<p>Region <b>${esc(index.region)}</b>, cycle <b>${esc(index.cycle)}</b>, status ${esc(index.status)}, newest reading by source: ${esc(Object.entries(index.data_age_s || {}).map(([k, s]) => `${k} ${Math.round(s / 60)} min old`).join(", "))}; forecasts fetched: ${esc(Object.entries(index.forecast_fetch_age_s || {}).map(([k, s]) => `${k} ${Math.round(s / 60)} min ago`).join(", ") || "none")}. Files: <a href="${base}index.json">index.json</a> · <a href="${base}overlays.json">overlays.json</a> · <a href="${base}skill.json">skill.json</a></p>`;
 
   // What failed or was left out this cycle, and how each step went (#55).
   if (index.problems && index.problems.length) {

@@ -48,7 +48,8 @@ def test_add_reach_links_files_and_extends_the_index(tmp_path):
     index = {"format_version": [1, 0], "reaches": [{"id": "river"}]}
     add_reach(cdir, src, index)
     assert (cdir / "net" / "2026-11-25.fdf").read_bytes() == b"FDF1" and not (cdir / "reach.json").exists()
-    assert [r["id"] for r in index["reaches"]] == ["river", "net"] and index["format_version"] == [1, 1]
+    # The version is worked out at publish from what was written (#80), not here.
+    assert [r["id"] for r in index["reaches"]] == ["river", "net"]
 
 
 def test_width_at_a_wetted_area_is_read_between_the_tabulated_levels():

@@ -21,13 +21,14 @@ A what-if is a full set of forecast days under `whatif/<name>/`, sharing the mai
 ```json
 {
   "format": "fdmr-flow-field",
-  "format_version": [1, 0],
+  "format_version": [1, 1],
   "region": "sf-bay-delta",
   "cycle": "2026-11-25T06:00Z",
   "created": "2026-11-25T06:41:12Z",
   "time": { "start": "2026-11-11T06:00Z", "step_s": 900, "days": ["2026-11-11", "..."] },
   "now": "2026-11-25T06:00Z",
-  "data_age_s": { "usgs": 1800, "cnrfc": 9000 },
+  "data_age_s": { "usgs": 1800 },
+  "forecast_fetch_age_s": { "cnrfc": 9000 },
   "reaches": [
     {
       "id": "river",
@@ -44,6 +45,14 @@ A what-if is a full set of forecast days under `whatif/<name>/`, sharing the mai
 ```
 
 `certainty` has one value per published time step, from 1 down toward 0 (specification section 8.2).
+
+`data_age_s`: for each source of measurements (keyed by the gauges' own
+sources: `usgs`, `rws`, ...), seconds from the newest reading the cycle used
+to when the index was written. `forecast_fetch_age_s`: for each source of
+river forecasts (`cnrfc`, `rws`), seconds since the oldest of the forecasts
+used was fetched; the agencies' own issue times are not kept. A cycle is
+version 1.1 when it writes handoffs or a reach of its own time axis or of
+another dimension, else 1.0.
 
 **Version 1.1** adds two things, both additive, so a 1.0 reader still reads every 1.0 reach:
 

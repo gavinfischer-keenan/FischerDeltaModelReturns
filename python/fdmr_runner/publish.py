@@ -191,7 +191,6 @@ def add_reach(cdir: Path, src: Path, index: dict) -> None:
             os.link(f, tmp)
             os.replace(tmp, dest)  # a newer run replaces the file whole, never in place
     index["reaches"].append(entry)
-    index["format_version"] = [1, 1]
 
 
 def river_days(t0: int, end: int, n: int) -> list[tuple[str, int, int, int]]:
@@ -222,6 +221,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
     records = []
     assumed: list[dict] = []  # how each gauge was carried past its last reading (#22)
     fc_ends: list[int | None] = []  # last forecast step at each gauge that has a forecast
+    readings: list[tuple[str, int]] = []  # each gauge's newest reading used, by its source (#80)
     for g in gauges:
         shape = shapes[g.site]
         vals = store.values(g.source, g.site, g.parameter, t0, now + STEP)
@@ -254,6 +254,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         if fc is not None and rule_rec is None:
             fc_ends.append(fc_end)
         last_t = min(vals[-1].t, now)
+        readings.append((g.source, last_t))
         if rule_rec is not None:
             how = rule_rec.pop("how") + (f", to {utc(t0 + fc_end * STEP)}, then held" if fc is not None and fc_end is not None else "")
             assumed.append({"input": f"{g.source} {g.site} {g.parameter} ({g.role})", "how": how, "last_reading": last_t, **rule_rec})
@@ -357,8 +358,10 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
                 str(cdir / reach / f"{name}.quality.fdf"), f"{reach}:quality", 1, len(els), 1, i1 - i0, d0, STEP,
                 [("temperature", "degC", True, temperature[i0:i1].ravel().tolist())],
             )
-    issues = [store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") if g.forecast.get("source") == cnrfc.SOURCE
-              else store.latest(g.forecast["source"], g.site, f"{g.parameter}_forecast") for g in gauges if g.forecast]
+    # When each forecast used was fetched, by its own source (the store keeps
+    # fetch times, not the agencies' issue times).
+    issues = [(g.forecast["source"], store.latest(cnrfc.SOURCE, g.forecast["point"], "discharge") if g.forecast.get("source") == cnrfc.SOURCE
+               else store.latest(g.forecast["source"], g.site, f"{g.parameter}_forecast")) for g in gauges if g.forecast]
     entry = {
         "id": reach, "kind": "river-routing", "dims": 1, "elements": len(els), "layers": 1,
         "fields": ["flow", "area", "velocity", "volume", "dispersion", *(["lateral_mixing"] if lateral is not None else []),
@@ -368,7 +371,7 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
         **({"swot_checks": sw} if (sw := swot_checks(region_dir, store, reach, line, els, widths, now)) else {}),
         "assumptions": assumed,
     }
-    return entry, [f for _, f in (x for x in issues if x)]
+    return entry, [(src, x[1]) for src, x in issues if x], readings
 
 
 TEMPERATURE = "water_temperature"
@@ -601,7 +604,7 @@ def publish(
     # Every river-routing reach, the main one first: each from its own dam's
     # release (specification 3.13; issue #4). Another reach that cannot be
     # built this cycle is left out rather than holding back the rest.
-    entries, fetched = [], []
+    entries, fetched, newest = [], [], []
     others = [r["id"] for r in region.reaches if r.get("kind") == "river-routing" and r["id"] != reach]
 
     def hops(r: str, seen: int = 0) -> int:
@@ -615,7 +618,7 @@ def publish(
     problems: list[dict] = []
     for rid in sorted([reach, *others], key=hops, reverse=True):  # upstream reaches first
         try:
-            entry, issued = publish_river(region_dir, region, store, cdir, rid, t0, now, end, ahead, datums, calibration,
+            entry, issued, read = publish_river(region_dir, region, store, cdir, rid, t0, now, end, ahead, datums, calibration,
                                           weather_cache, done, hindcast=hindcast, problems=problems)
         except Exception as e:  # noqa: BLE001
             if rid == reach:
@@ -625,15 +628,21 @@ def publish(
             continue
         entries.append(entry)
         fetched += issued
+        newest += read
     entries.sort(key=lambda e: e["id"] != reach)  # the main river first
     day_names = [d[0] for d in river_days(t0, end, n)]
 
-    data_age = {SOURCE: int(time.time() - now)}
-    if fetched:
-        data_age[cnrfc.SOURCE] = int(time.time() - min(fetched))
+    # How old each source's newest measured reading used is, by the gauges' own
+    # sources, and how long ago each forecast source was fetched (#80).
+    data_age: dict[str, int] = {}
+    for src, t in newest:
+        data_age[src] = min(data_age.get(src, 1 << 62), int(time.time() - t))
+    fetch_age: dict[str, int] = {}
+    for src, t in fetched:
+        fetch_age[src] = max(fetch_age.get(src, 0), int(time.time() - t))
     index = {
         "format": "fdmr-flow-field",
-        "format_version": [1, 0],
+        "format_version": [1, 0],  # worked out from what was written, below
         "region": region.id,
         "timezone": region.timezone,  # the region's own clock, for the page's dates (#67)
         "model_version": model_version(region_dir, calibration),
@@ -642,6 +651,7 @@ def publish(
         "time": {"start": utc(t0), "step_s": STEP, "days": day_names},
         "now": utc(now),
         "data_age_s": data_age,
+        **({"forecast_fetch_age_s": fetch_age} if fetch_age else {}),
         **({"trial": {"name": trial["name"], "maths": trial["maths"]}} if trial else {}),
         "reaches": entries,
         "status": "ok",
@@ -691,6 +701,10 @@ def publish(
             joins.append({"from": h["from"], "to": h["to"], "outlets": [{"export": i["export"], "node": i["node"]} for i in g["inlets"]]})
     if joins:
         index["handoffs"] = joins  # format 1.1: where parcels leaving one reach enter the next
+    # The version from what was written: 1.1's handoffs, or a reach on its own
+    # time axis or of another dimension, else 1.0 (#80).
+    if index.get("handoffs") or any(r.get("time") or r.get("dims", 1) != 1 for r in index["reaches"]):
+        index["format_version"] = [1, 1]
     if hindcast:
         index["hindcast"] = {"as_of": utc(now), "forecasts": "river forecasts: the River Forecast Center issue in force at the time where kept (kept from 26 Nov 2026), otherwise held; release rules and weather forecasts held"}
     # What is drawn over the water: X2, the stations' readings (fdmr_runner.overlays).

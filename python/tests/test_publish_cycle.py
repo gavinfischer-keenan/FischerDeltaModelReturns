@@ -53,6 +53,10 @@ def test_a_cycle_is_published_whole(cycle):
     (river,) = index["reaches"]
     assert river["id"] == "river" and river["kind"] == "river-routing"
     assert river["maths"] and river["assumptions"]
+    # Ages by the gauges' own source, from their newest reading; one 1D reach on
+    # the cycle's own axis with no handoffs is format 1.0 (#80).
+    assert set(index["data_age_s"]) == {"usgs"} and 0 <= index["data_age_s"]["usgs"] < 3 * 3600
+    assert index["format_version"] == [1, 0]
     t0 = (now - 2 * DAY) // DAY * DAY
     n = (now + 2 * DAY - t0) // STEP + 1
     assert len(river["certainty"]) == n and river["certainty"][0] == 1
