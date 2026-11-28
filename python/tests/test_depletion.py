@@ -91,3 +91,14 @@ def test_wetter_days_can_be_left_as_the_reference():
     # Day 1 is wetter than the reference's 8: kept. Day 2 drier: followed.
     assert out["/D/1/DRAIN-FLOW//1DAY/"][0] == 2.0 and change[0] == 0.0
     assert out["/D/1/DIV-FLOW//1DAY/"][1] == pytest.approx(14.0) and change[1] == pytest.approx(4.0)
+
+
+def test_following_wetter_days_needs_the_regions_rain_months():
+    """#93: no rain season is written into the engine; a region that follows
+    wetter days names its own, with its source."""
+    from fdmr_plugins.dsm2.study import Depletion
+
+    with pytest.raises(ValueError, match="rain_months"):
+        Depletion("DICUFILE", ("DIV-FLOW",), ("DRAIN-FLOW",), {}, wetter=True)
+    assert Depletion("DICUFILE", ("DIV-FLOW",), ("DRAIN-FLOW",), {}, wetter=True, rain_months=(12, 1, 2, 3)).rain_months
+    assert not Depletion("DICUFILE", ("DIV-FLOW",), ("DRAIN-FLOW",), {}, wetter=False).rain_months

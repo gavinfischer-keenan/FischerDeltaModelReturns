@@ -569,7 +569,7 @@ def main(argv: list[str] | None = None) -> int:
         days = live_depletion(store, dcfg, t0 - DAY, end + 2 * DAY, now)
         depletion = study.Depletion(dcfg["file"], tuple(dcfg["use"]), tuple(dcfg["returns"]),
                                     {t: v / TO_DSS_M3S_CFS for t, v in days.items()}, dcfg.get("add_use", ""),
-                                    dcfg.get("wetter", True))
+                                    dcfg.get("wetter", True), tuple(dcfg.get("rain_months", ())))
     settings = study.RunSettings(
         study=root / "inputs" / cfg["inputs"] / cfg["study"],
         replace=cfg["replace"], version=cfg["version"], version_settings=cfg["version_settings"],

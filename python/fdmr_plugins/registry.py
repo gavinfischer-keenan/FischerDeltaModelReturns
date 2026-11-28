@@ -109,6 +109,13 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                            "California DWR, DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.study")],
         "temperature": [Maths("dsm2-qual-heat", "QUAL's surface heat budget for every channel under the region's weather",
                               "California DWR, DSM2 QUAL (heat; ref:dsm2)", "fdmr_plugins.dsm2.temperature")],
+        "island-water-use": [Maths("live-ndcu-follow",
+                                   "DWR's per-node island water use for the same days of a reference year, each day's net "
+                                   "(diversion and seepage less drainage) moved to the live Delta net channel depletion by adding "
+                                   "to the uses in proportion to each node's; a day using less than DWR's is kept as DWR's",
+                                   "DWR's island water use series in DSM2's inputs (ref:dwr2026dsm2input); Reclamation's daily "
+                                   "net channel depletion (ref:usbr_cvo)",
+                                   "fdmr_plugins.dsm2.study adjust_depletion, fdmr_runner.delta live_depletion")],
         "water-sources": [Maths("qual-fingerprint", "Each inflow group a conservative tracer: its share of the water everywhere",
                                 "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
         "sediment": [Maths("gtm-cohesive-settled-bed",
@@ -212,6 +219,11 @@ def record(kind: str, chosen: dict | None = None) -> dict:
 
 # The standard problems each registered maths passes (module docstring).
 CHECKS: dict[str, tuple[str, ...]] = {
+    "live-ndcu-follow": (
+        "python/tests/test_depletion.py::test_adjust_depletion_meets_the_daily_total_and_keeps_the_pattern",
+        "python/tests/test_depletion.py::test_wetter_days_can_be_left_as_the_reference",
+        "python/tests/test_depletion.py::test_live_depletion_holds_the_last_dry_day_ahead",
+    ),
     "tidally-averaged-isohaline": (
         "python/tests/test_isohaline.py::test_crossing_walks_up_from_the_sea",
         "python/tests/test_isohaline.py::test_series_is_tidally_averaged_and_hourly",

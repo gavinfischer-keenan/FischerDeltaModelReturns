@@ -124,43 +124,43 @@ Every number the model is set with: in each region's settings and among the mode
 | [164](../regions/sf-bay-delta/dsm2.toml#L164) | `live_gate[1]`<br>`open` | `2.0` | DWR's value for both gates open (its rule halves it per direction) |
 | [165](../regions/sf-bay-delta/dsm2.toml#L165) | `live_gate[1]`<br>`closed` | `0.0` | Open from the first to the last of a run of hourly flows reaching 30 m3/s either way, each within 8 hours of the last (fdmr_runner.delta.gate_states). Checked 25 Nov 2026 on July to November 2026: shut, the gates leak up to 16 m3/s; open, they carry 60 to 120 m3/s a day, swinging to 300 and through zero at slack tide. This finds 13 changes, the operations' own (weekend closures 2-6, 9-13 and from 23 November among them); the rule before it, 5 m3/s two hours running, found 80, opening the gates in the model for hours at a time while they were shut. |
 | | **`fixed[1]`** | | Settings held fixed for the whole run. Clifton Court Forebay's gates open and close with the tide on a schedule set against that year's tides and pumping. DWR's 2024 schedule, put against 2026's pumping, let the forebay drain dry twice (25 Nov 2026). Held open instead, at their most common open setting in 2024 (all 5 gates, height 7.02 ft), the forebay refills as the pumps draw it down. It exchanges more water with Old River on each tide than the real schedule would. |
-| [239](../regions/sf-bay-delta/dsm2.toml#L239) | `fixed[1]`<br>`value` | `5.0` |  |
+| [241](../regions/sf-bay-delta/dsm2.toml#L241) | `fixed[1]`<br>`value` | `5.0` |  |
 | | **`fixed[2]`** | | See the note on `fixed[1]`. |
-| [243](../regions/sf-bay-delta/dsm2.toml#L243) | `fixed[2]`<br>`value` | `7.02` |  |
+| [245](../regions/sf-bay-delta/dsm2.toml#L245) | `fixed[2]`<br>`value` | `7.02` |  |
 | | **`temperature.scalars`** | | QUAL's heat-budget constants: the Delta's place (degrees, west positive, and the Pacific time zone's meridian), elevation (ft), and QUAL2E's textbook values for dust in the air and evaporation (ft/hr/inHg, and per mph of wind; [brown1987qual2e](references.md#brown1987qual2e)). |
-| [547](../regions/sf-bay-delta/dsm2.toml#L547) | `temperature.scalars`<br>`long_std_merid` | `120.0` |  |
-| [548](../regions/sf-bay-delta/dsm2.toml#L548) | `temperature.scalars`<br>`elev` | `5.0` |  |
-| [549](../regions/sf-bay-delta/dsm2.toml#L549) | `temperature.scalars`<br>`dust_attcoeff` | `0.06` |  |
-| [550](../regions/sf-bay-delta/dsm2.toml#L550) | `temperature.scalars`<br>`evapcoeff_a` | `0.00068` |  |
-| [551](../regions/sf-bay-delta/dsm2.toml#L551) | `temperature.scalars`<br>`evapcoeff_b` | `0.00027` |  |
+| [549](../regions/sf-bay-delta/dsm2.toml#L549) | `temperature.scalars`<br>`long_std_merid` | `120.0` |  |
+| [550](../regions/sf-bay-delta/dsm2.toml#L550) | `temperature.scalars`<br>`elev` | `5.0` |  |
+| [551](../regions/sf-bay-delta/dsm2.toml#L551) | `temperature.scalars`<br>`dust_attcoeff` | `0.06` |  |
+| [552](../regions/sf-bay-delta/dsm2.toml#L552) | `temperature.scalars`<br>`evapcoeff_a` | `0.00068` |  |
+| [553](../regions/sf-bay-delta/dsm2.toml#L553) | `temperature.scalars`<br>`evapcoeff_b` | `0.00027` |  |
 | | **`sediment`** | | Suspended sediment (issue #16): DSM2's General Transport Model on HYDRO's flows (fdmr_plugins.dsm2.sediment, runner/dsm2/gtm-sediment.patch). One class of mud, with the calibrated values of Achete, van der Wegen, Roelvink and Jaffe (2015, [achete2015](references.md#achete2015), section 3.1 and table 1), whose Delta model is the closest published to this one: settling velocity ws        0.25 mm/s   (their sensitivity range 0.15-0.38) critical shear for erosion  0.25 Pa     (range 0.125-0.5; the parameter their results were most sensitive to; replaced below by the Delta's own cores) erosion rate M              1e-4 kg/m2/s (range 2.5e-5 to 1e-2; least sensitive), in Partheniades' form ([partheniades1965](references.md#partheniades1965)) deposition at any shear stress (their section 2.1), and a bed that starts bare (their section 3.4: mud laid everywhere at the start takes years to rework). GTM's grain size only enters through its formulas the settings replace; it is the Stokes diameter of that settling velocity in 10 degC water, sqrt(18 nu ws / ((s - 1) g)) = 0.019 mm, so GTM's own sums agree. |
-| [683](../regions/sf-bay-delta/dsm2.toml#L683) | `sediment`<br>`diameter_mm` | `0.019` |  |
-| [687](../regions/sf-bay-delta/dsm2.toml#L687) | `sediment.scalars`<br>`ero_coef` | `0.0001` | Achete et al.'s erosion rate M, kg/m2/s (above). |
-| [689](../regions/sf-bay-delta/dsm2.toml#L689) | `sediment.scalars`<br>`sed_settling` | `0.00025` | Achete et al.'s settling velocity ws, m/s (above). |
-| [697](../regions/sf-bay-delta/dsm2.toml#L697) | `sediment.scalars`<br>`sed_tau_erosion` | `0.13` | The bed's critical shear stress for erosion: 0.13 Pa, the mean of Schoellhamer et al.'s erosion-chamber cores in the Delta's own bed ([schoellhamer2017](references.md#schoellhamer2017), Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa in upper Cache Slough, 10 cores; (15 x 0.14 + 10 x 0.11) / 25 = 0.128), in place of Achete et al.'s 0.25 Pa (calibrated for the whole Bay-Delta). Checked 27 Nov 2026 over 14 days against all five sediment checks below: better at every one (#24). |
-| [701](../regions/sf-bay-delta/dsm2.toml#L701) | `sediment.scalars`<br>`sed_bed_initial` | `0.0` | A bare bed at the start, kg/m2 (Achete et al., above). |
-| [723](../regions/sf-bay-delta/dsm2.toml#L723) | `sediment.constants`<br>`drainage` | `20` | DWR's 20 mg/L in the islands' drainage returns ([dwr2019ar](references.md#dwr2019ar), chapter 4; above). |
+| [685](../regions/sf-bay-delta/dsm2.toml#L685) | `sediment`<br>`diameter_mm` | `0.019` |  |
+| [689](../regions/sf-bay-delta/dsm2.toml#L689) | `sediment.scalars`<br>`ero_coef` | `0.0001` | Achete et al.'s erosion rate M, kg/m2/s (above). |
+| [691](../regions/sf-bay-delta/dsm2.toml#L691) | `sediment.scalars`<br>`sed_settling` | `0.00025` | Achete et al.'s settling velocity ws, m/s (above). |
+| [699](../regions/sf-bay-delta/dsm2.toml#L699) | `sediment.scalars`<br>`sed_tau_erosion` | `0.13` | The bed's critical shear stress for erosion: 0.13 Pa, the mean of Schoellhamer et al.'s erosion-chamber cores in the Delta's own bed ([schoellhamer2017](references.md#schoellhamer2017), Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa in upper Cache Slough, 10 cores; (15 x 0.14 + 10 x 0.11) / 25 = 0.128), in place of Achete et al.'s 0.25 Pa (calibrated for the whole Bay-Delta). Checked 27 Nov 2026 over 14 days against all five sediment checks below: better at every one (#24). |
+| [703](../regions/sf-bay-delta/dsm2.toml#L703) | `sediment.scalars`<br>`sed_bed_initial` | `0.0` | A bare bed at the start, kg/m2 (Achete et al., above). |
+| [725](../regions/sf-bay-delta/dsm2.toml#L725) | `sediment.constants`<br>`drainage` | `20` | DWR's 20 mg/L in the islands' drainage returns ([dwr2019ar](references.md#dwr2019ar), chapter 4; above). |
 | | **`sediment.water[1]`** | | Where each series comes from. Turbidity becomes SSC through Achete et al.'s relation for that part of the Delta (section 4.5), log10(SSC) = a log10(T) + b: north a = 0.85, b = 0.35; southern a = 1.16, b = 0.27. The relations are USGS's (personal communication to the authors, 2014) and the paper does not say whether its turbidity was FNU or NTU; each gauge's own unit is named below, and both are read as the paper's turbidity. Of USGS's Delta gauges only Freeport reports turbidity live (checked 26 Nov 2026: its "BGC PROJECT" sensor); the rest come from CDEC. The sea end uses USGS's own continuous SSC at Benicia Bridge, 4 km up from DSM2's Martinez boundary: the mean of its sensors 71 ft and 19 ft above the bed. |
-| [740](../regions/sf-bay-delta/dsm2.toml#L740) | `sediment.water[1]`<br>`relation.a` | `0.85` |  |
-| [740](../regions/sf-bay-delta/dsm2.toml#L740) | `sediment.water[1]`<br>`relation.b` | `0.35` |  |
+| [742](../regions/sf-bay-delta/dsm2.toml#L742) | `sediment.water[1]`<br>`relation.a` | `0.85` |  |
+| [742](../regions/sf-bay-delta/dsm2.toml#L742) | `sediment.water[1]`<br>`relation.b` | `0.35` |  |
 | | **`sediment.water[2]`** | | See the note on `sediment.water[1]`. |
-| [749](../regions/sf-bay-delta/dsm2.toml#L749) | `sediment.water[2]`<br>`relation.a` | `1.16` |  |
-| [749](../regions/sf-bay-delta/dsm2.toml#L749) | `sediment.water[2]`<br>`relation.b` | `0.27` |  |
+| [751](../regions/sf-bay-delta/dsm2.toml#L751) | `sediment.water[2]`<br>`relation.a` | `1.16` |  |
+| [751](../regions/sf-bay-delta/dsm2.toml#L751) | `sediment.water[2]`<br>`relation.b` | `0.27` |  |
 | | **`sediment_checks[1]`** | | Measured turbidity to check GTM's SSC against, through the same relations for each station's part of the Delta (Achete et al. 2015, section 4.5: central/western a = 0.91, b = 0.29; central/eastern a = 0.72, b = 0.26; eastern a = 0.914, b = 0.29). Which part each station is in is FDMR's reading of the paper's areas, not the paper's own list. Rio Vista and Mallard Island are two of the paper's own three check stations. |
-| [775](../regions/sf-bay-delta/dsm2.toml#L775) | `sediment_checks[1]`<br>`relation.a` | `0.85` |  |
-| [775](../regions/sf-bay-delta/dsm2.toml#L775) | `sediment_checks[1]`<br>`relation.b` | `0.35` |  |
+| [777](../regions/sf-bay-delta/dsm2.toml#L777) | `sediment_checks[1]`<br>`relation.a` | `0.85` |  |
+| [777](../regions/sf-bay-delta/dsm2.toml#L777) | `sediment_checks[1]`<br>`relation.b` | `0.35` |  |
 | | **`sediment_checks[2]`** | | See the note on `sediment_checks[1]`. |
-| [786](../regions/sf-bay-delta/dsm2.toml#L786) | `sediment_checks[2]`<br>`relation.a` | `0.91` |  |
-| [786](../regions/sf-bay-delta/dsm2.toml#L786) | `sediment_checks[2]`<br>`relation.b` | `0.29` |  |
+| [788](../regions/sf-bay-delta/dsm2.toml#L788) | `sediment_checks[2]`<br>`relation.a` | `0.91` |  |
+| [788](../regions/sf-bay-delta/dsm2.toml#L788) | `sediment_checks[2]`<br>`relation.b` | `0.29` |  |
 | | **`sediment_checks[3]`** | | See the note on `sediment_checks[1]`. |
-| [797](../regions/sf-bay-delta/dsm2.toml#L797) | `sediment_checks[3]`<br>`relation.a` | `0.72` |  |
-| [797](../regions/sf-bay-delta/dsm2.toml#L797) | `sediment_checks[3]`<br>`relation.b` | `0.26` |  |
+| [799](../regions/sf-bay-delta/dsm2.toml#L799) | `sediment_checks[3]`<br>`relation.a` | `0.72` |  |
+| [799](../regions/sf-bay-delta/dsm2.toml#L799) | `sediment_checks[3]`<br>`relation.b` | `0.26` |  |
 | | **`sediment_checks[4]`** | | See the note on `sediment_checks[1]`. |
-| [808](../regions/sf-bay-delta/dsm2.toml#L808) | `sediment_checks[4]`<br>`relation.a` | `1.16` |  |
-| [808](../regions/sf-bay-delta/dsm2.toml#L808) | `sediment_checks[4]`<br>`relation.b` | `0.27` |  |
+| [810](../regions/sf-bay-delta/dsm2.toml#L810) | `sediment_checks[4]`<br>`relation.a` | `1.16` |  |
+| [810](../regions/sf-bay-delta/dsm2.toml#L810) | `sediment_checks[4]`<br>`relation.b` | `0.27` |  |
 | | **`sediment_checks[5]`** | | See the note on `sediment_checks[1]`. |
-| [819](../regions/sf-bay-delta/dsm2.toml#L819) | `sediment_checks[5]`<br>`relation.a` | `0.914` |  |
-| [819](../regions/sf-bay-delta/dsm2.toml#L819) | `sediment_checks[5]`<br>`relation.b` | `0.29` |  |
+| [821](../regions/sf-bay-delta/dsm2.toml#L821) | `sediment_checks[5]`<br>`relation.a` | `0.914` |  |
+| [821](../regions/sf-bay-delta/dsm2.toml#L821) | `sediment_checks[5]`<br>`relation.b` | `0.29` |  |
 
 ### experiments.toml
 
@@ -398,7 +398,6 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/dsm2/fields.py:36](../python/fdmr_plugins/dsm2/fields.py#L36) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
 | [python/fdmr_plugins/dsm2/fields.py:38](../python/fdmr_plugins/dsm2/fields.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/dsm2/grid.py:17](../python/fdmr_plugins/dsm2/grid.py#L17) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
-| [python/fdmr_plugins/dsm2/study.py:60](../python/fdmr_plugins/dsm2/study.py#L60) | `RAIN_SEASON` | `(12, 1, 2, 3)` | months whose island returns are rain running off |
 | [python/fdmr_plugins/dsm2/temperature.py:38](../python/fdmr_plugins/dsm2/temperature.py#L38) | `MPH` | `3600 / 1609.344` | m/s to mph |
 | [python/fdmr_plugins/dsm2/temperature.py:39](../python/fdmr_plugins/dsm2/temperature.py#L39) | `INHG` | `1 / 33.8639` | hPa to inches of mercury |
 | [python/fdmr_plugins/fvcom/correct.py:33](../python/fdmr_plugins/fvcom/correct.py#L33) | `MIN_H` | `0.5` | m: shoals that dry still pass a little water |

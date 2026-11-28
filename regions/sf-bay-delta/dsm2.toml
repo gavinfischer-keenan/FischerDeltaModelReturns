@@ -225,6 +225,8 @@ returns = ["DRAIN-FLOW"]
 source = "usbr-cvo"
 site = "DOUT"
 parameter = "ndcu"
+# Days the live total is below DWR's (wetter) keep DWR's own series: so this
+# region needs no rain season (`rain_months`, #93).
 wetter = false
 
 # Settings held fixed for the whole run.

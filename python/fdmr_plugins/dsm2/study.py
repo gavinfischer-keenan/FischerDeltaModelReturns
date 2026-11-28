@@ -15,10 +15,11 @@ between their net depletion (uses less returns) and the live total is added
 to the returns where the live day is wetter, or to the uses where it is
 drier. The day's total is then the live one exactly. Where it is wetter, the
 extra is rain running off, so it goes to each node in proportion to that
-node's returns in the reference year's rain season (December to March), when
-returns are runoff; in the irrigation season they are drainage from the
-farms, gathered in a few places. Where it is drier, the extra use goes to
-each node in proportion to its uses over the run.
+node's returns in the reference year's rain season (the region's
+`rain_months`, with their source: required only where a region follows the
+wetter days, #93), when returns are runoff; in the irrigation season they
+are drainage from the farms, gathered in a few places. Where it is drier,
+the extra use goes to each node in proportion to its uses over the run.
 
 A run may also change how its flooded islands' openings pass water
 (`reservoir_out_ratio`): for each named reservoir, every connection's outflow
@@ -57,9 +58,6 @@ class LiveSetting:
     points: Sequence[tuple[int, float]]  # (UTC time, value), from at or before the run's padded start
 
 
-RAIN_SEASON = (12, 1, 2, 3)  # months whose island returns are rain running off
-
-
 @dataclass(frozen=True)
 class Depletion:
     """A live daily total of island water use (net channel depletion: water
@@ -72,6 +70,13 @@ class Depletion:
     days: dict[int, float]  # day's start (UTC s, a midnight PST) -> net depletion, in the series' units
     add_use: str = ""  # which `use` part takes added use (default the first)
     wetter: bool = True  # follow the live total where it is below the reference (rain); False keeps the reference there
+    # Months whose island returns are rain running off (the region's
+    # `rain_months`, sourced there): needed only where `wetter` is True (#93).
+    rain_months: Sequence[int] = ()
+
+    def __post_init__(self) -> None:
+        if self.wetter and not self.rain_months:
+            raise ValueError("following wetter days needs the region's rain_months in [depletion] (#93)")
 
 
 def adjust_depletion(series: dict[str, list[float | None]], kinds: dict[str, str], use: Sequence[str],
@@ -371,7 +376,7 @@ def build(settings: RunSettings, run_dir: Path, start: int, end: int, live: Sequ
             held[run_path] = (out_file, dss.parts(run_path)[2].upper(), out, units or "UNDEF", kind or "INST-VAL")
             # The reference year's rain-season mean (value j is the day ending y0 + j steps).
             wet = [v for j, v in enumerate(vals) if v is not None
-                   and datetime.fromtimestamp(y0 + (j - 1) * step - dss.PST, timezone.utc).month in RAIN_SEASON]
+                   and datetime.fromtimestamp(y0 + (j - 1) * step - dss.PST, timezone.utc).month in dep.rain_months]
             rain_mean[run_path] = sum(wet) / len(wet) if wet else 0.0
         else:
             d.write(out_file, run_path, t0, out, units or "UNDEF", kind or "INST-VAL")
