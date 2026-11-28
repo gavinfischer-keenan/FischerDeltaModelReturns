@@ -434,8 +434,6 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
     top[last + 1:] = hold
 
     els = field.elements
-    x_el = np.array([e.mid for e in els])
-    lengths = [e.length for e in els]
     lonlat = [line.point_at(e.mid) for e in els]
     zone_of = [min(range(len(zones)), key=lambda z: math.hypot(zones[z]["lon"] - lo, zones[z]["lat"] - la)) for lo, la in lonlat]
     for z in set(zone_of):
@@ -450,13 +448,6 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
         cols = {z: weather_cache[zones[z]["name"]][k] for z in set(zone_of)}
         weather[k] = np.stack([cols[z] for z in zone_of], axis=1)
 
-    q = np.array(field.flow, dtype=float)
-    a = np.array(field.area, dtype=float)
-    u = np.array(field.velocity, dtype=float)
-    shapes = [shape_at(records, e.mid)[1] for e in els]
-    width = np.array([[shapes[j].width(max(float(q[i, j]), 1e-3)) for j in range(len(els))] for i in range(q.shape[0])])
-    depth = a / np.clip(width, 1.0, None)
-
     # Stations on the reach that measure water temperature (region.toml [[stations]]).
     stations, names = [], []
     for s in region.stations:
@@ -468,30 +459,8 @@ def river_temperature(region_dir: Path, region, store: Store, reach: str, line: 
             continue
         stations.append((x, measured(s["source"], s["site"], now)))
         names.append(s["site"])
-    initial = np.full(len(els), top[0])
-    at0 = [(x, m[0]) for x, m in stations if np.isfinite(m[0])]
-    if at0:
-        xs, vs = zip(*sorted(at0))
-        initial = np.interp(x_el, xs, vs)
-
-    model = heat.run(lengths, u, depth, q, a, STEP, top, initial, weather, inflows)
-    out = heat.correct(model, x_el, times.astype(float), stations)
-
-    # Checks: each station's misfit before correction, and its miss when the
-    # correction is made from the other stations alone.
-    checks = []
-    past = np.arange(n) <= i_now
-    for k, (x, meas) in enumerate(stations):
-        e = int(np.clip(np.searchsorted(x_el, x), 0, len(els) - 1))
-        ok = past & np.isfinite(meas)
-        if not ok.any():
-            continue
-        loo = heat.correct(model, x_el, times.astype(float), [s for j, s in enumerate(stations) if j != k])
-        d0, d1 = meas[ok] - model[ok, e], meas[ok] - loo[ok, e]
-        checks.append({"station": names[k], "km": round(x / 1000, 1), "readings": int(ok.sum()),
-                       "mean_misfit": round(float(d0.mean()), 2), "rms_misfit": round(float(np.sqrt((d0 ** 2).mean())), 2),
-                       "left_out_mean": round(float(d1.mean()), 2), "left_out_rms": round(float(np.sqrt((d1 ** 2).mean())), 2)})
-    return out, checks
+    shapes = [shape_at(records, e.mid)[1] for e in els]
+    return heat.reach_temperature(field, shapes, STEP, top, weather, inflows, stations, names, times.astype(float), i_now)
 
 
 def swot_checks(region_dir: Path, store: Store, reach: str, line: Centreline, els, widths, now: int) -> dict | None:

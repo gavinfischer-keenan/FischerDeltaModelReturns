@@ -148,3 +148,48 @@ def correct(model: np.ndarray, x_el: np.ndarray, t: np.ndarray, stations: Sequen
     for i in range(len(t)):
         out[i] += np.interp(x_el, xs, misfit[i])
     return out
+
+
+def reach_temperature(field, shapes, step: int, top, weather: dict, inflows: list, stations: list, names: list[str],
+                      times, i_now: int):
+    """A river reach's water temperature for every step and element (moved
+    here from the publisher, issue #57): the release's temperature `top`
+    carried down by `run` through the reach's flow field (its elements'
+    `shapes` give their widths), started from the stations' first readings,
+    then corrected toward `stations` ((chainage m, readings per step)) by
+    `correct`. Returns (temperature [step, element], checks): each station's
+    misfit before the correction, and its miss when the correction is made
+    from the other stations alone (left out), over the past steps."""
+    import numpy as np
+
+    els = field.elements
+    x_el = np.array([e.mid for e in els])
+    lengths = [e.length for e in els]
+    q = np.array(field.flow, dtype=float)
+    a = np.array(field.area, dtype=float)
+    u = np.array(field.velocity, dtype=float)
+    width = np.stack([shapes[j].width(np.maximum(q[:, j], 1e-3)) for j in range(len(els))], axis=1)
+    depth = a / np.clip(width, 1.0, None)
+    n = q.shape[0]
+    initial = np.full(len(els), top[0])
+    at0 = [(x, m[0]) for x, m in stations if np.isfinite(m[0])]
+    if at0:
+        xs, vs = zip(*sorted(at0))
+        initial = np.interp(x_el, xs, vs)
+
+    model = run(lengths, u, depth, q, a, step, top, initial, weather, inflows)
+    out = correct(model, x_el, times, stations)
+
+    checks = []
+    past = np.arange(n) <= i_now
+    for k, (x, meas) in enumerate(stations):
+        e = int(np.clip(np.searchsorted(x_el, x), 0, len(els) - 1))
+        ok = past & np.isfinite(meas)
+        if not ok.any():
+            continue
+        loo = correct(model, x_el, times, [s for j, s in enumerate(stations) if j != k])
+        d0, d1 = meas[ok] - model[ok, e], meas[ok] - loo[ok, e]
+        checks.append({"station": names[k], "km": round(x / 1000, 1), "readings": int(ok.sum()),
+                       "mean_misfit": round(float(d0.mean()), 2), "rms_misfit": round(float(np.sqrt((d0 ** 2).mean())), 2),
+                       "left_out_mean": round(float(d1.mean()), 2), "left_out_rms": round(float(np.sqrt((d1 ** 2).mean())), 2)})
+    return out, checks
