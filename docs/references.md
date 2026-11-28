@@ -389,9 +389,9 @@ Used in:
 - `docs/maths.md:23`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
 - `python/fdmr_plugins/registry.py:82`: "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
 - `python/fdmr_plugins/registry.py:87`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
-- `python/fdmr_plugins/river_routing/fields.py:101`: ELDER_LATERAL = fdmr_py.ELDER_LATERAL  # eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23): the engine's own (fdmr_math::dispersion), written once (#70)
-- `python/fdmr_plugins/river_routing/fields.py:106`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
-- `python/fdmr_plugins/river_routing/fields.py:125`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
+- `python/fdmr_plugins/river_routing/fields.py:117`: ELDER_LATERAL = fdmr_py.ELDER_LATERAL  # eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23): the engine's own (fdmr_math::dispersion), written once (#70)
+- `python/fdmr_plugins/river_routing/fields.py:122`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
+- `python/fdmr_plugins/river_routing/fields.py:141`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
 
 ## fischer1979
 
@@ -617,7 +617,7 @@ Checked: The dissertation read (pp. 24 and 31), 27 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/region.toml:645`: Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):
+- `regions/sf-bay-delta/region.toml:660`: Lower Putah Creek's channel (McConnell 2023, ref:mcconnell2023, UC Davis):
 
 ## mcenroe1985
 
@@ -628,6 +628,33 @@ Checked: Crossref record of the DOI; abstract read, 26 Nov 2026
 Used in:
 
 - `regions/sf-bay-delta/fishing.toml:52`: (McEnroe and Cech 1985, ref:mcenroe1985). Moderate to weak evidence: the
+
+## nhdplus
+
+McKay, L., Bondelid, T., Dewald, T., Johnston, J., Moore, R. and Rea, A. (2012). NHDPlus Version 2: User Guide. U.S. Environmental Protection Agency and U.S. Geological Survey (the flowline value-added attributes, slope among them). https://www.epa.gov/system/files/documents/2023-04/NHDPlusV2_User_Guide.pdf
+
+Checked: EPA's user guide gives this citation; the USGS data catalogue uses the same, 28 Nov 2026. Slopes read by the model runner from the USGS water data GeoServer (wmadata:nhdflowline_network), 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_adapters/nhdplus.py:6`: References: ref:nhdplus (references.toml).
+- `python/fdmr_runner/reach_slope.py:1`: """A river reach's bed slope from NHDPlus Version 2 (ref:nhdplus): the
+- `python/fdmr_runner/reach_slope.py:74`: f"{s['km']:.1f} km down from COMID {s['top_comid']} (reach {s['length_km']:.1f} km; ref:nhdplus), read {date.today()}")
+- `regions/sf-bay-delta/region.toml:11`: bed_slope = 3.56e-4   # NHDPlus V2 slope, length-weighted over 257 flowlines, 411.5 km down from COMID 2495224 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give
+- `regions/sf-bay-delta/region.toml:40`: bed_slope = 7.70e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 36.5 km down from COMID 948021150 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give
+- `regions/sf-bay-delta/region.toml:50`: bed_slope = 2.66e-4   # NHDPlus V2 slope, length-weighted over 98 flowlines, 95.3 km down from COMID 7972411 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n
+- `regions/sf-bay-delta/region.toml:62`: bed_slope = 1.97e-3   # NHDPlus V2 slope, length-weighted over 112 flowlines, 37.7 km down from COMID 8062589 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give 
+- `regions/sf-bay-delta/region.toml:70`: bed_slope = 9.29e-4   # NHDPlus V2 slope, length-weighted over 10 flowlines, 19.3 km down from COMID 948020363 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give
+- `regions/sf-bay-delta/region.toml:78`: bed_slope = 5.04e-4   # NHDPlus V2 slope, length-weighted over 16 flowlines, 61.7 km down from COMID 3953347 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n
+- `regions/sf-bay-delta/region.toml:86`: bed_slope = 9.95e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 56.4 km down from COMID 20192498 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give 
+- `regions/sf-bay-delta/region.toml:95`: bed_slope = 2.28e-3   # NHDPlus V2 slope, length-weighted over 44 flowlines, 69.2 km down from COMID 17067102 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give 
+- `regions/sf-bay-delta/region.toml:104`: bed_slope = 1.49e-4   # NHDPlus V2 slope, length-weighted over 58 flowlines, 76.8 km down from COMID 2829236 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n
+- `regions/sf-bay-delta/region.toml:118`: bed_slope = 8.60e-4   # NHDPlus V2 slope, length-weighted over 60 flowlines, 85.4 km down from COMID 2823750 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n
+- `regions/sf-bay-delta/region.toml:127`: bed_slope = 7.99e-4   # NHDPlus V2 slope, length-weighted over 56 flowlines, 92.4 km down from COMID 348551 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give no
+- `regions/sf-bay-delta/region.toml:136`: bed_slope = 8.96e-4   # NHDPlus V2 slope, length-weighted over 35 flowlines, 82.7 km down from COMID 2824488 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give n
+- `regions/sf-bay-delta/region.toml:145`: bed_slope = 3.15e-3   # NHDPlus V2 slope, length-weighted over 110 flowlines, 123.3 km down from COMID 8009269 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give
+- `regions/sf-bay-delta/region.toml:178`: bed_slope = 8.34e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 42.9 km down from COMID 948020626 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give
+- `regions/test-colorado/region.toml:19`: bed_slope = 1.47e-3   # NHDPlus V2 slope, length-weighted over 193 flowlines, 144.8 km down from COMID 20733845 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges giv
 
 ## jrp2022dmc
 
@@ -848,6 +875,8 @@ Checked: Read by the model runner through the Overpass API, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/osm.py:12`: References: ref:osm (references.toml).
+- `python/fdmr_runner/water_audit.py:7`: The map is OpenStreetMap's (ref:osm), through the Overpass API, in the
+- `python/fdmr_runner/water_audit.py:238`: f"(ref:osm; {a['attribution']}), in the box {', '.join(f'{x:.3f}' for x in a['bbox'])} (west, south, east, north).",
 - `regions/rhine-meuse/region.toml:82`: gauge): this reach's line is OpenStreetMap's main stream instead (ref:osm;
 - `regions/sf-bay-delta/dsm2.toml:470`: hand from the map sources there, 28 Nov 2026: OpenStreetMap elements (ref:osm)
 
@@ -1119,6 +1148,17 @@ Checked: Read by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/nldi.py:5`: References: ref:nldi (references.toml).
+- `python/fdmr_runner/reach_slope.py:3`: reach's top down its length (NLDI's downstream navigation, ref:nldi). A reach
+
+## usgs3dep
+
+U.S. Geological Survey (2026). 3D Elevation Program (3DEP), Elevation Point Query Service. https://epqs.nationalmap.gov/v1/docs
+
+Checked: Read by the model runner along the Yolo reach's line, 28 Nov 2026
+
+Used in:
+
+- `regions/sf-bay-delta/region.toml:155`: bed_slope = 1.1e-4   # the Toe Drain's water surface from 3.89 m at its top to 1.23 m at its foot over 23.4 km, USGS 3DEP elevations along the reach's line (ref:usgs3dep, read 28 Nov 2026). The DEM is
 
 ## usgs_waterdata
 

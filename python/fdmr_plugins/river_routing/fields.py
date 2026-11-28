@@ -26,10 +26,15 @@ DAY = 86_400
 MEASUREMENTS_YEARS = 10  # a gauge's shape is fitted to its field measurements of the last this many years (FDMR's choice)
 
 
-DEFAULT_SLOPE = 3e-4  # a typical lowland river, used only where no gauge pair gives one
+# A water-surface slope outside these is taken as a misreading, not a river:
+# flatter than 1 mm per km is below what two gauges' datums can resolve;
+# steeper than 5% is a mountain torrent, not a reach this model routes.
+# FDMR's choice (#79).
+MIN_PLAUSIBLE_SLOPE = 1e-6
+MAX_PLAUSIBLE_SLOPE = 0.05
 
 
-def segment_slopes(gauges, chainage, surface) -> list[float]:
+def segment_slopes(gauges, chainage, surface, bed_slope: float | None = None) -> list[float]:
     """The friction slope between each pair of consecutive main gauges, for the
     shear velocity u* = sqrt(g d S) that goes with the depth and velocity used.
 
@@ -41,29 +46,40 @@ def segment_slopes(gauges, chainage, surface) -> list[float]:
     the drop in (datum + median gauge height) over the distance; a gauge
     reporting its water level against the region's datum itself
     (Rijkswaterstaat's, in m NAP) gives it directly. Missing or implausible
-    slopes take a neighbour's, or a default. `surface(gauge)` gives a gauge's
+    slopes take a neighbour's, or the reach's own `bed_slope` (region.toml,
+    from NHDPlus: fdmr_runner.reach_slope), which is also the slope of a
+    reach with fewer than two gauges (#79). `surface(gauge)` gives a gauge's
     water-surface elevation (m, the region's datum) or None: the runner's
     reading of the agencies' records (fdmr_runner.publish)."""
     pairs = list(zip(gauges, gauges[1:]))
+    if not pairs:
+        if bed_slope is None:
+            raise ValueError("a reach with fewer than two main gauges needs its bed_slope in region.toml (#79)")
+        return [bed_slope]
     sourced = [(a.channel["slope"] + b.channel["slope"]) / 2 if a.channel and b.channel else None for a, b in pairs]
     if all(s is not None for s in sourced):
         return sourced
-    measured = _surface_slopes(gauges, chainage, surface)
+    measured = _surface_slopes(gauges, chainage, surface, bed_slope)
     return [s if s is not None else m for s, m in zip(sourced, measured)]
 
 
-def _surface_slopes(gauges, chainage, surface) -> list[float]:
+def _surface_slopes(gauges, chainage, surface, bed_slope: float | None = None) -> list[float]:
     """Water-surface slope between each pair of consecutive main gauges (see segment_slopes)."""
     z = [surface(g) for g in gauges]
     s = []
     for (g1, z1), (g2, z2) in zip(zip(gauges, z), list(zip(gauges, z))[1:]):
         dist = chainage[g2.site] - chainage[g1.site]
         slope = (z1 - z2) / dist if z1 is not None and z2 is not None and dist > 0 else None
-        s.append(slope if slope is not None and 1e-6 < slope < 0.05 else None)
+        s.append(slope if slope is not None and MIN_PLAUSIBLE_SLOPE < slope < MAX_PLAUSIBLE_SLOPE else None)
     for i, v in enumerate(s):  # fill gaps from the nearest segment that has a slope
         if v is None:
             near = [x for x in sorted(range(len(s)), key=lambda j: abs(j - i)) if s[x] is not None]
-            s[i] = s[near[0]] if near else DEFAULT_SLOPE
+            if near:
+                s[i] = s[near[0]]
+            elif bed_slope is not None:
+                s[i] = bed_slope
+            else:
+                raise ValueError("no gauge pair gives a plausible slope, and the reach has no bed_slope in region.toml (#79)")
     return s
 
 
@@ -83,7 +99,7 @@ def shape_at(records, x: float):
 def dispersion_field(field, records, slopes):
     """Fischer's longitudinal dispersion for every element and step, m2/s
     (specification section 7.1): K = 0.011 U^2 W^2 / (d u*), u* = sqrt(g d S).
-    A reach with no gauge pair to give a slope takes the default. Each
+    A reach with no gauge pair to give a slope takes its bed_slope. Each
     element's steps are worked out together (#35), by the same maths."""
     import numpy as np
 
@@ -91,7 +107,7 @@ def dispersion_field(field, records, slopes):
     out = np.zeros((field.steps, len(field.elements)))
     for e, el in enumerate(field.elements):
         k, shape = shape_at(records, el.mid)
-        slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
+        slope = slopes[min(k, len(slopes) - 1)]
         q = flow[:, e]
         d, w = shape.depth(q), shape.width(q)
         out[:, e] = fdmr_py.fischer_ks(vel[:, e].tolist(), w.tolist(), d.tolist(), fdmr_py.shear_velocities(d.tolist(), slope))
@@ -113,7 +129,7 @@ def lateral_field(field, records, slopes):
     out = np.zeros((field.steps, len(field.elements)))
     for e, el in enumerate(field.elements):
         k, shape = shape_at(records, el.mid)
-        slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
+        slope = slopes[min(k, len(slopes) - 1)]
         d = shape.depth(np.maximum(flow[:, e], 1e-3))
         out[:, e] = ELDER_LATERAL * d * np.asarray(fdmr_py.shear_velocities(d.tolist(), slope))
     return out
@@ -129,7 +145,7 @@ def element_fickian(field, records, slopes) -> list[float]:
     out = []
     for e, el in enumerate(field.elements):
         k, shape = shape_at(records, el.mid)
-        slope = slopes[min(k, len(slopes) - 1)] if slopes else DEFAULT_SLOPE
+        slope = slopes[min(k, len(slopes) - 1)]
         i = sorted(range(field.steps), key=lambda i: field.flow[i][e])[field.steps // 2]
         q = max(field.flow[i][e], 1e-3)
         d, w, u = shape.depth(q), shape.width(q), abs(field.velocity[i][e])

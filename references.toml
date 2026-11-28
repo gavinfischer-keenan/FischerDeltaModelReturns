@@ -240,6 +240,23 @@ kind = "data"
 url = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer/6"
 checked = "Read 26 Nov 2026 for the pool centres (dsm2.toml [pool_centres])"
 
+[nhdplus]
+authors = "McKay, L., Bondelid, T., Dewald, T., Johnston, J., Moore, R. and Rea, A."
+year = 2012
+title = "NHDPlus Version 2: User Guide"
+kind = "report"
+in = "U.S. Environmental Protection Agency and U.S. Geological Survey (the flowline value-added attributes, slope among them)"
+url = "https://www.epa.gov/system/files/documents/2023-04/NHDPlusV2_User_Guide.pdf"
+checked = "EPA's user guide gives this citation; the USGS data catalogue uses the same, 28 Nov 2026. Slopes read by the model runner from the USGS water data GeoServer (wmadata:nhdflowline_network), 28 Nov 2026"
+
+[usgs3dep]
+authors = "U.S. Geological Survey"
+year = 2026
+title = "3D Elevation Program (3DEP), Elevation Point Query Service"
+kind = "data"
+url = "https://epqs.nationalmap.gov/v1/docs"
+checked = "Read by the model runner along the Yolo reach's line, 28 Nov 2026"
+
 # ---- Papers, books and reports.
 
 [karney2011]

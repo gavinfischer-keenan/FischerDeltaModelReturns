@@ -41,3 +41,21 @@ def test_sourced_channels_take_their_own_slope_for_shear_velocity():
     # The store is never read: every segment's gauges have a sourced channel.
     got = segment_slopes([a, b, c], {"a": 0.0, "b": 8000.0, "c": 60000.0}, None, {}, 0, 0)
     assert got == [pytest.approx(1.1e-4), pytest.approx(1.0e-4)]
+
+
+def test_without_a_gauge_pair_the_reach_takes_its_sourced_bed_slope_or_stops():
+    """#79: no unsourced default. One gauge, or gauges with no surface to
+    compare, take the reach's bed_slope (NHDPlus); with none, it says so."""
+    from fdmr_plugins.river_routing.fields import segment_slopes
+
+    one = [SimpleNamespace(site="a", channel=None)]
+    assert segment_slopes(one, {"a": 0.0}, lambda g: None, bed_slope=7.7e-4) == [7.7e-4]
+    with pytest.raises(ValueError, match="bed_slope"):
+        segment_slopes(one, {"a": 0.0}, lambda g: None)
+    two = [SimpleNamespace(site="a", channel=None), SimpleNamespace(site="b", channel=None)]
+    assert segment_slopes(two, {"a": 0.0, "b": 1000.0}, lambda g: None, bed_slope=5e-4) == [5e-4]
+    with pytest.raises(ValueError, match="bed_slope"):
+        segment_slopes(two, {"a": 0.0, "b": 1000.0}, lambda g: None)
+    # A measured surface still wins where it is plausible.
+    z = {"a": 10.0, "b": 9.0}
+    assert segment_slopes(two, {"a": 0.0, "b": 1000.0}, lambda g: z[g.site], bed_slope=5e-4) == [pytest.approx(1e-3)]

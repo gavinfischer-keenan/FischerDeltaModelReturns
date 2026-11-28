@@ -8,6 +8,7 @@ timezone = "America/Los_Angeles"
 
 [[reaches]]
 id = "river"
+bed_slope = 3.56e-4   # NHDPlus V2 slope, length-weighted over 257 flowlines, 411.5 km down from COMID 2495224 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Sacramento River, Keswick Dam to Sacramento"
 kind = "river-routing"
 release_temperature = { source = "cdec", site = "KWK", duration = "H" }   # Keswick's release (CDEC KWK, hourly)
@@ -36,6 +37,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 # The Delta's other rivers, from their dams (issue #4; gauges below).
 [[reaches]]
 id = "american"
+bed_slope = 7.70e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 36.5 km down from COMID 948021150 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "American River, Nimbus Dam to the Sacramento"
 kind = "river-routing"
 dam = [-121.220039, 38.636145]   # Nimbus Dam (CDEC NAT), re-regulating Folsom's release
@@ -45,6 +47,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "feather"
+bed_slope = 2.66e-4   # NHDPlus V2 slope, length-weighted over 98 flowlines, 95.3 km down from COMID 7972411 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Feather River, Thermalito to the Sacramento"
 kind = "river-routing"
 # Starts where Oroville's water returns to the river below the Thermalito
@@ -56,6 +59,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "yuba"
+bed_slope = 1.97e-3   # NHDPlus V2 slope, length-weighted over 112 flowlines, 37.7 km down from COMID 8062589 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Yuba River, Englebright Dam to the Feather"
 kind = "river-routing"
 joins = "feather"
@@ -63,6 +67,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "bear"
+bed_slope = 9.29e-4   # NHDPlus V2 slope, length-weighted over 10 flowlines, 19.3 km down from COMID 948020363 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Bear River, below Camp Far West Dam to the Feather"
 kind = "river-routing"
 joins = "feather"
@@ -70,6 +75,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "mokelumne"
+bed_slope = 5.04e-4   # NHDPlus V2 slope, length-weighted over 16 flowlines, 61.7 km down from COMID 3953347 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Mokelumne River, Camanche Dam to the Delta"
 kind = "river-routing"
 mouth = [-121.43101, 38.25478]   # DSM2 node 447, its inflow "moke"
@@ -77,6 +83,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "cosumnes"
+bed_slope = 9.95e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 56.4 km down from COMID 20192498 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Cosumnes River, Michigan Bar to the Delta"
 kind = "river-routing"
 # The Cosumnes has no large dam: it starts at its first gauge, Michigan Bar.
@@ -85,6 +92,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "calaveras"
+bed_slope = 2.28e-3   # NHDPlus V2 slope, length-weighted over 44 flowlines, 69.2 km down from COMID 17067102 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Calaveras River, New Hogan Dam to the Delta"
 kind = "river-routing"
 mouth = [-121.36938, 37.9668]    # DSM2 node 21, its inflow "calaveras"
@@ -93,6 +101,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "san_joaquin"
+bed_slope = 1.49e-4   # NHDPlus V2 slope, length-weighted over 58 flowlines, 76.8 km down from COMID 2829236 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "San Joaquin River, above the Merced to Vernalis"
 kind = "river-routing"
 # Not from Friant: below it the river is diverted at Mendota Pool and Sack Dam
@@ -106,6 +115,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "tuolumne"
+bed_slope = 8.60e-4   # NHDPlus V2 slope, length-weighted over 60 flowlines, 85.4 km down from COMID 2823750 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Tuolumne River, La Grange Dam to the San Joaquin"
 kind = "river-routing"
 joins = "san_joaquin"
@@ -114,6 +124,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "stanislaus"
+bed_slope = 7.99e-4   # NHDPlus V2 slope, length-weighted over 56 flowlines, 92.4 km down from COMID 348551 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Stanislaus River, Goodwin Dam to the San Joaquin"
 kind = "river-routing"
 joins = "san_joaquin"
@@ -122,6 +133,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "merced"
+bed_slope = 8.96e-4   # NHDPlus V2 slope, length-weighted over 35 flowlines, 82.7 km down from COMID 2824488 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Merced River, Crocker-Huffman Dam to the San Joaquin"
 kind = "river-routing"
 dam = [-120.380196, 37.518223]   # just below Crocker-Huffman Dam (CDEC MBH)
@@ -130,6 +142,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "cache"
+bed_slope = 3.15e-3   # NHDPlus V2 slope, length-weighted over 110 flowlines, 123.3 km down from COMID 8009269 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Cache Creek, Clear Lake to Yolo"
 kind = "river-routing"
 # Ends past the Yolo gauge, above the Cache Creek Settling Basin, whose outlet
@@ -139,6 +152,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "yolo"
+bed_slope = 1.1e-4   # the Toe Drain's water surface from 3.89 m at its top to 1.23 m at its foot over 23.4 km, USGS 3DEP elevations along the reach's line (ref:usgs3dep, read 28 Nov 2026). The DEM is hydro-flattened, so this fall is mostly Lisbon Weir's step, not a friction slope: weakly known. NHDPlus V2 barely holds the Toe Drain (#79)
 name = "Yolo Bypass, Woodland to Lisbon"
 kind = "river-routing"
 # The bypass's low channel, Tule Canal into the toe drain, as NHD maps them
@@ -161,6 +175,7 @@ certainty = { solid_days = 5, floor = 0.2 }
 
 [[reaches]]
 id = "putah"
+bed_slope = 8.34e-4   # NHDPlus V2 slope, length-weighted over 31 flowlines, 42.9 km down from COMID 948020626 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Putah Creek, Putah Diversion Dam to the Yolo Bypass"
 kind = "river-routing"
 # From the Putah Diversion Dam near Winters, its release measured by the Solano

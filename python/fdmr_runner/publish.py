@@ -33,7 +33,7 @@ from fdmr_plugins.river_routing import form, model
 from fdmr_plugins.river_routing import fields as _fields
 from fdmr_plugins.river_routing.centreline import Centreline
 from fdmr_plugins.river_routing.fields import (  # noqa: F401  (the river maths, named here for the runner's callers)
-    DEFAULT_SLOPE, ELDER_LATERAL, POWER_LAW, WIDE_CHANNEL, channel_method, dispersion_field, element_fickian,
+    ELDER_LATERAL, POWER_LAW, WIDE_CHANNEL, channel_method, dispersion_field, element_fickian,
     element_widths, lateral_field, shape_at,
 )
 from fdmr_plugins.river_routing.wave import regular
@@ -128,7 +128,7 @@ def storage_field(store: Store, cfg: dict | None, field, t0: int, now: int, n: i
 
 
 
-def segment_slopes(gauges, chainage, store, datums, t0, now) -> list[float]:
+def segment_slopes(gauges, chainage, store, datums, t0, now, bed_slope: float | None = None) -> list[float]:
     """The friction slope between each pair of consecutive main gauges
     (fdmr_plugins.river_routing.fields.segment_slopes), from the gauges'
     water surfaces in the store: (datum + median gauge height) for a USGS
@@ -143,7 +143,7 @@ def segment_slopes(gauges, chainage, store, datums, t0, now) -> list[float]:
             return None
         gh = [v.value for v in store.values(SOURCE, g.site, "gage_height", t0, now + STEP) if v.value is not None]
         return d + sorted(gh)[len(gh) // 2] if gh else None
-    return _fields.segment_slopes(gauges, chainage, surface)
+    return _fields.segment_slopes(gauges, chainage, surface, bed_slope)
 
 
 def fit_shapes(gauges, chainage, store: Store, method: str = POWER_LAW) -> dict:
@@ -272,7 +272,8 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
     wave_scale, water_factor = corrections(calibration, reach, gauges)
     field = model.build(geo.get("model_length_m", max(chainage.values())), records, t0, STEP,
                         wave_scale=wave_scale, water_factor=water_factor)
-    slopes = segment_slopes(gauges, chainage, store, datums or {}, t0, now)
+    bed = next((r.get("bed_slope") for r in region.reaches if r["id"] == reach), None)  # NHDPlus, for one-gauge reaches (#79)
+    slopes = segment_slopes(gauges, chainage, store, datums or {}, t0, now, bed)
     dispersion = dispersion_field(field, records, slopes)
     # Parcels spread by the cross-channel shear unless the region chose Fischer's K alone (#29).
     from fdmr_plugins import registry

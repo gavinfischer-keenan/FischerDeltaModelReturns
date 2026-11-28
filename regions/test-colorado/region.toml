@@ -16,6 +16,7 @@ timezone = "America/Phoenix"
 
 [[reaches]]
 id = "river"
+bed_slope = 1.47e-3   # NHDPlus V2 slope, length-weighted over 193 flowlines, 144.8 km down from COMID 20733845 (fdmr_runner.reach_slope, ref:nhdplus, read 28 Nov 2026): the slope where the gauges give none (#79)
 name = "Colorado River, Lees Ferry to Grand Canyon"
 kind = "river-routing"
 certainty = { solid_days = 5, floor = 0.2 }   # as the Sacramento's: about as far as the river forecasts reach, then falling to 0.2 at day 14, every reach's starting floor, set by hand (specification 8.2)
