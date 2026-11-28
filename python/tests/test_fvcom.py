@@ -199,3 +199,32 @@ def test_misfits_spread_through_the_water_not_across_land():
     assert corr[south] == pytest.approx(2.0, abs=0.15) and corr[north] == pytest.approx(-1.0, abs=0.15)
     # A station with no misfit that day is left out.
     assert np.allclose(correct.spread(d, np.array([2.0, np.nan]))[[south, north]], 2.0)
+
+
+def test_the_flow_across_a_meshs_edges_is_velocity_times_length_times_depth():
+    """fdmr_plugins.fvcom.flux (#58): 0.5 m/s westward through the 250 m west end,
+    4 m deep, is 500 m3/s out of the mesh; the sum over the edges is the old
+    edge-by-edge loop's, exactly."""
+    from fdmr_plugins.fvcom import flux
+
+    fine = grid_mesh(nx=40, ny=6, d=50.0)
+    fine.depth = np.full(len(fine.x), 4.0)
+    c = mesh.Coarse(fine_node=np.arange(len(fine.x)), lon=fine.lon, lat=fine.lat, x=fine.x, y=fine.y, tri=fine.tri.copy(),
+                    depth=fine.depth, el_owner=np.zeros(0, int), node_owner=np.zeros(0, int), el_area=np.zeros(0), node_area=np.zeros(0))
+    nx = 40
+    west = [[j * nx, (j + 1) * nx] for j in range(5)]
+    n = len(fine.x)
+    rng = np.random.default_rng(3)
+    hours = {0: {"u": np.full(n, -0.5), "v": np.zeros(n), "level": np.zeros(n)},
+             3600: {"u": rng.normal(size=n), "v": rng.normal(size=n), "level": rng.normal(scale=0.3, size=n)}}
+    ts, q = flux.mesh_outflow(c, west, hours)
+    assert list(ts) == [0, 3600] and q[0] == pytest.approx(0.5 * 250 * 4)
+    en = flux.edge_normals(c, west)
+    old = 0.0
+    d = hours[3600]
+    for a, b, nxx, nyy in en:  # the loop bay.mesh_outflow used to run
+        a, b = int(a), int(b)
+        u, v = (d["u"][a] + d["u"][b]) / 2, (d["v"][a] + d["v"][b]) / 2
+        h = (c.depth[a] + d["level"][a] + c.depth[b] + d["level"][b]) / 2
+        old += (u * nxx + v * nyy) * max(h, 0.0)
+    assert q[1] == old

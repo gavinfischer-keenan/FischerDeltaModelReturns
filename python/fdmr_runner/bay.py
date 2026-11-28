@@ -41,6 +41,7 @@ import numpy as np
 
 from fdmr_adapters import noaa_ofs
 from fdmr_plugins.fvcom import extend, fields, mesh
+from fdmr_plugins.fvcom.flux import edge_flux, edge_normals, mesh_outflow
 from fdmr_plugins.fvcom.layout import Layout, read_layout
 
 HOUR = 3600
@@ -289,55 +290,6 @@ def add_cut_edges(coarse: mesh.Coarse, edges: dict, join: dict, near_m: float) -
     return {**edges, "delta": edges.get("delta", []) + extra}
 
 
-def edge_normals(coarse: mesh.Coarse, edges: list[list[int]]) -> np.ndarray:
-    """Each boundary edge's nodes and its length times its outward unit normal:
-    rows (a, b, nx, ny)."""
-    tri = coarse.tri
-    out = []
-    for a, b in edges:
-        k = next(i for i, tr in enumerate(tri) if a in tr and b in tr)
-        cx, cy = coarse.x[tri[k]].mean(), coarse.y[tri[k]].mean()
-        dx, dy = coarse.x[b] - coarse.x[a], coarse.y[b] - coarse.y[a]
-        nx, ny = dy, -dx
-        mx, my = (coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2
-        if nx * (mx - cx) + ny * (my - cy) < 0:
-            nx, ny = -nx, -ny
-        out.append((a, b, nx, ny))
-    return np.array(out, dtype=float).reshape(-1, 4)
-
-
-def edge_flux(coarse: mesh.Coarse, en: np.ndarray, u: np.ndarray, v: np.ndarray, level: np.ndarray) -> np.ndarray:
-    """The flow out of the mesh through each edge (m3/s): the depth-averaged
-    velocity across it times its length and the water's depth, both ends averaged."""
-    a, b = en[:, 0].astype(int), en[:, 1].astype(int)
-    h = np.maximum((coarse.depth[a] + level[a] + coarse.depth[b] + level[b]) / 2, 0.0)
-    return ((u[a] + u[b]) / 2 * en[:, 2] + (v[a] + v[b]) / 2 * en[:, 3]) * h
-
-
-def mesh_outflow(coarse: mesh.Coarse, edges: list[list[int]], hours: dict[int, Path]) -> tuple[np.ndarray, np.ndarray]:
-    """The mesh's flow across a set of its boundary edges, out of the mesh
-    (m3/s), at each hour held: the depth-averaged velocity across each edge
-    times its length and the water's depth there, both ends averaged."""
-    tri = coarse.tri
-    normals = []
-    for a, b in edges:
-        k = next(i for i, tr in enumerate(tri) if a in tr and b in tr)
-        cx, cy = coarse.x[tri[k]].mean(), coarse.y[tri[k]].mean()
-        dx, dy = coarse.x[b] - coarse.x[a], coarse.y[b] - coarse.y[a]
-        nx, ny = dy, -dx  # length times a unit normal
-        mx, my = (coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2
-        if nx * (mx - cx) + ny * (my - cy) < 0:  # point it away from the triangle: outward
-            nx, ny = -nx, -ny
-        normals.append((a, b, nx, ny))
-    ts = np.array(sorted(hours))
-    q = np.zeros(len(ts))
-    for i, tt in enumerate(ts):
-        d = np.load(hours[tt]) if not isinstance(hours[tt], dict) else hours[tt]
-        for a, b, nx, ny in normals:
-            u, v = (d["u"][a] + d["u"][b]) / 2, (d["v"][a] + d["v"][b]) / 2
-            h = (coarse.depth[a] + d["level"][a] + coarse.depth[b] + d["level"][b]) / 2
-            q[i] += (u * nx + v * ny) * max(h, 0.0)
-    return ts, q
 
 
 def overlap(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path], delta_dir: Path, reach: str, now: int) -> dict:
