@@ -105,6 +105,11 @@
    "citation": "Berg, M., and Sutula, M. (2015). Factors Affecting the Growth of Cyanobacteria with Special Emphasis on the Sacramento-San Joaquin Delta. Southern California Coastal Water Research Project, Technical Report 869; prepared for the Central Valley Regional Water Quality Control Board and the State Water Resources Control Board; August 2015. https://amarine.com/documents/factors-affecting-the-growth-of-cyanobacteria-with-special-emphasis-on-the-sacramento-san-joaquin-delta/",
    "used": [
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 166,
+     "text": "\"ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; \""
+    },
+    {
      "file": "regions/sf-bay-delta/blooms.toml",
      "line": 41,
      "text": "ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:"
@@ -677,7 +682,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 146,
+     "line": 173,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
     }
    ]
@@ -696,7 +701,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 309,
+     "line": 348,
      "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
     },
     {
@@ -832,7 +837,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 145,
+     "line": 172,
      "text": "\"Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term \""
     },
     {
@@ -923,6 +928,11 @@
      "text": "(Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press)."
     },
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 151,
+     "text": "\"surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)\","
+    },
+    {
      "file": "python/fdmr_runner/delta.py",
      "line": 359,
      "text": "Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily"
@@ -1005,6 +1015,11 @@
    "citation": "Heublein, J. C., Bellmer, R. J., Chase, R. D., Doukakis, P., Gingras, M., Hampton, D., Israel, J. A., Jackson, Z. J., Johnson, R. C., Langness, O. P., Luis, S., Mora, E., Moser, M. L., Rohrbach, L., Seesholtz, A. M., Sommer, T., and Stuart, J. S. (2017). Life history and current monitoring inventory of San Francisco Estuary sturgeon. NOAA Technical Memorandum NMFS-SWFSC-589, National Marine Fisheries Service, Southwest Fisheries Science Center. https://doi.org/10.7289/V5/TM-SWFSC-589",
    "used": [
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 158,
+     "text": "\"ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; \""
+    },
+    {
      "file": "regions/sf-bay-delta/fishing.toml",
      "line": 61,
      "text": "migration_months = [11, 12, 1, 2, 3, 4, 5]   # fresh water scores higher: the spawning run (Heublein et al. 2017, ref:heublein2017, pp. 12, 26)"
@@ -1026,6 +1041,11 @@
      "file": "python/fdmr_adapters/ecostress.py",
      "line": 30,
      "text": "References: ref:ecostress_lst (references.toml)."
+    },
+    {
+     "file": "python/fdmr_runner/land.py",
+     "line": 130,
+     "text": "return {\"source\": \"NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), land surface temperature\",  # ref:ecostress_lst \"days\": days,"
     }
    ]
   },
@@ -1059,6 +1079,16 @@
    "checked": "Crossref record of the DOI, 26 Nov 2026",
    "citation": "Jassby, A. D., Kimmerer, W. J., Monismith, S. G., Armor, C., Cloern, J. E., Powell, T. M., Schubel, J. R., and Vendlinski, T. J. (1995). Isohaline position as a habitat indicator for estuarine populations. Ecological Applications 5(1), 272-289. https://doi.org/10.2307/1942069",
    "used": [
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 150,
+     "text": "\"Jassby et al. 1995, X2 as a habitat indicator (ref:jassby1995); D-1641's X2 objective as 2.64 mmhos/cm \""
+    },
+    {
+     "file": "python/fdmr_runner/overlays.py",
+     "line": 120,
+     "text": "X2 as Jassby et al. 1995 define it (ref:jassby1995).\"\"\""
+    },
     {
      "file": "regions/sf-bay-delta/overlays.toml",
      "line": 14,
@@ -1140,6 +1170,11 @@
    "citation": "Kelly, J. T., Klimley, A. P., and Crocker, C. E. (2007). Movements of green sturgeon, Acipenser medirostris, in the San Francisco Bay estuary, California. Environmental Biology of Fishes 79(3-4), 281-295. https://doi.org/10.1007/s10641-006-0036-y",
    "used": [
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 158,
+     "text": "\"ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; \""
+    },
+    {
      "file": "regions/sf-bay-delta/fishing.toml",
      "line": 80,
      "text": "ref:kelly2007); in the lower estuary more often February-March and"
@@ -1183,6 +1218,11 @@
    "citation": "Kurobe, T., Lehman, P. W., Lesmeister, S., and Teh, S. J. (2022). Cyanobacteria abundance, cyanotoxin concentration, and water quality data for the upper San Francisco Estuary, California, USA: 2014-2019. Environmental Data Initiative; package edi.1076.1; Creative Commons Attribution (CC BY 4.0). https://doi.org/10.6073/pasta/b4e180cb925266171285375a3e202635",
    "used": [
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 166,
+     "text": "\"ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; \""
+    },
+    {
      "file": "regions/sf-bay-delta/blooms.toml",
      "line": 24,
      "text": "al. 2022, ref:kurobe2022; 424 samples, each classed by its own measured"
@@ -1206,6 +1246,11 @@
    "checked": "Crossref record of the DOI; the paper read for FDMR (pp. 93-94), 27 Nov 2026",
    "citation": "Lehman, P. W., Boyer, G., Hall, C., Waller, S., and Gehrts, K. (2005). Distribution and toxicity of a new colonial Microcystis aeruginosa bloom in the San Francisco Bay Estuary, California. Hydrobiologia 541(1), 87-99. https://doi.org/10.1007/s10750-004-4670-0",
    "used": [
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 166,
+     "text": "\"ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; \""
+    },
     {
      "file": "regions/sf-bay-delta/blooms.toml",
      "line": 49,
@@ -1520,7 +1565,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 309,
+     "line": 348,
      "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
     },
     {
@@ -1583,6 +1628,11 @@
      "file": "python/fdmr_adapters/cpc.py",
      "line": 13,
      "text": "References: ref:cpc_enso (references.toml)."
+    },
+    {
+     "file": "python/fdmr_runner/ocean.py",
+     "line": 27,
+     "text": "ENSO_THRESHOLD = 0.5  # degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index (ref:cpc_enso)"
     }
    ]
   },
@@ -1729,6 +1779,11 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 101,
      "text": "\"US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)\", \"fdmr_runner.releases\")],"
+    },
+    {
+     "file": "python/fdmr_runner/releases.py",
+     "line": 6,
+     "text": "`release_forecast`: the River Forecast Center (ref:cnrfc) publishes a release forecast"
     }
    ]
   },
@@ -1825,6 +1880,11 @@
      "file": "python/fdmr_adapters/opera.py",
      "line": 15,
      "text": "References: ref:opera_dswx_s1 (references.toml)."
+    },
+    {
+     "file": "python/fdmr_runner/water_extent.py",
+     "line": 30,
+     "text": "PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1 (ref:opera_dswx_s1)"
     }
    ]
   },
@@ -1873,6 +1933,11 @@
    "citation": "Patton, O., Larwood, V., and Young, M. (2020). Estuarine habitat use by white sturgeon (Acipenser transmontanus). San Francisco Estuary and Watershed Science 18(4), article 4. https://doi.org/10.15447/sfews.2020v18iss4art4",
    "used": [
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 159,
+     "text": "\"Sellheim et al. 2022, ref:sellheim2022; Patton et al. 2020, ref:patton2020; and the rest it cites)\","
+    },
+    {
      "file": "regions/sf-bay-delta/fishing.toml",
      "line": 51,
      "text": "et al. 2020, ref:patton2020, results p. 5) and adults tolerating 35 ppt"
@@ -1912,6 +1977,11 @@
      "file": "python/fdmr_adapters/smap.py",
      "line": 19,
      "text": "References: ref:smap_l4 (references.toml)."
+    },
+    {
+     "file": "python/fdmr_runner/soil.py",
+     "line": 147,
+     "text": "return {\"source\": \"NASA SMAP Level 4 SPL4SMGP v008 (NSIDC DAAC)\",  # ref:smap_l4 \"corridor_m\": float(load(region_dir).get(\"corridor_m\", 10_000.0)),"
     }
    ]
   },
@@ -1974,6 +2044,11 @@
    "citation": "Schaffter, R. G. (1997). White sturgeon spawning migrations and location of spawning habitat in the Sacramento River, California. California Fish and Game 83(1), 1-20. https://consensus.app/papers/white-sturgeon-spawning-migrations-and-location-of-schaffter/w:e399478f-8ce6-4a12-a42b-6bd02d63facb/",
    "used": [
     {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 158,
+     "text": "\"ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; \""
+    },
+    {
      "file": "regions/sf-bay-delta/fishing.toml",
      "line": 67,
      "text": "river flow\" (Schaffter 1997, ref:schaffter1997), and spawning followed"
@@ -1994,7 +2069,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 297,
+     "line": 336,
      "text": "\"critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)\","
     },
     {
@@ -2039,6 +2114,11 @@
    "checked": "Crossref record of the DOI; full text read, 26 Nov 2026",
    "citation": "Sellheim, K., Willmes, M., Lewis, L. S., Sweeney, J., Merz, J., and Hobbs, J. A. (2022). Diversity in habitat use by white sturgeon revealed using fin ray geochemistry. Frontiers in Marine Science 9, 859038. https://doi.org/10.3389/fmars.2022.859038",
    "used": [
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 159,
+     "text": "\"Sellheim et al. 2022, ref:sellheim2022; Patton et al. 2020, ref:patton2020; and the rest it cites)\","
+    },
     {
      "file": "regions/sf-bay-delta/fishing.toml",
      "line": 48,
@@ -2098,6 +2178,11 @@
      "file": "python/fdmr_adapters/usbr_cvo.py",
      "line": 3,
      "text": "for the Delta under the State Water Board's D-1641 (ref:swrcb_d1641; Figure 3 there gives its"
+    },
+    {
+     "file": "python/fdmr_plugins/registry.py",
+     "line": 151,
+     "text": "\"surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)\","
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
@@ -2214,6 +2299,11 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 101,
      "text": "\"US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)\", \"fdmr_runner.releases\")],"
+    },
+    {
+     "file": "python/fdmr_runner/releases.py",
+     "line": 11,
+     "text": "reservoir's storage now (CDEC), its top of conservation (ref:usace_fcr; the US Army Corps"
     }
    ]
   },
@@ -2400,7 +2490,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 147,
+     "line": 174,
      "text": "\"salinity-from-conductance\": [Maths(\"pss-78\", \"Practical salinity from specific conductance\", \"UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)\","
     }
    ]
@@ -2510,7 +2600,7 @@
     },
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 146,
+     "line": 173,
      "text": "\"(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)\", \"crates/fdmr-math parcel.rs, crates/fdmr-compute\")],"
     }
    ]

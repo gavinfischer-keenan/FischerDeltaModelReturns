@@ -90,6 +90,22 @@ Standard problems passed:
 - **export-carried**: `test_sections_area_and_width` (python/tests/test_canals.py)
 - **intake-lagged**: `test_water_reaches_a_place_after_the_canal_upstream_of_it_has_filled` (python/tests/test_canals.py)
 
+## derived
+
+Published from the reaches' fields after each cycle: the isohaline (X2) and the forecasts the page shows
+
+| Part | Maths | What it does | Source | Code |
+| --- | --- | --- | --- | --- |
+| isohaline | **tidally-averaged-isohaline** | Where the tidally averaged conductance along the estuary's axis first falls below the region's threshold, walking up from the sea, interpolated between channel midpoints (X2 where the threshold is 2.64 mS/cm); missing where no full tidal window fits | Jassby et al. 1995, X2 as a habitat indicator ([jassby1995](references.md#jassby1995)); D-1641's X2 objective as 2.64 mmhos/cm surface conductance ([swrcb_d1641](references.md#swrcb_d1641)); Godin's tidal filter ([godin1972](references.md#godin1972)) | `fdmr_runner.isohaline` |
+| sturgeon-forecast | **published-habitat-rules** | Per day and element: white sturgeon scored by season times salinity band, temperature outside the catches' range listed, rising river flows in the migration months flagged; green sturgeon's tracked season, temperature and salinity ranges marked to avoid. Rules only, fitted to nothing | The region's fishing.toml, every number with its source (sf-bay-delta: Heublein et al. 2017, [heublein2017](references.md#heublein2017); Schaffter 1997, [schaffter1997](references.md#schaffter1997); Kelly et al. 2007, [kelly2007](references.md#kelly2007); Sellheim et al. 2022, [sellheim2022](references.md#sellheim2022); Patton et al. 2020, [patton2020](references.md#patton2020); and the rest it cites) | `fdmr_runner.fishing` |
+| bloom-forecast | **temperature-salinity-gates** | Per day and element: Microcystis unlikely where salinity is at or above the limit or the water is colder than the season's gate, possible above the gate, likely above the temperature at which it outgrows diatoms. Rules only, fitted to nothing | The region's blooms.toml, every number with its source (sf-bay-delta: Berg and Sutula 2015, [bergsutula2015](references.md#bergsutula2015); Lehman et al. 2005, [lehman2005](references.md#lehman2005); Kurobe et al. 2022, [kurobe2022](references.md#kurobe2022); and the rest it cites) | `fdmr_runner.blooms` |
+
+Standard problems passed:
+
+- **tidally-averaged-isohaline**: `test_crossing_walks_up_from_the_sea` (python/tests/test_isohaline.py); `test_series_is_tidally_averaged_and_hourly` (python/tests/test_isohaline.py); `test_a_missing_day_leaves_its_hours_missing_and_the_days_after_in_place` (python/tests/test_isohaline.py)
+- **published-habitat-rules**: `test_salinity_bands_follow_the_rules` (python/tests/test_fishing.py); `test_white_sturgeon_scores_season_times_salinity` (python/tests/test_fishing.py); `test_closed_month_scores_zero` (python/tests/test_fishing.py); `test_green_sturgeon_flags_its_observed_ranges` (python/tests/test_fishing.py)
+- **temperature-salinity-gates**: `test_temperature_gates_and_salinity_masks` (python/tests/test_blooms.py)
+
 ## all
 
 Every kind of water

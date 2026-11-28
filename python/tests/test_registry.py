@@ -5,7 +5,7 @@ from fdmr_plugins import registry
 
 def test_every_kind_has_flow_and_every_part_a_source():
     for kind, parts in registry.REGISTER.items():
-        if kind != "all":
+        if kind not in ("all", "derived"):
             assert "flow" in parts, kind
         for impls in parts.values():
             assert impls and all(m.source and m.code and m.what for m in impls)

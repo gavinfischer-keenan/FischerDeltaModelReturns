@@ -26,6 +26,7 @@ KINDS = {
     "1d-tidal-network": "A tidal channel network, such as the Delta (DSM2, one dimension per channel)",
     "2d-field": "An open bay, on a mesh (two dimensions, depth-averaged)",
     "canal-network": "Export canals, carried from their intake",
+    "derived": "Published from the reaches' fields after each cycle: the isohaline (X2) and the forecasts the page shows",
     "all": "Every kind of water",
 }
 

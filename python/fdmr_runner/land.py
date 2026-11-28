@@ -127,5 +127,5 @@ def contrast(region_dir: Path, store: Store, now: int) -> dict | None:
                          "contrast": round(float((b[:, 0] - b[:, 1]).mean()), 2)}
         if len(row) > 2:
             rows.append(row)
-    return {"source": "NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), land surface temperature", "days": days,
+    return {"source": "NASA ECOSTRESS ECO_L2T_LSTE v003 (LP DAAC), land surface temperature",  # ref:ecostress_lst "days": days,
             "band_m": float(land.get("band_m", 1000.0)), "airport_m": float(land.get("airport_m", 2000.0)), "stretches": rows}

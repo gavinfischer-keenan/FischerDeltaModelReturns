@@ -27,7 +27,7 @@ from pathlib import Path
 
 import numpy as np
 
-PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1
+PIXEL_KM2 = 0.03 * 0.03  # km2: one 30 m pixel of OPERA DSWx-S1 (ref:opera_dswx_s1)
 MIN_SEEN = 0.2  # a pass counts only if it saw at least this share of the area (FDMR's choice)
 MAX_PATCHES = 10  # the largest this many patches of new water are listed per pass (FDMR's choice)
 PASS_S = 3600  # tiles within this of each other, s, are one radar pass (FDMR's choice: a pass takes minutes)

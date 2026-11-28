@@ -144,5 +144,5 @@ def summary(region_dir: Path, store: Store, now: int) -> dict | None:
             row["rootzone_change_7d"] = round(rz.value - week.value, 3)
         row.update(water_in(store, a["site"], now))
         rows.append(row)
-    return {"source": "NASA SMAP Level 4 SPL4SMGP v008 (NSIDC DAAC)", "corridor_m": float(load(region_dir).get("corridor_m", 10_000.0)),
+    return {"source": "NASA SMAP Level 4 SPL4SMGP v008 (NSIDC DAAC)",  # ref:smap_l4 "corridor_m": float(load(region_dir).get("corridor_m", 10_000.0)),
             "areas": rows}

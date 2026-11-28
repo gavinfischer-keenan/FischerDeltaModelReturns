@@ -3,12 +3,12 @@ gauge below it (issue #21; region.toml, a release gauge's `release_rule`).
 
 Two ways, in this order:
 
-- `release_forecast`: the River Forecast Center publishes a release forecast
+- `release_forecast`: the River Forecast Center (ref:cnrfc) publishes a release forecast
   for a dam upstream of the gauge (a point ending in R, such as a reservoir's
   regulated outflow). The gauge's release follows its changes: today's
   measured release, plus the forecast less the forecast's value now.
 - `reservoir` with `report` and `inflow`: the flood-control rule. From the
-  reservoir's storage now (CDEC), its top of conservation (the US Army Corps
+  reservoir's storage now (CDEC), its top of conservation (ref:usace_fcr; the US Army Corps
   of Engineers' daily report: the most it may hold, the rest kept for
   floods; held at the latest day's value) and its forecast inflow (the River
   Forecast Center), storage is stepped on with today's release. Once it would

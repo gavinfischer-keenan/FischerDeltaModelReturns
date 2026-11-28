@@ -116,7 +116,8 @@ def measured_crossings(store: Store, source: str, sites: dict[str, float], param
                        start: int, end: int) -> list[dict]:
     """Each whole day's (in the source's own time) crossing of the
     threshold from the stations' daily means, walking up the axis: the method
-    of DWR's CX2, over whichever stations are given (`sites`: site -> km)."""
+    of DWR's CX2, over whichever stations are given (`sites`: site -> km);
+    X2 as Jassby et al. 1995 define it (ref:jassby1995)."""
     order = sorted(sites, key=sites.get)
     off = DAY_OFFSET.get(source, 0)
     out = []

@@ -140,6 +140,33 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
         "flow": [Maths("export-carried", "The network's own export at the intake, the same all along the canal", "Specification 7.4", "fdmr_runner.canals")],
         "quality": [Maths("intake-lagged", "The intake's water quality carried down at the water's travel time", "Specification 7.4", "fdmr_runner.canals")],
     },
+    # Published from the reaches' fields after each cycle: not a kind of water,
+    # but maths the page shows (#73).
+    "derived": {
+        "isohaline": [Maths("tidally-averaged-isohaline",
+                            "Where the tidally averaged conductance along the estuary's axis first falls below the region's "
+                            "threshold, walking up from the sea, interpolated between channel midpoints (X2 where the threshold "
+                            "is 2.64 mS/cm); missing where no full tidal window fits",
+                            "Jassby et al. 1995, X2 as a habitat indicator (ref:jassby1995); D-1641's X2 objective as 2.64 mmhos/cm "
+                            "surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)",
+                            "fdmr_runner.isohaline")],
+        "sturgeon-forecast": [Maths("published-habitat-rules",
+                                    "Per day and element: white sturgeon scored by season times salinity band, temperature outside "
+                                    "the catches' range listed, rising river flows in the migration months flagged; green sturgeon's "
+                                    "tracked season, temperature and salinity ranges marked to avoid. Rules only, fitted to nothing",
+                                    "The region's fishing.toml, every number with its source (sf-bay-delta: Heublein et al. 2017, "
+                                    "ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; "
+                                    "Sellheim et al. 2022, ref:sellheim2022; Patton et al. 2020, ref:patton2020; and the rest it cites)",
+                                    "fdmr_runner.fishing")],
+        "bloom-forecast": [Maths("temperature-salinity-gates",
+                                 "Per day and element: Microcystis unlikely where salinity is at or above the limit or the water is "
+                                 "colder than the season's gate, possible above the gate, likely above the temperature at which it "
+                                 "outgrows diatoms. Rules only, fitted to nothing",
+                                 "The region's blooms.toml, every number with its source (sf-bay-delta: Berg and Sutula 2015, "
+                                 "ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; "
+                                 "and the rest it cites)",
+                                 "fdmr_runner.blooms")],
+    },
     "all": {
         "particles": [Maths("advection-random-walk", "Parcels carried by the local velocity plus a random step for dispersion",
                             "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
@@ -154,8 +181,8 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
 def choices(kind: str, chosen: dict | None = None) -> dict[str, Maths]:
     """The maths a reach of this kind runs, part by part: the first registered
     for each part unless the reach chose another. An unknown kind, part or
-    name is an error."""
-    if kind not in REGISTER:
+    name is an error. ("derived" is the cycle's own products, not a reach's.)"""
+    if kind not in REGISTER or kind == "derived":
         raise ValueError(f"no maths registered for kind {kind!r}")
     parts = {**REGISTER[kind], **REGISTER["all"]}
     out = {p: impls[0] for p, impls in parts.items()}
@@ -176,6 +203,18 @@ def record(kind: str, chosen: dict | None = None) -> dict:
 
 # The standard problems each registered maths passes (module docstring).
 CHECKS: dict[str, tuple[str, ...]] = {
+    "tidally-averaged-isohaline": (
+        "python/tests/test_isohaline.py::test_crossing_walks_up_from_the_sea",
+        "python/tests/test_isohaline.py::test_series_is_tidally_averaged_and_hourly",
+        "python/tests/test_isohaline.py::test_a_missing_day_leaves_its_hours_missing_and_the_days_after_in_place",
+    ),
+    "published-habitat-rules": (
+        "python/tests/test_fishing.py::test_salinity_bands_follow_the_rules",
+        "python/tests/test_fishing.py::test_white_sturgeon_scores_season_times_salinity",
+        "python/tests/test_fishing.py::test_closed_month_scores_zero",
+        "python/tests/test_fishing.py::test_green_sturgeon_flags_its_observed_ranges",
+    ),
+    "temperature-salinity-gates": ("python/tests/test_blooms.py::test_temperature_gates_and_salinity_masks",),
     "gauge-blend-lag-route": (
         "python/tests/test_model.py::test_steady_flow_is_matched_everywhere",
         "python/tests/test_model.py::test_a_release_change_moves_downstream",

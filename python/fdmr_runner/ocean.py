@@ -24,7 +24,7 @@ from fdmr_adapters.cpc import REGIONS
 from fdmr_adapters.cpc import SOURCE as CPC
 
 DAY = 86_400
-ENSO_THRESHOLD = 0.5  # degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index
+ENSO_THRESHOLD = 0.5  # degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index (ref:cpc_enso)
 WEEKLY_AGE_DAYS = 21  # a weekly Nino index older than this is not shown (FDMR's choice: three missed weeks)
 CHANGE_DAYS = 28  # the weekly index's change is over four weeks, the week found within a few days of it (FDMR's choice)
 ONI_AGE_DAYS = 150  # the Oceanic Nino Index, a three-month mean issued monthly, is shown up to this old (FDMR's choice)

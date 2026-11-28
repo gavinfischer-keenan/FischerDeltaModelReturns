@@ -351,7 +351,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
 | [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `TAIL_LINES` | `60` | each step's last lines of output kept in the log: enough for every check's result (FDMR's choice) |
 | [python/fdmr_runner/ocean.py:26](../python/fdmr_runner/ocean.py#L26) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/ocean.py:27](../python/fdmr_runner/ocean.py#L27) | `ENSO_THRESHOLD` | `0.5` | degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index |
+| [python/fdmr_runner/ocean.py:27](../python/fdmr_runner/ocean.py#L27) | `ENSO_THRESHOLD` | `0.5` | degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index ([cpc_enso](references.md#cpc_enso)) |
 | [python/fdmr_runner/ocean.py:28](../python/fdmr_runner/ocean.py#L28) | `WEEKLY_AGE_DAYS` | `21` | a weekly Nino index older than this is not shown (FDMR's choice: three missed weeks) |
 | [python/fdmr_runner/ocean.py:29](../python/fdmr_runner/ocean.py#L29) | `CHANGE_DAYS` | `28` | the weekly index's change is over four weeks, the week found within a few days of it (FDMR's choice) |
 | [python/fdmr_runner/ocean.py:30](../python/fdmr_runner/ocean.py#L30) | `ONI_AGE_DAYS` | `150` | the Oceanic Nino Index, a three-month mean issued monthly, is shown up to this old (FDMR's choice) |
@@ -362,9 +362,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/overlays.py:62](../python/fdmr_runner/overlays.py#L62) | `MIN_CHECK_READINGS` | `24` | a station's check against the model needs this many readings, a day's hourly (FDMR's choice) |
 | [python/fdmr_runner/overlays.py:63](../python/fdmr_runner/overlays.py#L63) | `GATE_DAYS` | `3` | a gate's state is read from its flow over the last this many days (FDMR's choice) |
 | [python/fdmr_runner/overlays.py:64](../python/fdmr_runner/overlays.py#L64) | `DAILY_AGE_DAYS` | `3` | a daily value is posted the day after: one this many days old still counts as latest (FDMR's choice) |
-| [python/fdmr_runner/overlays.py:252](../python/fdmr_runner/overlays.py#L252) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
-| [python/fdmr_runner/overlays.py:253](../python/fdmr_runner/overlays.py#L253) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
-| [python/fdmr_runner/overlays.py:254](../python/fdmr_runner/overlays.py#L254) | `MIN_SLOW_DAYS` | `20` | the slow part is given only with at least this many days of hourly residual (FDMR's choice) |
+| [python/fdmr_runner/overlays.py:253](../python/fdmr_runner/overlays.py#L253) | `RESIDUAL_DAYS` | `7` | days of hourly tide residual summarised (FDMR's choice) |
+| [python/fdmr_runner/overlays.py:254](../python/fdmr_runner/overlays.py#L254) | `SLOW_DAYS` | `30` | the residual's slow part: the ocean's state, river set-up and the datum's age |
+| [python/fdmr_runner/overlays.py:255](../python/fdmr_runner/overlays.py#L255) | `MIN_SLOW_DAYS` | `20` | the slow part is given only with at least this many days of hourly residual (FDMR's choice) |
 | [python/fdmr_runner/pool_water.py:31](../python/fdmr_runner/pool_water.py#L31) | `POINT_SPACING_M` | `60.0` | one point per 60 m x 60 m: dots on water, never more than the eye resolves |
 | [python/fdmr_runner/pool_water.py:32](../python/fdmr_runner/pool_water.py#L32) | `MAX_POINTS` | `1500` | per pool: plenty for the particles a pool holds (8 per km2, worker.ts) |
 | [python/fdmr_runner/pool_water.py:33](../python/fdmr_runner/pool_water.py#L33) | `M_PER_DEG` | `111_195.0` | mean Earth radius 6371 km |
@@ -389,7 +389,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/water_audit.py:47](../python/fdmr_runner/water_audit.py#L47) | `UNCOVERED` | `0.5` | an area with less than half its samples covered is listed as uncovered |
 | [python/fdmr_runner/water_audit.py:48](../python/fdmr_runner/water_audit.py#L48) | `M_PER_DEG` | `111_195.0` | mean Earth radius 6371 km |
 | [python/fdmr_runner/water_audit.py:49](../python/fdmr_runner/water_audit.py#L49) | `PAD_DEG` | `0.02` | the extent beyond the published reaches |
-| [python/fdmr_runner/water_extent.py:30](../python/fdmr_runner/water_extent.py#L30) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 |
+| [python/fdmr_runner/water_extent.py:30](../python/fdmr_runner/water_extent.py#L30) | `PIXEL_KM2` | `0.03 * 0.03` | km2: one 30 m pixel of OPERA DSWx-S1 ([opera_dswx_s1](references.md#opera_dswx_s1)) |
 | [python/fdmr_runner/water_extent.py:31](../python/fdmr_runner/water_extent.py#L31) | `MIN_SEEN` | `0.2` | a pass counts only if it saw at least this share of the area (FDMR's choice) |
 | [python/fdmr_runner/water_extent.py:32](../python/fdmr_runner/water_extent.py#L32) | `MAX_PATCHES` | `10` | the largest this many patches of new water are listed per pass (FDMR's choice) |
 | [python/fdmr_runner/water_extent.py:33](../python/fdmr_runner/water_extent.py#L33) | `PASS_S` | `3600` | tiles within this of each other, s, are one radar pass (FDMR's choice: a pass takes minutes) |
