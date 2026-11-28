@@ -59,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--maths", action="append", required=True, help="REACH.PART=MATHS, repeatable; REACH may be *")
     ap.add_argument("--as-of", help="the hindcast's time (UTC); default: --hindcast-days before today's midnight, in the region's own time zone")
     ap.add_argument("--hindcast-days", type=int, default=5)
+    ap.add_argument("--no-lock", action="store_true", help="run without the cycle's lock (fdmr_runner.lock)")
     args = ap.parse_args(argv)
     if not NAME.match(args.name):
         raise SystemExit("--name: lower case letters, digits and hyphens")
@@ -74,7 +75,13 @@ def main(argv: list[str] | None = None) -> int:
     store = Store(args.store)
     # The same gauge datums as the publisher's own runs (publish.main), for the rivers' surface slopes.
     datums = publish.held_datums(region, store)
-    cdir = publish.publish(region_dir, store, out, 14, datums=datums, calibration=calibration, as_of=as_of, trial=trial)
+    from contextlib import nullcontext
+
+    from . import lock
+
+    # The cycle's lock, as a cycle's publish takes it (#86).
+    with nullcontext() if args.no_lock else lock.held(what=f"trial {args.name}"):
+        cdir = publish.publish(region_dir, store, out, 14, datums=datums, calibration=calibration, as_of=as_of, trial=trial)
     publish.prune(out, 2)
     index = json.loads((cdir / "index.json").read_text(encoding="utf-8"))
     db = ledger.connect(Path(args.store).parent / "ledger" / f"{region.id}.trial-{args.name}.sqlite")

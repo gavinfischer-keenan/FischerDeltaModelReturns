@@ -322,9 +322,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/delta.py:44](../python/fdmr_runner/delta.py#L44) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/delta.py:47](../python/fdmr_runner/delta.py#L47) | `BLEND` | `96` | forecasts join the measured series over a day |
 | [python/fdmr_runner/delta.py:274](../python/fdmr_runner/delta.py#L274) | `TO_DSS_M3S_CFS` | `0.3048**3` | m3/s per cfs |
-| [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/experiment.py:59](../python/fdmr_runner/experiment.py#L59) | `STEP` | `900` | s: DWR's station output, 15 minutes |
-| [python/fdmr_runner/experiment.py:60](../python/fdmr_runner/experiment.py#L60) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
+| [python/fdmr_runner/experiment.py:56](../python/fdmr_runner/experiment.py#L56) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/experiment.py:57](../python/fdmr_runner/experiment.py#L57) | `STEP` | `900` | s: DWR's station output, 15 minutes |
+| [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
 | [python/fdmr_runner/fetch.py:48](../python/fdmr_runner/fetch.py#L48) | `DATUM_EVERY_S` | `30 * 86_400` | a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey) |
 | [python/fdmr_runner/fetch.py:49](../python/fdmr_runner/fetch.py#L49) | `AVAILABLE_EVERY_S` | `86_400` | USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely) |
 | [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |

@@ -1,11 +1,11 @@
-# DSM2 for the Delta every 6 hours (specification: cadence), at 40 past
-# 00, 06, 12 and 18 UTC. The hourly timer skips those hours' runs only in
-# effect: both take the same lock, so they queue rather than overlap.
+# DSM2 for the Delta every 6 hours (specification: cadence), at 20 past
+# 00, 06, 12 and 18 UTC: in those hours it is the hourly cycle as well, and
+# the hourly timer skips them (#86).
 [Unit]
 Description=FDMR 6-hourly cycle with DSM2
 
 [Timer]
-OnCalendar=*-*-* 00/6:40:00 UTC
+OnCalendar=*-*-* 00/6:20:00 UTC
 Persistent=true
 Unit=fdmr-cycle@delta.service
 

@@ -35,14 +35,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-import fcntl
 import json
 import shutil
 import sys
 import time
 import tomllib
 from collections import defaultdict
-from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -151,17 +149,13 @@ def read_table(path: Path, key_col: str) -> dict[tuple[str, str], dict[str, floa
     return out
 
 
-@contextmanager
 def held(lock: str | None):
-    if not lock:
-        yield
-        return
-    with open(lock, "a") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+    """The runner's lock (fdmr_runner.lock) around a scenario's DSM2 runs, unless `--no-lock`."""
+    from contextlib import nullcontext
+
+    from . import lock as runner_lock
+
+    return runner_lock.held(lock, what="experiment") if lock else nullcontext()
 
 
 def settings_for(cfg: dict) -> study.RunSettings:
@@ -380,10 +374,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rerun", action="store_true", help="run scenarios again even if their daily series exist")
     ap.add_argument("--rescore", action="store_true", help="only score the daily series already in WORK")
     ap.add_argument("--keep", action="store_true", help="keep DSM2's run folders (they are large)")
-    ap.add_argument("--lock", help="hold this lock while DSM2 runs (the cycle's lock)")
+    ap.add_argument("--lock", default=None, help="the lock to hold while DSM2 runs (default: the cycle's, fdmr_runner.lock)")
+    ap.add_argument("--no-lock", action="store_true", help="run without the lock (a machine with nothing else on it)")
     ap.add_argument("--reservoir-out-ratio", default="",
                     help="a trial: name=ratio,... sets those reservoirs' COEF_OUT to ratio x COEF_IN, in place of the region's")
     args = ap.parse_args(argv)
+    if not args.no_lock and not args.lock:
+        from . import lock as runner_lock
+
+        args.lock = str(runner_lock.CYCLE_LOCK)  # the cycle's lock by default (#86)
+    if args.no_lock:
+        args.lock = None
     region_dir, work, out = Path(args.region), Path(args.work), Path(args.out)
     cfg = load_dsm2(region_dir)
     if args.reservoir_out_ratio:

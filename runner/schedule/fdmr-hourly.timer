@@ -1,9 +1,11 @@
-# Gauges, forecasts and the river model, every hour (specification: cadence).
+# Gauges, forecasts and the river model, every hour (specification: cadence),
+# except at 00, 06, 12 and 18 UTC, when the Delta cycle does the same work and
+# its DSM2 run besides (fdmr-delta.timer): one fetch, not two (#86).
 [Unit]
 Description=FDMR hourly cycle
 
 [Timer]
-OnCalendar=*-*-* *:20:00 UTC
+OnCalendar=*-*-* 01,02,03,04,05,07,08,09,10,11,13,14,15,16,17,19,20,21,22,23:20:00 UTC
 RandomizedDelaySec=60
 Persistent=true
 Unit=fdmr-cycle@hourly.service

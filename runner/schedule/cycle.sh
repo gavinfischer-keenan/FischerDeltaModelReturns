@@ -13,7 +13,8 @@
 # Every publish includes the region's latest DSM2 run, its export canals and
 # its Bay forecast, as reaches of their own. A region's failure does not stop
 # the next one. A cycle still running when the next is due makes the next one
-# wait its turn (flock).
+# wait its turn (flock), for at most FDMR_LOCK_WAIT seconds, well inside the
+# unit's 50-minute timeout; past that it stops, recorded as failed (#86).
 #
 # What ran is recorded (#55): each region's steps before its publish, with
 # whether each worked, how long it took and its peak memory (#36), in
@@ -28,8 +29,14 @@ DATA=${FDMR_DATA:-/srv/fdmr-data}
 PY=${FDMR_PYTHON:-$HOME/venv/bin/python}
 REGIONS=${FDMR_REGIONS:-"sf-bay-delta test-colorado rhine-meuse"}
 
+WAIT=${FDMR_LOCK_WAIT:-1500}  # 25 min: inside the unit's 50 min (fdmr-cycle@.service)
 exec 9>"$DATA/.cycle.lock"
-flock 9
+asked=$(date +%s)
+if ! flock -w "$WAIT" 9; then
+  echo "$MODE: waited $WAIT s for the cycle lock: not run" >&2
+  exit 75
+fi
+echo "$MODE: waited $(( $(date +%s) - asked )) s for the cycle lock"
 
 case "$MODE" in
   hourly|delta) FETCH="--days 16 --no-measurements" ;;
