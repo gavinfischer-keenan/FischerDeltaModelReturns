@@ -98,7 +98,7 @@ def dispersion_field(field, records, slopes):
     return out
 
 
-ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
+ELDER_LATERAL = fdmr_py.ELDER_LATERAL  # eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23): the engine's own (fdmr_math::dispersion), written once (#70)
 
 
 def lateral_field(field, records, slopes):

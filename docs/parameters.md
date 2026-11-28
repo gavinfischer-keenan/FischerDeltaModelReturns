@@ -388,7 +388,6 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/river_routing/fields.py:25](../python/fdmr_plugins/river_routing/fields.py#L25) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/river_routing/fields.py:26](../python/fdmr_plugins/river_routing/fields.py#L26) | `MEASUREMENTS_YEARS` | `10` | a gauge's shape is fitted to its field measurements of the last this many years (FDMR's choice) |
 | [python/fdmr_plugins/river_routing/fields.py:29](../python/fdmr_plugins/river_routing/fields.py#L29) | `DEFAULT_SLOPE` | `3e-4` | a typical lowland river, used only where no gauge pair gives one |
-| [python/fdmr_plugins/river_routing/fields.py:101](../python/fdmr_plugins/river_routing/fields.py#L101) | `ELDER_LATERAL` | `0.23` | lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it ([fischer1966](references.md#fischer1966), eq. 23) |
 | [python/fdmr_plugins/river_routing/heat.py:35](../python/fdmr_plugins/river_routing/heat.py#L35) | `SIGMA` | `5.670374e-8` | W/m2/K4 |
 | [python/fdmr_plugins/river_routing/heat.py:36](../python/fdmr_plugins/river_routing/heat.py#L36) | `RHO_CP` | `1000.0 * 4186.0` | J/m3/K |
 | [python/fdmr_plugins/river_routing/heat.py:37](../python/fdmr_plugins/river_routing/heat.py#L37) | `CAL_CM2_D` | `41_840.0 / 86_400.0` | 1 cal/cm2/day in W/m2 |

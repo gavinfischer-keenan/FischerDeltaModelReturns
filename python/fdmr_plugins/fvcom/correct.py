@@ -125,11 +125,12 @@ def tidal_mean(x: np.ndarray, per_hour: float) -> np.ndarray:
     """The subtidal part of a series sampled `per_hour` times an hour: Godin's
     filter, running means over 24, 24 and 25 hours in turn, which takes out the
     diurnal and semidiurnal tides far more cleanly than one long running mean
-    (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press)."""
-    m = np.asarray(x, dtype=float)
-    for h in (24, 24, 25):
-        m = running_mean(m, int(round(h * per_hour)))
-    return m
+    (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).
+    The engine's own (fdmr_math::signal::godin, through fdmr_py), so the
+    published net flows and the browser's agree (#70)."""
+    import fdmr_py
+
+    return np.asarray(fdmr_py.godin(np.asarray(x, dtype=float).tolist(), float(per_hour)), dtype=float)
 
 
 def match_crossings(coarse, join_edges: list[list[int]], open_edges: list[list[int]], cxy: np.ndarray, data: dict,

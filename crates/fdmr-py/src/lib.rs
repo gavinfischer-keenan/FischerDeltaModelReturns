@@ -101,6 +101,14 @@ fn fischer_k(velocity: f64, width: f64, depth: f64, shear_velocity: f64) -> f64 
     dispersion::fischer_k(velocity, width, depth, shear_velocity)
 }
 
+/// Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal
+/// part of a series sampled `per_hour` times an hour; a NaN makes only the
+/// windows it falls in missing.
+#[pyfunction]
+fn godin(x: Vec<f64>, per_hour: f64) -> Vec<f64> {
+    fdmr_math::signal::godin(&x, per_hour)
+}
+
 /// `shear_velocity` for every depth at once (one slope), m/s.
 #[pyfunction]
 fn shear_velocities(depths: Vec<f64>, slope: f64) -> Vec<f64> {
@@ -228,6 +236,9 @@ fn fdmr_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fischer_k, m)?)?;
     m.add_function(wrap_pyfunction!(shear_velocities, m)?)?;
     m.add_function(wrap_pyfunction!(fischer_ks, m)?)?;
+    m.add_function(wrap_pyfunction!(godin, m)?)?;
+    // Elder's lateral mixing coefficient, as the engine uses it: written once (#70).
+    m.add("ELDER_LATERAL", dispersion::ELDER_LATERAL)?;
     m.add_function(wrap_pyfunction!(fickian_distance, m)?)?;
     m.add_function(wrap_pyfunction!(change_of_moment_k, m)?)?;
     m.add_function(wrap_pyfunction!(fit_power_law, m)?)?;

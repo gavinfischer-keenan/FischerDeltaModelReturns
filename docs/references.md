@@ -389,7 +389,7 @@ Used in:
 - `docs/maths.md:23`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
 - `python/fdmr_plugins/registry.py:82`: "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
 - `python/fdmr_plugins/registry.py:87`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
-- `python/fdmr_plugins/river_routing/fields.py:101`: ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)
+- `python/fdmr_plugins/river_routing/fields.py:101`: ELDER_LATERAL = fdmr_py.ELDER_LATERAL  # eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23): the engine's own (fdmr_math::dispersion), written once (#70)
 - `python/fdmr_plugins/river_routing/fields.py:106`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
 - `python/fdmr_plugins/river_routing/fields.py:125`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
 
@@ -442,8 +442,9 @@ Checked: Open Library ISBN record and library catalogue records, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/series.rs:69`: A copy with every field tidally filtered (Godin's filter, ref:godin1972), element by
-- `crates/fdmr-math/src/signal.rs:138`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
-- `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press)."""
+- `crates/fdmr-math/src/signal.rs:152`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
+- `crates/fdmr-py/src/lib.rs:104`: Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal
+- `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).
 - `python/fdmr_runner/delta.py:359`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
 - `python/fdmr_runner/experiment.py:13`: (ref:godin1972), then each day's mean, as the agencies filter their gauges.
 - `python/fdmr_runner/isohaline.py:13`: Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
@@ -566,7 +567,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/fvcom/correct.py:283`: the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
+- `python/fdmr_plugins/fvcom/correct.py:284`: the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
 - `python/fdmr_runner/bay.py:505`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
 
 ## kurobe2022

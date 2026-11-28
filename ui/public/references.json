@@ -784,7 +784,7 @@
     {
      "file": "python/fdmr_plugins/river_routing/fields.py",
      "line": 101,
-     "text": "ELDER_LATERAL = 0.23  # lateral mixing eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23)"
+     "text": "ELDER_LATERAL = fdmr_py.ELDER_LATERAL  # eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23): the engine's own (fdmr_math::dispersion), written once (#70)"
     },
     {
      "file": "python/fdmr_plugins/river_routing/fields.py",
@@ -904,13 +904,18 @@
     },
     {
      "file": "crates/fdmr-math/src/signal.rs",
-     "line": 138,
+     "line": 152,
      "text": "(Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The"
+    },
+    {
+     "file": "crates/fdmr-py/src/lib.rs",
+     "line": 104,
+     "text": "Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal"
     },
     {
      "file": "python/fdmr_plugins/fvcom/correct.py",
      "line": 128,
-     "text": "(Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).\"\"\""
+     "text": "(Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press)."
     },
     {
      "file": "python/fdmr_runner/delta.py",
@@ -1150,7 +1155,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/fvcom/correct.py",
-     "line": 283,
+     "line": 284,
      "text": "the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to"
     },
     {

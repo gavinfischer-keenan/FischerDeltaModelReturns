@@ -104,7 +104,9 @@ pub fn cross_correlation_peak(
 /// `x[i - w/2 ..= i - w/2 + w - 1]`. Within half a window of either end, where
 /// a full window does not fit, the nearest full-window value is held: a mean
 /// over a fragment of a tide is no mean. A series no longer than the window
-/// is its own mean throughout.
+/// is its own mean throughout. A window holding a missing value (NaN) has no
+/// mean (NaN), and only that window: a gap never spreads beyond the windows
+/// it falls in (#70).
 #[must_use]
 pub fn running_mean_held(x: &[f64], w: usize) -> Vec<f64> {
     let n = x.len();
@@ -119,12 +121,24 @@ pub fn running_mean_held(x: &[f64], w: usize) -> Vec<f64> {
     }
     let half = w / 2;
     let mut out = vec![0.0; n];
-    let mut sum: f64 = x[..w].iter().sum();
-    out[half] = sum / w as f64;
+    // The window's sum over its finite values, and how many it holds that are not.
+    let finite = |v: f64| if v.is_finite() { v } else { 0.0 };
+    let mut sum: f64 = x[..w].iter().copied().map(finite).sum();
+    let mut missing = x[..w].iter().filter(|v| !v.is_finite()).count();
+    let mean = |sum: f64, missing: usize| {
+        if missing > 0 {
+            f64::NAN
+        } else {
+            sum / w as f64
+        }
+    };
+    out[half] = mean(sum, missing);
     // Each next window gains the sample after it and loses its first.
     for (s, o) in out[half + 1..n - half].iter_mut().enumerate() {
-        sum += x[s + w] - x[s];
-        *o = sum / w as f64;
+        let (gain, lose) = (x[s + w], x[s]);
+        sum += finite(gain) - finite(lose);
+        missing = missing + usize::from(!gain.is_finite()) - usize::from(!lose.is_finite());
+        *o = mean(sum, missing);
     }
     let (first, last) = (out[half], out[n - half - 1]);
     out[..half].fill(first);
@@ -151,6 +165,20 @@ pub fn godin(x: &[f64], per_hour: f64) -> Vec<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_gap_makes_only_its_own_windows_missing() {
+        // Before #70 a NaN entered the running sum and every later value was NaN.
+        let mut x: Vec<f64> = (0..200).map(|i| f64::from(i % 7)).collect();
+        x[50] = f64::NAN;
+        let m = running_mean_held(&x, 10);
+        // Sample i averages x[i - 5 ..= i + 4]: the gap at 50 is in the windows of 46 to 55.
+        assert!(m[46..56].iter().all(|v| v.is_nan()), "{:?}", &m[40..60]);
+        assert!(m[..46].iter().all(|v| v.is_finite()) && m[56..].iter().all(|v| v.is_finite()));
+        let clean: Vec<f64> = (0..200).map(|i| f64::from(i % 7)).collect();
+        let c = running_mean_held(&clean, 10);
+        assert!((m[100] - c[100]).abs() < 1e-12);
+    }
 
     #[test]
     fn running_mean_matches_a_direct_sum_and_holds_the_ends() {
