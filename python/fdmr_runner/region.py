@@ -70,6 +70,23 @@ class Region:
     def gauges_for(self, reach: str) -> list[Gauge]:
         return [g for g in self.gauges if g.reach == reach]
 
+    def local_date(self, t: int) -> str:
+        """The region's own date at UTC time t (its `timezone`), YYYY-MM-DD (#67)."""
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        return datetime.fromtimestamp(t, ZoneInfo(self.timezone)).strftime("%Y-%m-%d")
+
+    def midnight(self, t: int, days_ago: int = 0) -> int:
+        """Midnight, in the region's own time zone, starting the region's day
+        `days_ago` days before the one holding UTC time t (#67)."""
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo(self.timezone)
+        d = datetime.fromtimestamp(t, tz).date() - timedelta(days=days_ago)
+        return int(datetime(d.year, d.month, d.day, tzinfo=tz).timestamp())
+
 
 SECTIONS = {"id", "name", "timezone", "reaches", "gauges", "stations", "handoffs", "river_temperature",
             "river_swot", "soil_moisture", "basemap", "guard"}

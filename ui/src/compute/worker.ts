@@ -56,6 +56,7 @@ interface Cut {
   y: number;
 }
 interface Index {
+  timezone?: string;
   time: { start: string; step_s: number; days: string[] };
   now: string;
   reaches: ReachEntry[];
@@ -296,7 +297,7 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   const netReaches = ix.reaches.filter((r) => r.network);
   const lineReaches = ix.reaches.filter((r) => r.kind === "river-routing" && r.id !== reach);
   const meshReaches = ix.reaches.filter((r) => r.dims === 2);
-  post({ type: "ready", start, end, now, length: engine!.length(), certainty, step, networks: netReaches.map((r) => r.id), meshes: meshReaches.map((r) => r.id), lines: lineReaches.map((r) => r.id) });
+  post({ type: "ready", start, end, now, timezone: ix.timezone ?? "UTC", length: engine!.length(), certainty, step, networks: netReaches.map((r) => r.id), meshes: meshReaches.map((r) => r.id), lines: lineReaches.map((r) => r.id) });
   frame();
   // Network and mesh reaches load in the background: the river is ready to play first.
   for (const r of lineReaches) void loadLine(cycle, r.id);

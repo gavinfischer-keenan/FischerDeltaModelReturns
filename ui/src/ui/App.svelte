@@ -68,7 +68,7 @@
   const flow = (q: number) => `<b>${n0(q)}</b> m³/s (${n0(q / 0.028316846592)} cfs)`;
   /** Water held, in million m³, with thousand acre-feet beside it. */
   const held = (v: number) => `<b>${n0(v / 1e6)}</b> million m³ (${n0(v / 1233.48184 / 1000)} thousand acre-feet)`;
-  const day = (s: number) => new Date(s * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+  const day = (s: number) => new Date(s * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: ready?.timezone ?? "UTC" });
   /** A dam's, pumping plant's or gate's popup: what it releases, pumps or lets through, and a gate's position. */
   function describeStructure(s: Structure): string {
     const rows = Object.entries(s.readings).map(([p, r]) => {
@@ -131,7 +131,7 @@
   }
 
   const fmt = (s: number) =>
-    new Date(s * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    new Date(s * 1000).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: ready?.timezone ?? "UTC", timeZoneName: "short" }); // the region's own clock (#67)
 
   function onFrame(f: Frame) {
     // A frame the engine sent of its own accord, or one answering an older

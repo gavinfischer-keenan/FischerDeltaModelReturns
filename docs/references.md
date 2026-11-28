@@ -370,7 +370,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/mesh.py:258`: ELDER = 5.93  # Elder's K = 5.93 H u* (Elder 1959, ref:elder1959; Fischer et al. 1979, ref:fischer1979)
-- `ui/src/compute/worker.ts:138`: Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal
+- `ui/src/compute/worker.ts:139`: Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal
 
 ## fischer1966
 
@@ -406,7 +406,7 @@ Used in:
 - `python/fdmr_plugins/fvcom/mesh.py:259`: DRAG = 0.0025  # bed drag coefficient Cd, u* = sqrt(Cd) |u| (Fischer et al. 1979, ref:fischer1979)
 - `python/fdmr_plugins/registry.py:88`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
 - `python/fdmr_plugins/registry.py:145`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
-- `ui/src/compute/worker.ts:139`: Waters, ref:fischer1979).
+- `ui/src/compute/worker.ts:140`: Waters, ref:fischer1979).
 
 ## frantzich2026ncro
 
@@ -825,7 +825,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/mesh.py:257`: OKUBO = 0.0103  # Okubo's K = 0.0103 L^1.15, cm2/s with L in cm (Okubo 1971, ref:okubo1971)
-- `ui/src/compute/worker.ts:134`: K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);
+- `ui/src/compute/worker.ts:135`: K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);
 
 ## openet
 

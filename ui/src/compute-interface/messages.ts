@@ -141,6 +141,8 @@ export interface Ready {
   start: number;
   end: number;
   now: number;
+  /** The region's own time zone (IANA), for its dates (index.json `timezone`). */
+  timezone: string;
   length: number;
   /** Certainty at each published step from `start`, `step` s apart. */
   certainty: number[];

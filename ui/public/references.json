@@ -729,7 +729,7 @@
     },
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 138,
+     "line": 139,
      "text": "Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal"
     }
    ]
@@ -837,7 +837,7 @@
     },
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 139,
+     "line": 140,
      "text": "Waters, ref:fischer1979)."
     }
    ]
@@ -1619,7 +1619,7 @@
     },
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 134,
+     "line": 135,
      "text": "K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);"
     }
    ]

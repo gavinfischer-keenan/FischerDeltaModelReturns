@@ -634,6 +634,7 @@ def publish(
         "format": "fdmr-flow-field",
         "format_version": [1, 0],
         "region": region.id,
+        "timezone": region.timezone,  # the region's own clock, for the page's dates (#67)
         "model_version": model_version(region_dir, calibration),
         "cycle": utc(now),
         "created": utc(time.time()),

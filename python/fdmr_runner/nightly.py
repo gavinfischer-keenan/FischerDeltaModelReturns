@@ -6,7 +6,7 @@ tuning is done by hand, from these logs, and never silently.
 
 Each night (00:00 Pacific Standard Time, runner/schedule):
 
-1. A hindcast as of `--hindcast-days` days ago (00:00 PST): the Delta (DSM2,
+1. A hindcast as of `--hindcast-days` days ago (00:00 in the region's own time zone): the Delta (DSM2,
    `fdmr_runner.delta --as-of`) and every river (`fdmr_runner.publish --as-of`),
    using only what was measured before that time; river forecasts are the
    River Forecast Center's issue in force then where it was kept (from
@@ -33,7 +33,6 @@ from pathlib import Path
 from fdmr_store import Store
 
 from . import ledger
-from .delta import pst_midnight
 from .region import load_region
 
 DAY = 86_400
@@ -61,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     region = load_region(region_dir)
     data = Path(args.data)
     now = int(time.time())
-    as_of = pst_midnight(now) - args.hindcast_days * DAY
+    as_of = region.midnight(now, args.hindcast_days)  # the region's own midnight (#67)
     as_of_iso = datetime.fromtimestamp(as_of, timezone.utc).strftime("%Y-%m-%dT%H:%M")
     hd = data / "hindcast" / region.id
     py = sys.executable
@@ -97,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
     db.close()
     live = data / "publish" / region.id / "current" / "index.json"
     version = json.loads(live.read_text(encoding="utf-8")).get("model_version") if live.exists() else None
-    day = datetime.fromtimestamp(pst_midnight(now), timezone.utc).strftime("%Y-%m-%d")
+    day = region.local_date(now)
     logs = data / "publish" / region.id / "nightly"
     logs.mkdir(parents=True, exist_ok=True)
     entry = {"date": day, "generated": now, "model_version": version, "hindcast": hindcast, "steps": steps, "score": score}

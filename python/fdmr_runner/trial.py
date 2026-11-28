@@ -33,7 +33,6 @@ from pathlib import Path
 from fdmr_store import Store
 
 from . import ledger, publish
-from .delta import pst_midnight
 from .region import load_region
 
 DAY = 86_400
@@ -58,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("data")
     ap.add_argument("--name", required=True, help="the trial's name: lower case, digits and hyphens")
     ap.add_argument("--maths", action="append", required=True, help="REACH.PART=MATHS, repeatable; REACH may be *")
-    ap.add_argument("--as-of", help="the hindcast's time (UTC); default: --hindcast-days before 00:00 PST today")
+    ap.add_argument("--as-of", help="the hindcast's time (UTC); default: --hindcast-days before today's midnight, in the region's own time zone")
     ap.add_argument("--hindcast-days", type=int, default=5)
     args = ap.parse_args(argv)
     if not NAME.match(args.name):
@@ -67,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     region = load_region(region_dir)
     trial = {"name": args.name, "maths": parse_maths(args.maths)}
     as_of = (int(datetime.fromisoformat(args.as_of).replace(tzinfo=timezone.utc).timestamp()) if args.as_of
-             else pst_midnight(int(time.time())) - args.hindcast_days * DAY)
+             else region.midnight(int(time.time()), args.hindcast_days))
     out = data / "trials" / region.id / args.name
     out.mkdir(parents=True, exist_ok=True)
     cal = data / "calibration" / f"{region.id}.json"
