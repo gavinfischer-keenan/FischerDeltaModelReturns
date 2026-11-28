@@ -46,6 +46,30 @@ Each was changed to give the same output: old and new wrote the same files byte 
 - **The overlays** went from 95 s to 34 s, and to 12 s while the water-extent tiles are unchanged.
 - **A whole publish** went from 35 s to 29.5 s, without the profiler.
 
+## Memory (#36)
+
+The Delta cycle's "6.0 GB peak" is systemd's MemoryPeak, which counts the page cache: the files read (NOAA's forecast files, DSM2's tidefiles), kept in memory the kernel gives back as soon as anything needs it.
+
+**One Delta cycle, 28 Nov 2026.**
+- **The cycle's memory, read during the run.**
+
+| | |
+|---|---|
+| The page cache (`file`) | 3.3 GB |
+| The programs' own memory (`anon`) | 33 MB |
+| MemoryPeak, cache included | 5.0 GB |
+
+- **Each step's largest process** (`cycle_steps`, peak_mb).
+
+| Step | Largest process |
+|---|---|
+| fetch | 114 MB |
+| DSM2 (`fdmr_runner.delta` with HYDRO, QUAL and GTM) | 749 MB |
+| canals | 147 MB |
+| Bay | 1,208 MB |
+
+So the container's 8 GB is not at risk. Even running the DSM2 programs side by side (#37) needs roughly their sum, about 3 GB, not three times 6 GB. DSM2's temporary files are now on disk too, not in /tmp, which is memory here.
+
 ## Issues
 
 Each optimisation has its own issue:
