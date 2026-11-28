@@ -47,10 +47,10 @@ from pathlib import Path
 
 import numpy as np
 
-from fdmr_plugins.dsm2 import dss, inp, study
+from fdmr_plugins.dsm2 import dss, inp, output, study
 from fdmr_plugins.fvcom.correct import tidal_mean
 
-from .delta import DSM2_ROOT, TO_DSS
+from .delta import DSM2_ROOT
 from .delta import load as load_dsm2
 from .publish import model_version
 
@@ -232,95 +232,36 @@ def run_scenario(cfg: dict, exp: dict, scen: dict, run_dir: Path, lock: str | No
 
 
 def read_stations(cfg: dict, exp: dict, run_dir: Path, start: int, end: int) -> dict[str, dict[str, float]]:
-    modifier = (run_dir / "config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
-    d = dss.Dss(str(DSM2_ROOT / "bin" / "dsstool"))
+    tool = str(DSM2_ROOT / "bin" / "dsstool")
     first = start + DAY + STEP  # QUAL starts a day after HYDRO
     n = (end - first) // STEP
     out: dict[str, dict[str, float]] = {}
     for st in exp["station"]:
         name = st.get("output", st["name"])
         if st.get("channel") and st["quantity"] == "net_flow":  # a channel DWR's output files do not name (#41)
-            vals = channel_flow(run_dir, modifier, st["channel"], first, n)
-            if vals is None:
+            q = output.channel_flow(run_dir, st["channel"])
+            if q is None:
                 print(f"  channel {st['channel']}: not read", file=sys.stderr)
                 continue
-            out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(subtidal(vals), first).items()}
+            out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(subtidal(q.sampled(first, n, STEP)), first).items()}
             continue
         if st.get("reservoir"):  # a station inside one of DSM2's reservoirs: that reservoir's water (#42)
-            vals = reservoir_ec(run_dir / "output" / "qual_ec.h5", st["reservoir"], first, n)
-            if vals is None:
+            r = output.reservoir_concentration(output.files(run_dir)["ec"], "ec", st["reservoir"])
+            if r is None:
                 print(f"  reservoir {st['reservoir']}: not read", file=sys.stderr)
                 continue
-            out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(vals, first).items()}
+            out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(r.sampled(first, n, STEP), first).items()}
             continue
-        if st["quantity"] == "ec":
-            f = run_dir / "output" / f"{modifier}_qual.dss"
-            path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{name}/EC//15MIN/{modifier.upper()}+FROM-ALL/"
-            scale = 1.0
-        else:
-            f = run_dir / "output" / f"{modifier}_hydro.dss"
-            path = f"/{cfg['output_a']}/{name}/FLOW//15MIN/{modifier.upper()}/"
-            scale = 1 / TO_DSS["CFS"]
+        kind = "ec" if st["quantity"] == "ec" else "flow"
         try:
-            vals, _, _ = d.read(str(f), path, first, n)
+            vals = output.station_series(run_dir, tool, cfg["output_a"], kind, name, first, n)
         except Exception as e:  # a station the study does not write out
-            print(f"  {path}: not read ({e})", file=sys.stderr)
+            print(f"  {name} ({kind}): not read ({e})", file=sys.stderr)
             continue
-        vals = [None if v is None else v * scale for v in vals]
         if st["quantity"] == "net_flow":
             vals = subtidal(vals)
         out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(vals, first).items()}
     return out
-
-
-def channel_flow(run_dir: Path, modifier: str, channel: int, first: int, n: int) -> list[float | None] | None:
-    """A channel's flow (m3/s, the mean of its two ends, positive from its
-    upstream node to its downstream one) every 15 minutes from `first`
-    (UTC), n steps, from HYDRO's tidefile (5-minute records), as
-    fdmr_runner.delta.net_check reads it; None if the channel is not there."""
-    import h5py
-
-    from fdmr_plugins.dsm2.fields import tidefile_start
-
-    path = run_dir / "output" / f"{modifier}.h5"
-    if not path.exists():
-        return None
-    with h5py.File(path, "r") as f:
-        nums = list(f["hydro/geometry/channel_number"][:])
-        if channel not in nums:
-            return None
-        flow = f["hydro/data/channel flow"]
-        t0 = tidefile_start(flow.attrs["start_time"][0])
-        q = flow[:, nums.index(channel), :].mean(axis=1) / TO_DSS["CFS"]
-    every = STEP // 300
-    j0 = (first - t0) // 300
-    vals: list[float | None] = []
-    for k in range(n):
-        j = j0 + k * every
-        vals.append(float(q[j]) if 0 <= j < len(q) else None)
-    return vals
-
-
-def reservoir_ec(h5_path: Path, reservoir: str, first: int, n: int) -> list[float | None] | None:
-    """A reservoir's EC (uS/cm) every 15 minutes from `first` (UTC), n steps,
-    from QUAL's HDF5 output (study.with_hdf5_output): None where it has no
-    value, or None if the file or the reservoir is not there."""
-    import h5py
-
-    from fdmr_plugins.dsm2.fields import tidefile_start
-
-    if not h5_path.exists():
-        return None
-    with h5py.File(h5_path, "r") as f:
-        names = [x.decode().strip() for x in f["output/reservoir_names"][:]]
-        consts = [x.decode().strip() for x in f["output/constituent_names"][:]]
-        if reservoir not in names or "ec" not in consts:
-            return None
-        conc = f["output/reservoir concentration"]
-        j0 = (first - tidefile_start(conc.attrs["start_time"][0])) // STEP
-        got = conc[max(j0, 0):max(j0, 0) + n, consts.index("ec"), names.index(reservoir)]
-    vals: list[float | None] = [None] * max(0, -j0) + [float(v) for v in got]
-    return (vals + [None] * n)[:n]
 
 
 def score(exp: dict, series: dict[str, dict[str, dict[str, float]]], measured, other) -> dict:

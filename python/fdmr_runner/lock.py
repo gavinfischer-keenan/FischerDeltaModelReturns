@@ -12,18 +12,19 @@ than queueing without end behind cycles, and says how long it waited.
 from __future__ import annotations
 
 import fcntl
-import os
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-CYCLE_LOCK = Path(os.environ.get("FDMR_DATA", "/srv/fdmr-data")) / ".cycle.lock"
+from . import DATA
+
+CYCLE_LOCK = DATA / ".cycle.lock"
 # The experiments' own lock (#39): one experiment at a time, never holding up
 # a cycle. Memory allows it (#36: a Delta cycle peaks near 1.7 GB, one DSM2
 # run near 0.75 GB, of 8 GB), and an experiment runs at low CPU priority
 # (EXPERIMENT_NICE), so a cycle beside it always comes first.
-EXPERIMENT_LOCK = Path(os.environ.get("FDMR_DATA", "/srv/fdmr-data")) / ".experiment.lock"
+EXPERIMENT_LOCK = DATA / ".experiment.lock"
 EXPERIMENT_NICE = 15
 WAIT_S = 30 * 60  # half an hour: longer than a Delta cycle (about 15 min), shorter than an hour of hourly cycles queueing
 POLL_S = 5.0

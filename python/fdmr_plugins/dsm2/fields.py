@@ -26,6 +26,7 @@ A reader works out velocity (flow / area) and volume (area x length) itself.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -43,6 +44,20 @@ def tidefile_start(attr: bytes | str) -> int:
     """The UTC time of a tidefile's first record, from its start_time attribute (PST)."""
     s = attr.decode() if isinstance(attr, bytes) else str(attr)
     return int(datetime.strptime(s.strip(), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc).timestamp()) + PST
+
+
+_UNIT_S = {"min": 60, "hour": 3600, "day": 86_400}
+
+
+def interval_s(attr: bytes | str) -> int:
+    """A series' step, s, from its `interval` attribute ("5min", "15min", "1hour", "1day")."""
+    s = (attr.decode() if isinstance(attr, bytes) else str(attr)).strip().lower()
+    m = re.fullmatch(r"(\d+)\s*(min|hour|day)", s)
+    if not m:
+        raise ValueError(f"an interval not understood: {s!r}")
+    return int(m.group(1)) * _UNIT_S[m.group(2)]
+
+
 
 
 def write_days(
@@ -77,7 +92,7 @@ def write_days(
         names = [x.decode().strip() for x in qh["output/constituent_names"][:]]
         q_chan, q_pool = qh["output/channel avg concentration"], qh["output/reservoir concentration"]
         q_t0 = tidefile_start(q_chan.attrs["start_time"][0])
-        q_step = 900  # QUAL's HDF5 output interval (study.with_hdf5_output)
+        q_step = interval_s(q_chan.attrs["interval"][0])  # QUAL's HDF5 output interval (study.with_hdf5_output: 15 minutes)
         k_ec = names.index("ec") if "ec" in names else None
     sh = h5py.File(sources_file, "r") if sources_file else None
     if sh is not None:
@@ -120,12 +135,15 @@ def write_days(
         # channel); the water surface is the bed plus that depth.
         bottom = f["hydro/geometry/channel_bottom"][:]  # (2, channels), ft
         t5 = tidefile_start(flow.attrs["start_time"][0])
-        every = step // 300
+        h = interval_s(flow.attrs["interval"][0])  # the tidefile's own step (5 minutes, as the study sets it)
+        if step % h:
+            raise ValueError(f"a {step} s published step is not a whole number of the tidefile's {h} s")
+        every = step // h
         n5 = flow.shape[0]
         for d0 in range(start // DAY * DAY, end, DAY):
             a, b = max(d0, start), min(d0 + DAY, end)
             a += (-(a - t5)) % step  # first step on the grid and inside the tidefile
-            i0, i1 = (a - t5) // 300, min(n5, (b - t5 + 299) // 300)
+            i0, i1 = (a - t5) // h, min(n5, (b - t5 + h - 1) // h)
             if i0 < 0 or i0 >= i1:
                 continue
             q = flow[i0:i1:every, :, :] * CFS

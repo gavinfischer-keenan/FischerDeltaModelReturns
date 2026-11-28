@@ -343,9 +343,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/levels.py:33](../python/fdmr_runner/levels.py#L33) | `MODEL_NEAR_KM` | `1.0` | km: a station is checked against a reach it stands within this of (FDMR's choice) |
 | [python/fdmr_runner/levels.py:34](../python/fdmr_runner/levels.py#L34) | `MAX_LAG_S` | `3 * 3600` | s: the largest shift searched when lining the tides up, 3 hours (FDMR's choice) |
 | [python/fdmr_runner/levels.py:35](../python/fdmr_runner/levels.py#L35) | `MIN_FRACTION` | `0.6` | of the window's steps with both values |
-| [python/fdmr_runner/lock.py:27](../python/fdmr_runner/lock.py#L27) | `EXPERIMENT_NICE` | `15` |  |
-| [python/fdmr_runner/lock.py:28](../python/fdmr_runner/lock.py#L28) | `WAIT_S` | `30 * 60` | half an hour: longer than a Delta cycle (about 15 min), shorter than an hour of hourly cycles queueing |
-| [python/fdmr_runner/lock.py:29](../python/fdmr_runner/lock.py#L29) | `POLL_S` | `5.0` |  |
+| [python/fdmr_runner/lock.py:28](../python/fdmr_runner/lock.py#L28) | `EXPERIMENT_NICE` | `15` |  |
+| [python/fdmr_runner/lock.py:29](../python/fdmr_runner/lock.py#L29) | `WAIT_S` | `30 * 60` | half an hour: longer than a Delta cycle (about 15 min), shorter than an hour of hourly cycles queueing |
+| [python/fdmr_runner/lock.py:30](../python/fdmr_runner/lock.py#L30) | `POLL_S` | `5.0` |  |
 | [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
 | [python/fdmr_runner/nightly.py:41](../python/fdmr_runner/nightly.py#L41) | `TAIL_LINES` | `60` | each step's last lines of output kept in the log: enough for every check's result (FDMR's choice) |
@@ -396,9 +396,10 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_plugins/canal/__init__.py:30](../python/fdmr_plugins/canal/__init__.py#L30) | `SEGMENT_M` | `1000.0` | the longest channel a canal is cut into, so quality can change along it |
 | [python/fdmr_plugins/dsm2/dss.py:15](../python/fdmr_plugins/dsm2/dss.py#L15) | `PST` | `8 * 3600` | s: DSM2's clock is Pacific Standard Time, UTC-8 all year |
 | [python/fdmr_plugins/dsm2/dss.py:16](../python/fdmr_plugins/dsm2/dss.py#L16) | `MISSING` | `-901.0` | HEC-DSS's missing-value flag |
-| [python/fdmr_plugins/dsm2/fields.py:36](../python/fdmr_plugins/dsm2/fields.py#L36) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
-| [python/fdmr_plugins/dsm2/fields.py:38](../python/fdmr_plugins/dsm2/fields.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_plugins/dsm2/fields.py:37](../python/fdmr_plugins/dsm2/fields.py#L37) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
+| [python/fdmr_plugins/dsm2/fields.py:39](../python/fdmr_plugins/dsm2/fields.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_plugins/dsm2/grid.py:17](../python/fdmr_plugins/dsm2/grid.py#L17) | `FT` | `0.3048` | unit: metres in an international foot (exact) |
+| [python/fdmr_plugins/dsm2/output.py:24](../python/fdmr_plugins/dsm2/output.py#L24) | `TO_CFS` | `1 / 0.3048**3` | cfs per m3/s (an international foot is 0.3048 m, exact) |
 | [python/fdmr_plugins/dsm2/temperature.py:38](../python/fdmr_plugins/dsm2/temperature.py#L38) | `MPH` | `3600 / 1609.344` | m/s to mph |
 | [python/fdmr_plugins/dsm2/temperature.py:39](../python/fdmr_plugins/dsm2/temperature.py#L39) | `INHG` | `1 / 33.8639` | hPa to inches of mercury |
 | [python/fdmr_plugins/fvcom/correct.py:33](../python/fdmr_plugins/fvcom/correct.py#L33) | `MIN_H` | `0.5` | m: shoals that dry still pass a little water |

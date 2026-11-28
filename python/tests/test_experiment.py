@@ -71,7 +71,7 @@ def test_a_reservoirs_ec_is_read_from_quals_hdf5_output(tmp_path):
     h5py = pytest.importorskip("h5py")
     import numpy as np
 
-    from fdmr_runner import experiment
+    from fdmr_plugins.dsm2 import output
 
     path = tmp_path / "qual_ec.h5"
     t0 = 1_764_201_600  # 2025-11-27 00:00 UTC: 2025-11-26 16:00 PST
@@ -82,20 +82,26 @@ def test_a_reservoirs_ec_is_read_from_quals_hdf5_output(tmp_path):
         c[:, 0, 1] = np.arange(10) * 10.0
         d = f.create_dataset("output/reservoir concentration", data=c)
         d.attrs["start_time"] = [b"2025-11-26 16:00:00"]
-    got = experiment.reservoir_ec(path, "franks_tract", t0 + 2 * 900, 4)
-    assert got == [20.0, 30.0, 40.0, 50.0]
-    assert experiment.reservoir_ec(path, "franks_tract", t0 - 900, 2) == [None, 0.0]
-    assert experiment.reservoir_ec(path, "no_such", t0, 2) is None
+        d.attrs["interval"] = [b"15min"]
+    r = output.reservoir_concentration(path, "ec", "franks_tract")
+    assert r.step == 900 and r.t0 == t0
+    assert r.sampled(t0 + 2 * 900, 4, 900) == [20.0, 30.0, 40.0, 50.0]
+    assert r.sampled(t0 - 900, 2, 900) == [None, 0.0]
+    assert output.reservoir_concentration(path, "ec", "no_such") is None
 
 
-def test_a_channels_flow_is_read_from_the_tidefile_every_15_minutes(tmp_path):
-    """Where DWR's output files name no station, a channel's flow (#41)."""
+def test_a_channels_flow_is_read_at_the_tidefiles_own_step(tmp_path):
+    """Where DWR's output files name no station, a channel's flow (#41), read
+    at the step the tidefile records (#78)."""
     h5py = pytest.importorskip("h5py")
     import numpy as np
 
-    from fdmr_runner import experiment
+    from fdmr_plugins.dsm2 import output
 
     (tmp_path / "output").mkdir()
+    lines = ["ENVVARS", "NAME VALUE", "DSM2MODIFIER   hist   #Study name", "X ${DSM2MODIFIER}_qual", "END"]
+    (tmp_path / "config.inp").write_text("".join(x + chr(10) for x in lines))
+    assert output.run_modifier(tmp_path) == "hist"
     t0 = 1_764_201_600  # 2025-11-27 00:00 UTC: 2025-11-26 16:00 PST
     with h5py.File(tmp_path / "output" / "hist.h5", "w") as f:
         f.create_dataset("hydro/geometry/channel_number", data=np.array([118, 119]))
@@ -103,7 +109,21 @@ def test_a_channels_flow_is_read_from_the_tidefile_every_15_minutes(tmp_path):
         q[:, 1, 0], q[:, 1, 1] = np.arange(40) * 10.0, np.arange(40) * 10.0 + 20.0  # cfs at the two ends
         d = f.create_dataset("hydro/data/channel flow", data=q)
         d.attrs["start_time"] = [b"2025-11-26 16:00:00"]
-    got = experiment.channel_flow(tmp_path, "hist", 119, t0 + 900, 3)
+        d.attrs["interval"] = [b"5min"]
+    s = output.channel_flow(tmp_path, 119)
     cfs = 0.3048**3
-    assert got == pytest.approx([(30 + 10) * cfs, (60 + 10) * cfs, (90 + 10) * cfs])  # records 3, 6, 9: every 15 minutes
-    assert experiment.channel_flow(tmp_path, "hist", 999, t0, 2) is None
+    assert s.step == 300
+    # records 3, 6, 9: every 15 minutes
+    assert s.sampled(t0 + 900, 3, 900) == pytest.approx([(30 + 10) * cfs, (60 + 10) * cfs, (90 + 10) * cfs])
+    assert s.sampled(t0 - 900, 2, 900)[0] is None
+    assert output.channel_flow(tmp_path, 999) is None
+    with pytest.raises(ValueError):
+        s.sampled(t0, 2, 400)  # not a whole number of the file's steps
+
+
+def test_a_series_step_is_read_from_its_interval():
+    from fdmr_plugins.dsm2 import output
+
+    assert [output.interval_s(x) for x in (b"5min", "15min", b"1hour", "1day")] == [300, 900, 3600, 86_400]
+    with pytest.raises(ValueError):
+        output.interval_s("1mon")

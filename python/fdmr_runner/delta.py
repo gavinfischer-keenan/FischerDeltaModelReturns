@@ -36,18 +36,18 @@ from statistics import mean
 
 from fdmr_adapters import cnrfc, ndbc, noaa_tides
 from fdmr_adapters.noaa_tides import PARAMETER as TIDE
-from fdmr_plugins.dsm2 import dss, gates, study
+from fdmr_plugins.dsm2 import dss, gates, output, study
 from fdmr_plugins.river_routing.calibration import running_mean
 from fdmr_plugins.river_routing.model import filled
 from fdmr_store import Store
 
 from .forecast import extend, fit_tide, on_grid, repeat_last_day, shifted
-from . import writer
+from . import DATA, writer
 
 STEP = 900  # s: the published time step, 15 minutes (docs/format.md)
 DAY = 86_400
 TO_DSS = {"CFS": 1 / 0.3048**3, "FEET": 1 / 0.3048, "UMHOS/CM": 1.0}  # from the store's units
-DSM2_ROOT = Path("/srv/fdmr-data/dsm2")
+DSM2_ROOT = DATA / "dsm2"  # DWR's DSM2, built by runner/dsm2/build_dsm2.sh
 BLEND = 96  # forecasts join the measured series over a day
 
 
@@ -279,53 +279,26 @@ def check(store: Store, run_dir: Path, cfg: dict, c: dict, start: int, end: int,
     check that names a `channel` reads that channel's flow (the mean of its two
     ends) from HYDRO's tidefile, so any channel can be checked, not only those
     DWR's study writes out."""
-    modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
     n = (end - start) // STEP
+    first = start + STEP
     if kind == "flow" and "channel" in c:
-        import h5py
-
-        from fdmr_plugins.dsm2.fields import tidefile_start
-
-        with h5py.File(run_dir / "output" / f"{modifier}.h5", "r") as f:
-            flow = f["hydro/data/channel flow"]
-            nums = list(f["hydro/geometry/channel_number"][:])
-            i0 = (start + STEP - tidefile_start(flow.attrs["start_time"][0])) // 300
-            q = flow[i0 : i0 + 3 * n : 3, nums.index(c["channel"]), :].mean(axis=1) / TO_DSS["CFS"]
-        model = [float(v) for v in q] + [None] * (n - len(q))
-        return _compare(c, model, grid(store, c, start + STEP, n))
+        q = output.channel_flow(run_dir, c["channel"])
+        if q is None:
+            raise ValueError(f"channel {c['channel']} is not in the tidefile")
+        return _compare(c, q.sampled(first, n, STEP), grid(store, c, first, n))
     if kind == "ssc":
         # GTM's SSC, the mean of the channel's two ends (gtm_sed.h5), against the
         # station's turbidity through its part of the Delta's relation (dsm2.toml).
-        import h5py
+        from fdmr_plugins.dsm2.sediment import ssc_from_turbidity
 
-        from fdmr_plugins.dsm2.fields import tidefile_start
-        from fdmr_plugins.dsm2.sediment import H5, ssc_from_turbidity
-
-        with h5py.File(run_dir / "output" / H5, "r") as f:
-            conc = f["output/channel concentration"]
-            k = [x.decode().strip() for x in f["output/constituent_names"][:]].index("ssc")
-            i = list(f["output/channel_number"][:]).index(c["channel"])
-            i0 = (start + STEP - tidefile_start(conc.attrs["start_time"][0])) // STEP
-            m = conc[max(0, i0) : max(0, i0) + n, k, i, :].mean(axis=1)
-        model = [float(v) for v in m] + [None] * (n - len(m))
+        m = output.channel_concentration(output.files(run_dir)["sediment"], "ssc", c["channel"])
+        if m is None:
+            raise ValueError(f"no SSC for channel {c['channel']}")
         r = c["relation"]
-        meas = [None if v is None else ssc_from_turbidity(v, r["a"], r["b"]) for v in grid(store, c, start + STEP, n)]
-        return _compare(c, model, meas)
-    if kind == "temp":
-        out = run_dir / "output" / "qual_temp.dss"
-        path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{c['output']}/TEMP//15MIN/{modifier.upper()}+FROM-ALL/"
-        scale = 1.0
-    elif kind == "ec":
-        out = run_dir / "output" / f"{modifier}_qual.dss"
-        path = f"/{cfg['output_a'].replace('HYDRO', 'QUAL')}/{c['output']}/EC//15MIN/{modifier.upper()}+FROM-ALL/"
-        scale = 1.0
-    else:
-        out = run_dir / "output" / f"{modifier}_hydro.dss"
-        path = f"/{cfg['output_a']}/{c['output']}/FLOW//15MIN/{modifier.upper()}/"
-        scale = 1 / TO_DSS["CFS"]
-    vals, _, _ = dss.Dss(str(DSM2_ROOT / "bin" / "dsstool")).read(str(out), path, start + STEP, n)
-    model = [None if v is None else v * scale for v in vals]
-    return _compare(c, model, grid(store, c, start + STEP, n))
+        meas = [None if v is None else ssc_from_turbidity(v, r["a"], r["b"]) for v in grid(store, c, first, n)]
+        return _compare(c, m.sampled(first, n, STEP), meas)
+    model = output.station_series(run_dir, str(DSM2_ROOT / "bin" / "dsstool"), cfg["output_a"], kind, c["output"], first, n)
+    return _compare(c, model, grid(store, c, first, n))
 
 
 def net_check(store: Store, run_dir: Path, c: dict, start: int, end: int) -> dict:
@@ -335,26 +308,21 @@ def net_check(store: Store, run_dir: Path, c: dict, start: int, end: int) -> dic
     Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
     means. A measured day needs 18 hours of values (one daily value, for a
     gauge that publishes only those)."""
-    import h5py
     import numpy as np
 
-    from fdmr_plugins.dsm2.fields import tidefile_start
     from fdmr_plugins.fvcom.correct import tidal_mean
 
-    modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
-    with h5py.File(run_dir / "output" / f"{modifier}.h5", "r") as f:
-        flow = f["hydro/data/channel flow"]
-        nums = list(f["hydro/geometry/channel_number"][:])
-        t0 = tidefile_start(flow.attrs["start_time"][0])
-        q = flow[:, nums.index(c["channel"]), :].mean(axis=1) / TO_DSS["CFS"]  # every 5 minutes
-    tq = t0 + 300 * np.arange(len(q))
-    qf = tidal_mean(q, 12.0, edges="missing")  # no held ends in a compared mean (#71)
+    s = output.channel_flow(run_dir, c["channel"])
+    if s is None:
+        raise ValueError(f"channel {c['channel']} is not in the tidefile")
+    tq, per_hour = s.times(), 3600 // s.step
+    qf = tidal_mean(s.values, float(per_hour), edges="missing")  # no held ends in a compared mean (#71)
     days = range(start, end - DAY + 1, DAY)
     rows = []
     for d in days:
         sel = (tq >= d) & (tq < d + DAY)
         ok = sel & np.isfinite(qf)
-        model = float(qf[ok].mean()) if ok.sum() >= 12 * 18 else None
+        model = float(qf[ok].mean()) if ok.sum() >= per_hour * 18 else None
         vs = [v for v in store.values(c["source"], c["site"], c["parameter"], d, d + DAY - 1) if v.value is not None]
         if c.get("duration") == "D":
             meas = vs[0].value if vs else None
@@ -399,8 +367,8 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
 
     from .region import load_region
 
-    modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
-    tidefile = run_dir / "output" / f"{modifier}.h5"
+    out_files = output.files(run_dir)
+    tidefile = out_files["tidefile"]
     channels, nodes = grid.load(str(DSM2_ROOT / "inputs" / cfg["grid"]), grid.read_channels(tidefile))
     reach = cfg["reach"]  # the network reach's id, from dsm2.toml (#68)
     stamp = datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ")
@@ -421,10 +389,7 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
                           centres=cfg.get("pool_centres"), water=water)
     (pub / "geometry" / f"{reach}.json").write_text(json.dumps(geo, separators=(",", ":")), encoding="utf-8")
     start = (now - 14 * DAY) // DAY * DAY
-    qual_file = run_dir / "output" / "qual_ec.h5"
-    fp_file = run_dir / "output" / "qual_fp.h5"
-    temp_file = run_dir / "output" / "qual_temp.h5"
-    sed_file = run_dir / "output" / "gtm_sed.h5"
+    qual_file, fp_file, temp_file, sed_file = (out_files[k] for k in ("ec", "fingerprint", "temperature", "sediment"))
     days = fields.write_days(tidefile, reach, pub / reach, start, end,
                              node_ids=[n["id"] for n in geo["nodes"]], extras=extras, exports=set(exports),
                              qual_file=qual_file if qual_file.exists() else None,
@@ -627,7 +592,7 @@ def main(argv: list[str] | None = None) -> int:
     if len(settings.mains) > 1:
         kinds += [(c, "ec") for c in cfg.get("ec_checks", [])]
         kinds += [(c, "temp") for c in cfg.get("temp_checks", []) if tcfg]
-        kinds += [(c, "ssc") for c in cfg.get("sediment_checks", []) if (run_dir / "output" / "gtm_sed.h5").exists()]
+        kinds += [(c, "ssc") for c in cfg.get("sediment_checks", []) if output.files(run_dir)["sediment"].exists()]
     sediment_checks = []
     for c, kind in kinds:
         try:  # one check's failure, any part of it, does not stop the run
