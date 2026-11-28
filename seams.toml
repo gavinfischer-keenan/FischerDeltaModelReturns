@@ -114,3 +114,10 @@ may_use = ["compute_interface", "text"]
 # fetch dispatcher maps each configured source to its adapter, so it may.
 [source_names]
 allowed = ["python/fdmr_runner/fetch.py"]
+
+# Folders the seam check does not scan, each by decision (#89), with why. A
+# folder of code that is in no module above and not listed here is a gap.
+[unchecked]
+"ui/public" = "the reading pages: region-aware through ?region= and pages.js; their one default region is pages.js DEFAULT_REGION, as the viewer's is App.svelte's"
+"runner" = "one deployment's set-up, schedule and web server (runner/README.md): place-specific by nature"
+"tools" = "documentation generators and validation studies: each study names the region it studies"

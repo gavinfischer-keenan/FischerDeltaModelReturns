@@ -172,3 +172,17 @@ def test_a_step_is_recorded_with_its_time_and_peak_memory(tmp_path):
     steps = json.loads(f.read_text(encoding="utf-8") + "]")
     assert [(s["step"], s["ok"]) for s in steps] == [("ok-step", True), ("bad-step", False)]
     assert steps[0]["peak_mb"] >= 50
+
+
+def test_a_regions_written_assumptions_go_beside_its_cycles(tmp_path):
+    """#89: the region's own record is published for assumptions.html; a region without one has none."""
+    import shutil
+
+    region = tmp_path / "region"
+    shutil.copytree(REGION, region)
+    (region / "assumptions.html").write_text("<p>held</p>")
+    now = int(time.time()) // STEP * STEP - 2 * STEP
+    store = seeded(tmp_path / "store" / "fdmr.sqlite", now)
+    out = tmp_path / "publish"
+    publish.publish(region, store, out, days=2, datums={}, ahead=2)
+    assert (out / "assumptions.html").read_text() == "<p>held</p>"

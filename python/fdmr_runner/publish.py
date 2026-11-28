@@ -780,6 +780,13 @@ def publish(
         final = out_dir / f"{cycle}.r{k}"
     os.rename(cdir, final)
     writer.swap_link(out_dir, final.name, "current")
+    # The region's own written record of its assumptions, beside its cycles,
+    # for assumptions.html (#89); replaced whole, never in place.
+    written = Path(region_dir) / "assumptions.html"
+    if written.exists():
+        tmp = out_dir / ".assumptions.html.tmp"
+        shutil.copyfile(written, tmp)
+        os.replace(tmp, out_dir / "assumptions.html")
     return final
 
 

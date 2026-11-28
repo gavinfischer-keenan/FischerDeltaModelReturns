@@ -20,8 +20,9 @@
 <h1>Sturgeon: references</h1>
 <p class="note">Every paper, book, report, data set and program the model draws on, cited in full, with every place in the code and settings that uses it. Each is cited there by its key (<code>ref:&lt;key&gt;</code>), so this list is built from the code itself and cannot fall behind it. See also <a href="check.html">every published check</a>, <a href="assumptions.html">every assumption</a> and <a href="nightly.html">the nightly log</a>.</p>
 <div id="out">Loading…</div>
+<script src="pages.js"></script>
 <script>
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const { esc } = pages;
 const repo = "https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/";
 (async () => {
   const d = await (await fetch("references.json", { cache: "no-store" })).json().catch(() => null);

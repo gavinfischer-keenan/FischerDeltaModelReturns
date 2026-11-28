@@ -18,17 +18,16 @@
 </head>
 <body>
 <h1>Sturgeon: the sturgeon forecast</h1>
-<p class="note">Where, day by day over the forecast, the water the model predicts suits the estuary's sturgeon, from published evidence only: each number in the rules comes from a paper or agency report, cited in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/regions/sf-bay-delta/fishing.toml">the region's rules</a> and listed on the <a href="references.html">references</a> page. <b>Partly checked</b>: its rules against CDFW's trammel-net survey (Stompe and Hobbs 2024; August to October, salinity measured only in 2021-2022). Catch fell above 16 psu, as the scores do, but there salinity follows place; nothing below 8 psu could be tested. The daily forecast itself is not yet scored against catches. Not used, for lack of any quantified relation: turbidity, tide and current. See also <a href="check.html">every check</a> and <a href="assumptions.html">every assumption</a>.</p>
+<p class="note" id="about">Where, day by day over the forecast, the water the model predicts suits the estuary's sturgeon, from published evidence only: each number in the rules comes from a paper or agency report, cited in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/regions/{region}/fishing.toml">the region's rules</a> and listed on the <a href="references.html">references</a> page. <b>Partly checked</b>: its rules against CDFW's trammel-net survey (Stompe and Hobbs 2024; August to October, salinity measured only in 2021-2022). Catch fell above 16 psu, as the scores do, but there salinity follows place; nothing below 8 psu could be tested. The daily forecast itself is not yet scored against catches. Not used, for lack of any quantified relation: turbidity, tide and current. See also <a href="check.html">every check</a> and <a href="assumptions.html">every assumption</a>.</p>
 <div id="out">Loading…</div>
+<script src="pages.js"></script>
 <script>
-const q = new URLSearchParams(location.search);
-const region = q.get("region") || "sf-bay-delta";
-const base = new URL(`data/${region}/current/`, location.href).href;
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const { q, region, esc } = pages;
+const base = pages.data("current");
 const refs = (s) => esc(s).replace(/ref:([a-z][a-z0-9_]*)/g, '<a href="references.html#$1">$1</a>');
 (async () => {
   const index = await (await fetch(base + "index.json", { cache: "no-store" })).json();
-  if (!index.fishing) { document.getElementById("out").textContent = "This cycle has no sturgeon forecast."; return; }
+  if (!index.fishing) { document.getElementById("out").innerHTML = pages.none("sturgeon forecast"); return; }
   const fx = await (await fetch(base + index.fishing, { cache: "no-store" })).json();
   let h = `<p>Cycle <b>${esc(fx.generated_for_cycle)}</b>, now ${esc(fx.now)}.</p>`;
   const w = fx.species.white_sturgeon;

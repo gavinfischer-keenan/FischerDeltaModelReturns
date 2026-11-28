@@ -19,13 +19,12 @@
 </head>
 <body>
 <h1>Sturgeon: experiments</h1>
-<p class="note">Part of the model's validation and calibration: things people actually did to the Delta, and what the model says they did. The experiments are defined in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/regions/sf-bay-delta/experiments.toml">the region's experiments file</a> and written up, run by run, in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/tools/validation/experiments/results.md">the validation record</a>. Each experiment is a past period run on DWR's historical inputs twice: once as it was, and once with the intervention taken away (one gate setting changed in the run's own copy of DWR's gate file; every other input unchanged). The model's predicted effect is the second run less the first. Both runs are scored against what was measured: <b>mean diff.</b> is model less measured, <b>abs. diff.</b> the mean absolute difference of daily means, over the days the intervention was in place. The shaded run is the one closer to the measurements. Where the agencies published their own model's runs with and without, its effect is shown beside ours. What this tests: the Delta's flow and salinity as the map shows them, computed by DWR's DSM2 on our runner. It does not test the spreading maths we wrote ourselves; measured dye clouds do that. Salinity is EC in µS/cm, net flow is tidally filtered (Godin) in m³/s. See also <a href="check.html">every check</a>, <a href="assumptions.html">every assumption</a> and <a href="references.html">every source</a>.</p>
+<p class="note" id="about">Part of the model's validation and calibration: things people actually did to the Delta, and what the model says they did. The experiments are defined in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/regions/{region}/experiments.toml">the region's experiments file</a> and written up, run by run, in <a href="https://github.com/gavinfischer-keenan/FischerDeltaModelReturns/blob/main/tools/validation/experiments/results.md">the validation record</a>. Each experiment is a past period run on DWR's historical inputs twice: once as it was, and once with the intervention taken away (one gate setting changed in the run's own copy of DWR's gate file; every other input unchanged). The model's predicted effect is the second run less the first. Both runs are scored against what was measured: <b>mean diff.</b> is model less measured, <b>abs. diff.</b> the mean absolute difference of daily means, over the days the intervention was in place. The shaded run is the one closer to the measurements. Where the agencies published their own model's runs with and without, its effect is shown beside ours. What this tests: the Delta's flow and salinity as the map shows them, computed by DWR's DSM2 on our runner. It does not test the spreading maths we wrote ourselves; measured dye clouds do that. Salinity is EC in µS/cm, net flow is tidally filtered (Godin) in m³/s. See also <a href="check.html">every check</a>, <a href="assumptions.html">every assumption</a> and <a href="references.html">every source</a>.</p>
 <div id="out">Loading…</div>
+<script src="pages.js"></script>
 <script>
-const q = new URLSearchParams(location.search);
-const region = q.get("region") || "sf-bay-delta";
-const base = new URL(`data/${region}/experiments/`, location.href).href;
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const { q, region, esc } = pages;
+const base = pages.data("experiments");
 const n = (v) => (v === undefined || v === null ? "" : Number(v).toLocaleString("en-US", { maximumFractionDigits: 1 }));
 const sign = (v) => (v === undefined || v === null ? "" : (v > 0 ? "+" : "") + n(v));
 function experiment(x) {
@@ -68,7 +67,9 @@ function experiment(x) {
   return h + "</table>";
 }
 (async () => {
-  const index = await (await fetch(base + "index.json", { cache: "no-store" })).json();
+  const r = await fetch(base + "index.json", { cache: "no-store" });
+  if (!r.ok) { document.getElementById("out").innerHTML = pages.none("experiments"); return; }
+  const index = await r.json();
   let h = "";
   for (const e of index.experiments) h += experiment(await (await fetch(base + e.name + ".json", { cache: "no-store" })).json());
   document.getElementById("out").innerHTML = h || "No experiments have been run.";

@@ -21,18 +21,10 @@
 <h1>Sturgeon: the nightly log</h1>
 <p class="note">Each night at 00:05 Pacific Standard Time: a hindcast (the rivers and the Delta rerun as of five days before, with only what was measured before then, every forecast input held), and every kept prediction scored against what happened, measured less predicted, live and hindcast apart. Persistence is the benchmark that nothing changes (the last reading at the cycle's time, held); skill above 0 beats it (green), below 0 does worse (red). Nothing here changes the model: tuning is by hand. See also <a href="check.html">every published check</a> and <a href="assumptions.html">every assumption</a>.</p>
 <div id="out">Loading…</div>
+<script src="pages.js"></script>
 <script>
-const q = new URLSearchParams(location.search);
-const region = q.get("region") || "sf-bay-delta";
-const base = new URL(`data/${region}/nightly/`, location.href).href;
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const fmt = (v) => typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString("en-US") : v.toPrecision(4).replace(/\.?0+$/, "")) : v == null ? "" : String(v);
-function table(rows, cols, cls) {
-  if (!rows || !rows.length) return "<p class='note'>(none)</p>";
-  cols = cols.map((c) => Array.isArray(c) ? c : [c, c]);
-  return "<table><tr>" + cols.map(([, h]) => `<th>${esc(h)}</th>`).join("") + "</tr>" + rows.map((r) => `<tr class="${cls ? cls(r) : ""}">` +
-    cols.map(([k]) => `<td class="${typeof r[k] === "number" ? "" : "l"}">${esc(fmt(r[k]))}</td>`).join("") + "</tr>").join("") + "</table>";
-}
+const { q, region, esc, fmt, table } = pages;
+const base = pages.data("nightly");
 const skillClass = (r) => r.skill_vs_persistence == null ? "" : r.skill_vs_persistence > 0 ? "better" : "worse";
 (async () => {
   const idx = await (await fetch(base + "index.json", { cache: "no-store" })).json().catch(() => null);

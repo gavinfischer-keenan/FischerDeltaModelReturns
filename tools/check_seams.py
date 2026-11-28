@@ -122,6 +122,10 @@ def main() -> int:
                     if (m := source_re.search(line)) and not line.lstrip().startswith("#"):
                         problems.append(f"{name}: source '{m.group(1)}' named outside its adapter in {f.relative_to(root)}:{i}")
 
+    # Every listed exemption must exist, so a moved folder is not silently unchecked.
+    for path in seams.get("unchecked", {}):
+        if not (root / path).exists():
+            problems.append(f"[unchecked] names {path}, which does not exist")
     for p in problems:
         print(p)
     checked = [n for n, m in modules.items() if (root / m["path"]).exists()]
