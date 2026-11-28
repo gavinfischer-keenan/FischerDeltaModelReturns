@@ -132,6 +132,9 @@ export interface Frame {
   particleShares?: Float32Array;
   /** The water sources' names, in the order of every particleShares. */
   sources: string[];
+  /** Each source's label and colour (`#rrggbb`, or "" for none), in that order: the region's own. */
+  sourceLabels: string[];
+  sourceColours: string[];
   /** For the latest river release, how far below it Fischer's dispersion
    * holds, m (published per element); null for none or a network or mesh release. */
   fickianM: number | null;

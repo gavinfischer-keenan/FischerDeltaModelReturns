@@ -187,7 +187,7 @@ export function drawFrame(
   // Each reach's particles fade by that reach's own certainty (#60).
   const paint = (value?: Float32Array, shares?: Float32Array, certainty: number = f.certainty) => (i: number): string | undefined => {
     if (!coloured) return undefined;
-    const c = f.layer === "source" ? (shares ? blend(f.sources, shares, i) : undefined) : colour(f.layer, value ? value[i] : NaN);
+    const c = f.layer === "source" ? (shares ? blend(f.sourceColours, shares, i) : undefined) : colour(f.layer, value ? value[i] : NaN);
     return c && fade(c, certainty);
   };
   // The main river and every other river reach, the same way.

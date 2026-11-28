@@ -476,6 +476,9 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
         "quality_fields": (["ec", "salinity"] if qual_file.exists() else []) + (["temperature"] if temp_file.exists() else [])
         + (["ssc"] + (["bed_mud", "erosion"] if sed_file.with_name("gtm_sed_bed.bin").exists() else []) if sed_file.exists() else [])
         + sources,
+        # Each water source's name and colour, the region's (dsm2.toml [fingerprint_shown], #89).
+        **({"source_groups": [{"id": g, **cfg.get("fingerprint_shown", {}).get(g, {"label": g})} for g in cfg.get("fingerprint", {})]}
+           if sources else {}),
         # Of those, the ones describing the bed rather than the water: not carried on with it (#49).
         **({"bed_fields": ["bed_mud", "erosion"]} if sed_file.exists() and sed_file.with_name("gtm_sed_bed.bin").exists() else {}),
         # The sediment's settling velocity, for pollutants that ride on it (#16).

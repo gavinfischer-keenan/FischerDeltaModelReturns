@@ -34,7 +34,7 @@
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 671,
+     "line": 681,
      "text": "Jaffe (2015, ref:achete2015, section 3.1 and table 1),"
     },
     {
@@ -185,7 +185,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 545,
+     "line": 555,
      "text": "ref:brown1987qual2e)."
     }
    ]
@@ -311,12 +311,12 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 712,
+     "line": 722,
      "text": "DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov"
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 724,
+     "line": 734,
      "text": "DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above)."
     }
    ]
@@ -800,7 +800,7 @@
     },
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 139,
+     "line": 140,
      "text": "Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal"
     }
    ]
@@ -926,7 +926,7 @@
     },
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 140,
+     "line": 141,
      "text": "Waters, ref:fischer1979)."
     }
    ]
@@ -1971,7 +1971,7 @@
     },
     {
      "file": "ui/src/compute/worker.ts",
-     "line": 135,
+     "line": 136,
      "text": "K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);"
     }
    ]
@@ -2082,7 +2082,7 @@
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 678,
+     "line": 688,
      "text": "in Partheniades' form (ref:partheniades1965)"
     },
     {
@@ -2245,7 +2245,7 @@
     },
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 694,
+     "line": 704,
      "text": "(ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa"
     }
    ]
@@ -2850,7 +2850,7 @@
    "used": [
     {
      "file": "regions/sf-bay-delta/dsm2.toml",
-     "line": 707,
+     "line": 717,
      "text": "Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section"
     }
    ]

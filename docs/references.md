@@ -18,7 +18,7 @@ Used in:
 - `python/fdmr_plugins/registry.py:125`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
 - `python/fdmr_plugins/registry.py:133`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
 - `python/fdmr_runner/delta.py:170`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
-- `regions/sf-bay-delta/dsm2.toml:671`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
+- `regions/sf-bay-delta/dsm2.toml:681`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
 - `runner/dsm2/gtm-sediment.patch:27`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
 
 ## allen1998fao56
@@ -100,7 +100,7 @@ Checked: EPA NEPIS record and document; title page read, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/dsm2.toml:545`: ref:brown1987qual2e).
+- `regions/sf-bay-delta/dsm2.toml:555`: ref:brown1987qual2e).
 
 ## brownlie1981
 
@@ -171,8 +171,8 @@ Checked: The report read (chapter 4, the erosion-coefficient calibration), 27 No
 
 Used in:
 
-- `regions/sf-bay-delta/dsm2.toml:712`: DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov
-- `regions/sf-bay-delta/dsm2.toml:724`: DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above).
+- `regions/sf-bay-delta/dsm2.toml:722`: DSM2 GTM sediment calibration (ref:dwr2019ar, chapter 4); checked 27 Nov
+- `regions/sf-bay-delta/dsm2.toml:734`: DWR's 20 mg/L in the islands' drainage returns (ref:dwr2019ar, chapter 4; above).
 
 ## dwr_i17_swp
 
@@ -397,7 +397,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/mesh.py:258`: ELDER = 5.93  # Elder's K = 5.93 H u* (Elder 1959, ref:elder1959; Fischer et al. 1979, ref:fischer1979)
-- `ui/src/compute/worker.ts:139`: Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal
+- `ui/src/compute/worker.ts:140`: Mech. 5: 544-560, ref:elder1959; Fischer et al. 1979, Mixing in Inland and Coastal
 
 ## fischer1966
 
@@ -443,7 +443,7 @@ Used in:
 - `python/fdmr_plugins/fvcom/mesh.py:259`: DRAG = 0.0025  # bed drag coefficient Cd, u* = sqrt(Cd) |u| (Fischer et al. 1979, ref:fischer1979)
 - `python/fdmr_plugins/registry.py:90`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
 - `python/fdmr_plugins/registry.py:187`: "Random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
-- `ui/src/compute/worker.ts:140`: Waters, ref:fischer1979).
+- `ui/src/compute/worker.ts:141`: Waters, ref:fischer1979).
 
 ## frantzich2026ncro
 
@@ -953,7 +953,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/mesh.py:257`: OKUBO = 0.0103  # Okubo's K = 0.0103 L^1.15, cm2/s with L in cm (Okubo 1971, ref:okubo1971)
-- `ui/src/compute/worker.ts:135`: K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);
+- `ui/src/compute/worker.ts:136`: K = 0.0103 L^1.15 (cgs), median 0.34 m²/s (Okubo 1971, Deep-Sea Research 18: 789-802; ref:okubo1971);
 
 ## openet
 
@@ -1001,7 +1001,7 @@ Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:7`: (Partheniades 1965, ref:partheniades1965), no more
 - `python/fdmr_plugins/registry.py:126`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
-- `regions/sf-bay-delta/dsm2.toml:678`: in Partheniades' form (ref:partheniades1965)
+- `regions/sf-bay-delta/dsm2.toml:688`: in Partheniades' form (ref:partheniades1965)
 - `runner/dsm2/gtm-sediment.patch:26`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
 
 ## patton2020
@@ -1082,7 +1082,7 @@ Checked: Crossref record of the DOI; the paper read (Table 3, sections 2.1 and 5
 Used in:
 
 - `python/fdmr_plugins/registry.py:357`: "critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)",
-- `regions/sf-bay-delta/dsm2.toml:694`: (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
+- `regions/sf-bay-delta/dsm2.toml:704`: (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
 
 ## schureman1958
 
@@ -1385,4 +1385,4 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `regions/sf-bay-delta/dsm2.toml:707`: Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section
+- `regions/sf-bay-delta/dsm2.toml:717`: Schoellhamer 2005, ref:wright2005, as cited by Achete et al. 2015, section

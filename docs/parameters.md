@@ -128,39 +128,39 @@ Every number the model is set with: in each region's settings and among the mode
 | | **`fixed[2]`** | | See the note on `fixed[1]`. |
 | [245](../regions/sf-bay-delta/dsm2.toml#L245) | `fixed[2]`<br>`value` | `7.02` |  |
 | | **`temperature.scalars`** | | QUAL's heat-budget constants: the Delta's place (degrees, west positive, and the Pacific time zone's meridian), elevation (ft), and QUAL2E's textbook values for dust in the air and evaporation (ft/hr/inHg, and per mph of wind; [brown1987qual2e](references.md#brown1987qual2e)). |
-| [549](../regions/sf-bay-delta/dsm2.toml#L549) | `temperature.scalars`<br>`long_std_merid` | `120.0` |  |
-| [550](../regions/sf-bay-delta/dsm2.toml#L550) | `temperature.scalars`<br>`elev` | `5.0` |  |
-| [551](../regions/sf-bay-delta/dsm2.toml#L551) | `temperature.scalars`<br>`dust_attcoeff` | `0.06` |  |
-| [552](../regions/sf-bay-delta/dsm2.toml#L552) | `temperature.scalars`<br>`evapcoeff_a` | `0.00068` |  |
-| [553](../regions/sf-bay-delta/dsm2.toml#L553) | `temperature.scalars`<br>`evapcoeff_b` | `0.00027` |  |
+| [559](../regions/sf-bay-delta/dsm2.toml#L559) | `temperature.scalars`<br>`long_std_merid` | `120.0` |  |
+| [560](../regions/sf-bay-delta/dsm2.toml#L560) | `temperature.scalars`<br>`elev` | `5.0` |  |
+| [561](../regions/sf-bay-delta/dsm2.toml#L561) | `temperature.scalars`<br>`dust_attcoeff` | `0.06` |  |
+| [562](../regions/sf-bay-delta/dsm2.toml#L562) | `temperature.scalars`<br>`evapcoeff_a` | `0.00068` |  |
+| [563](../regions/sf-bay-delta/dsm2.toml#L563) | `temperature.scalars`<br>`evapcoeff_b` | `0.00027` |  |
 | | **`sediment`** | | Suspended sediment (issue #16): DSM2's General Transport Model on HYDRO's flows (fdmr_plugins.dsm2.sediment, runner/dsm2/gtm-sediment.patch). One class of mud, with the calibrated values of Achete, van der Wegen, Roelvink and Jaffe (2015, [achete2015](references.md#achete2015), section 3.1 and table 1), whose Delta model is the closest published to this one: settling velocity ws        0.25 mm/s   (their sensitivity range 0.15-0.38) critical shear for erosion  0.25 Pa     (range 0.125-0.5; the parameter their results were most sensitive to; replaced below by the Delta's own cores) erosion rate M              1e-4 kg/m2/s (range 2.5e-5 to 1e-2; least sensitive), in Partheniades' form ([partheniades1965](references.md#partheniades1965)) deposition at any shear stress (their section 2.1), and a bed that starts bare (their section 3.4: mud laid everywhere at the start takes years to rework). GTM's grain size only enters through its formulas the settings replace; it is the Stokes diameter of that settling velocity in 10 degC water, sqrt(18 nu ws / ((s - 1) g)) = 0.019 mm, so GTM's own sums agree. |
-| [685](../regions/sf-bay-delta/dsm2.toml#L685) | `sediment`<br>`diameter_mm` | `0.019` |  |
-| [689](../regions/sf-bay-delta/dsm2.toml#L689) | `sediment.scalars`<br>`ero_coef` | `0.0001` | Achete et al.'s erosion rate M, kg/m2/s (above). |
-| [691](../regions/sf-bay-delta/dsm2.toml#L691) | `sediment.scalars`<br>`sed_settling` | `0.00025` | Achete et al.'s settling velocity ws, m/s (above). |
-| [699](../regions/sf-bay-delta/dsm2.toml#L699) | `sediment.scalars`<br>`sed_tau_erosion` | `0.13` | The bed's critical shear stress for erosion: 0.13 Pa, the mean of Schoellhamer et al.'s erosion-chamber cores in the Delta's own bed ([schoellhamer2017](references.md#schoellhamer2017), Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa in upper Cache Slough, 10 cores; (15 x 0.14 + 10 x 0.11) / 25 = 0.128), in place of Achete et al.'s 0.25 Pa (calibrated for the whole Bay-Delta). Checked 27 Nov 2026 over 14 days against all five sediment checks below: better at every one (#24). |
-| [703](../regions/sf-bay-delta/dsm2.toml#L703) | `sediment.scalars`<br>`sed_bed_initial` | `0.0` | A bare bed at the start, kg/m2 (Achete et al., above). |
-| [725](../regions/sf-bay-delta/dsm2.toml#L725) | `sediment.constants`<br>`drainage` | `20` | DWR's 20 mg/L in the islands' drainage returns ([dwr2019ar](references.md#dwr2019ar), chapter 4; above). |
+| [695](../regions/sf-bay-delta/dsm2.toml#L695) | `sediment`<br>`diameter_mm` | `0.019` |  |
+| [699](../regions/sf-bay-delta/dsm2.toml#L699) | `sediment.scalars`<br>`ero_coef` | `0.0001` | Achete et al.'s erosion rate M, kg/m2/s (above). |
+| [701](../regions/sf-bay-delta/dsm2.toml#L701) | `sediment.scalars`<br>`sed_settling` | `0.00025` | Achete et al.'s settling velocity ws, m/s (above). |
+| [709](../regions/sf-bay-delta/dsm2.toml#L709) | `sediment.scalars`<br>`sed_tau_erosion` | `0.13` | The bed's critical shear stress for erosion: 0.13 Pa, the mean of Schoellhamer et al.'s erosion-chamber cores in the Delta's own bed ([schoellhamer2017](references.md#schoellhamer2017), Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa in upper Cache Slough, 10 cores; (15 x 0.14 + 10 x 0.11) / 25 = 0.128), in place of Achete et al.'s 0.25 Pa (calibrated for the whole Bay-Delta). Checked 27 Nov 2026 over 14 days against all five sediment checks below: better at every one (#24). |
+| [713](../regions/sf-bay-delta/dsm2.toml#L713) | `sediment.scalars`<br>`sed_bed_initial` | `0.0` | A bare bed at the start, kg/m2 (Achete et al., above). |
+| [735](../regions/sf-bay-delta/dsm2.toml#L735) | `sediment.constants`<br>`drainage` | `20` | DWR's 20 mg/L in the islands' drainage returns ([dwr2019ar](references.md#dwr2019ar), chapter 4; above). |
 | | **`sediment.water[1]`** | | Where each series comes from. Turbidity becomes SSC through Achete et al.'s relation for that part of the Delta (section 4.5), log10(SSC) = a log10(T) + b: north a = 0.85, b = 0.35; southern a = 1.16, b = 0.27. The relations are USGS's (personal communication to the authors, 2014) and the paper does not say whether its turbidity was FNU or NTU; each gauge's own unit is named below, and both are read as the paper's turbidity. Of USGS's Delta gauges only Freeport reports turbidity live (checked 26 Nov 2026: its "BGC PROJECT" sensor); the rest come from CDEC. The sea end uses USGS's own continuous SSC at Benicia Bridge, 4 km up from DSM2's Martinez boundary: the mean of its sensors 71 ft and 19 ft above the bed. |
-| [742](../regions/sf-bay-delta/dsm2.toml#L742) | `sediment.water[1]`<br>`relation.a` | `0.85` |  |
-| [742](../regions/sf-bay-delta/dsm2.toml#L742) | `sediment.water[1]`<br>`relation.b` | `0.35` |  |
+| [752](../regions/sf-bay-delta/dsm2.toml#L752) | `sediment.water[1]`<br>`relation.a` | `0.85` |  |
+| [752](../regions/sf-bay-delta/dsm2.toml#L752) | `sediment.water[1]`<br>`relation.b` | `0.35` |  |
 | | **`sediment.water[2]`** | | See the note on `sediment.water[1]`. |
-| [751](../regions/sf-bay-delta/dsm2.toml#L751) | `sediment.water[2]`<br>`relation.a` | `1.16` |  |
-| [751](../regions/sf-bay-delta/dsm2.toml#L751) | `sediment.water[2]`<br>`relation.b` | `0.27` |  |
+| [761](../regions/sf-bay-delta/dsm2.toml#L761) | `sediment.water[2]`<br>`relation.a` | `1.16` |  |
+| [761](../regions/sf-bay-delta/dsm2.toml#L761) | `sediment.water[2]`<br>`relation.b` | `0.27` |  |
 | | **`sediment_checks[1]`** | | Measured turbidity to check GTM's SSC against, through the same relations for each station's part of the Delta (Achete et al. 2015, section 4.5: central/western a = 0.91, b = 0.29; central/eastern a = 0.72, b = 0.26; eastern a = 0.914, b = 0.29). Which part each station is in is FDMR's reading of the paper's areas, not the paper's own list. Rio Vista and Mallard Island are two of the paper's own three check stations. |
-| [777](../regions/sf-bay-delta/dsm2.toml#L777) | `sediment_checks[1]`<br>`relation.a` | `0.85` |  |
-| [777](../regions/sf-bay-delta/dsm2.toml#L777) | `sediment_checks[1]`<br>`relation.b` | `0.35` |  |
+| [787](../regions/sf-bay-delta/dsm2.toml#L787) | `sediment_checks[1]`<br>`relation.a` | `0.85` |  |
+| [787](../regions/sf-bay-delta/dsm2.toml#L787) | `sediment_checks[1]`<br>`relation.b` | `0.35` |  |
 | | **`sediment_checks[2]`** | | See the note on `sediment_checks[1]`. |
-| [788](../regions/sf-bay-delta/dsm2.toml#L788) | `sediment_checks[2]`<br>`relation.a` | `0.91` |  |
-| [788](../regions/sf-bay-delta/dsm2.toml#L788) | `sediment_checks[2]`<br>`relation.b` | `0.29` |  |
+| [798](../regions/sf-bay-delta/dsm2.toml#L798) | `sediment_checks[2]`<br>`relation.a` | `0.91` |  |
+| [798](../regions/sf-bay-delta/dsm2.toml#L798) | `sediment_checks[2]`<br>`relation.b` | `0.29` |  |
 | | **`sediment_checks[3]`** | | See the note on `sediment_checks[1]`. |
-| [799](../regions/sf-bay-delta/dsm2.toml#L799) | `sediment_checks[3]`<br>`relation.a` | `0.72` |  |
-| [799](../regions/sf-bay-delta/dsm2.toml#L799) | `sediment_checks[3]`<br>`relation.b` | `0.26` |  |
+| [809](../regions/sf-bay-delta/dsm2.toml#L809) | `sediment_checks[3]`<br>`relation.a` | `0.72` |  |
+| [809](../regions/sf-bay-delta/dsm2.toml#L809) | `sediment_checks[3]`<br>`relation.b` | `0.26` |  |
 | | **`sediment_checks[4]`** | | See the note on `sediment_checks[1]`. |
-| [810](../regions/sf-bay-delta/dsm2.toml#L810) | `sediment_checks[4]`<br>`relation.a` | `1.16` |  |
-| [810](../regions/sf-bay-delta/dsm2.toml#L810) | `sediment_checks[4]`<br>`relation.b` | `0.27` |  |
+| [820](../regions/sf-bay-delta/dsm2.toml#L820) | `sediment_checks[4]`<br>`relation.a` | `1.16` |  |
+| [820](../regions/sf-bay-delta/dsm2.toml#L820) | `sediment_checks[4]`<br>`relation.b` | `0.27` |  |
 | | **`sediment_checks[5]`** | | See the note on `sediment_checks[1]`. |
-| [821](../regions/sf-bay-delta/dsm2.toml#L821) | `sediment_checks[5]`<br>`relation.a` | `0.914` |  |
-| [821](../regions/sf-bay-delta/dsm2.toml#L821) | `sediment_checks[5]`<br>`relation.b` | `0.29` |  |
+| [831](../regions/sf-bay-delta/dsm2.toml#L831) | `sediment_checks[5]`<br>`relation.a` | `0.914` |  |
+| [831](../regions/sf-bay-delta/dsm2.toml#L831) | `sediment_checks[5]`<br>`relation.b` | `0.29` |  |
 
 ### experiments.toml
 
@@ -473,10 +473,10 @@ Every number the model is set with: in each region's settings and among the mode
 | [crates/fdmr-math/src/dispersion.rs:77](../crates/fdmr-math/src/dispersion.rs#L77) | `DEAD_ZONE_EXCHANGE` | `1.0e-5` | [vanmazijk1996](references.md#vanmazijk1996), section 4.4). The rate sets only the cloud's shape (how long its tail is), not its lag. Empirical (FDMR): fitted on one measured cloud and judged on another branch's, held out (`tools/validation/rhine_dye/simulate.py`). |
 | [crates/fdmr-math/src/salinity.rs:10](../crates/fdmr-math/src/salinity.rs#L10) | `SEAWATER_SC` | `53_087.0` | Conductivity of standard seawater (salinity 35) at 25 °C, µS/cm. |
 | [crates/fdmr-math/src/signal.rs:150](../crates/fdmr-math/src/signal.rs#L150) | `GODIN_HOURS` | `[24.0, 24.0, 25.0]` | Godin's three running means, h (Godin 1972, [godin1972](references.md#godin1972)). |
-| [ui/src/compute/worker.ts:113](../ui/src/compute/worker.ts#L113) | `PARCELS_PER_RELEASE` | `20_000` |  |
-| [ui/src/compute/worker.ts:118](../ui/src/compute/worker.ts#L118) | `PARTICLES_PER_KM2` | `8` | Flow particles per km² of water surface, the same in every reach reach, so that the water looks the same on both sides of a join: before 26 Nov 2026 the Delta's channels held about six times the Bay's density and its particles ran into the Bay's sparse field in single file. |
-| [ui/src/compute/worker.ts:122](../ui/src/compute/worker.ts#L122) | `MIN_COUNTED_WIDTH_M` | `100` | In particle numbers, a channel counts as at least this wide, m, so that the narrow sloughs still show their water moving (issue #3). Drawn, its particles still sit within its own width. |
-| [ui/src/compute/worker.ts:124](../ui/src/compute/worker.ts#L124) | `NETWORK_PARTICLES` | `6_000` | A network without channel widths (an older publication) is seeded by volume, with this many. |
-| [ui/src/compute/worker.ts:130](../ui/src/compute/worker.ts#L130) | `NETWORK_DISPERSION` | `50` | own transport (QUAL) with a pulse released at the network's main inflow (tools/pulse_check.py; build plan, network tracer): at 50 the tracer matches QUAL's arrival, spread and peak at five channels across the network; 10 and 200 are clearly worse, 30 and 80 about as good. |
-| [ui/src/compute/worker.ts:146](../ui/src/compute/worker.ts#L146) | `MESH_DIFFUSIVITY` | `1.1` | along the flow, so as an even spreading this errs toward too much across it. Used only where a mesh publishes no diffusivity of its own: the Bay's publisher now works out the same two parts at every node (fdmr_plugins.fvcom.mesh.diffusivity, geometry `diffusivity_m2s`; #10). |
-| [ui/src/compute/worker.ts:149](../ui/src/compute/worker.ts#L149) | `RIVER_SALINITY_PSU` | `0.1` | River water above the Delta, for the salinity layer: shown in the Venice System's fresh class (below 0.5 psu; layers.ts), as a class, not a measurement. |
+| [ui/src/compute/worker.ts:114](../ui/src/compute/worker.ts#L114) | `PARCELS_PER_RELEASE` | `20_000` |  |
+| [ui/src/compute/worker.ts:119](../ui/src/compute/worker.ts#L119) | `PARTICLES_PER_KM2` | `8` | Flow particles per km² of water surface, the same in every reach reach, so that the water looks the same on both sides of a join: before 26 Nov 2026 the Delta's channels held about six times the Bay's density and its particles ran into the Bay's sparse field in single file. |
+| [ui/src/compute/worker.ts:123](../ui/src/compute/worker.ts#L123) | `MIN_COUNTED_WIDTH_M` | `100` | In particle numbers, a channel counts as at least this wide, m, so that the narrow sloughs still show their water moving (issue #3). Drawn, its particles still sit within its own width. |
+| [ui/src/compute/worker.ts:125](../ui/src/compute/worker.ts#L125) | `NETWORK_PARTICLES` | `6_000` | A network without channel widths (an older publication) is seeded by volume, with this many. |
+| [ui/src/compute/worker.ts:131](../ui/src/compute/worker.ts#L131) | `NETWORK_DISPERSION` | `50` | own transport (QUAL) with a pulse released at the network's main inflow (tools/pulse_check.py; build plan, network tracer): at 50 the tracer matches QUAL's arrival, spread and peak at five channels across the network; 10 and 200 are clearly worse, 30 and 80 about as good. |
+| [ui/src/compute/worker.ts:147](../ui/src/compute/worker.ts#L147) | `MESH_DIFFUSIVITY` | `1.1` | along the flow, so as an even spreading this errs toward too much across it. Used only where a mesh publishes no diffusivity of its own: the Bay's publisher now works out the same two parts at every node (fdmr_plugins.fvcom.mesh.diffusivity, geometry `diffusivity_m2s`; #10). |
+| [ui/src/compute/worker.ts:150](../ui/src/compute/worker.ts#L150) | `RIVER_SALINITY_PSU` | `0.1` | River water above the Delta, for the salinity layer: shown in the Venice System's fresh class (below 0.5 psu; layers.ts), as a class, not a measurement. |

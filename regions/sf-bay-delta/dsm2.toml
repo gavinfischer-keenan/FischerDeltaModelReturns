@@ -504,6 +504,16 @@ east = ["calaveras", "cosumnes", "moke"]
 sea = ["mtz"]
 ag = ["dicu_drain_.*", "bc_150", "bc_151"]
 
+# How the map shows each source: its name, and its colour (Okabe-Ito, which
+# stays distinct to colour-blind eyes on the dark basemap). Published with the
+# Delta's reach (reach.json source_groups); the viewer names no source itself (#89).
+[fingerprint_shown]
+sac = { label = "Sacramento", colour = "#56B4E9" }
+sjr = { label = "San Joaquin", colour = "#E69F00" }
+east = { label = "Eastside rivers", colour = "#009E73" }
+sea = { label = "The sea", colour = "#0072B2" }
+ag = { label = "Farm drainage", colour = "#D55E00" }
+
 # Water temperature (specification 7.5): QUAL's heat budget, on live weather.
 # DWR's temperature study reads a weather file its public release leaves out
 # (25 Nov 2026), so the study is written afresh (fdmr_plugins.dsm2.temperature).

@@ -16,6 +16,7 @@ import init, { Engine, MeshEngine, NetworkEngine, Region } from "./pkg/fdmr_wasm
 import type { Frame, Layer, LineFrame, MeshFrame, NetworkFrame, Reply, Request, Words } from "../compute-interface/messages";
 
 interface ReachEntry {
+  source_groups?: { id: string; label?: string; colour?: string }[];
   id: string;
   kind?: string;
   certainty: number[];
@@ -173,6 +174,8 @@ let layer: Layer = "plain";
 let netFlow = false;
 /** Water sources the networks carry shares of (from `source:<name>` fields). */
 let sources: string[] = [];
+/** Each source's name and colour, as its region publishes them (reach.json source_groups). */
+let sourceShown: Record<string, { label: string; colour: string }> = {};
 let riverId = "river";
 /** Every reach together (fdmr-wasm `Region`, fdmr_compute::region): it steps
  * them, passes parcels and flow particles across every join and keeps their
@@ -278,6 +281,8 @@ async function open(cycle: string, reach: string, n: number): Promise<void> {
   riverId = reach;
   cycleUrl = cycle;
   sources = [...new Set(ix.reaches.flatMap((r) => (r.quality_fields ?? []).filter((f) => f.startsWith("source:")).map((f) => f.slice(7))))];
+  // Each source's name and colour, as the region publishes them (#89).
+  sourceShown = Object.fromEntries(ix.reaches.flatMap((r) => r.source_groups ?? []).map((g) => [g.id, { label: g.label ?? g.id, colour: g.colour ?? "" }]));
   starts = Float64Array.from(geometry.elements.map((e) => e.start_m));
   ends = Float64Array.from(geometry.elements.map((e) => e.end_m));
   fickian = geometry.elements.map((e) => e.fickian_m ?? null);
@@ -823,6 +828,8 @@ function frame(seq?: number): void {
     meshes: meshFrames,
     layer,
     sources,
+    sourceLabels: sources.map((s) => sourceShown[s]?.label ?? s),
+    sourceColours: sources.map((s) => sourceShown[s]?.colour ?? ""),
     fickianM: releaseFickian,
     ...riverLayer(riverN),
   };

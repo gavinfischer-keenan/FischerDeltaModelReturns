@@ -85,15 +85,6 @@ export const SCALES: Partial<Record<Layer, Scale>> = {
   level: { at: (v) => v, stops: spread(-1, 1, PUOR), ticks: [[-1, "−1"], [0, "mean"], [1, "+1"]], unit: "m from the reach's mean" },
 };
 
-/** Water sources (Okabe-Ito colours), by the names the published fields use. */
-export const SOURCES: Record<string, { colour: string; key: string }> = {
-  sac: { colour: "#56B4E9", key: "source_sac" },
-  sjr: { colour: "#E69F00", key: "source_sjr" },
-  east: { colour: "#009E73", key: "source_east" },
-  sea: { colour: "#0072B2", key: "source_sea" },
-  ag: { colour: "#D55E00", key: "source_ag" },
-};
-
 const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const hex = (c: number[]) => "#" + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
 
@@ -125,15 +116,16 @@ export function colour(layer: Layer, v: number): string {
   return along(s.stops, s.at(v));
 }
 
-/** A particle's colour from its water's shares of each source (in `names` order): the sources' colours mixed. */
-export function blend(names: string[], shares: Float32Array, i: number): string {
-  const k = names.length;
+/** A particle's colour from its water's shares of each source (in `colours`
+ * order, the region's own colours, "" for none): the sources' colours mixed. */
+export function blend(colours: string[], shares: Float32Array, i: number): string {
+  const k = colours.length;
   let total = 0;
   const mix = [0, 0, 0];
   for (let j = 0; j < k; j++) {
     const s = shares[i * k + j];
     if (!Number.isFinite(s) || s <= 0) continue;
-    const c = rgb(SOURCES[names[j]]?.colour ?? MISSING);
+    const c = rgb(colours[j] || MISSING);
     for (let m = 0; m < 3; m++) mix[m] += c[m] * s;
     total += s;
   }

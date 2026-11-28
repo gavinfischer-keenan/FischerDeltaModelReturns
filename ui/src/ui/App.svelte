@@ -9,7 +9,7 @@
   import { Reach, type ReachGeometry } from "./reach";
   import { addMesh, createMap, drawFrame, widenView } from "./map";
   import { MeshPlace, type MeshGeometry } from "./mesh";
-  import { SOURCES, legend } from "./layers";
+  import { legend } from "./layers";
   import { NetworkPlace, type ChannelCut, type NetworkGeometry } from "./network";
   import { addOverlays, drawIsohaline, isohalineAt, showOverlay, STRUCTURE_COLOUR, type Overlays, type Station, type Structure } from "./overlays";
   /** A join between reaches, as index.json gives it (docs/format.md, handoffs). */
@@ -39,7 +39,7 @@
   let fickianM = $state<number | null>(null);
   const LAYERS: Layer[] = ["plain", "contaminant", "speed", "temperature", "salinity", "sediment", "level", "source"];
   let layer = $state<Layer>("plain");
-  let sources = $state<string[]>([]);
+  let sources = $state<{ label: string; colour: string }[]>([]);
   const key = (k: string) => (text as Record<string, string>)[k] ?? k;
   function setLayer(l: Layer) {
     layer = l;
@@ -93,7 +93,7 @@
       const age = Math.max(0, Math.round((Date.now() / 1000 - r.t) / 3600));
       return `<tr><td>${esc(key(`reading_${p}`))}</td><td><b>${v(r.v)}</b> ${u}${model}</td><td class="age">${age < 1 ? text.station_just_now : `${age} h`}</td></tr>`;
     });
-    const src = key(`source_${s.source ?? "cdec"}`);
+    const src = key(`source_${s.source}`);  // the station's own source, as published (#66, #89)
     const model = s.model_reach ? (key(`model_${s.model_reach}`) !== `model_${s.model_reach}` ? key(`model_${s.model_reach}`) : text.model_river) : text.station_no_model;
     return `<div class="station"><b>${esc(s.name)}</b> <span class="site">${esc(s.site)}</span><table>${rows.join("") || `<tr><td>${text.station_no_readings}</td></tr>`}</table><p>${text.station_measured}: ${esc(src)}. ${text.station_modelled}: ${esc(model)}.</p></div>`;
   }
@@ -144,7 +144,7 @@
     }
     balance = Array.from(f.massBalance);
     fickianM = f.fickianM;
-    sources = f.sources;
+    sources = f.sourceLabels.map((label, j) => ({ label, colour: f.sourceColours[j] }));
     words = f.words;
     if (map && reach) drawFrame(map, reach, f, nets, meshes, lineReaches);
     if (map && showX2 && x2) drawIsohaline(map, x2, f.t, x2Label);
@@ -433,7 +433,7 @@
           </div>
         {:else if layer === "source"}
           <div class="legend swatches">
-            {#each sources as s}<span><i style={`background: ${SOURCES[s]?.colour ?? "#8a96a6"}`}></i>{key(SOURCES[s]?.key ?? s)}</span>{/each}
+            {#each sources as s}<span><i style={`background: ${s.colour || "#8a96a6"}`}></i>{s.label}</span>{/each}
             <span class="unit">{text.legend_source_note}</span>
           </div>
         {:else if layer === "plain"}
