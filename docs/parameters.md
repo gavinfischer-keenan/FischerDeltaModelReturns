@@ -322,8 +322,18 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/experiment.py:57](../python/fdmr_runner/experiment.py#L57) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `STEP` | `900` | s: DWR's station output, 15 minutes |
 | [python/fdmr_runner/experiment.py:59](../python/fdmr_runner/experiment.py#L59) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
-| [python/fdmr_runner/fetch.py:49](../python/fdmr_runner/fetch.py#L49) | `DATUM_EVERY_S` | `30 * 86_400` | a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey) |
-| [python/fdmr_runner/fetch.py:50](../python/fdmr_runner/fetch.py#L50) | `AVAILABLE_EVERY_S` | `86_400` | USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely) |
+| [python/fdmr_runner/fetch.py:74](../python/fdmr_runner/fetch.py#L74) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/fetch.py:80](../python/fdmr_runner/fetch.py#L80) | `MIN_FRESH_S` | `2 * 3600` | an hourly source is not asked again within this, whatever --fresh says |
+| [python/fdmr_runner/fetch.py:81](../python/fdmr_runner/fetch.py#L81) | `ARCHIVE_EVERY_S` | `20 * 3600` | a source updated about daily is asked at most this often |
+| [python/fdmr_runner/fetch.py:82](../python/fdmr_runner/fetch.py#L82) | `OBSERVED_DAYS` | `21` | the map's and the Bay's stations: the last three weeks |
+| [python/fdmr_runner/fetch.py:83](../python/fdmr_runner/fetch.py#L83) | `TIDE_LEVEL_DAYS` | `35` | a tide gauge's levels: 30 days of tide residual, and some |
+| [python/fdmr_runner/fetch.py:84](../python/fdmr_runner/fetch.py#L84) | `SWOT_EVERY_S` | `12 * 3600` | SWOT's passes come days apart: asked at most twice a day |
+| [python/fdmr_runner/fetch.py:85](../python/fdmr_runner/fetch.py#L85) | `SWOT_DAYS` | `60` |  |
+| [python/fdmr_runner/fetch.py:86](../python/fdmr_runner/fetch.py#L86) | `LAND_DAYS` | `14` | soil moisture, rain and snowmelt: the last fortnight |
+| [python/fdmr_runner/fetch.py:87](../python/fdmr_runner/fetch.py#L87) | `OPENET_DAYS` | `60` |  |
+| [python/fdmr_runner/fetch.py:88](../python/fdmr_runner/fetch.py#L88) | `SEA_LEVEL_DAYS` | `40` |  |
+| [python/fdmr_runner/fetch.py:89](../python/fdmr_runner/fetch.py#L89) | `SEA_LEVEL_ASK_DAYS` | `10` | the server refuses a longer window over a box |
+| [python/fdmr_runner/fetch.py:90](../python/fdmr_runner/fetch.py#L90) | `NWS_OBSERVED_DAYS` | `7` | the Weather Service's observations: its last week |
 | [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/geometry.py:31](../python/fdmr_runner/geometry.py#L31) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
 | [python/fdmr_runner/geometry.py:37](../python/fdmr_runner/geometry.py#L37) | `TRACE_KM` | `1500` | Building a reach's centreline from the national hydrography (NLDI), once, when a region is set up (FDMR's choices, generous: a trace past the river's end is cut where the reach ends). how far downstream a reach's line is traced, km |
