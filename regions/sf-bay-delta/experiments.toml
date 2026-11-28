@@ -122,6 +122,17 @@ place = "Old River at the San Joaquin"
 quantity = "net_flow"
 
 [[experiment.station]]
+name = "ORQ"
+place = "Old River at Quimby Island"
+quantity = "net_flow"
+# DWR's output files have no station here: DSM2's channel 119 (the nearest,
+# 100 m), its flow read from HYDRO's tidefile. Both run northward, seaward,
+# positive (the channel from node 100 to 101; the gauge's discharge is
+# positive on the ebb). With OSJ, HOL, FCT, FAL and DSJ: the central Delta's
+# cross-section of southward flow (#41).
+channel = 119
+
+[[experiment.station]]
 name = "FCT"
 place = "Fisherman's Cut"
 quantity = "net_flow"
@@ -314,6 +325,17 @@ quantity = "net_flow"
 name = "OSJ"
 place = "Old River at the San Joaquin"
 quantity = "net_flow"
+
+[[experiment.station]]
+name = "ORQ"
+place = "Old River at Quimby Island"
+quantity = "net_flow"
+# DWR's output files have no station here: DSM2's channel 119 (the nearest,
+# 100 m), its flow read from HYDRO's tidefile. Both run northward, seaward,
+# positive (the channel from node 100 to 101; the gauge's discharge is
+# positive on the ebb). With OSJ, HOL, FCT, FAL and DSJ: the central Delta's
+# cross-section of southward flow (#41).
+channel = 119
 
 [[experiment.station]]
 name = "FCT"

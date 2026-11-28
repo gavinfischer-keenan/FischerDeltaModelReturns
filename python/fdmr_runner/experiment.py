@@ -243,6 +243,13 @@ def read_stations(cfg: dict, exp: dict, run_dir: Path, start: int, end: int) -> 
     out: dict[str, dict[str, float]] = {}
     for st in exp["station"]:
         name = st.get("output", st["name"])
+        if st.get("channel") and st["quantity"] == "net_flow":  # a channel DWR's output files do not name (#41)
+            vals = channel_flow(run_dir, modifier, st["channel"], first, n)
+            if vals is None:
+                print(f"  channel {st['channel']}: not read", file=sys.stderr)
+                continue
+            out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(subtidal(vals), first).items()}
+            continue
         if st.get("reservoir"):  # a station inside one of DSM2's reservoirs: that reservoir's water (#42)
             vals = reservoir_ec(run_dir / "output" / "qual_ec.h5", st["reservoir"], first, n)
             if vals is None:
@@ -268,6 +275,34 @@ def read_stations(cfg: dict, exp: dict, run_dir: Path, start: int, end: int) -> 
             vals = subtidal(vals)
         out[f"{st['name']}/{st['quantity']}"] = {k: round(v, 3) for k, v in daily(vals, first).items()}
     return out
+
+
+def channel_flow(run_dir: Path, modifier: str, channel: int, first: int, n: int) -> list[float | None] | None:
+    """A channel's flow (m3/s, the mean of its two ends, positive from its
+    upstream node to its downstream one) every 15 minutes from `first`
+    (UTC), n steps, from HYDRO's tidefile (5-minute records), as
+    fdmr_runner.delta.net_check reads it; None if the channel is not there."""
+    import h5py
+
+    from fdmr_plugins.dsm2.fields import tidefile_start
+
+    path = run_dir / "output" / f"{modifier}.h5"
+    if not path.exists():
+        return None
+    with h5py.File(path, "r") as f:
+        nums = list(f["hydro/geometry/channel_number"][:])
+        if channel not in nums:
+            return None
+        flow = f["hydro/data/channel flow"]
+        t0 = tidefile_start(flow.attrs["start_time"][0])
+        q = flow[:, nums.index(channel), :].mean(axis=1) / TO_DSS["CFS"]
+    every = STEP // 300
+    j0 = (first - t0) // 300
+    vals: list[float | None] = []
+    for k in range(n):
+        j = j0 + k * every
+        vals.append(float(q[j]) if 0 <= j < len(q) else None)
+    return vals
 
 
 def reservoir_ec(h5_path: Path, reservoir: str, first: int, n: int) -> list[float | None] | None:

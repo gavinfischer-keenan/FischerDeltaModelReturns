@@ -719,7 +719,7 @@ Checked: The package's EML read (times PST); tables read from the zip as downloa
 Used in:
 
 - `regions/sf-bay-delta/experiments.toml:67`: 121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2
-- `regions/sf-bay-delta/experiments.toml:266`: 121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2
+- `regions/sf-bay-delta/experiments.toml:277`: 121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2
 - `tools/validation/experiments/prepare_edi.py:18`: edi.1177.9 (ref:nelson2026cemp, CC BY 4.0): 15-minute specific conductance
 - `tools/validation/experiments/results.md:60`: Salinity comes from DWR's continuous stations, edi.2385.1 (ref:frantzich2026ncro), and from the CEMP stations at Franks Tract and Threemile Slough, edi.1177.9 (ref:nelson2026cemp).
 

@@ -86,3 +86,24 @@ def test_a_reservoirs_ec_is_read_from_quals_hdf5_output(tmp_path):
     assert got == [20.0, 30.0, 40.0, 50.0]
     assert experiment.reservoir_ec(path, "franks_tract", t0 - 900, 2) == [None, 0.0]
     assert experiment.reservoir_ec(path, "no_such", t0, 2) is None
+
+
+def test_a_channels_flow_is_read_from_the_tidefile_every_15_minutes(tmp_path):
+    """Where DWR's output files name no station, a channel's flow (#41)."""
+    h5py = pytest.importorskip("h5py")
+    import numpy as np
+
+    from fdmr_runner import experiment
+
+    (tmp_path / "output").mkdir()
+    t0 = 1_764_201_600  # 2025-11-27 00:00 UTC: 2025-11-26 16:00 PST
+    with h5py.File(tmp_path / "output" / "hist.h5", "w") as f:
+        f.create_dataset("hydro/geometry/channel_number", data=np.array([118, 119]))
+        q = np.zeros((40, 2, 2))
+        q[:, 1, 0], q[:, 1, 1] = np.arange(40) * 10.0, np.arange(40) * 10.0 + 20.0  # cfs at the two ends
+        d = f.create_dataset("hydro/data/channel flow", data=q)
+        d.attrs["start_time"] = [b"2025-11-26 16:00:00"]
+    got = experiment.channel_flow(tmp_path, "hist", 119, t0 + 900, 3)
+    cfs = 0.3048**3
+    assert got == pytest.approx([(30 + 10) * cfs, (60 + 10) * cfs, (90 + 10) * cfs])  # records 3, 6, 9: every 15 minutes
+    assert experiment.channel_flow(tmp_path, "hist", 999, t0, 2) is None
