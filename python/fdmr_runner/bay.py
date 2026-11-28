@@ -234,7 +234,7 @@ def dsm2_cut_flows(delta_dir: Path, join: dict) -> tuple[np.ndarray, np.ndarray]
 
     cr = crossings(join)
     ts, qs = [], []
-    for f in sorted((delta_dir / "delta").glob("*.fdf")):
+    for f in sorted((delta_dir / network_id(delta_dir)).glob("*.fdf")):
         if f.name.count(".") > 1:  # .nodes, .links, .quality
             continue
         _, _, n, _, steps, t0, step, flds = fdmr_py.read_field_file(str(f))
@@ -263,12 +263,27 @@ def dsm2_outflow(delta_dir: Path, join: dict, tidal: bool = False) -> tuple[np.n
     return t, tidal_mean(q, HOUR / (t[1] - t[0]))
 
 
+def network_id(net_dir: Path) -> str | None:
+    """The id of the network reach published in `net_dir` (its reach.json):
+    the mesh's handoff edges toward it are keyed by it too (bay.toml
+    [[mesh.handoffs]] id), so no reach's name is written into this code (#68)."""
+    f = Path(net_dir) / "reach.json"
+    return json.loads(f.read_text(encoding="utf-8"))["id"] if f.exists() else None
+
+
+def has_network(net_dir: Path) -> bool:
+    """Whether a network reach is published in `net_dir`, with its geometry."""
+    nid = network_id(net_dir)
+    return nid is not None and (Path(net_dir) / "geometry" / f"{nid}.json").exists()
+
+
 def join_of(delta_dir: Path, coarse: mesh.Coarse, reach: str, edges: dict) -> dict:
     """The join between the network reach published in `delta_dir` and this mesh."""
     from .handoff import network_to_mesh
 
-    net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
-    return network_to_mesh("delta", net, reach, mesh.geometry(coarse, reach, edges))
+    nid = network_id(delta_dir)
+    net = json.loads((delta_dir / "geometry" / f"{nid}.json").read_text(encoding="utf-8"))
+    return network_to_mesh(nid, net, reach, mesh.geometry(coarse, reach, edges))
 
 
 def add_cut_edges(coarse: mesh.Coarse, edges: dict, join: dict, near_m: float) -> dict:
@@ -287,7 +302,7 @@ def add_cut_edges(coarse: mesh.Coarse, edges: dict, join: dict, near_m: float) -
         m = np.array([(coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2])
         if np.hypot(*(pts - m).T).min() <= near_m:
             extra.append([a, b])
-    return {**edges, "delta": edges.get("delta", []) + extra}
+    return {**edges, join["from"]: edges.get(join["from"], []) + extra}
 
 
 
@@ -299,7 +314,7 @@ def overlap(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path], delta_dir:
     jn = join_of(delta_dir, coarse, reach, edges)
     td, qd = dsm2_outflow(delta_dir, jn)
     past = {t: p for t, p in hours.items() if t <= now}
-    tm, qm = mesh_outflow(coarse, edges.get("delta", []), past)
+    tm, qm = mesh_outflow(coarse, edges.get(network_id(delta_dir), []), past)
     qm = -qm  # out of the mesh is into the Delta; Delta to Bay positive
     lo, hi = max(td.min(), tm.min()), min(td.max(), tm.max())
     pick_d, pick_m = (td >= lo) & (td <= hi), (tm >= lo) & (tm <= hi)
@@ -392,11 +407,11 @@ def correct_outflow(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path | di
 
     jn = join_of(delta_dir, coarse, reach, edges)
     cr = crossings(jn)
-    net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
+    net = json.loads((delta_dir / "geometry" / f"{network_id(delta_dir)}.json").read_text(encoding="utf-8"))
     ts = np.array(sorted(hours))
     data = {tt: (hours[tt] if isinstance(hours[tt], dict) else dict(np.load(hours[tt]))) for tt in ts}
     td, Q = dsm2_cut_flows(delta_dir, jn)
-    m = match_crossings(coarse, edges["delta"], edges["open"], np.array([[c["x"], c["y"]] for c in cr]), data, ts, td, Q)
+    m = match_crossings(coarse, edges[network_id(delta_dir)], edges["open"], np.array([[c["x"], c["y"]] for c in cr]), data, ts, td, Q)
     data, seg, active, noaa, target, after, added_speed, compare = (
         m["data"], m["seg"], m["active"], m["noaa"], m["target"], m["after"], m["added_speed"], m["compare"])
 
@@ -447,7 +462,7 @@ def network_quality(delta_dir: Path, join: dict, field: str) -> tuple[np.ndarray
 
     cr = crossings(join)
     ts, vs = [], []
-    for f in sorted((delta_dir / "delta").glob("*.quality.fdf")):
+    for f in sorted((delta_dir / network_id(delta_dir)).glob("*.quality.fdf")):
         _, _, n, _, steps, t0, step, flds = fdmr_py.read_field_file(str(f))
         got = {name: np.asarray(v, dtype=float).reshape(steps, n) for name, _, v in flds}
         if field not in got:
@@ -591,7 +606,7 @@ def extension_hours(cfg: dict, fit: extend.Fit, hours: dict[int, Path], latest: 
     q_week = float(np.mean(week))
     q = np.full(len(t), q_week)
     how = f"held at the last week's measured mean, {q_week:.0f} m3/s"
-    if delta_dir is not None and (delta_dir / "geometry" / "delta.json").exists():
+    if delta_dir is not None and has_network(delta_dir):
         jn = join_of(delta_dir, coarse, cfg["reach"], edges)
         dt_, dq = dsm2_outflow(delta_dir, jn, tidal=True)
         in_week = (dt_ >= measured_to - 7 * DAY) & (dt_ < measured_to)
@@ -678,7 +693,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     print(f"latest cycle {stamp(latest)}", flush=True)
     layout, coarse, edges = prepare(cfg, work, latest)
-    delta_dir = Path(args.delta).resolve() if args.delta and (Path(args.delta) / "geometry" / "delta.json").exists() else None
+    delta_dir = Path(args.delta).resolve() if args.delta and has_network(Path(args.delta)) else None
     if delta_dir is not None:
         edges = add_cut_edges(coarse, edges, join_of(delta_dir, coarse, cfg["reach"], edges), cfg.get("join", {}).get("cut_edges_m", 400.0))
     print(f"mesh: {len(coarse.x)} nodes, {len(coarse.tri)} triangles; edges: "
@@ -693,7 +708,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"gathered in {time.time() - t:.0f} s", flush=True)
     extras: dict = {}
     problems: list[dict] = []  # what failed in this run, published with it (#55)
-    if args.delta and (Path(args.delta) / "geometry" / "delta.json").exists() and hours:
+    if args.delta and has_network(Path(args.delta)) and hours:
         try:
             ov = overlap(coarse, edges, hours, Path(args.delta).resolve(), cfg["reach"], now)
             if ov:
@@ -720,7 +735,7 @@ def main(argv: list[str] | None = None) -> int:
     if any(isinstance(p, dict) for p in hours.values()):
         extras["extension_from"] = datetime.fromtimestamp(min(t for t, p in hours.items() if isinstance(p, dict)), timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
         assumed.append({"input": "the Bay past NOAA's forecast", "how": f"from {extras['extension_from']}: tides plus outflow drift, fitted to the archive and driven by the Delta's forecast outflow; temperature and salinity held at NOAA's last forecast hour"})
-    if args.delta and (Path(args.delta) / "geometry" / "delta.json").exists() and hours and "delta" in edges:
+    if args.delta and has_network(Path(args.delta)) and hours and network_id(Path(args.delta)) in edges:
         try:
             hours, extras["outflow_correction"] = correct_outflow(coarse, edges, hours, Path(args.delta).resolve(), cfg["reach"])
         except Exception as e:  # uncorrected, the Bay still has NOAA's own currents

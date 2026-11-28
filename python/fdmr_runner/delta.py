@@ -425,7 +425,7 @@ def publish_run(run_dir: Path, cfg: dict, region_dir: Path, now: int, end: int, 
     modifier = run_dir.joinpath("config.inp").read_text().split("DSM2MODIFIER", 1)[1].split()[0]
     tidefile = run_dir / "output" / f"{modifier}.h5"
     channels, nodes = grid.load(str(DSM2_ROOT / "inputs" / cfg["grid"]), grid.read_channels(tidefile))
-    reach = cfg.get("reach", "delta")
+    reach = cfg["reach"]  # the network reach's id, from dsm2.toml (#68)
     stamp = datetime.fromtimestamp(now, timezone.utc).strftime("%Y%m%dT%H%MZ")
     pub = out_root / stamp
     if pub.exists():

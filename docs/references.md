@@ -567,7 +567,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/correct.py:283`: the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
-- `python/fdmr_runner/bay.py:490`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
+- `python/fdmr_runner/bay.py:505`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
 
 ## kurobe2022
 

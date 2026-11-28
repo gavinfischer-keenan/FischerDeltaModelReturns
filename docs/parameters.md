@@ -292,7 +292,7 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/bay.py:48](../python/fdmr_runner/bay.py#L48) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/bay.py:50](../python/fdmr_runner/bay.py#L50) | `ANOMALY_H` | `72` | Hours before the forecast's end over which the extension's non-tidal offset is taken. |
 | [python/fdmr_runner/bay.py:52](../python/fdmr_runner/bay.py#L52) | `MESH_VERSION` | `2` | Raised whenever the coarsening changes, so meshes and hours made the old way are made again. |
-| [python/fdmr_runner/bay.py:339](../python/fdmr_runner/bay.py#L339) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
+| [python/fdmr_runner/bay.py:354](../python/fdmr_runner/bay.py#L354) | `MIN_SPLIT_DAYS` | `5` | a dry or wet split with fewer days than this gives only its count, not a mean (FDMR's choice) |
 | [python/fdmr_runner/calibrate.py:39](../python/fdmr_runner/calibrate.py#L39) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
 | [python/fdmr_runner/calibrate.py:49](../python/fdmr_runner/calibrate.py#L49) | `MIN_PAIR_M` | `40_000` | m: a tracer pair at least this far apart, or weather swamps its travel time (below; FDMR's choice) |
 | [python/fdmr_runner/calibrate.py:50](../python/fdmr_runner/calibrate.py#L50) | `MIN_COVER` | `0.25` | a pair corrects only segments it covers at least this share of |

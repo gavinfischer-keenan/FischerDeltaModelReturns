@@ -153,7 +153,7 @@ def check_points(region_dir: Path, cdir: Path, index: dict, store: Store) -> lis
                            "field": "flow", "element": k, "name": g.name})
     # A network's flow checks that name their channel.
     dcfg = delta.load(region_dir) or {}
-    net = dcfg.get("reach", "delta")
+    net = dcfg.get("reach")
     if net in reaches and (cdir / "geometry" / f"{net}.json").exists():
         ids = {e["id"]: i for i, e in enumerate(json.loads((cdir / "geometry" / f"{net}.json").read_text(encoding="utf-8"))["elements"])}
         for c in dcfg.get("checks", []):
