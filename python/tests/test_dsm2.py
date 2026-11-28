@@ -234,3 +234,22 @@ END
 
     with pytest.raises(ValueError):
         with_reservoir_ratio(text, {"mildred": 0.75})
+
+
+def test_side_by_side_gives_each_run_its_own_temp_folder_and_reports_each(tmp_path):
+    """#37: runs after HYDRO at once, each with a temp folder of its own; a
+    failure is returned for the caller to judge, not raised over the others."""
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    for m in ("a.inp", "b.inp"):
+        (run_dir / m).write_text("SCALAR\nNAME VALUE\ntemp_dir         ${TEMPDIR}\nEND\n")
+    ok = tmp_path / "ok.sh"
+    ok.write_text("#!/bin/sh\nexit 0\n")
+    ok.chmod(0o755)
+    bad = tmp_path / "bad.sh"
+    bad.write_text("#!/bin/sh\nexit 3\n")
+    bad.chmod(0o755)
+    got = study.side_by_side([(str(ok), "a.inp", False), (str(bad), "b.inp", False)], run_dir, str(tmp_path / "qt"))
+    assert isinstance(got["a.inp"], float) and isinstance(got["b.inp"], RuntimeError)
+    temps = {(run_dir / m).read_text().split("temp_dir")[1].split()[0] for m in ("a.inp", "b.inp")}
+    assert len(temps) == 2 and all(t.startswith(str(tmp_path / "qt")) for t in temps)

@@ -596,15 +596,16 @@ def main(argv: list[str] | None = None) -> int:
               + (f"; net use changed by {mean(ch):+.1f} m3/s on average ({min(ch):+.1f} to {max(ch):+.1f})" if ch else ""), flush=True)
     secs = study.run_hydro(settings, run_dir)
     print(f"hydro: {args.days + args.ahead} days in {secs:.0f} s")
-    for main in settings.mains[1:]:
-        secs = study.run_qual(settings, run_dir, main)
-        print(f"qual ({main}): {secs:.0f} s")
+    # After HYDRO, every QUAL run and GTM only read its tidefile and write
+    # files of their own: each study is written first, then they run side by
+    # side (#37). jobs: (program, main, unlimited stack, label, required).
+    jobs: list[tuple[str, str, bool, str, bool]] = [(settings.qual, main, False, f"qual ({main})", True) for main in settings.mains[1:]]
     if cfg.get("fingerprint") and len(settings.mains) > 1:
         from fdmr_plugins.dsm2 import fingerprint
 
         counts = fingerprint.write_study(run_dir, settings.mains[1], summary["env"], cfg["fingerprint"])
-        secs = study.run_qual(settings, run_dir, fingerprint.MAIN)
-        print(f"qual (water sources: {', '.join(f'{g} {n} inflows' for g, n in counts.items())}): {secs:.0f} s")
+        jobs.append((settings.qual, fingerprint.MAIN, False,
+                     f"qual (water sources: {', '.join(f'{g} {n} inflows' for g, n in counts.items())})", True))
     tcfg = cfg.get("temperature")
     if tcfg and len(settings.mains) > 1:
         from fdmr_plugins.dsm2 import temperature
@@ -622,8 +623,8 @@ def main(argv: list[str] | None = None) -> int:
         outputs = [(c["output"], c["channel"], str(c["distance"])) for c in cfg.get("temp_checks", [])]
         counts = temperature.write_study(run_dir, settings.mains[1], summary["env"], settings.tool, climate, water,
                                          tcfg["inflows"], tcfg.get("scalars", {}), outputs)
-        secs = study.run_qual(settings, run_dir, temperature.MAIN)
-        print(f"qual (temperature: {', '.join(f'{g} {k} inflows' for g, k in counts.items())}): {secs:.0f} s")
+        jobs.append((settings.qual, temperature.MAIN, False,
+                     f"qual (temperature: {', '.join(f'{g} {k} inflows' for g, k in counts.items())})", True))
     scfg = cfg.get("sediment")
     gtm = root / "bin" / "gtm"
     if scfg and len(settings.mains) > 1 and gtm.exists():
@@ -646,12 +647,20 @@ def main(argv: list[str] | None = None) -> int:
         if counts.get("none"):
             assumed.append({"input": "inflow sediment, other inflows",
                             "how": f"{counts['none']} inflows (eastside streams, treatment plants and any others) bring no sediment: no live gauge"})
-        try:  # a failed sediment run leaves the rest of the run as it is
-            secs = study.run(str(gtm), sediment.MAIN, run_dir, unlimited_stack=True)
-            print(f"gtm (sediment: {', '.join(f'{g} {k} inflows' for g, k in counts.items())}): {secs:.0f} s")
-        except RuntimeError as e:
-            print(f"gtm (sediment) FAILED: {e}", flush=True)
-            problems.append({"step": "GTM sediment run", "error": str(e)[:300]})
+        # Not required: a failed sediment run leaves the rest of the run as it is.
+        jobs.append((str(gtm), sediment.MAIN, True, f"gtm (sediment: {', '.join(f'{g} {k} inflows' for g, k in counts.items())})", False))
+    t_side = time.time()
+    done = study.side_by_side([(p, m, big) for p, m, big, _, _ in jobs], run_dir, settings.temp_dir)
+    for _, main, _, label, required in jobs:
+        r = done[main]
+        if isinstance(r, Exception):
+            print(f"{label} FAILED: {r}", flush=True)
+            if required:
+                raise r
+            problems.append({"step": "GTM sediment run", "error": str(r)[:300]})
+        else:
+            print(f"{label}: {r:.0f} s")
+    print(f"after hydro, side by side: {time.time() - t_side:.0f} s")
     kinds = [(c, "flow") for c in cfg.get("checks", [])]
     if len(settings.mains) > 1:
         kinds += [(c, "ec") for c in cfg.get("ec_checks", [])]

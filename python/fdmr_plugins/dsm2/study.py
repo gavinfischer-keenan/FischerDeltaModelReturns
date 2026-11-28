@@ -440,6 +440,34 @@ def run(program: str, main: str, run_dir: Path, unlimited_stack: bool = False) -
     return time.time() - t
 
 
+def side_by_side(jobs: Sequence[tuple[str, str, bool]], run_dir: Path, temp_root: str) -> dict[str, float | Exception]:
+    """Run DSM2 programs at once, each on its own main file: (program, main,
+    unlimited_stack). Each run's temp_dir becomes a folder of its own under
+    `temp_root` (kept short: QUAL fails on a long one), since they would
+    otherwise share one. Returns each main's seconds, or the error it raised.
+    For runs that only read what came before them (HYDRO's tidefile) and
+    write files of their own (#37)."""
+    import re
+    from concurrent.futures import ThreadPoolExecutor
+
+    for k, (_, main, _) in enumerate(jobs):
+        t = Path(temp_root) / f"r{k}"
+        t.mkdir(parents=True, exist_ok=True)
+        p = run_dir / main
+        p.write_text(re.sub(r"(?m)^(\s*temp_dir\s+)\S+", lambda m: m.group(1) + str(t), p.read_text(encoding="utf-8")),
+                     encoding="utf-8")
+
+    def one(job):
+        program, main, big_stack = job
+        try:
+            return main, run(program, main, run_dir, unlimited_stack=big_stack)
+        except Exception as e:  # noqa: BLE001  returned, for the caller to judge
+            return main, e
+
+    with ThreadPoolExecutor(max(1, len(jobs))) as ex:
+        return dict(ex.map(one, jobs))
+
+
 def run_hydro(settings: RunSettings, run_dir: Path) -> float:
     return run(settings.hydro, "hydro.inp", run_dir)
 
