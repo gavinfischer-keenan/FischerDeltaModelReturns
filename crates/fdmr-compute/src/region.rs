@@ -31,7 +31,7 @@ use std::rc::Rc;
 
 use crate::mesh::{MeshFate, MeshTracer};
 use crate::network::{NetRelease, NetworkTracer, Place, Via};
-use crate::{Engine, Release};
+use crate::Engine;
 
 /// A reach the region steps and its maker reads.
 pub type Shared<T> = Rc<RefCell<T>>;
@@ -313,14 +313,11 @@ impl Region {
                 RiverEnd::Open => {}
                 RiverEnd::Lost => self.lost_at_join += mass,
                 RiverEnd::River { to, at_m } => {
-                    self.rivers[to].0.borrow_mut().add_release(Release {
-                        x: at_m,
-                        start: t,
-                        duration: 0.0,
-                        mass,
-                        half_life: half_life(hl),
-                        parcels: 1,
-                    });
+                    // A parcel of its own, never a release looped over every step (#84).
+                    self.rivers[to]
+                        .0
+                        .borrow_mut()
+                        .take_parcel(at_m, t, mass, half_life(hl));
                     self.handed_in += mass;
                 }
                 RiverEnd::Network { to, channel } => {
@@ -500,6 +497,7 @@ mod tests {
     use super::*;
     use crate::mesh::{MeshRelease, MeshTopology};
     use crate::network::Topology;
+    use crate::Release;
     use fdmr_format::{Encoding, Field, FieldFile};
 
     fn shared<T>(v: T) -> Shared<T> {

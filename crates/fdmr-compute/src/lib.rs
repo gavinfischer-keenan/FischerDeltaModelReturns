@@ -92,7 +92,8 @@ struct Parcel {
     /// Across the channel, −1 to 1 (used where the reach has lateral mixing).
     lat: f64,
     mass: f64,
-    release: usize,
+    /// Half-life, s, or None: its release's, or the parcel's as handed on.
+    half_life: Option<f64>,
     in_water: bool,
     /// In dead-zone storage (a groyne field): held where it is.
     stored: bool,
@@ -140,6 +141,9 @@ pub struct Engine {
     time: f64,
     rng: Rng,
     releases: Vec<(Release, u32)>, // release, parcels emitted so far
+    /// Parcels handed in from another reach, not yet in the water: (time,
+    /// chainage, mass, half-life), in the order they came (#84).
+    handed_in: Vec<(f64, f64, f64, Option<f64>)>,
     parcels: Vec<Parcel>,
     particles: Vec<FlowParticle>,
     balance: MassBalance,
@@ -163,6 +167,7 @@ impl Engine {
             time: start_time,
             rng: Rng::new(seed),
             releases: Vec::new(),
+            handed_in: Vec::new(),
             parcels: Vec::new(),
             particles: Vec::new(),
             balance: MassBalance::default(),
@@ -377,6 +382,14 @@ impl Engine {
         Some(self.value(|d| d.storage.as_deref().unwrap_or(&[]), self.element(x), t))
     }
 
+    /// Take in a parcel handed on from another reach, at chainage `x`, m, at
+    /// time `t`, s, with its mass, kg, and half-life. It enters the water at
+    /// the first step at or after `t`, as a one-parcel release would, but is
+    /// never looped over again once in (#84).
+    pub fn take_parcel(&mut self, x: f64, t: f64, mass: f64, half_life: Option<f64>) {
+        self.handed_in.push((t, x, mass, half_life));
+    }
+
     /// Add a release. Returns its index.
     pub fn add_release(&mut self, r: Release) -> usize {
         self.releases.push((r, 0));
@@ -411,7 +424,7 @@ impl Engine {
                     x: r.x,
                     lat,
                     mass: each,
-                    release: idx,
+                    half_life: r.half_life,
                     in_water: true,
                     stored: false,
                 });
@@ -419,6 +432,28 @@ impl Engine {
                 self.balance.in_water += each;
             }
             self.releases[idx].1 = due.max(emitted);
+        }
+        // Parcels handed in that are due, in the order they came: after the
+        // releases, as one-parcel releases added later would have been.
+        if self.handed_in.iter().any(|h| h.0 <= t) {
+            let waiting = std::mem::take(&mut self.handed_in);
+            for (at, x, mass, half_life) in waiting {
+                if at > t {
+                    self.handed_in.push((at, x, mass, half_life));
+                    continue;
+                }
+                let lat = self.rng.uniform() * 2.0 - 1.0;
+                self.parcels.push(Parcel {
+                    x,
+                    lat,
+                    mass,
+                    half_life,
+                    in_water: true,
+                    stored: false,
+                });
+                self.balance.released += mass;
+                self.balance.in_water += mass;
+            }
         }
     }
 
@@ -452,8 +487,7 @@ impl Engine {
                     }
                 }
                 if stored {
-                    let half_life = self.releases[p.release].0.half_life;
-                    let kept = p.mass * decay::remaining_fraction(dt, half_life);
+                    let kept = p.mass * decay::remaining_fraction(dt, p.half_life);
                     self.balance.decayed += p.mass - kept;
                     self.balance.in_water -= p.mass - kept;
                     let q = &mut self.parcels[i];
@@ -488,7 +522,7 @@ impl Engine {
                 if x < 0.0 {
                     x = -x; // the top of the reach reflects
                 }
-                let half_life = self.releases[p.release].0.half_life;
+                let half_life = p.half_life;
                 let kept = p.mass * decay::remaining_fraction(dt, half_life);
                 self.balance.decayed += p.mass - kept;
                 self.balance.in_water -= p.mass - kept;
@@ -871,6 +905,52 @@ mod tests {
             (var - 2.0 * 40.0 * t).abs() / (2.0 * 40.0 * t) < 0.05,
             "variance {var}"
         );
+    }
+
+    #[test]
+    fn a_parcel_handed_in_moves_exactly_as_a_one_parcel_release_did() {
+        // #84: the queue gives the same parcels, at the same steps, from the
+        // same random numbers, as one Release per handed parcel did.
+        let handed = [
+            (130.0, 1_500.0, 0.3, Some(5_000.0)),
+            (130.0, 1_500.0, 0.2, None),
+            (900.0, 2_500.0, 0.5, None),
+        ];
+        let mut a = engine(10, 0.8, 15.0, 1);
+        let mut b = engine(10, 0.8, 15.0, 1);
+        for e in [&mut a, &mut b] {
+            e.add_release(Release {
+                x: 500.0,
+                start: 0.0,
+                duration: 600.0,
+                mass: 2.0,
+                half_life: None,
+                parcels: 40,
+            });
+        }
+        for &(t, x, mass, hl) in &handed {
+            a.add_release(Release {
+                x,
+                start: t,
+                duration: 0.0,
+                mass,
+                half_life: hl,
+                parcels: 1,
+            });
+            b.take_parcel(x, t, mass, hl);
+        }
+        a.step_to(3_000.0);
+        b.step_to(3_000.0);
+        let (pa, pb) = (a.parcel_snapshot(), b.parcel_snapshot());
+        assert_eq!(
+            pa.0.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            pb.0.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            pa.1.iter().map(|v| v.to_bits()).collect::<Vec<_>>(),
+            pb.1.iter().map(|v| v.to_bits()).collect::<Vec<_>>()
+        );
+        assert_eq!(a.mass_balance(), b.mass_balance());
     }
 
     #[test]
