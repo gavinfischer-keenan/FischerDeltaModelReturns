@@ -14,11 +14,11 @@ To reproduce:
    python tools/validation/experiments/prepare_edi.py DOWNLOADS regions/sf-bay-delta/experiments
    ```
 
-3. Run on the runner. Each scenario is one HYDRO and QUAL run over the experiment's period, 12 to 18 months, run while holding the cycle's lock. A run takes 7 to 10 minutes, plus any wait for the lock; each run's phase timings are kept in its record (`docs/run-times.md`):
+3. Run on the runner. Each scenario is one HYDRO and QUAL run over the experiment's period, 12 to 18 months. A run takes 7 to 10 minutes; each run's phase timings are kept in its record (`docs/run-times.md`). Experiments take their own lock (one at a time) and run at low CPU priority, so the model's cycles never wait for them and always come first on the CPU (`fdmr_runner.lock`, #39):
 
    ```sh
    cd python && python -m fdmr_runner.experiment ../regions/sf-bay-delta /srv/fdmr-data/scratch/experiments \
-       /srv/fdmr-data/publish/sf-bay-delta/experiments --lock /srv/fdmr-data/.cycle.lock
+       /srv/fdmr-data/publish/sf-bay-delta/experiments
    ```
 
 Re-scoring without running DSM2 again takes `--rescore`. A new experiment is a new `[[experiment]]` block in the TOML file, with no new code, as long as its intervention is a gate setting in DWR's gate file.
