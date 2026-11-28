@@ -130,3 +130,66 @@ def tidal_mean(x: np.ndarray, per_hour: float) -> np.ndarray:
     for h in (24, 24, 25):
         m = running_mean(m, int(round(h * per_hour)))
     return m
+
+
+def match_crossings(coarse, join_edges: list[list[int]], open_edges: list[list[int]], cxy: np.ndarray, data: dict,
+                    ts: np.ndarray, td: np.ndarray, Q: np.ndarray) -> dict:
+    """Every hour's currents with flows added so that the mesh's flow through
+    the join by each crossing is the network's flow in that channel there
+    (moved here from the runner's Bay step, issue #58; specification 7.4).
+
+    `join_edges`: the mesh's edges at the join; each counts toward the
+    nearest crossing in `cxy` (mesh x, y). Each crossing's added flow runs
+    from its edges to the open sea (`unit_outflow`); as they touch a little at
+    shared nodes, each hour's amounts are solved together. `data` maps each
+    hour in `ts` to its fields {u, v, level}; `td`, `Q`: the network's flow
+    at each crossing (m3/s, Delta to Bay positive), interpolated to the hours.
+
+    Returns {data (corrected), seg (each edge's crossing), active (the
+    crossings that have edges), noaa, target, after (flows by crossing,
+    m3/s), added_speed (m/s, the largest current added), compare (a function
+    of two flow series giving their net and tidal statistics)}."""
+    from .flux import edge_flux, edge_normals
+
+    e = join_edges
+    en = edge_normals(coarse, e)
+    mid = np.array([[(coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2] for a, b in e])
+    seg = np.array([int(np.argmin(np.hypot(*(cxy - m).T))) for m in mid])
+    active = sorted(set(seg.tolist()))
+    unit = {s: unit_outflow(coarse, [e[i] for i in np.flatnonzero(seg == s)], open_edges) for s in active}
+    data = dict(data)
+    target = np.stack([np.interp(ts, td, Q[:, s]) for s in active], axis=1)  # Delta to Bay positive
+
+    def by_crossing(flux_out: np.ndarray) -> np.ndarray:
+        return np.array([-flux_out[seg == s].sum() for s in active])
+
+    noaa = np.zeros((len(ts), len(active)))
+    added_speed = 0.0
+    for i, tt in enumerate(ts):
+        d = dict(data[tt])
+        lev = d["level"]
+        noaa[i] = by_crossing(edge_flux(coarse, en, d["u"], d["v"], lev))
+        f = np.stack([by_crossing(edge_flux(coarse, en, unit[s][0], unit[s][1], lev)) for s in active], axis=1)
+        alpha = np.linalg.solve(f, target[i] - noaa[i])
+        du = sum(alpha[k] * unit[s][0] for k, s in enumerate(active))
+        dv = sum(alpha[k] * unit[s][1] for k, s in enumerate(active))
+        added_speed = max(added_speed, float(np.hypot(du, dv).max()))
+        d["u"] = (d["u"] + du).astype(np.float32)
+        d["v"] = (d["v"] + dv).astype(np.float32)
+        data[tt] = d
+    after = np.array([by_crossing(edge_flux(coarse, en, data[tt]["u"], data[tt]["v"], data[tt]["level"])) for tt in ts])
+    # Away from the record's ends, where the tidal filter holds its edge values.
+    inner = slice(72, len(ts) - 72) if len(ts) > 200 else slice(None)
+
+    def compare(a: np.ndarray, b: np.ndarray) -> dict:
+        na, nb = tidal_mean(a, 1.0), tidal_mean(b, 1.0)
+        ta, tb = (a - na)[inner], (b - nb)[inner]
+        big = (np.abs(a) > 0.1 * max(float(np.abs(b).max()), 1.0))[inner]
+        opposite = float(np.mean(np.sign(a[inner][big]) != np.sign(b[inner][big]))) if big.any() else 0.0
+        return {"noaa_net": round(float(na[inner].mean()), 1), "dsm2_net": round(float(nb[inner].mean()), 1),
+                "noaa_tidal": round(float(ta.std()), 1), "dsm2_tidal": round(float(tb.std()), 1),
+                "tidal_correlation": round(float(np.corrcoef(ta, tb)[0, 1]), 3) if ta.std() > 0 and tb.std() > 0 else None,
+                "opposite_share": round(opposite, 3)}
+
+    return {"data": data, "seg": seg, "active": active, "noaa": noaa, "target": target, "after": after,
+            "added_speed": added_speed, "compare": compare}

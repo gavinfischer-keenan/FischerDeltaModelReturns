@@ -165,11 +165,12 @@ def main(argv: list[str] | None = None) -> int:
     def usgs_gauge(g) -> None:
         """One USGS gauge, on USGS's thread: which series it records, then each
         series from where the store's copy ends."""
-        nonlocal failures
+        nonlocal failures, attempts
         try:
             have = available(g.site)
         except Exception as e:
-            with tally:
+            with tally:  # counted and named like any fetch (#75)
+                attempts += 1
                 failures += 1
                 failed.append({"what": f"{g.site} series list", "error": str(e)[:200]})
             print(f"{g.site} series list FAILED {e}", flush=True)

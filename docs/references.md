@@ -566,7 +566,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_runner/bay.py:545`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
+- `python/fdmr_runner/bay.py:509`: correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's
 
 ## kurobe2022
 

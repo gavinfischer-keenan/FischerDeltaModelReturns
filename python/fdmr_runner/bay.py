@@ -41,7 +41,7 @@ import numpy as np
 
 from fdmr_adapters import noaa_ofs
 from fdmr_plugins.fvcom import extend, fields, mesh
-from fdmr_plugins.fvcom.flux import edge_flux, edge_normals, mesh_outflow
+from fdmr_plugins.fvcom.flux import mesh_outflow
 from fdmr_plugins.fvcom.layout import Layout, read_layout
 
 HOUR = 3600
@@ -388,53 +388,17 @@ def correct_outflow(coarse: mesh.Coarse, edges: dict, hours: dict[int, Path | di
     together. The mesh's tides elsewhere are its own. Returns the hours and a
     summary: per crossing and in total, both models' net and tidal flow before
     the correction, how often they ran opposite ways, and what was added."""
-    from fdmr_plugins.fvcom.correct import tidal_mean, unit_outflow
+    from fdmr_plugins.fvcom.correct import match_crossings
 
     jn = join_of(delta_dir, coarse, reach, edges)
     cr = crossings(jn)
     net = json.loads((delta_dir / "geometry" / "delta.json").read_text(encoding="utf-8"))
-    e = edges["delta"]
-    en = edge_normals(coarse, e)
-    mid = np.array([[(coarse.x[a] + coarse.x[b]) / 2, (coarse.y[a] + coarse.y[b]) / 2] for a, b in e])
-    cxy = np.array([[c["x"], c["y"]] for c in cr])
-    seg = np.array([int(np.argmin(np.hypot(*(cxy - m).T))) for m in mid])
-    active = sorted(set(seg.tolist()))
-    unit = {s: unit_outflow(coarse, [e[i] for i in np.flatnonzero(seg == s)], edges["open"]) for s in active}
     ts = np.array(sorted(hours))
     data = {tt: (hours[tt] if isinstance(hours[tt], dict) else dict(np.load(hours[tt]))) for tt in ts}
     td, Q = dsm2_cut_flows(delta_dir, jn)
-    target = np.stack([np.interp(ts, td, Q[:, s]) for s in active], axis=1)  # Delta to Bay positive
-
-    def by_crossing(flux_out: np.ndarray) -> np.ndarray:
-        return np.array([-flux_out[seg == s].sum() for s in active])
-
-    noaa = np.zeros((len(ts), len(active)))
-    added_speed = 0.0
-    for i, tt in enumerate(ts):
-        d = dict(data[tt])
-        lev = d["level"]
-        noaa[i] = by_crossing(edge_flux(coarse, en, d["u"], d["v"], lev))
-        f = np.stack([by_crossing(edge_flux(coarse, en, unit[s][0], unit[s][1], lev)) for s in active], axis=1)
-        alpha = np.linalg.solve(f, target[i] - noaa[i])
-        du = sum(alpha[k] * unit[s][0] for k, s in enumerate(active))
-        dv = sum(alpha[k] * unit[s][1] for k, s in enumerate(active))
-        added_speed = max(added_speed, float(np.hypot(du, dv).max()))
-        d["u"] = (d["u"] + du).astype(np.float32)
-        d["v"] = (d["v"] + dv).astype(np.float32)
-        data[tt] = d
-    after = np.array([by_crossing(edge_flux(coarse, en, data[tt]["u"], data[tt]["v"], data[tt]["level"])) for tt in ts])
-    # Away from the record's ends, where the tidal filter holds its edge values.
-    inner = slice(72, len(ts) - 72) if len(ts) > 200 else slice(None)
-
-    def compare(a: np.ndarray, b: np.ndarray) -> dict:
-        na, nb = tidal_mean(a, 1.0), tidal_mean(b, 1.0)
-        ta, tb = (a - na)[inner], (b - nb)[inner]
-        big = (np.abs(a) > 0.1 * max(float(np.abs(b).max()), 1.0))[inner]
-        opposite = float(np.mean(np.sign(a[inner][big]) != np.sign(b[inner][big]))) if big.any() else 0.0
-        return {"noaa_net": round(float(na[inner].mean()), 1), "dsm2_net": round(float(nb[inner].mean()), 1),
-                "noaa_tidal": round(float(ta.std()), 1), "dsm2_tidal": round(float(tb.std()), 1),
-                "tidal_correlation": round(float(np.corrcoef(ta, tb)[0, 1]), 3) if ta.std() > 0 and tb.std() > 0 else None,
-                "opposite_share": round(opposite, 3)}
+    m = match_crossings(coarse, edges["delta"], edges["open"], np.array([[c["x"], c["y"]] for c in cr]), data, ts, td, Q)
+    data, seg, active, noaa, target, after, added_speed, compare = (
+        m["data"], m["seg"], m["active"], m["noaa"], m["target"], m["after"], m["added_speed"], m["compare"])
 
     per = []
     for k, s in enumerate(active):
