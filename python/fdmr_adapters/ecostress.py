@@ -175,13 +175,16 @@ class EcostressAdapter:
             if old.stat().st_mtime < end - keep_s - 86_400 and old.suffix in (".npz", ".none", ".land"):
                 old.unlink()
         kept = 0
+        errors: list[str] = []
         todo = [g for g in search(box, start, end, self.client)
                 if not any((self.cache / f"{g['id']}{s}").exists() for s in (".npz", ".none"))]
         for g in sorted(todo, key=lambda g: -g["t"])[:per_run]:
             try:
                 kept += self._keep_water(g)
-            except Exception as e:  # one tile's failure does not stop the rest; it is tried again next time
-                print(f"ecostress {g['id']} FAILED {e}", flush=True)
+            except Exception as e:  # noqa: BLE001  one tile's failure does not stop the rest; named, tried again next run (#91)
+                errors.append(f"{g['id']}: {e}")
+        if errors:
+            raise http.PartialFetch(kept, errors)
         return kept
 
     def _keep_water(self, g: dict) -> int:
@@ -312,6 +315,7 @@ def fetch_land(adapter: "EcostressAdapter", store, places: list[dict], box: tupl
     todo = [g for g in search(box, start, end, adapter.client)
             if "LST" in g["urls"] and not (adapter.cache / f"{g['id']}.land").exists()]
     n = 0
+    errors: list[str] = []
     for g in sorted(todo, key=lambda g: -g["t"])[:per_run]:
         try:
             water, where = read_tif(adapter.download(g["urls"]["water"], adapter.token))
@@ -327,8 +331,10 @@ def fetch_land(adapter: "EcostressAdapter", store, places: list[dict], box: tupl
                         if sel.sum() >= MIN_LAND_PIXELS:
                             n += store.put_values("ecostress", site, "land_surface_temperature", "degC",
                                                   [Value(g["t"], float(lst[sel].mean()) - KELVIN, None)])
-        except Exception as e:  # one tile's failure does not stop the rest; it is tried again next time
-            print(f"ecostress land {g['id']} FAILED {e}", flush=True)
+        except Exception as e:  # noqa: BLE001  one tile's failure does not stop the rest; named, tried again next run (#91)
+            errors.append(f"{g['id']}: {e}")
             continue
         (adapter.cache / f"{g['id']}.land").touch()
+    if errors:
+        raise http.PartialFetch(n, errors)
     return n

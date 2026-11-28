@@ -31,6 +31,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
+from fdmr_adapters import http
 from fdmr_adapters.cdec import SOURCE as CDEC
 from fdmr_adapters.cdec import CdecAdapter
 from fdmr_adapters.cnrfc import CnrfcAdapter
@@ -122,6 +123,11 @@ def main(argv: list[str] | None = None) -> int:
             attempts += 1
         try:
             print(f"{label:40s} {fn():7d}", flush=True)
+        except http.PartialFetch as e:  # kept some, failed on some: both said, the failures recorded (#91)
+            with tally:
+                failures += 1
+                failed.append({"what": label, "error": str(e)[:200], "kept": e.kept})
+            print(f"{label:40s} {e.kept:7d}  PARTLY FAILED {e}", flush=True)
         except Exception as e:  # one gauge's outage must not stop the rest
             with tally:
                 failures += 1

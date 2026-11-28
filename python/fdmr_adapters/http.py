@@ -37,6 +37,23 @@ MAX_WAIT_S = 120.0  # all the waits for one address, together, at most this (FDM
 MAX_TIMEOUTS = 1  # after a timeout one more try, then give up: a server that does not answer costs a whole timeout each try (FDMR's choice)
 
 
+class PartialFetch(Exception):
+    """A fetch that kept what it could and failed on some items (a day, a
+    tile, a period): what it kept is already stored; `errors` names each
+    failure, for the runner's fetch status (#91)."""
+
+    def __init__(self, kept: int, errors: list[str]) -> None:
+        super().__init__(f"{len(errors)} failed ({kept} kept): " + "; ".join(errors[:3]))
+        self.kept = kept
+        self.errors = errors
+
+
+def not_posted(e: Exception) -> bool:
+    """Whether a failure says the file is not there (HTTP 404): for the newest
+    days, not yet posted rather than failed."""
+    return isinstance(e, urllib.error.HTTPError) and e.code == 404
+
+
 def _retry_after(e: urllib.error.HTTPError) -> float | None:
     """A 429's Retry-After, in seconds: a number of seconds, or a date."""
     v = e.headers.get("Retry-After") if e.headers else None

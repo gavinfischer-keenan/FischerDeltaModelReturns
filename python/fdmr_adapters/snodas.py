@@ -28,8 +28,8 @@ import time
 
 import numpy as np
 
-from .areas import extent, members
 from . import http
+from .areas import extent, members
 
 SOURCE = "snodas"
 URL = "https://noaadata.apps.nsidc.org/NOAA/G02158/masked/{y}/{m:02d}_{mon}/SNODAS_{y}{m:02d}{d:02d}.tar"
@@ -92,19 +92,25 @@ class SnodasAdapter:
         from fdmr_store import Value
 
         n = 0
+        errors: list[str] = []
         day = start // 86_400 * 86_400
         while day <= end:
             t = day + 6 * 3600
-            have = self.store.latest(SOURCE, areas[0]["site"], "snow_water_equivalent")
-            if have and have[0] >= t:
+            # Done only when every area has it, so a newly added area is filled in (#91).
+            if all((self.store.latest(SOURCE, a["site"], "snow_water_equivalent") or (0, 0))[0] >= t for a in areas):
                 day += 86_400
                 continue
             y, m, d = time.gmtime(day)[:3]
             try:
                 got = read(self.get(URL.format(y=y, m=m, d=d, mon=MONTHS[m - 1])))
-            except Exception as e:  # a day not yet posted (or a failure): tried again next time
-                print(f"snodas {y}-{m:02d}-{d:02d} not read: {e}", flush=True)
-                break
+            except Exception as e:  # noqa: BLE001
+                if http.not_posted(e) and day >= end // 86_400 * 86_400 - 2 * 86_400:
+                    print(f"snodas {y}-{m:02d}-{d:02d} not posted yet", flush=True)
+                    break  # the newest days come in order: none later is posted either
+                # Missing or failed: skipped, named, tried again next run, never holding back the days after (#91).
+                errors.append(f"{y}-{m:02d}-{d:02d}: {e}")
+                day += 86_400
+                continue
             w, s, e, nn = extent(areas)
             for p, (grid, h) in got.items():
                 lat, lon = axes(h)
@@ -120,4 +126,6 @@ class SnodasAdapter:
                     if v.size:
                         n += self.store.put_values(SOURCE, a["site"], p, "mm", [Value(t, float(v.mean()), None)])
             day += 86_400
+        if errors:
+            raise http.PartialFetch(n, errors)
         return n

@@ -69,3 +69,51 @@ def test_water_in_sums_the_week_against_normal():
     store.put_values("nws-precip", "area:x", "precipitation_normal_24h", "mm", [Value(t - k * DAY, 1.0, None) for k in range(7)])
     got = soil.water_in(store, "area:x", now)
     assert got["rain_24h_mm"] == 2.0 and got["rain_7d_mm"] == 14.0 and got["rain_7d_percent_normal"] == 200
+
+
+def _http_error(code):
+    import urllib.error
+
+    return urllib.error.HTTPError("u", code, "x", {}, None)
+
+
+def test_a_missing_old_day_is_skipped_and_named_not_a_stall():
+    """#91: a day that will never come no longer holds back the days after it,
+    and the failure reaches the fetch status."""
+    from fdmr_adapters import http
+
+    store = Store()
+    first = 20_000 * DAY
+
+    calls = []
+
+    def get(url):
+        calls.append(url)
+        if len(calls) == 1:
+            raise _http_error(404)
+        return snodas_tar(100, 20)
+
+    a = snodas.SnodasAdapter(store, get=get)
+    area = [{"site": "area:x", "box": [-122.1, 37.9, -121.9, 38.1]}]
+    with pytest.raises(http.PartialFetch) as e:
+        a.fetch(area, first, first + 4 * DAY + 1)  # a 404 for an old day, not one just due
+    assert e.value.kept == 8 and len(e.value.errors) == 1  # days 2-5 kept, 2 values each
+    assert store.values("snodas", "area:x", "snowmelt_24h", first + DAY, first + 5 * DAY)
+
+
+def test_the_newest_day_not_posted_yet_is_no_failure():
+    store = Store()
+    a = snodas.SnodasAdapter(store, get=lambda url: (_ for _ in ()).throw(_http_error(404)))
+    day = 20_000 * DAY
+    assert a.fetch([{"site": "area:x", "box": [-122.1, 37.9, -121.9, 38.1]}], day, day) == 0
+
+
+def test_a_new_area_is_filled_in_beside_one_already_done():
+    store = Store()
+    a = snodas.SnodasAdapter(store, get=lambda url: snodas_tar(100, 20))
+    day = 20_000 * DAY
+    old = {"site": "area:old", "box": [-122.1, 37.9, -121.9, 38.1]}
+    a.fetch([old], day, day)
+    new = {"site": "area:new", "box": [-122.1, 37.9, -121.9, 38.1]}
+    assert a.fetch([old, new], day, day) > 0  # before #91 the first area being done skipped the day
+    assert store.values("snodas", "area:new", "snowmelt_24h", day, day + DAY)

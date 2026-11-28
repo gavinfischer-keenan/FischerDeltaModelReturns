@@ -100,7 +100,7 @@ def sample(edges: list[np.ndarray], rng: np.random.Generator, k: int = SAMPLES) 
 class Coverage:
     """The model's water, as places to test points against."""
 
-    def __init__(self, cycle: Path) -> None:
+    def __init__(self, cycle: Path, extent_of: set[str] | None = None) -> None:
         self.tris = []  # (lon, lat) of each mesh triangle's corners
         segs, half = [], []
         self.pool_pts, self.discs = [], []
@@ -111,6 +111,7 @@ class Coverage:
             if not f.exists():
                 continue
             g = json.loads(f.read_text(encoding="utf-8"))
+            self._counts = extent_of is None or r["id"] in extent_of  # does this reach set the box?
             if g.get("dims") == 2 and "lon" in g:
                 lon, lat = np.array(g["lon"]), np.array(g["lat"])
                 t = np.array(g["triangles"]).reshape(-1, 3)
@@ -144,12 +145,33 @@ class Coverage:
         self.pool = np.concatenate(self.pool_pts) if self.pool_pts else np.zeros((0, 2))
 
     def _grow(self, lon: np.ndarray, lat: np.ndarray) -> None:
+        if not self._counts:
+            return
         self.extent = [min(self.extent[0], float(np.min(lon))), min(self.extent[1], float(np.min(lat))),
                        max(self.extent[2], float(np.max(lon))), max(self.extent[3], float(np.max(lat)))]
 
     def bbox(self) -> tuple[float, float, float, float]:
         w, s, e, n = self.extent
         return w - PAD_DEG, s - PAD_DEG, e + PAD_DEG, n + PAD_DEG
+
+    def in_mesh(self, pts: np.ndarray) -> np.ndarray:
+        """Whether each point lies in one of the mesh's triangles."""
+        out = np.zeros(len(pts), dtype=bool)
+        t = self.tri
+        if not len(t):
+            return out
+        for i, (x, y) in enumerate(pts):
+            near = (t[:, :, 0].min(1) <= x) & (t[:, :, 0].max(1) >= x) & (t[:, :, 1].min(1) <= y) & (t[:, :, 1].max(1) >= y)
+            for a, b, c in t[near]:
+                d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+                if d == 0:
+                    continue
+                l1 = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / d
+                l2 = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / d
+                if l1 >= -1e-9 and l2 >= -1e-9 and l1 + l2 <= 1 + 1e-9:
+                    out[i] = True
+                    break
+        return out
 
     def covered(self, pts: np.ndarray) -> np.ndarray:
         """Whether each (lon, lat) point lies in the model's water."""
@@ -193,8 +215,12 @@ class Coverage:
         return out
 
 
-def audit(cycle: Path, get=osm.query, seed: int = 2026) -> dict:
-    cov = Coverage(cycle)
+# Land the mesh may treat as water: mapped islands inside its extent.
+ISLANDS = ['way["place"~"^(island|islet)$"]', 'relation["place"~"^(island|islet)$"]']
+
+
+def audit(cycle: Path, get=osm.query, seed: int = 2026, extent_of: set[str] | None = None) -> dict:
+    cov = Coverage(cycle, extent_of)
     w, s, e, n = cov.bbox()
     rng = np.random.default_rng(seed)
     kinds: dict[str, dict] = {}
@@ -228,8 +254,24 @@ def audit(cycle: Path, get=osm.query, seed: int = 2026) -> dict:
                 areas.append(rec)
         kinds[kind] = {k: round(v) if isinstance(v, float) else v for k, v in tot.items()}
     areas.sort(key=lambda r: -r["area_m2"] * (1 - r["covered"]))
+    # The other way round: islands the mesh covers, so its water flows over land.
+    islands = []
+    if len(cov.tri):
+        q = "".join(f"{sel}({s},{w},{n},{e});" for sel in ISLANDS)
+        for el in get(f"[out:json][timeout:300];({q});out geom;").get("elements", []):
+            edges = edges_of(el)
+            if not edges or sum(len(x) for x in edges) < 4:
+                continue
+            pts, area = sample(edges, rng)
+            if not len(pts) or area <= 0:
+                continue
+            wet = float(cov.in_mesh(pts).mean())
+            if wet >= UNCOVERED:
+                islands.append({"osm": f"{el['type']}/{el['id']}", "name": el.get("tags", {}).get("name"), "area_m2": round(area),
+                                "in_mesh": round(wet, 2), "lon": round(float(pts[:, 0].mean()), 5), "lat": round(float(pts[:, 1].mean()), 5)})
+        islands.sort(key=lambda r: -r["area_m2"])
     return {"built": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "cycle": cycle.name, "bbox": [w, s, e, n],
-            "kinds": kinds, "uncovered": areas, "attribution": osm.ATTRIBUTION}
+            "kinds": kinds, "uncovered": areas, "islands_in_mesh": islands, "attribution": osm.ATTRIBUTION}
 
 
 def report(a: dict, region: str) -> str:
@@ -251,6 +293,13 @@ def report(a: dict, region: str) -> str:
         url = f"https://www.openstreetmap.org/{r['osm']}"
         out.append(f"| {LABEL[r['kind']]} | {r['name'] or ''} | {r['tag'] or ''} | {km2(r['area_m2'])} | {r['covered']:.0%} | "
                    f"{r['lon']}, {r['lat']} | [{r['osm']}]({url}) |")
+    isl = a.get("islands_in_mesh", [])
+    out += ["", f"## Islands the mesh treats as water ({len(isl)})", "",
+            "Mapped islands with half or more of their land inside the mesh's triangles: its water flows over them.", "",
+            "| Name | Area, km² | In the mesh | Where (lon, lat) | OSM |", "|---|---|---|---|---|"]
+    for r in isl:
+        out.append(f"| {r['name'] or ''} | {km2(r['area_m2'])} | {r['in_mesh']:.0%} | {r['lon']}, {r['lat']} | "
+                   f"[{r['osm']}](https://www.openstreetmap.org/{r['osm']}) |")
     return "\n".join(out) + "\n"
 
 
@@ -259,9 +308,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("region")
     ap.add_argument("cycle", help="a published cycle folder (holding index.json and geometry/)")
     ap.add_argument("out", help="the report, Markdown")
+    ap.add_argument("--extent-of", default="", help="reaches whose extent sets the box (comma-separated); default every reach")
     args = ap.parse_args(argv)
     region_dir = Path(args.region)
-    a = audit(Path(args.cycle))
+    a = audit(Path(args.cycle), extent_of=set(args.extent_of.split(",")) if args.extent_of else None)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(report(a, region_dir.name), encoding="utf-8")
     (region_dir / "uncovered_water.json").write_text(json.dumps(a, separators=(",", ":")) + "\n", encoding="utf-8")

@@ -25,6 +25,7 @@ from urllib.parse import urlencode
 import numpy as np
 
 from .ecostress import TOKEN_FILE, _download, read_tif, utm
+from . import http
 from .http import HttpJsonClient, JsonClient
 
 CMR = "https://cmr.earthdata.nasa.gov/search/granules.json"
@@ -99,11 +100,12 @@ class OperaAdapter:
         todo = [g for a, b in windows for g in search(short_name, box, a, b, self.client)]
         todo = sorted({g["id"]: g for g in todo}.values(), key=lambda g: -g["t"])
         kept = 0
+        errors: list[str] = []
         for g in [g for g in todo if not (self.cache / f"{g['id']}.npz").exists()][:per_run]:
             try:
                 wtr, where = read_tif(self.download(g["url"], self.token))
-            except Exception as e:  # one tile's failure does not stop the rest; it is tried again next time
-                print(f"opera {g['id']} FAILED {e}", flush=True)
+            except Exception as e:  # noqa: BLE001  one tile's failure does not stop the rest; named, tried again next run (#91)
+                errors.append(f"{g['id']}: {e}")
                 continue
             rc = crop_rows_cols(where, wtr.shape, box)
             if rc is None:
@@ -112,4 +114,6 @@ class OperaAdapter:
             np.savez_compressed(self.cache / f"{g['id']}.npz", water=classify(wtr[r0:r1, c0:c1]), t=g["t"], tile=g["tile"],
                                 row0=r0, col0=c0, **where)
             kept += 1
+        if errors:
+            raise http.PartialFetch(kept, errors)
         return kept

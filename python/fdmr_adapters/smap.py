@@ -30,8 +30,8 @@ from urllib.parse import urlencode
 
 import numpy as np
 
-from .areas import members as _members
 from . import http
+from .areas import members as _members
 from .http import HttpJsonClient, JsonClient
 
 SOURCE = "smap"
@@ -116,7 +116,8 @@ class SmapAdapter:
         oldest first, at most `per_run`; returns how many values were stored."""
         from fdmr_store import Value
 
-        done = max((self.store.latest(SOURCE, a["site"], "soil_moisture_rootzone") or (0, 0))[0] for a in areas)
+        # The area furthest behind sets where to start, so a new area is filled in (#91).
+        done = min((self.store.latest(SOURCE, a["site"], "soil_moisture_rootzone") or (0, 0))[0] for a in areas)
         todo = [g for g in search(start, end, self.client) if g["t"] > done][:per_run]
         if not todo:
             return 0
@@ -132,9 +133,9 @@ class SmapAdapter:
         for g in todo:
             try:
                 got = self.dap(g["url"], ce)
-            except Exception as e:  # one period's failure does not stop the rest; it is tried again next time
-                print(f"smap {g['t']} FAILED {e}", flush=True)
-                break  # later periods wait, so none is skipped over
+            except Exception as e:  # noqa: BLE001
+                # Later periods wait, so none is skipped over; the failure is named (#91).
+                raise http.PartialFetch(n, [f"period {g['t']}: {e}"]) from e
             for site, m in masks.items():
                 for v, (p, unit) in FIELDS.items():
                     vals = got[v][m]

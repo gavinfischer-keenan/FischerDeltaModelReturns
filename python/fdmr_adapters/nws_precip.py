@@ -19,8 +19,8 @@ import time
 
 import numpy as np
 
-from .areas import members
 from . import http
+from .areas import members
 
 SOURCE = "nws-precip"
 URL = "https://water.noaa.gov/resources/downloads/precip/stageIV/{y}/{m:02d}/{d:02d}/nws_precip_1day_{y}{m:02d}{d:02d}_conus.nc"
@@ -73,20 +73,26 @@ class NwsPrecipAdapter:
         from fdmr_store import Value
 
         n = 0
+        errors: list[str] = []
         day = start // 86_400 * 86_400
         cache: dict | None = None
         while day <= end:
             t = day + 12 * 3600
-            have = self.store.latest(SOURCE, areas[0]["site"], "precipitation_24h")
-            if have and have[0] >= t:
+            # Done only when every area has it, so a newly added area is filled in (#91).
+            if all((self.store.latest(SOURCE, a["site"], "precipitation_24h") or (0, 0))[0] >= t for a in areas):
                 day += 86_400
                 continue
             y, m, d = time.gmtime(day)[:3]
             try:
                 g = read(self.get(URL.format(y=y, m=m, d=d)))
-            except Exception as e:  # a day not yet posted (or a failure): tried again next time
-                print(f"nws-precip {y}-{m:02d}-{d:02d} not read: {e}", flush=True)
-                break
+            except Exception as e:  # noqa: BLE001
+                if http.not_posted(e) and day >= end // 86_400 * 86_400 - 2 * 86_400:
+                    print(f"nws-precip {y}-{m:02d}-{d:02d} not posted yet", flush=True)
+                    break  # the newest days come in order: none later is posted either
+                # Missing or failed: skipped, named, tried again next run, never holding back the days after (#91).
+                errors.append(f"{y}-{m:02d}-{d:02d}: {e}")
+                day += 86_400
+                continue
             if cache is None:
                 xx, yy = np.meshgrid(g["x"], g["y"])
                 lon, lat = lonlat(xx, yy)
@@ -98,4 +104,6 @@ class NwsPrecipAdapter:
                     if v.size:
                         n += self.store.put_values(SOURCE, site, p, "mm", [Value(t, float(v.mean()) * INCH_MM, None)])
             day += 86_400
+        if errors:
+            raise http.PartialFetch(n, errors)
         return n

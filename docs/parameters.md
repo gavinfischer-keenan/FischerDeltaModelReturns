@@ -325,8 +325,8 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/experiment.py:56](../python/fdmr_runner/experiment.py#L56) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/experiment.py:57](../python/fdmr_runner/experiment.py#L57) | `STEP` | `900` | s: DWR's station output, 15 minutes |
 | [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
-| [python/fdmr_runner/fetch.py:48](../python/fdmr_runner/fetch.py#L48) | `DATUM_EVERY_S` | `30 * 86_400` | a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey) |
-| [python/fdmr_runner/fetch.py:49](../python/fdmr_runner/fetch.py#L49) | `AVAILABLE_EVERY_S` | `86_400` | USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely) |
+| [python/fdmr_runner/fetch.py:49](../python/fdmr_runner/fetch.py#L49) | `DATUM_EVERY_S` | `30 * 86_400` | a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey) |
+| [python/fdmr_runner/fetch.py:50](../python/fdmr_runner/fetch.py#L50) | `AVAILABLE_EVERY_S` | `86_400` | USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely) |
 | [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/geometry.py:31](../python/fdmr_runner/geometry.py#L31) | `MAX_SNAP_M` | `300` | a station placed by its coordinates must lie this close to the river |
 | [python/fdmr_runner/geometry.py:37](../python/fdmr_runner/geometry.py#L37) | `TRACE_KM` | `1500` | Building a reach's centreline from the national hydrography (NLDI), once, when a region is set up (FDMR's choices, generous: a trace past the river's end is cut where the reach ends). how far downstream a reach's line is traced, km |
@@ -450,8 +450,8 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_adapters/noaa_tides.py:33](../python/fdmr_adapters/noaa_tides.py#L33) | `CHUNK_DAYS` | `30` | the API serves 15-minute predictions, and 6-minute readings, a month at a time |
 | [python/fdmr_adapters/nws_precip.py:27](../python/fdmr_adapters/nws_precip.py#L27) | `INCH_MM` | `25.4` |  |
 | [python/fdmr_adapters/nws_precip.py:28](../python/fdmr_adapters/nws_precip.py#L28) | `EARTH_R` | `6_371_200.0` | the grid's own sphere (its crs attribute) |
-| [python/fdmr_adapters/opera.py:32](../python/fdmr_adapters/opera.py#L32) | `NOT_SEEN` | `255` |  |
-| [python/fdmr_adapters/opera.py:33](../python/fdmr_adapters/opera.py#L33) | `PER_RUN` | `24` | tiles downloaded per fetch at most, newest first |
+| [python/fdmr_adapters/opera.py:33](../python/fdmr_adapters/opera.py#L33) | `NOT_SEEN` | `255` |  |
+| [python/fdmr_adapters/opera.py:34](../python/fdmr_adapters/opera.py#L34) | `PER_RUN` | `24` | tiles downloaded per fetch at most, newest first |
 | [python/fdmr_adapters/rws.py:52](../python/fdmr_adapters/rws.py#L52) | `BAD_QUALITY` | `50` | codes above this are gaps |
 | [python/fdmr_adapters/smap.py:48](../python/fdmr_adapters/smap.py#L48) | `PER_RUN` | `48` | three-hour periods read per fetch at most (six days) |
 | [python/fdmr_adapters/smap.py:49](../python/fdmr_adapters/smap.py#L49) | `FILL` | `-9000.0` | SMAP marks no value with -9999 |
