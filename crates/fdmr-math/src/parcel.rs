@@ -32,7 +32,7 @@ pub fn step_along_channel(x: f64, velocity: f64, k: f64, dt: f64, rng: &mut Rng)
 /// collect where K or A is small and a well-mixed tracer un-mixes: the
 /// well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,
 /// ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is
-/// in two (crates/fdmr-compute mesh.rs).
+/// in two (crates/fdmr-compute mesh/).
 ///
 /// `a`, `ak`: A and A·K at x; `dak_dx`: the slope of A·K there.
 #[must_use]

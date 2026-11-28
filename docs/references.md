@@ -303,7 +303,7 @@ Checked: Open Library ISBN records of both printings, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/network.rs:698`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
+- `crates/fdmr-compute/src/network/sediment.rs:18`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
 - `python/fdmr_plugins/registry.py:75`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/registry.py:132`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
 - `python/fdmr_plugins/registry.py:156`: "Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)", "fdmr_plugins.canal carried")],
@@ -380,7 +380,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/mesh.rs:18`: ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
+- `crates/fdmr-compute/src/mesh/mod.rs:18`: ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
 - `crates/fdmr-math/src/parcel.rs:33`: well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,
 - `crates/fdmr-math/src/parcel.rs:99`: depth H changes, ∇K + K ∇H / H (Dimou and Adams 1993, ref:dimou1993;
 - `python/fdmr_plugins/registry.py:188`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
@@ -1371,7 +1371,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/mesh.rs:19`: ref:visser1997). K is one value everywhere, or one per node, linear within
+- `crates/fdmr-compute/src/mesh/mod.rs:19`: ref:visser1997). K is one value everywhere, or one per node, linear within
 - `crates/fdmr-math/src/parcel.rs:34`: ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is
 - `crates/fdmr-math/src/parcel.rs:100`: Visser 1997, ref:visser1997). `k` K, m²/s; `kx`, `ky` its gradient; `h`
 - `python/fdmr_plugins/registry.py:188`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],

@@ -131,7 +131,7 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                                   "sediment run's erosion over its settled mass; no exchange after release",
                                   "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
                                   "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
-                                  "crates/fdmr-compute network.rs add_bound_release, step_to")],
+                                  "crates/fdmr-compute network/sediment.rs add_bound_release, network/mod.rs step_to")],
     },
     "2d-field": {
         "flow": [Maths("noaa-fvcom-forecast", "NOAA's operational FVCOM forecast for the bay, depth-averaged and coarsened",
@@ -298,9 +298,9 @@ CHECKS: dict[str, tuple[str, ...]] = {
         "check: suspended sediment against turbidity stations, each Delta cycle (sediment_checks, check.html)",
     ),
     "partition-settle-scour": (
-        "crates/fdmr-compute/src/network.rs::a_bound_release_splits_by_the_partition_coefficient",
-        "crates/fdmr-compute/src/network.rs::bound_parcels_settle_at_ws_over_depth",
-        "crates/fdmr-compute/src/network.rs::settling_and_scouring_at_equal_rates_leave_half_on_the_bed",
+        "crates/fdmr-compute/src/network/mod.rs::a_bound_release_splits_by_the_partition_coefficient",
+        "crates/fdmr-compute/src/network/mod.rs::bound_parcels_settle_at_ws_over_depth",
+        "crates/fdmr-compute/src/network/mod.rs::settling_and_scouring_at_equal_rates_leave_half_on_the_bed",
     ),
     "noaa-fvcom-forecast": (
         "python/tests/test_fvcom.py::test_a_coarse_mesh_covers_the_water_and_averages_exactly",
@@ -317,10 +317,10 @@ CHECKS: dict[str, tuple[str, ...]] = {
     "advection-random-walk": (
         "crates/fdmr-math/src/parcel.rs::no_dispersion_means_pure_advection",
         "crates/fdmr-math/src/parcel.rs::moment_method_recovers_k_from_parcels",
-        "crates/fdmr-compute/src/mesh.rs::uniform_flow_carries_a_parcel_exactly",
-        "crates/fdmr-compute/src/mesh.rs::spreading_matches_diffusion_and_stays_even_over_a_sloping_bed",
-        "crates/fdmr-compute/src/mesh.rs::mass_is_conserved_under_spreading",
-        "crates/fdmr-compute/src/mesh.rs::an_even_start_stays_even_where_the_diffusivity_varies",
+        "crates/fdmr-compute/src/mesh/mod.rs::uniform_flow_carries_a_parcel_exactly",
+        "crates/fdmr-compute/src/mesh/mod.rs::spreading_matches_diffusion_and_stays_even_over_a_sloping_bed",
+        "crates/fdmr-compute/src/mesh/mod.rs::mass_is_conserved_under_spreading",
+        "crates/fdmr-compute/src/mesh/mod.rs::an_even_start_stays_even_where_the_diffusivity_varies",
         "crates/fdmr-compute/src/lib.rs::mass_balances_with_decay_and_outflow",
     ),
     "pss-78": ("crates/fdmr-math/src/salinity.rs::delta_waters_read_sensibly",),

@@ -570,8 +570,8 @@
    "citation": "Chapra, S. C. (1997). Surface Water-Quality Modeling. McGraw-Hill, New York; 844 pp. Reissued by Waveland Press, Long Grove, Illinois (ISBN 978-1-57766-605-9). ISBN 0-07-011364-5. https://openlibrary.org/isbn/0070113645",
    "used": [
     {
-     "file": "crates/fdmr-compute/src/network.rs",
-     "line": 698,
+     "file": "crates/fdmr-compute/src/network/sediment.rs",
+     "line": 18,
      "text": "(Chapra 1997, ref:chapra1997); that share's parcels settle and are"
     },
     {
@@ -755,7 +755,7 @@
    "citation": "Dimou, K. N., and Adams, E. E. (1993). A random-walk, particle tracking model for well-mixed estuaries and coastal waters. Estuarine, Coastal and Shelf Science 37(1), 99-110. https://doi.org/10.1006/ecss.1993.1044",
    "used": [
     {
-     "file": "crates/fdmr-compute/src/mesh.rs",
+     "file": "crates/fdmr-compute/src/mesh/mod.rs",
      "line": 18,
      "text": "ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,"
     },
@@ -2829,7 +2829,7 @@
    "citation": "Visser, A. W. (1997). Using random walk models to simulate the vertical distribution of particles in a turbulent water column. Marine Ecology Progress Series 158, 275-281. https://doi.org/10.3354/meps158275",
    "used": [
     {
-     "file": "crates/fdmr-compute/src/mesh.rs",
+     "file": "crates/fdmr-compute/src/mesh/mod.rs",
      "line": 19,
      "text": "ref:visser1997). K is one value everywhere, or one per node, linear within"
     },
