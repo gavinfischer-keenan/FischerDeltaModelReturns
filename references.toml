@@ -258,6 +258,87 @@ in = "California Department of Water Resources, Delta Modeling Section; DSM2 Use
 url = "https://waterboards.ca.gov/waterrights/water_issues/programs/bay_delta/california_waterfix/exhibits/docs/petitioners_exhibit/dwr/part2_rebuttal/DWR-1403.pdf"
 checked = "Read 28 Nov 2026: slide 27, Issues Remaining"
 
+[shepard1968]
+authors = "Shepard, D."
+year = 1968
+title = "A two-dimensional interpolation function for irregularly-spaced data"
+kind = "paper"
+in = "Proceedings of the 1968 23rd ACM National Conference, 517-524"
+doi = "10.1145/800186.810616"
+checked = "DOI and pages as other works cite them (Gordon and Wixom 1978, Math. Comp.), 28 Nov 2026"
+
+[sherman1978]
+authors = "Sherman, C. A."
+year = 1978
+title = "A mass-consistent model for wind fields over complex terrain"
+kind = "paper"
+in = "Journal of Applied Meteorology 17(3), 312-319"
+doi = "10.1175/1520-0450(1978)017<0312:AMCMFW>2.0.CO;2"
+checked = "Crossref record of the DOI, 28 Nov 2026"
+
+[fischer1969]
+authors = "Fischer, H. B."
+year = 1969
+title = "The effect of bends on dispersion in streams"
+kind = "paper"
+in = "Water Resources Research 5(2), 496-506"
+doi = "10.1029/WR005i002p00496"
+checked = "Scilit record of the DOI, 28 Nov 2026"
+
+[baeklee2023]
+authors = "Baek, K. O., and Lee, D. Y."
+year = 2023
+title = "Development of simple formula for transverse dispersion coefficient in meandering rivers"
+kind = "paper"
+in = "Water 15(17), 3120"
+doi = "10.3390/w15173120"
+checked = "MDPI article page, 28 Nov 2026"
+
+[brand2015]
+authors = "Brand, A., Lacy, J. R., Gladding, S., Holleman, R., and Stacey, M. T."
+year = 2015
+title = "Model-based interpretation of sediment concentration and vertical flux measurements in a shallow estuarine environment"
+kind = "paper"
+in = "Limnology and Oceanography 60(2), 463-481"
+doi = "10.1002/lno.10047"
+checked = "USGS Publications Warehouse record, 28 Nov 2026"
+
+[manning2015egu]
+authors = "Manning, A. J., and Schoellhamer, D. H."
+year = 2015
+title = "Floc depositional characteristics within the Sacramento-San Joaquin River"
+kind = "paper"
+in = "Conference abstract: Geophysical Research Abstracts 17, EGU2015-12439, EGU General Assembly 2015 (preliminary results)"
+url = "https://meetingorganizer.copernicus.org/EGU2015/EGU2015-12439.pdf"
+checked = "The abstract as published by Copernicus, 28 Nov 2026"
+
+[jones2008franks]
+authors = "Jones, N. L., Thompson, J. K., and Monismith, S. G."
+year = 2008
+title = "A note on the effect of wind waves on vertical mixing in Franks Tract, Sacramento-San Joaquin Delta, California"
+kind = "paper"
+in = "San Francisco Estuary and Watershed Science 6(2)"
+url = "https://escholarship.org/uc/item/7sk8z936"
+checked = "eScholarship and ScienceBase records, 28 Nov 2026 (USGS lists the authors as Thompson, Jones and Monismith)"
+
+[lacy2023]
+authors = "Lacy, J. R., Dailey, E. T., and Morgan-King, T. L."
+year = 2023
+title = "What controls suspended-sediment concentration and export in flooded agricultural tracts in the Sacramento-San Joaquin Delta?"
+kind = "paper"
+in = "San Francisco Estuary and Watershed Science 21(1), article 4"
+doi = "10.15447/sfews.2023v21iss1art4"
+checked = "USGS Publications Warehouse record, 28 Nov 2026"
+
+[mathers2025]
+authors = "Mathers, M. A., Bergamaschi, B. A., and Hernes, P. J."
+year = 2025
+title = "Particulate organic carbon scarcity exacerbates vulnerability of the Sacramento-San Joaquin Delta ecosystem"
+kind = "paper"
+in = "Estuaries and Coasts 48, 67"
+doi = "10.1007/s12237-025-01502-7"
+checked = "Springer record of the DOI, 28 Nov 2026; the candidate's October figure is from an earlier reading, not rechecked"
+
 [usgs3dep]
 authors = "U.S. Geological Survey"
 year = 2026

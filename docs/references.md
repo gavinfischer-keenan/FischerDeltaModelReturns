@@ -15,8 +15,8 @@ Checked: Crossref record of the DOI, 26 Nov 2026; parameters read from the full 
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:16`: Roelvink and Jaffe (2015, ref:achete2015), whose calibrated values the region gives
-- `python/fdmr_plugins/registry.py:116`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
-- `python/fdmr_plugins/registry.py:124`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
+- `python/fdmr_plugins/registry.py:118`: "Achete, van der Wegen, Roelvink and Jaffe 2015 (set-up and calibrated values; ref:achete2015); Partheniades 1965 "
+- `python/fdmr_plugins/registry.py:126`: "(ref:achete2015, runner/dsm2/gtm-sediment.patch)",
 - `python/fdmr_runner/delta.py:162`: how += f"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)"
 - `regions/sf-bay-delta/dsm2.toml:669`: Jaffe (2015, ref:achete2015, section 3.1 and table 1),
 - `runner/dsm2/gtm-sediment.patch:27`: the set-up of Achete, van der Wegen, Roelvink and Jaffe (2015, ref:achete2015),
@@ -29,8 +29,18 @@ Checked: FAO's page of the paper, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:74`: "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
+- `python/fdmr_plugins/registry.py:76`: "FAO-56 clear-sky sunlight (ref:allen1998fao56)",
 - `python/fdmr_plugins/river_routing/heat.py:18`: the surface is FAO-56's clear-sky radiation (Allen et al. 1998, ref:allen1998fao56, Crop
+
+## baeklee2023
+
+Baek, K. O., and Lee, D. Y. (2023). Development of simple formula for transverse dispersion coefficient in meandering rivers. Water 15(17), 3120. https://doi.org/10.3390/w15173120
+
+Checked: MDPI article page, 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:352`: "Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit "
 
 ## bashevkin2023
 
@@ -55,7 +65,7 @@ Checked: The report read (Table 5.1 and section 5), 27 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:166`: "ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; "
+- `python/fdmr_plugins/registry.py:174`: "ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; "
 - `regions/sf-bay-delta/blooms.toml:41`: ref:bergsutula2015, Table 5.1, p. 49). Below the first: unlikely; between:
 
 ## boumagregson2024
@@ -69,6 +79,16 @@ Checked: Crossref record of the DOI; the paper read for FDMR, 27 Nov 2026
 Used in:
 
 - `regions/sf-bay-delta/blooms.toml:21`: than the Sacramento side (Bouma-Gregson et al. 2024, ref:boumagregson2024,
+
+## brand2015
+
+Brand, A., Lacy, J. R., Gladding, S., Holleman, R., and Stacey, M. T. (2015). Model-based interpretation of sediment concentration and vertical flux measurements in a shallow estuarine environment. Limnology and Oceanography 60(2), 463-481. https://doi.org/10.1002/lno.10047
+
+Checked: USGS Publications Warehouse record, 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:336`: "South Bay slow class 0.014 mm/s in autumn (Brand et al. 2015, ref:brand2015)",
 
 ## brown1987qual2e
 
@@ -186,11 +206,11 @@ Checked: GitHub release DSM2 v8.5.1, published 2 Jun 2026; built from its tag 26
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:1`: """Suspended sediment with DSM2's General Transport Model (issue #16; ref:dsm2).
-- `python/fdmr_plugins/registry.py:105`: "California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs", "fdmr_plugins.dsm2.study, fdmr_runner.delta")],
-- `python/fdmr_plugins/registry.py:107`: "California DWR, DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.study")],
-- `python/fdmr_plugins/registry.py:109`: "California DWR, DSM2 QUAL (heat; ref:dsm2)", "fdmr_plugins.dsm2.temperature")],
-- `python/fdmr_plugins/registry.py:111`: "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
-- `python/fdmr_plugins/registry.py:117`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
+- `python/fdmr_plugins/registry.py:107`: "California DWR, DSM2 HYDRO (v8.5.1; ref:dsm2), run unchanged on live inputs", "fdmr_plugins.dsm2.study, fdmr_runner.delta")],
+- `python/fdmr_plugins/registry.py:109`: "California DWR, DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.study")],
+- `python/fdmr_plugins/registry.py:111`: "California DWR, DSM2 QUAL (heat; ref:dsm2)", "fdmr_plugins.dsm2.temperature")],
+- `python/fdmr_plugins/registry.py:113`: "DWR's fingerprinting method, with DSM2 QUAL (ref:dsm2)", "fdmr_plugins.dsm2.fingerprint")],
+- `python/fdmr_plugins/registry.py:119`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:1`: DSM2 for the Delta reach (specification 7.2; ref:dsm2): DWR's own historical study, run
 - `runner/dsm2/gtm-sediment.patch:7`: FDMR's change to DSM2 v8.5.1's General Transport Model (GTM, ref:dsm2), for suspended
 
@@ -283,8 +303,10 @@ Checked: Open Library ISBN records of both printings, 26 Nov 2026
 Used in:
 
 - `crates/fdmr-compute/src/network.rs:715`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
-- `python/fdmr_plugins/registry.py:73`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
-- `python/fdmr_plugins/registry.py:123`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
+- `python/fdmr_plugins/registry.py:75`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
+- `python/fdmr_plugins/registry.py:125`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
+- `python/fdmr_plugins/registry.py:149`: "Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)", "fdmr_runner.canals")],
+- `python/fdmr_plugins/registry.py:184`: "decay": [Maths("first-order", "First-order decay by half-life", "First-order reaction kinetics (Chapra 1997, ref:chapra1997)",
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
 - `python/fdmr_plugins/river_routing/heat.py:38`: ALBEDO = 0.06  # share of sunlight the water reflects, about 6 % (Chapra 1997, Lecture 30, ref:chapra1997)
 - `python/fdmr_plugins/river_routing/heat.py:39`: EMISSIVITY = 0.97  # water's long-wave emissivity (Chapra 1997, Lecture 30, ref:chapra1997)
@@ -299,7 +321,7 @@ Checked: The manual's title page read, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:73`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
+- `python/fdmr_plugins/registry.py:75`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/river_routing/heat.py:10`: 2008, ref:chapra2008qual2k, QUAL2K documentation, after TVA 1972, ref:tva1972);
 - `python/fdmr_plugins/river_routing/heat.py:42`: CLOUD_LONGWAVE = 0.17  # sky long-wave times (1 + 0.17 C^2) for cloud C (QUAL2K, ref:chapra2008qual2k, after TVA 1972, ref:tva1972)
 
@@ -311,7 +333,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:129`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
+- `python/fdmr_plugins/registry.py:131`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
 
 ## chow1959
 
@@ -322,6 +344,8 @@ Checked: The reprint's publisher page, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/registry.py:64`: "Chow 1959, Open-Channel Hydraulics, chapters 5-6 (ref:chow1959); each region's width, slope and roughness "
+- `python/fdmr_plugins/registry.py:133`: "Continuity across the join (ref:chow1959); the least change that does it, the gradient of a potential "
+- `python/fdmr_plugins/registry.py:147`: "Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)", "fdmr_runner.canals")],
 - `python/fdmr_plugins/river_routing/channel.py:147`: (wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,
 - `python/fdmr_plugins/river_routing/model.py:26`: WAVE_TO_WATER = 1.5  # a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, ref:chow1959); refitted nightly per segment
 - `regions/sf-bay-delta/canals.toml:76`: 1959, Open-Channel Hydraulics, Table 5-6, ref:chow1959), and the canal's grade of 3 inches
@@ -334,7 +358,8 @@ Checked: Open Library ISBN record, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:51`: "Specification 7.1; lag-and-route as in standard hydrological routing texts (e.g. Chow, Maidment and Mays 1988, Applied Hydrology, ch. 8; ref:chow1988)",
+- `python/fdmr_plugins/registry.py:51`: "Lag-and-route as in standard hydrological routing texts (Chow, Maidment and Mays 1988, Applied Hydrology, ch. 8; ref:chow1988)",
+- `python/fdmr_plugins/registry.py:69`: "days after each fit, which it never saw (fdmr_runner.ledger); the travel-time law as lag-and-route (ref:chow1988)",
 
 ## dimou1993
 
@@ -346,7 +371,7 @@ Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:18`: ref:dimou1993; Visser 1997, Marine Ecology Progress Series 158:275-281,
 - `crates/fdmr-math/src/parcel.rs:28`: well-mixed condition (Dimou and Adams 1993, ref:dimou1993; Visser 1997,
-- `python/fdmr_plugins/registry.py:173`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
+- `python/fdmr_plugins/registry.py:181`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## dogliotti2015
 
@@ -358,7 +383,7 @@ Checked: DOI record read; coefficients read from ACOLITE's defaults, 27 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:348`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `python/fdmr_plugins/registry.py:357`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
 - `tools/validation/satellite_turbidity/README.md:7`: Turbidity from reflectance.** Dogliotti et al. 2015 (ref:dogliotti2015), with the coefficients ACOLITE uses.
 - `tools/validation/satellite_turbidity/hls_check.py:7`: Turbidity, FNU, by Dogliotti et al. (2015, ref:dogliotti2015):
 
@@ -388,11 +413,21 @@ Used in:
 - `crates/fdmr-math/src/dispersion.rs:29`: (Fischer 1966, ref:fischer1966, eq. 57). Taylor's theory "should be applied
 - `crates/fdmr-math/src/dispersion.rs:49`: ε = 0.23 d u* (Fischer 1966, ref:fischer1966, section II-F, eq. 23).
 - `docs/maths.md:23`: | dispersion | **fischer-longitudinal** | Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; each element also publishes how far below a release it holds (fickian_m: s
-- `python/fdmr_plugins/registry.py:82`: "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
-- `python/fdmr_plugins/registry.py:87`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
+- `python/fdmr_plugins/registry.py:84`: "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
+- `python/fdmr_plugins/registry.py:89`: "time scales, Fischer 1966 eq. 57, ref:fischer1966)",
 - `python/fdmr_plugins/river_routing/fields.py:117`: ELDER_LATERAL = fdmr_py.ELDER_LATERAL  # eps = 0.23 d u*, Elder's, as Fischer 1966 adopts it (ref:fischer1966, eq. 23): the engine's own (fdmr_math::dispersion), written once (#70)
 - `python/fdmr_plugins/river_routing/fields.py:122`: (Fischer 1966, ref:fischer1966, section II-F), u* = sqrt(g d S), the same
 - `python/fdmr_plugins/river_routing/fields.py:141`: scales, 1.8 U l^2 / (r u*) (Fischer 1966, ref:fischer1966, eq. 57: Taylor's
+
+## fischer1969
+
+Fischer, H. B. (1969). The effect of bends on dispersion in streams. Water Resources Research 5(2), 496-506. https://doi.org/10.1029/WR005i002p00496
+
+Checked: Scilit record of the DOI, 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:352`: "Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit "
 
 ## fischer1979
 
@@ -405,8 +440,8 @@ Used in:
 - `crates/fdmr-math/src/dispersion.rs:4`: Coastal Waters* (Academic Press, 1979; ref:fischer1979), chapter 5; Fischer,
 - `python/fdmr_plugins/fvcom/mesh.py:258`: ELDER = 5.93  # Elder's K = 5.93 H u* (Elder 1959, ref:elder1959; Fischer et al. 1979, ref:fischer1979)
 - `python/fdmr_plugins/fvcom/mesh.py:259`: DRAG = 0.0025  # bed drag coefficient Cd, u* = sqrt(Cd) |u| (Fischer et al. 1979, ref:fischer1979)
-- `python/fdmr_plugins/registry.py:88`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
-- `python/fdmr_plugins/registry.py:172`: "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
+- `python/fdmr_plugins/registry.py:90`: "Fischer, List, Koh, Imberger and Brooks 1979, Mixing in Inland and Coastal Waters, ch. 5 (ref:fischer1979)",
+- `python/fdmr_plugins/registry.py:180`: "Random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
 - `ui/src/compute/worker.ts:140`: Waters, ref:fischer1979).
 
 ## frantzich2026ncro
@@ -447,7 +482,7 @@ Used in:
 - `crates/fdmr-math/src/signal.rs:161`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
 - `crates/fdmr-py/src/lib.rs:104`: Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal
 - `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).
-- `python/fdmr_plugins/registry.py:151`: "surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)",
+- `python/fdmr_plugins/registry.py:159`: "surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)",
 - `python/fdmr_runner/delta.py:359`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
 - `python/fdmr_runner/experiment.py:13`: (ref:godin1972), then each day's mean, as the agencies filter their gauges.
 - `python/fdmr_runner/isohaline.py:13`: Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
@@ -489,7 +524,7 @@ Checked: DataCite record of the DOI; full text read, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:158`: "ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; "
+- `python/fdmr_plugins/registry.py:166`: "ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; "
 - `regions/sf-bay-delta/fishing.toml:61`: migration_months = [11, 12, 1, 2, 3, 4, 5]   # fresh water scores higher: the spawning run (Heublein et al. 2017, ref:heublein2017, pp. 12, 26)
 
 ## ecostress_lst
@@ -523,9 +558,19 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:150`: "Jassby et al. 1995, X2 as a habitat indicator (ref:jassby1995); D-1641's X2 objective as 2.64 mmhos/cm "
+- `python/fdmr_plugins/registry.py:158`: "Jassby et al. 1995, X2 as a habitat indicator (ref:jassby1995); D-1641's X2 objective as 2.64 mmhos/cm "
 - `python/fdmr_runner/overlays.py:120`: X2 as Jassby et al. 1995 define it (ref:jassby1995)."""
 - `regions/sf-bay-delta/overlays.toml:14`: estuarine populations. Ecological Applications 5(1): 272-289. ref:jassby1995
+
+## jones2008franks
+
+Jones, N. L., Thompson, J. K., and Monismith, S. G. (2008). A note on the effect of wind waves on vertical mixing in Franks Tract, Sacramento-San Joaquin Delta, California. San Francisco Estuary and Watershed Science 6(2). https://escholarship.org/uc/item/7sk8z936
+
+Checked: eScholarship and ScienceBase records, 28 Nov 2026 (USGS lists the authors as Thompson, Jones and Monismith)
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:341`: "flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)",
 
 ## karney2011
 
@@ -562,7 +607,7 @@ Checked: Crossref record of the DOI; abstract read, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:158`: "ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; "
+- `python/fdmr_plugins/registry.py:166`: "ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; "
 - `regions/sf-bay-delta/fishing.toml:80`: ref:kelly2007); in the lower estuary more often February-March and
 
 ## kundu1976
@@ -588,9 +633,19 @@ Checked: The data table's MD5 against the EML's authentication value; the packag
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:166`: "ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; "
+- `python/fdmr_plugins/registry.py:174`: "ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; "
 - `regions/sf-bay-delta/blooms.toml:24`: al. 2022, ref:kurobe2022; 424 samples, each classed by its own measured
 - `tools/validation/blooms/results.md:3`: Data.** Kurobe, Lehman, Lesmeister and Teh (2022), EDI edi.1076.1 (ref:kurobe2022). The table's MD5 matches EDI's record.
+
+## lacy2023
+
+Lacy, J. R., Dailey, E. T., and Morgan-King, T. L. (2023). What controls suspended-sediment concentration and export in flooded agricultural tracts in the Sacramento-San Joaquin Delta?. San Francisco Estuary and Watershed Science 21(1), article 4. https://doi.org/10.15447/sfews.2023v21iss1art4
+
+Checked: USGS Publications Warehouse record, 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:341`: "flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)",
 
 ## lehman2005
 
@@ -602,7 +657,7 @@ Checked: Crossref record of the DOI; the paper read for FDMR (pp. 93-94), 27 Nov
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:166`: "ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; "
+- `python/fdmr_plugins/registry.py:174`: "ref:bergsutula2015; Lehman et al. 2005, ref:lehman2005; Kurobe et al. 2022, ref:kurobe2022; "
 - `regions/sf-bay-delta/blooms.toml:49`: ref:lehman2005, pp. 93-94); salinity sets how far seaward blooms reach, not
 
 ## leopold1953
@@ -625,6 +680,26 @@ Checked: Read 28 Nov 2026: slide 27, Issues Remaining
 Used in:
 
 - `tools/validation/experiments/results.md:199`: Why the circulation can't form.** DSM2 takes the flow through each opening of a reservoir as Q = C √(2g Δh), with C = COEF_IN for flow into it and COEF_OUT for flow out (hydrolib/reservoirs.f90). With
+
+## manning2015egu
+
+Manning, A. J., and Schoellhamer, D. H. (2015). Floc depositional characteristics within the Sacramento-San Joaquin River. Conference abstract: Geophysical Research Abstracts 17, EGU2015-12439, EGU General Assembly 2015 (preliminary results). https://meetingorganizer.copernicus.org/EGU2015/EGU2015-12439.pdf
+
+Checked: The abstract as published by Copernicus, 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:335`: "Delta microflocs average 1.63 mm/s (Manning and Schoellhamer, 2015 conference abstract, preliminary, ref:manning2015egu); "
+
+## mathers2025
+
+Mathers, M. A., Bergamaschi, B. A., and Hernes, P. J. (2025). Particulate organic carbon scarcity exacerbates vulnerability of the Sacramento-San Joaquin Delta ecosystem. Estuaries and Coasts 48, 67. https://doi.org/10.1007/s12237-025-01502-7
+
+Checked: Springer record of the DOI, 28 Nov 2026; the candidate's October figure is from an earlier reading, not rechecked
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:349`: "October (Mathers et al. 2025, ref:mathers2025)",
 
 ## mcconnell2023
 
@@ -753,7 +828,7 @@ Checked: Both DOI records read, 27 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:348`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `python/fdmr_plugins/registry.py:357`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
 - `tools/validation/satellite_turbidity/README.md:6`: Satellite.** NASA's HLS v2.0 surface reflectance (ref:hls2), Landsat 8/9 and Sentinel-2 at 30 m: every pass from 1 July to 27 November 2026 with at most 40% cloud over the Delta's two tiles (T10SFH, T
 - `tools/validation/satellite_turbidity/hls_check.py:5`: (HLSL30 from Landsat 8/9, HLSS30 from Sentinel-2; 30 m; ref:hls2), red (B04)
 
@@ -832,7 +907,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/noaa_ofs.py:17`: References: ref:noaa_ofs (references.toml).
-- `python/fdmr_plugins/registry.py:129`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
+- `python/fdmr_plugins/registry.py:131`: "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
 
 ## nws_api
 
@@ -863,7 +938,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/cnrfc.py:11`: References: ref:cnrfc (references.toml).
-- `python/fdmr_plugins/registry.py:101`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
+- `python/fdmr_plugins/registry.py:103`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
 - `python/fdmr_runner/releases.py:6`: `release_forecast`: the River Forecast Center (ref:cnrfc) publishes a release forecast
 
 ## okubo1971
@@ -921,7 +996,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/dsm2/sediment.py:7`: (Partheniades 1965, ref:partheniades1965), no more
-- `python/fdmr_plugins/registry.py:117`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
+- `python/fdmr_plugins/registry.py:119`: "(ref:partheniades1965); California DWR, DSM2 GTM v8.5.1 (ref:dsm2) with runner/dsm2/gtm-sediment.patch",
 - `regions/sf-bay-delta/dsm2.toml:676`: in Partheniades' form (ref:partheniades1965)
 - `runner/dsm2/gtm-sediment.patch:26`: (Partheniades: M (tau_b / tau_ce - 1), ref:partheniades1965) takes no more than is there. This is
 
@@ -933,7 +1008,7 @@ Checked: Crossref record of the DOI; full text read, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:159`: "Sellheim et al. 2022, ref:sellheim2022; Patton et al. 2020, ref:patton2020; and the rest it cites)",
+- `python/fdmr_plugins/registry.py:167`: "Sellheim et al. 2022, ref:sellheim2022; Patton et al. 2020, ref:patton2020; and the rest it cites)",
 - `regions/sf-bay-delta/fishing.toml:51`: et al. 2020, ref:patton2020, results p. 5) and adults tolerating 35 ppt
 
 ## pawlowicz2002
@@ -944,7 +1019,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:133`: "Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; "
+- `python/fdmr_plugins/registry.py:137`: "Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; "
 
 ## smap_l4
 
@@ -989,7 +1064,7 @@ Checked: Consensus's record (title, author, year, volume 83), 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:158`: "ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; "
+- `python/fdmr_plugins/registry.py:166`: "ref:heublein2017; Schaffter 1997, ref:schaffter1997; Kelly et al. 2007, ref:kelly2007; "
 - `regions/sf-bay-delta/fishing.toml:67`: river flow" (Schaffter 1997, ref:schaffter1997), and spawning followed
 
 ## schoellhamer2017
@@ -1002,7 +1077,7 @@ Checked: Crossref record of the DOI; the paper read (Table 3, sections 2.1 and 5
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:336`: "critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)",
+- `python/fdmr_plugins/registry.py:345`: "critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)",
 - `regions/sf-bay-delta/dsm2.toml:692`: (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
 
 ## schureman1958
@@ -1016,7 +1091,7 @@ Checked: NOAA's PDF, title page read, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/fvcom/extend.py:14`: hour; Schureman 1958, ref:schureman1958, *Manual of Harmonic Analysis and Prediction of Tides*,
-- `python/fdmr_plugins/registry.py:134`: "constituent speeds from Schureman 1958 (ref:schureman1958)",
+- `python/fdmr_plugins/registry.py:138`: "constituent speeds from Schureman 1958 (ref:schureman1958)",
 
 ## sellheim2022
 
@@ -1026,8 +1101,28 @@ Checked: Crossref record of the DOI; full text read, 26 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:159`: "Sellheim et al. 2022, ref:sellheim2022; Patton et al. 2020, ref:patton2020; and the rest it cites)",
+- `python/fdmr_plugins/registry.py:167`: "Sellheim et al. 2022, ref:sellheim2022; Patton et al. 2020, ref:patton2020; and the rest it cites)",
 - `regions/sf-bay-delta/fishing.toml:48`: Sellheim et al. 2022 (ref:sellheim2022; fresh < 0.5, low 0.5-2, medium 2-10,
+
+## shepard1968
+
+Shepard, D. (1968). A two-dimensional interpolation function for irregularly-spaced data. Proceedings of the 1968 23rd ACM National Conference, 517-524. https://doi.org/10.1145/800186.810616
+
+Checked: DOI and pages as other works cite them (Gordon and Wixom 1978, Math. Comp.), 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:141`: "Inverse-distance weighting (Shepard 1968, ref:shepard1968), distance taken through the water; its 1,000 m "
+
+## sherman1978
+
+Sherman, C. A. (1978). A mass-consistent model for wind fields over complex terrain. Journal of Applied Meteorology 17(3), 312-319. https://doi.org/10.1175/1520-0450(1978)017<0312:AMCMFW>2.0.CO;2
+
+Checked: Crossref record of the DOI, 28 Nov 2026
+
+Used in:
+
+- `python/fdmr_plugins/registry.py:134`: "(zero at the open sea, no flow through land), as in mass-consistent field adjustment (Sherman 1978, ref:sherman1978)",
 
 ## snyder1987
 
@@ -1060,7 +1155,7 @@ Checked: The Board's PDF, cover and title page read, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/usbr_cvo.py:3`: for the Delta under the State Water Board's D-1641 (ref:swrcb_d1641; Figure 3 there gives its
-- `python/fdmr_plugins/registry.py:151`: "surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)",
+- `python/fdmr_plugins/registry.py:159`: "surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)",
 - `regions/sf-bay-delta/dsm2.toml:201`: water balance DWR and Reclamation keep under D-1641 (ref:swrcb_d1641), each node keeping the
 
 ## stompe2024
@@ -1119,7 +1214,7 @@ Checked: Read live by the model runner, 26 Nov 2026
 Used in:
 
 - `python/fdmr_adapters/usace_spk.py:17`: References: ref:usace_fcr (references.toml).
-- `python/fdmr_plugins/registry.py:101`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
+- `python/fdmr_plugins/registry.py:103`: "US Army Corps of Engineers daily Flood Control Requirements (ref:usace_fcr); NOAA CNRFC (ref:cnrfc)", "fdmr_runner.releases")],
 - `python/fdmr_runner/releases.py:11`: reservoir's storage now (CDEC), its top of conservation (ref:usace_fcr; the US Army Corps
 
 ## usbr2007ea1589
@@ -1218,7 +1313,7 @@ Checked: UNESDOC's record of the report (series 36, 1981), 26 Nov 2026; the full
 Used in:
 
 - `crates/fdmr-math/src/salinity.rs:4`: is the Practical Salinity Scale of 1978 (PSS-78; UNESCO 1981, ref:unesco1981), applied to
-- `python/fdmr_plugins/registry.py:174`: "salinity-from-conductance": [Maths("pss-78", "Practical salinity from specific conductance", "UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)",
+- `python/fdmr_plugins/registry.py:182`: "salinity-from-conductance": [Maths("pss-78", "Practical salinity from specific conductance", "UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)",
 
 ## vanmazijk1996
 
@@ -1232,7 +1327,7 @@ Used in:
 
 - `crates/fdmr-compute/src/lib.rs:27`: behind the water β (van Mazijk 1996, ref:vanmazijk1996).
 - `crates/fdmr-math/src/dispersion.rs:73`: ref:vanmazijk1996, section 4.4). The rate sets only the cloud's shape (how
-- `python/fdmr_plugins/registry.py:95`: "van Mazijk 1996, section 4.4, Figs 4.4.10-4.4.15, p. 217 (ref:vanmazijk1996); the exchange rate "
+- `python/fdmr_plugins/registry.py:97`: "van Mazijk 1996, section 4.4, Figs 4.4.10-4.4.15, p. 217 (ref:vanmazijk1996); the exchange rate "
 - `python/fdmr_plugins/river_routing/storage.py:6`: groyne fields' share of the cross-section (van Mazijk 1996, ref:vanmazijk1996,
 - `python/tests/test_storage.py:28`: assert "ref:vanmazijk1996" in text
 - `regions/rhine-meuse/region.toml:71`: velocity head u^2/2g, m, against the discharge at Lobith, read from van Mazijk 1996 (ref:vanmazijk1996), Figs
@@ -1261,7 +1356,7 @@ Used in:
 
 - `crates/fdmr-compute/src/mesh.rs:19`: ref:visser1997). K is one value everywhere, or one per node, linear within
 - `crates/fdmr-math/src/parcel.rs:29`: ref:visser1997), in its one-dimensional form, as the mesh's ∇(K H)/H is
-- `python/fdmr_plugins/registry.py:173`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
+- `python/fdmr_plugins/registry.py:181`: "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
 
 ## visser2000
 

@@ -48,7 +48,7 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
         "flow": [Maths("gauge-blend-lag-route",
                        "Flow between two gauges as a blend of their records, each shifted by the flood wave's travel time; "
                        "beyond the last gauge, variable-parameter lag-and-route (a delay set by flow, then a linear reservoir)",
-                       "Specification 7.1; lag-and-route as in standard hydrological routing texts (e.g. Chow, Maidment and Mays 1988, Applied Hydrology, ch. 8; ref:chow1988)",
+                       "Lag-and-route as in standard hydrological routing texts (Chow, Maidment and Mays 1988, Applied Hydrology, ch. 8; ref:chow1988)",
                        "fdmr_plugins.river_routing.model, crates/fdmr-math routing.rs")],
         "channel": [Maths("power-law-hydraulic-geometry",
                           "Cross-section area and top width as power laws of flow, fitted to each gauge's recent USGS channel measurements; "
@@ -65,7 +65,9 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                           "with their own sources", "fdmr_plugins.river_routing.channel.wide_channel")],
         "travel-time": [Maths("measured-release-waves",
                               "Wave scale and water factor per segment, from release changes measured arriving at the next gauge, refitted nightly",
-                              "Specification 9.1", "fdmr_plugins.river_routing.calibration, wave")],
+                              "Empirical, FDMR: refitted nightly to the release changes measured arriving downstream, and judged on the "
+                              "days after each fit, which it never saw (fdmr_runner.ledger); the travel-time law as lag-and-route (ref:chow1988)",
+                              "fdmr_plugins.river_routing.calibration, wave")],
         "temperature": [Maths("surface-heat-budget",
                               "The release's measured temperature carried down at the water's speed, with the surface heat budget "
                               "(sunlight, sky and water long-wave, evaporation, conduction) under each element's nearest airport's weather, "
@@ -128,17 +130,23 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
         "flow": [Maths("noaa-fvcom-forecast", "NOAA's operational FVCOM forecast for the bay, depth-averaged and coarsened",
                        "NOAA CO-OPS operational forecast system (ref:noaa_ofs; FVCOM: Chen, Liu and Beardsley 2003, ref:chen2003fvcom)", "fdmr_plugins.fvcom")],
         "outflow-correction": [Maths("network-outflow-match", "The mesh's net flow across its join made to carry the network's",
-                                     "Specification 7.4", "fdmr_plugins.fvcom.correct")],
+                                     "Continuity across the join (ref:chow1959); the least change that does it, the gradient of a potential "
+                                     "(zero at the open sea, no flow through land), as in mass-consistent field adjustment (Sherman 1978, ref:sherman1978)",
+                                     "fdmr_plugins.fvcom.correct")],
         "extension": [Maths("tides-plus-outflow-fit", "Past NOAA's 48 hours: at each node a least-squares fit of tidal constituents plus river outflow",
                             "Harmonic analysis as in Pawlowicz, Beardsley and Lentz 2002 (T_TIDE; ref:pawlowicz2002), extended with an outflow term; "
                             "constituent speeds from Schureman 1958 (ref:schureman1958)",
                             "fdmr_plugins.fvcom.extend")],
         "quality-correction": [Maths("station-misfit-spread", "Each station's daily misfit spread along the water by inverse distance squared; left-out checks",
-                                     "Specification 7.5", "fdmr_runner.bay correct_quality, fdmr_plugins.fvcom.correct")],
+                                     "Inverse-distance weighting (Shepard 1968, ref:shepard1968), distance taken through the water; its 1,000 m "
+                                     "softening empirical, FDMR: judged every cycle on stations left out of the spread (fdmr_runner.bay)",
+                                     "fdmr_runner.bay correct_quality, fdmr_plugins.fvcom.correct")],
     },
     "canal-network": {
-        "flow": [Maths("export-carried", "The network's own export at the intake, the same all along the canal", "Specification 7.4", "fdmr_runner.canals")],
-        "quality": [Maths("intake-lagged", "The intake's water quality carried down at the water's travel time", "Specification 7.4", "fdmr_runner.canals")],
+        "flow": [Maths("export-carried", "The network's own export at the intake, the same all along the canal",
+                       "Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)", "fdmr_runner.canals")],
+        "quality": [Maths("intake-lagged", "The intake's water quality carried down at the water's travel time",
+                          "Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)", "fdmr_runner.canals")],
     },
     # Published from the reaches' fields after each cycle: not a kind of water,
     # but maths the page shows (#73).
@@ -169,11 +177,12 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
     },
     "all": {
         "particles": [Maths("advection-random-walk", "Parcels carried by the local velocity plus a random step for dispersion",
-                            "Specification 8.1; random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
+                            "Random-walk particle tracking (e.g. Fischer et al. 1979, ref:fischer1979); well-mixed drift term "
                             "(Dimou and Adams 1993, ref:dimou1993; Visser 1997, ref:visser1997)", "crates/fdmr-math parcel.rs, crates/fdmr-compute")],
         "salinity-from-conductance": [Maths("pss-78", "Practical salinity from specific conductance", "UNESCO 1981, the Practical Salinity Scale 1978 (ref:unesco1981)",
                                             "crates/fdmr-math salinity.rs")],
-        "decay": [Maths("first-order", "First-order decay by half-life", "Specification 3.3", "crates/fdmr-math decay.rs")],
+        "decay": [Maths("first-order", "First-order decay by half-life", "First-order reaction kinetics (Chapra 1997, ref:chapra1997)",
+                        "crates/fdmr-math decay.rs")],
     },
 }
 
@@ -323,13 +332,13 @@ class Candidate:
 # Unsourced candidates, parked (issue #26). None of them runs.
 CANDIDATES: tuple[Candidate, ...] = (
     Candidate("1d-tidal-network", "sediment", "two-settling-classes",
-              "Delta microflocs average 1.63 mm/s (Manning and Schoellhamer, 2015 conference abstract, preliminary); "
-              "South Bay slow class 0.014 mm/s in autumn (Brand et al. 2015, Limnol. Oceanogr. 60:463)",
+              "Delta microflocs average 1.63 mm/s (Manning and Schoellhamer, 2015 conference abstract, preliminary, ref:manning2015egu); "
+              "South Bay slow class 0.014 mm/s in autumn (Brand et al. 2015, ref:brand2015)",
               "no published Delta source for the mass split between the classes; DWR's own two-class calibration "
               "(sand and fines, 2019) was tried and is worse model-wide", "#24"),
     Candidate("1d-tidal-network", "sediment", "wind-wave-resuspension",
               "fetch-limited waves (USACE Coastal Engineering Manual II-2); measured wave heights in the Delta's "
-              "flooded islands (Lacy et al. 2023; Jones et al. 2008)",
+              "flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)",
               "the wave stress depends on a bed roughness z0 with no Delta value, and DSM2's flooded islands have no "
               "sediment bed in GTM", "#24"),
     Candidate("1d-tidal-network", "sediment", "depth-limited-bed",
@@ -337,10 +346,10 @@ CANDIDATES: tuple[Candidate, ...] = (
               "its slope comes from Franks Tract alone, r2 0.40", "#24"),
     Candidate("1d-tidal-network", "sediment-checks", "turbidity-floor",
               "USGS site fits give about 3.3 mg/L at 1 FNU; organic matter is 10-16% of suspended solids in "
-              "October (Mathers et al. 2025)",
+              "October (Mathers et al. 2025, ref:mathers2025)",
               "a derived number, and it changes how the checks score, not the model", "#24"),
     Candidate("river-routing", "lateral-mixing", "bend-mixing",
-              "Fischer 1969 (WRR 5:496): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (Water 15:3120) fit "
+              "Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit "
               "33 rivers' measured mixing on (U/u*)(d/R)",
               "raising the mixing in bends lowers the long-range spreading below Fischer's K; it needs a held-out "
               "test against measured dye clouds", "#27"),

@@ -11,6 +11,16 @@ def test_every_kind_has_flow_and_every_part_a_source():
             assert impls and all(m.source and m.code and m.what for m in impls)
 
 
+def test_every_source_is_published_or_empirical():
+    """The project's rule (#94): a source is a published work (a ref: key) or
+    a recorded empirical test; a section of our own specification is neither."""
+    for parts in registry.REGISTER.values():
+        for impls in parts.values():
+            for m in impls:
+                assert "ref:" in m.source or "Empirical, FDMR" in m.source or "empirical, FDMR" in m.source, m.name
+                assert "Specification" not in m.source, m.name
+
+
 def test_default_is_the_first_registered_and_shared_parts_are_included():
     got = registry.record("river-routing")
     assert got["temperature"]["name"] == "surface-heat-budget" and got["particles"]["name"] == "advection-random-walk"
