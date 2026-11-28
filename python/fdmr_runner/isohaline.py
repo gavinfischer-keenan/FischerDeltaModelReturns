@@ -22,7 +22,6 @@ None with which side it is on.
 
 from __future__ import annotations
 
-import heapq
 import math
 from pathlib import Path
 
@@ -51,34 +50,16 @@ def chain(net: dict, start: tuple[float, float], end: tuple[float, float]) -> li
         px, py = _xy(*p, lat0)
         return min(nodes, key=lambda k: (_xy(*nodes[k], lat0)[0] - px) ** 2 + (_xy(*nodes[k], lat0)[1] - py) ** 2)
 
-    adj: dict[int, list[tuple[int, float, int, bool]]] = {}
+    adj: dict[int, list[tuple[int, float, tuple[int, bool]]]] = {}
     for i, e in enumerate(net["elements"]):
         length = e["end_m"] - e["start_m"]
-        adj.setdefault(e["up"], []).append((e["down"], length, i, False))
-        adj.setdefault(e["down"], []).append((e["up"], length, i, True))
+        adj.setdefault(e["up"], []).append((e["down"], length, (i, False)))
+        adj.setdefault(e["down"], []).append((e["up"], length, (i, True)))
     a, b = nearest(start), nearest(end)
-    dist, back = {a: 0.0}, {}
-    heap = [(0.0, a)]
-    while heap:
-        d, n = heapq.heappop(heap)
-        if n == b:
-            break
-        if d > dist.get(n, math.inf):
-            continue
-        for m, length, i, rev in adj.get(n, []):
-            if d + length < dist.get(m, math.inf):
-                dist[m] = d + length
-                back[m] = (n, i, rev)
-                heapq.heappush(heap, (d + length, m))
-    if b not in back and a != b:
+    walked = fdmr_geo.shortest_path(adj, a, b)
+    if walked is None:
         raise ValueError("no path along the network between the axis's ends")
-    out = []
-    n = b
-    while n != a:
-        p, i, rev = back[n]
-        out.append((i, rev))
-        n = p
-    return out[::-1]
+    return [link for _, link in walked[1:]]
 
 
 class Axis:

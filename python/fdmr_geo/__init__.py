@@ -71,3 +71,33 @@ def nearest_on_line(line: list[tuple[float, float]], p: tuple[float, float]) -> 
     d2, i, f = best
     cum = along(line)
     return i, f, math.sqrt(d2) * M_PER_DEG, cum[i] + f * (cum[i + 1] - cum[i])
+
+
+def shortest_path(adj: dict, src, dst) -> list[tuple] | None:
+    """The shortest path through a network by Dijkstra's method (Dijkstra 1959,
+    ref:dijkstra1959), written once (#72): `adj` maps each node to its links
+    as (neighbour, length, what the link is). Returns [(src, None), (node,
+    the link reaching it), ..., (dst, link)], or None where `dst` cannot be
+    reached. Ties go to the link listed first."""
+    import heapq
+
+    dist, back, heap = {src: 0.0}, {}, [(0.0, src)]
+    while heap:
+        d, u = heapq.heappop(heap)
+        if u == dst:
+            break
+        if d > dist.get(u, math.inf):
+            continue
+        for v, w, link in adj.get(u, []):
+            if d + w < dist.get(v, math.inf):
+                dist[v], back[v] = d + w, (u, link)
+                heapq.heappush(heap, (d + w, v))
+    if dst != src and dst not in back:
+        return None
+    path, n = [], dst
+    while n != src:
+        u, link = back[n]
+        path.append((n, link))
+        n = u
+    path.append((src, None))
+    return path[::-1]

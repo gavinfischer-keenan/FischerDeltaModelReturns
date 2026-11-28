@@ -152,7 +152,7 @@ site = "DLC"
 duration = "H"
 parameter = "discharge"
 # Open from the first to the last of a run of hourly flows reaching 30 m3/s
-# either way, each within 8 hours of the last (fdmr_runner.delta.gate_states).
+# either way, each within 8 hours of the last (fdmr_plugins.dsm2.gates).
 # Checked 25 Nov 2026 on July to November 2026: shut, the gates leak up to 16
 # m3/s; open, they carry 60 to 120 m3/s a day, swinging to 300 and through
 # zero at slack tide. This finds 13 changes, the operations' own (weekend

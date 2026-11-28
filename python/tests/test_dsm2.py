@@ -93,7 +93,7 @@ def test_only_exact_markers_are_missing():
 
 
 def test_gate_states_from_tidal_flow_through_the_gate():
-    from fdmr_runner.delta import gate_states
+    from fdmr_plugins.dsm2.gates import gate_states, states_by_rule
 
     H = 3600
     # Shut, leaking up to 16 m3/s with one 35 spike; then open, the tide
@@ -102,7 +102,7 @@ def test_gate_states_from_tidal_flow_through_the_gate():
     # 16 m3/s hourly; open, daily means 60 to 120 m3/s.)
     q = [3.0, 16.0, 35.0, -4.0, 2.0, 1.0, 3.0, 2.0, 1.0, 4.0, 2.0, 1.0,
          120.0, 240.0, 90.0, 4.0, -2.0, -60.0, -30.0, 150.0, 200.0, 8.0, 3.0, 5.0, 2.0, 1.0]
-    got = gate_states([(i * H, v) for i, v in enumerate(q)], 30.0)
+    got = states_by_rule([(i * H, v) for i, v in enumerate(q)], {"open_above": 30.0, "max_gap_h": 8})
     # The spike, 10 hours before the next big reading, is noise. Open from the
     # first big reading (hour 12) to the last (hour 20); shut from hour 21.
     assert got == [(0, False), (12 * H, True), (21 * H, False)]
@@ -110,8 +110,8 @@ def test_gate_states_from_tidal_flow_through_the_gate():
     got = gate_states([(i * H, v) for i, v in enumerate(q)], 30.0, max_gap_s=1 * H)
     assert got == [(0, False), (12 * H, True), (15 * H, False), (17 * H, True), (21 * H, False)]
     # Open from the start and still open at the end; shut throughout.
-    assert gate_states([(0, 100.0), (H, 2.0), (2 * H, -80.0)], 30.0) == [(0, True)]
-    assert gate_states([(0, 2.0), (H, 1.0)], 30.0) == [(0, False)]
+    assert gate_states([(0, 100.0), (H, 2.0), (2 * H, -80.0)], 30.0, 8 * H) == [(0, True)]
+    assert gate_states([(0, 2.0), (H, 1.0)], 30.0, 8 * H) == [(0, False)]
 
 
 def test_resample_to_hourly_and_daily():

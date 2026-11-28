@@ -1071,3 +1071,12 @@ in = "NASA Land Processes Distributed Active Archive Center; doi:10.5067/HLS/HLS
 doi = "10.5067/HLS/HLSL30.002"
 note = "Red and near-infrared surface reflectance with Fmask, 30 m, for the satellite turbidity check (#16), through NASA's CMR and the Earthdata login."
 checked = "Both DOI records read, 27 Nov 2026"
+
+[dijkstra1959]
+authors = "Dijkstra, E. W."
+year = 1959
+title = "A note on two problems in connexion with graphs"
+kind = "paper"
+in = "Numerische Mathematik 1, 269-271"
+doi = "10.1007/BF01386390"
+checked = "Crossref record of the DOI, 27 Nov 2026"

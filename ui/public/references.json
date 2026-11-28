@@ -587,7 +587,7 @@
     {
      "file": "python/fdmr_plugins/registry.py",
      "line": 156,
-     "text": "\"Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)\", \"fdmr_runner.canals\")],"
+     "text": "\"Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)\", \"fdmr_plugins.canal carried\")],"
     },
     {
      "file": "python/fdmr_plugins/registry.py",
@@ -682,7 +682,7 @@
     {
      "file": "python/fdmr_plugins/registry.py",
      "line": 154,
-     "text": "\"Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)\", \"fdmr_runner.canals\")],"
+     "text": "\"Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)\", \"fdmr_plugins.canal, fdmr_runner.canals\")],"
     },
     {
      "file": "python/fdmr_plugins/river_routing/channel.py",
@@ -722,6 +722,24 @@
      "file": "python/fdmr_plugins/registry.py",
      "line": 69,
      "text": "\"days after each fit, which it never saw (fdmr_runner.ledger); the travel-time law as lag-and-route (ref:chow1988)\","
+    }
+   ]
+  },
+  {
+   "key": "dijkstra1959",
+   "authors": "Dijkstra, E. W.",
+   "year": 1959,
+   "title": "A note on two problems in connexion with graphs",
+   "kind": "paper",
+   "in": "Numerische Mathematik 1, 269-271",
+   "doi": "10.1007/BF01386390",
+   "checked": "Crossref record of the DOI, 27 Nov 2026",
+   "citation": "Dijkstra, E. W. (1959). A note on two problems in connexion with graphs. Numerische Mathematik 1, 269-271. https://doi.org/10.1007/BF01386390",
+   "used": [
+    {
+     "file": "python/fdmr_geo/__init__.py",
+     "line": 78,
+     "text": "ref:dijkstra1959), written once (#72): `adj` maps each node to its links"
     }
    ]
   },
@@ -1018,7 +1036,7 @@
     },
     {
      "file": "python/fdmr_runner/delta.py",
-     "line": 367,
+     "line": 335,
      "text": "Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily"
     },
     {
@@ -1170,7 +1188,7 @@
     },
     {
      "file": "python/fdmr_runner/overlays.py",
-     "line": 129,
+     "line": 130,
      "text": "X2 as Jassby et al. 1995 define it (ref:jassby1995).\"\"\""
     },
     {
@@ -2585,7 +2603,7 @@
    "used": [
     {
      "file": "python/fdmr_adapters/nhd.py",
-     "line": 11,
+     "line": 12,
      "text": "References: ref:nhd (references.toml)."
     },
     {

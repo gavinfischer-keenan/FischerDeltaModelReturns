@@ -30,6 +30,7 @@ import fdmr_geo
 import numpy as np
 
 from fdmr_adapters import cdec
+from fdmr_plugins.dsm2 import gates
 from fdmr_store import Store
 
 from . import delta, isohaline
@@ -388,20 +389,20 @@ def satellite_temperature(cfg: dict, cache: Path, lookups: list[NetworkValues], 
 
 def gate_state(store: Store, source: str, site: str, rule: dict, now: int) -> dict | None:
     """Open or closed now, from the flow through the gate over the last three
-    days, by the rule the Delta model uses (fdmr_runner.delta.gate_states, with
+    days, by the rule the Delta model uses (fdmr_plugins.dsm2.gates, with
     the gate's own settings from dsm2.toml)."""
     vals = [(v.t, v.value) for v in store.values(source, site, rule["parameter"], now - GATE_DAYS * 86_400, now + 1) if v.value is not None]
-    states = delta.gate_states(vals, rule["open_above"], int(rule.get("max_gap_h", 8) * 3600))
+    states = gates.states_by_rule(vals, rule)
     if not states:
         return None
     # The first entry is where the three days began; any later one is a change.
     return {"open": states[-1][1], "t": vals[-1][0], **({"changed_at": states[-1][0]} if len(states) > 1 else {})}
 
 
-def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict] | None = None) -> list[dict]:
+def structures(cfg: dict, store: Store, now: int, units: dict, live_gates: list[dict] | None = None) -> list[dict]:
     """Each dam, pumping plant and gate with its latest readings, and a gate's
     state. A gate's `state = { live_gate = <site> }` takes its rule from the
-    Delta model's own (`gates`, dsm2.toml [[live_gate]]), so the map and the
+    Delta model's own (`live_gates`, dsm2.toml [[live_gate]]), so the map and the
     model never disagree; without it, no state is claimed."""
     out = []
     for s in cfg.get("structures", []):
@@ -419,7 +420,7 @@ def structures(cfg: dict, store: Store, now: int, units: dict, gates: list[dict]
         entry["readings"] = readings
         entry["daily"] = s.get("duration", "H") == "D"
         if "state" in s:
-            rule = next((g for g in gates or [] if g["site"] == s["state"]["live_gate"]), None)
+            rule = next((g for g in live_gates or [] if g["site"] == s["state"]["live_gate"]), None)
             st = gate_state(store, src, s["site"], rule, now) if rule else None
             if st:
                 entry["state"] = st

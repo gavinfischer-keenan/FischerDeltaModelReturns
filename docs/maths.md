@@ -84,8 +84,8 @@ Export canals, carried from their intake
 
 | Part | Maths | What it does | Source | Code |
 | --- | --- | --- | --- | --- |
-| flow | **export-carried** | The network's own export at the intake, the same all along the canal | Continuity in a channel without gains or losses (Chow 1959, ch. 1, [chow1959](references.md#chow1959)) | `fdmr_runner.canals` |
-| quality | **intake-lagged** | The intake's water quality carried down at the water's travel time | Plug flow: advection without mixing along the channel (Chapra 1997, [chapra1997](references.md#chapra1997)) | `fdmr_runner.canals` |
+| flow | **export-carried** | The network's own export at the intake, the same all along the canal | Continuity in a channel without gains or losses (Chow 1959, ch. 1, [chow1959](references.md#chow1959)) | `fdmr_plugins.canal, fdmr_runner.canals` |
+| quality | **intake-lagged** | The intake's water quality carried down at the water's travel time, otherwise unchanged | Plug flow: advection without mixing along the channel (Chapra 1997, [chapra1997](references.md#chapra1997)) | `fdmr_plugins.canal carried` |
 
 Standard problems passed:
 

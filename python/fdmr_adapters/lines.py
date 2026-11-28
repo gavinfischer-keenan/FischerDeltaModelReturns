@@ -1,11 +1,10 @@
 """A river's line from mapped pieces of it, whatever their source: the pieces
 joined where they share a point, walked by the shortest path from the point
-nearest a start to the point nearest an end. Used by the OpenStreetMap and
-PDOK adapters."""
+nearest a start to the point nearest an end. Used by the OpenStreetMap, PDOK
+and NHD adapters, and for the canals' lines (fdmr_runner.canals)."""
 
 from __future__ import annotations
 
-import heapq
 import math
 
 import fdmr_geo
@@ -61,25 +60,23 @@ def line_between(segments: list[list[tuple[int, float, float]]], start: tuple[fl
                     adj.setdefault(near, []).append((nid, d))
     s = min(pos, key=lambda i: _dist(pos[i], start))
     t = min(pos, key=lambda i: _dist(pos[i], end))
-    best, prev, heap = {s: 0.0}, {}, [(0.0, s)]
-    while heap:
-        d, u = heapq.heappop(heap)
-        if u == t:
-            break
-        if d > best.get(u, math.inf):
-            continue
-        for v, w in adj.get(u, []):
-            if d + w < best.get(v, math.inf):
-                best[v], prev[v] = d + w, u
-                heapq.heappush(heap, (d + w, v))
-    if t not in best:
+    walked = fdmr_geo.shortest_path({u: [(v, w, None) for v, w in vs] for u, vs in adj.items()}, s, t)
+    if walked is None:
         raise ValueError("the start and end are not joined by these waterways")
-    path = [t]
-    while path[-1] != s:
-        path.append(prev[path[-1]])
-    path.reverse()
+    path = [u for u, _ in walked]
     if bridges is not None:  # the gaps the line was carried across, straight: (lon, lat, m)
         for u, v in zip(path, path[1:]):
             if comp[u] != comp[v] and _dist(pos[u], pos[v]) > 1.0:
                 bridges.append((round(pos[u][0], 5), round(pos[u][1], 5), round(_dist(pos[u], pos[v]))))
     return [pos[i] for i in path]
+
+
+def keyed(line, places: int = 6) -> list[tuple[int, float, float]]:
+    """A piece of line from a source without point ids, each point keyed by
+    its position rounded to `places` decimals of a degree (1e-6 is about
+    0.1 m), so pieces join where they meet."""
+    out = []
+    for x, y, *_ in line:
+        x, y = round(x, places), round(y, places)
+        out.append((hash((x, y)), x, y))
+    return out

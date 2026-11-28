@@ -306,7 +306,7 @@ Used in:
 - `crates/fdmr-compute/src/network.rs:715`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
 - `python/fdmr_plugins/registry.py:75`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/registry.py:132`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
-- `python/fdmr_plugins/registry.py:156`: "Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)", "fdmr_runner.canals")],
+- `python/fdmr_plugins/registry.py:156`: "Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)", "fdmr_plugins.canal carried")],
 - `python/fdmr_plugins/registry.py:191`: "decay": [Maths("first-order", "First-order decay by half-life", "First-order reaction kinetics (Chapra 1997, ref:chapra1997)",
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):
 - `python/fdmr_plugins/river_routing/heat.py:38`: ALBEDO = 0.06  # share of sunlight the water reflects, about 6 % (Chapra 1997, Lecture 30, ref:chapra1997)
@@ -346,7 +346,7 @@ Used in:
 
 - `python/fdmr_plugins/registry.py:64`: "Chow 1959, Open-Channel Hydraulics, chapters 5-6 (ref:chow1959); each region's width, slope and roughness "
 - `python/fdmr_plugins/registry.py:140`: "Continuity across the join (ref:chow1959); the least change that does it, the gradient of a potential "
-- `python/fdmr_plugins/registry.py:154`: "Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)", "fdmr_runner.canals")],
+- `python/fdmr_plugins/registry.py:154`: "Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)", "fdmr_plugins.canal, fdmr_runner.canals")],
 - `python/fdmr_plugins/river_routing/channel.py:147`: (wide channel: hydraulic radius taken as depth; Chow 1959, ref:chow1959,
 - `python/fdmr_plugins/river_routing/model.py:26`: WAVE_TO_WATER = 1.5  # a flood wave's speed over the water's, 3/2 in a wide channel with Chezy friction (kinematic wave, c = dQ/dA; e.g. Chow 1959, ref:chow1959); refitted nightly per segment
 - `regions/sf-bay-delta/canals.toml:80`: 1959, Open-Channel Hydraulics, Table 5-6, ref:chow1959), and the canal's grade of 3 inches
@@ -361,6 +361,16 @@ Used in:
 
 - `python/fdmr_plugins/registry.py:51`: "Lag-and-route as in standard hydrological routing texts (Chow, Maidment and Mays 1988, Applied Hydrology, ch. 8; ref:chow1988)",
 - `python/fdmr_plugins/registry.py:69`: "days after each fit, which it never saw (fdmr_runner.ledger); the travel-time law as lag-and-route (ref:chow1988)",
+
+## dijkstra1959
+
+Dijkstra, E. W. (1959). A note on two problems in connexion with graphs. Numerische Mathematik 1, 269-271. https://doi.org/10.1007/BF01386390
+
+Checked: Crossref record of the DOI, 27 Nov 2026
+
+Used in:
+
+- `python/fdmr_geo/__init__.py:78`: ref:dijkstra1959), written once (#72): `adj` maps each node to its links
 
 ## dimou1993
 
@@ -484,7 +494,7 @@ Used in:
 - `crates/fdmr-py/src/lib.rs:104`: Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal
 - `python/fdmr_plugins/fvcom/correct.py:128`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press).
 - `python/fdmr_plugins/registry.py:166`: "surface conductance (ref:swrcb_d1641); Godin's tidal filter (ref:godin1972)",
-- `python/fdmr_runner/delta.py:367`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
+- `python/fdmr_runner/delta.py:335`: Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily
 - `python/fdmr_runner/experiment.py:13`: (ref:godin1972), then each day's mean, as the agencies filter their gauges.
 - `python/fdmr_runner/isohaline.py:13`: Godin's filter (ref:godin1972), so the position is the tidally averaged one, as the isohaline's
 - `regions/sf-bay-delta/dsm2.toml:326`: flow through the same channel filtered by Godin's filter (ref:godin1972; fdmr_runner.delta.
@@ -560,7 +570,7 @@ Checked: Crossref record of the DOI, 26 Nov 2026
 Used in:
 
 - `python/fdmr_plugins/registry.py:165`: "Jassby et al. 1995, X2 as a habitat indicator (ref:jassby1995); D-1641's X2 objective as 2.64 mmhos/cm "
-- `python/fdmr_runner/overlays.py:129`: X2 as Jassby et al. 1995 define it (ref:jassby1995)."""
+- `python/fdmr_runner/overlays.py:130`: X2 as Jassby et al. 1995 define it (ref:jassby1995)."""
 - `regions/sf-bay-delta/overlays.toml:14`: estuarine populations. Ecological Applications 5(1): 272-289. ref:jassby1995
 
 ## jones2008franks
@@ -1262,7 +1272,7 @@ Checked: Read 26 Nov 2026 for the pool centres (dsm2.toml [pool_centres])
 
 Used in:
 
-- `python/fdmr_adapters/nhd.py:11`: References: ref:nhd (references.toml).
+- `python/fdmr_adapters/nhd.py:12`: References: ref:nhd (references.toml).
 - `regions/sf-bay-delta/canals.toml:13`: nhd: USGS National Hydrography Dataset, flowlines (ref:nhd; public domain),
 - `regions/sf-bay-delta/dsm2.toml:465`: 2026; ref:nhd).
 - `regions/sf-bay-delta/dsm2.toml:473`: or the NHD waterbody holding a point (ref:nhd). The tool prints each one's

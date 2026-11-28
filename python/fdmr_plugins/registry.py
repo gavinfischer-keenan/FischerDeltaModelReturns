@@ -151,9 +151,9 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
     },
     "canal-network": {
         "flow": [Maths("export-carried", "The network's own export at the intake, the same all along the canal",
-                       "Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)", "fdmr_runner.canals")],
-        "quality": [Maths("intake-lagged", "The intake's water quality carried down at the water's travel time",
-                          "Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)", "fdmr_runner.canals")],
+                       "Continuity in a channel without gains or losses (Chow 1959, ch. 1, ref:chow1959)", "fdmr_plugins.canal, fdmr_runner.canals")],
+        "quality": [Maths("intake-lagged", "The intake's water quality carried down at the water's travel time, otherwise unchanged",
+                          "Plug flow: advection without mixing along the channel (Chapra 1997, ref:chapra1997)", "fdmr_plugins.canal carried")],
     },
     # Published from the reaches' fields after each cycle: not a kind of water,
     # but maths the page shows (#73).
