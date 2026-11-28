@@ -135,15 +135,15 @@ def write_days(
         # channel); the water surface is the bed plus that depth.
         bottom = f["hydro/geometry/channel_bottom"][:]  # (2, channels), ft
         t5 = tidefile_start(flow.attrs["start_time"][0])
-        h = interval_s(flow.attrs["interval"][0])  # the tidefile's own step (5 minutes, as the study sets it)
-        if step % h:
-            raise ValueError(f"a {step} s published step is not a whole number of the tidefile's {h} s")
-        every = step // h
+        rec_s = interval_s(flow.attrs["interval"][0])  # the tidefile's own step (5 minutes, as the study sets it)
+        if step % rec_s:
+            raise ValueError(f"a {step} s published step is not a whole number of the tidefile's {rec_s} s")
+        every = step // rec_s
         n5 = flow.shape[0]
         for d0 in range(start // DAY * DAY, end, DAY):
             a, b = max(d0, start), min(d0 + DAY, end)
             a += (-(a - t5)) % step  # first step on the grid and inside the tidefile
-            i0, i1 = (a - t5) // h, min(n5, (b - t5 + h - 1) // h)
+            i0, i1 = (a - t5) // rec_s, min(n5, (b - t5 + rec_s - 1) // rec_s)
             if i0 < 0 or i0 >= i1:
                 continue
             q = flow[i0:i1:every, :, :] * CFS

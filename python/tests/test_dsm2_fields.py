@@ -64,3 +64,32 @@ def test_hydro_and_qual_become_si_fields_on_utc_days(tmp_path):
 
 def test_the_tidefiles_start_time_is_pacific_standard_time():
     assert fields.tidefile_start(PST_START.encode()) == T0
+
+
+def test_every_day_is_written_with_its_junctions_and_pools(tmp_path):
+    """Two days through the junctions-and-pools part (#78): the tidefile's
+    step is read once, and nothing in a day's loop may change it (a pool's
+    heights did, so the second day failed, 28 Nov 2026)."""
+    from types import SimpleNamespace
+
+    n5 = 2 * DAY // 300 + 12
+    with h5py.File(tmp_path / "hydro.h5", "w") as f:
+        d = f.create_dataset("hydro/data/channel flow", data=np.full((n5, NCH, 2), 100.0))
+        d.attrs["start_time"] = [PST_START.encode()]
+        d.attrs["interval"] = [b"5min"]
+        f.create_dataset("hydro/data/channel avg area", data=np.full((n5, NCH), 1000.0))
+        f.create_dataset("hydro/data/channel stage", data=np.full((n5, NCH, 2), 10.0))
+        f.create_dataset("hydro/geometry/channel_bottom", data=np.array([[-4.0, -6.0], [-2.0, -2.0]]))
+        f.create_dataset("hydro/data/qext flow", data=np.full((n5, 1), -50.0))  # cfs taken out
+        f.create_dataset("hydro/data/reservoir height", data=np.full((n5, 1), 3.0))  # ft
+        f.create_dataset("hydro/data/reservoir flow", data=np.full((n5, 2), 20.0))
+    extras = SimpleNamespace(pools=[{"id": "pool", "bottom_m": 0.0, "area_m2": 1e6}], external=[{"name": "pumps", "node": 2}])
+    days = fields.write_days(tmp_path / "hydro.h5", "net", tmp_path / "out", T0, T0 + 2 * DAY,
+                             node_ids=[1, 2, 3], extras=extras, exports={"pumps"})
+    assert days == ["2025-11-27", "2025-11-28"]
+    for day in days:
+        *_, steps, _, _, flds = fdmr_py.read_field_file(str(tmp_path / "out" / f"{day}.nodes.fdf"))
+        got = {name: np.asarray(v).reshape(steps, -1) for name, _, v in flds}
+        assert steps == 96
+        assert got["export"][:, 1] == pytest.approx(50 * 0.3048**3, rel=1e-6)  # at the pumps' junction
+        assert got["volume"][:, 3] == pytest.approx(3 * 0.3048 * 1e6, rel=1e-6)  # the pool, after the junctions
