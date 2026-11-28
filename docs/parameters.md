@@ -322,9 +322,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/delta.py:46](../python/fdmr_runner/delta.py#L46) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/delta.py:49](../python/fdmr_runner/delta.py#L49) | `BLEND` | `96` | forecasts join the measured series over a day |
 | [python/fdmr_runner/delta.py:280](../python/fdmr_runner/delta.py#L280) | `TO_DSS_M3S_CFS` | `0.3048**3` | m3/s per cfs |
-| [python/fdmr_runner/experiment.py:56](../python/fdmr_runner/experiment.py#L56) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/experiment.py:57](../python/fdmr_runner/experiment.py#L57) | `STEP` | `900` | s: DWR's station output, 15 minutes |
-| [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
+| [python/fdmr_runner/experiment.py:57](../python/fdmr_runner/experiment.py#L57) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `STEP` | `900` | s: DWR's station output, 15 minutes |
+| [python/fdmr_runner/experiment.py:59](../python/fdmr_runner/experiment.py#L59) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
 | [python/fdmr_runner/fetch.py:49](../python/fdmr_runner/fetch.py#L49) | `DATUM_EVERY_S` | `30 * 86_400` | a gauge's datum is fetched again after this long (FDMR's choice: it changes only with a resurvey) |
 | [python/fdmr_runner/fetch.py:50](../python/fdmr_runner/fetch.py#L50) | `AVAILABLE_EVERY_S` | `86_400` | USGS's list of a gauge's series is asked again after this long (FDMR's choice: it changes rarely) |
 | [python/fdmr_runner/fishing.py:34](../python/fdmr_runner/fishing.py#L34) | `DAY` | `86_400` | unit: seconds in a day |
@@ -346,8 +346,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/levels.py:33](../python/fdmr_runner/levels.py#L33) | `MODEL_NEAR_KM` | `1.0` | km: a station is checked against a reach it stands within this of (FDMR's choice) |
 | [python/fdmr_runner/levels.py:34](../python/fdmr_runner/levels.py#L34) | `MAX_LAG_S` | `3 * 3600` | s: the largest shift searched when lining the tides up, 3 hours (FDMR's choice) |
 | [python/fdmr_runner/levels.py:35](../python/fdmr_runner/levels.py#L35) | `MIN_FRACTION` | `0.6` | of the window's steps with both values |
-| [python/fdmr_runner/lock.py:22](../python/fdmr_runner/lock.py#L22) | `WAIT_S` | `30 * 60` | half an hour: longer than a Delta cycle (about 15 min), shorter than an hour of hourly cycles queueing |
-| [python/fdmr_runner/lock.py:23](../python/fdmr_runner/lock.py#L23) | `POLL_S` | `5.0` |  |
+| [python/fdmr_runner/lock.py:27](../python/fdmr_runner/lock.py#L27) | `EXPERIMENT_NICE` | `15` |  |
+| [python/fdmr_runner/lock.py:28](../python/fdmr_runner/lock.py#L28) | `WAIT_S` | `30 * 60` | half an hour: longer than a Delta cycle (about 15 min), shorter than an hour of hourly cycles queueing |
+| [python/fdmr_runner/lock.py:29](../python/fdmr_runner/lock.py#L29) | `POLL_S` | `5.0` |  |
 | [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
 | [python/fdmr_runner/nightly.py:41](../python/fdmr_runner/nightly.py#L41) | `TAIL_LINES` | `60` | each step's last lines of output kept in the log: enough for every check's result (FDMR's choice) |

@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import shutil
 import sys
 import time
@@ -374,7 +375,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rerun", action="store_true", help="run scenarios again even if their daily series exist")
     ap.add_argument("--rescore", action="store_true", help="only score the daily series already in WORK")
     ap.add_argument("--keep", action="store_true", help="keep DSM2's run folders (they are large)")
-    ap.add_argument("--lock", default=None, help="the lock to hold while DSM2 runs (default: the cycle's, fdmr_runner.lock)")
+    ap.add_argument("--lock", default=None, help="the lock to hold while DSM2 runs (default: the experiments' own, fdmr_runner.lock)")
     ap.add_argument("--no-lock", action="store_true", help="run without the lock (a machine with nothing else on it)")
     ap.add_argument("--reservoir-out-ratio", default="",
                     help="a trial: name=ratio,... sets those reservoirs' COEF_OUT to ratio x COEF_IN, in place of the region's")
@@ -382,7 +383,10 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_lock and not args.lock:
         from . import lock as runner_lock
 
-        args.lock = str(runner_lock.CYCLE_LOCK)  # the cycle's lock by default (#86)
+        # The experiments' own lock, not the cycle's: an experiment no longer
+        # holds up the hourly cycle; it gives way on the CPU instead (#39).
+        args.lock = str(runner_lock.EXPERIMENT_LOCK)
+        os.nice(runner_lock.EXPERIMENT_NICE)
     if args.no_lock:
         args.lock = None
     region_dir, work, out = Path(args.region), Path(args.work), Path(args.out)
