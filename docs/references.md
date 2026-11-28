@@ -217,7 +217,7 @@ Used in:
 
 - `tools/validation/experiments/prepare_edi.py:6`: false-river-barrier-2021: edi.1162.2 (ref:hartman2024edb, CC BY 4.0)
 - `tools/validation/experiments/results.md:20`: Data.** Measured salinity and flow come from edi.1162.2 (ref:hartman2024edb). Its Bay-Delta SCHISM runs, with and without the barrier, are compared beside ours.
-- `tools/validation/experiments/results.md:61`: Net flow comes from edi.1162.2 (ref:hartman2024edb).
+- `tools/validation/experiments/results.md:62`: Net flow comes from edi.1162.2 (ref:hartman2024edb).
 
 ## ccr14_581
 
@@ -419,7 +419,7 @@ Checked: The package's EML read (times PST); tables read from the zip as downloa
 Used in:
 
 - `tools/validation/experiments/prepare_edi.py:15`: edi.2385.1 (ref:frantzich2026ncro, CC0): 15-minute specific conductance
-- `tools/validation/experiments/results.md:60`: Salinity comes from DWR's continuous stations, edi.2385.1 (ref:frantzich2026ncro), and from the CEMP stations at Franks Tract and Threemile Slough, edi.1177.9 (ref:nelson2026cemp).
+- `tools/validation/experiments/results.md:61`: Salinity comes from DWR's continuous stations, edi.2385.1 (ref:frantzich2026ncro), and from the CEMP stations at Franks Tract and Threemile Slough, edi.1177.9 (ref:nelson2026cemp).
 
 ## gensen2022
 
@@ -460,8 +460,8 @@ Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 
 Used in:
 
 - `tools/validation/experiments/prepare_edi.py:21`: suisun-gates-2018 and suisun-gates-2023: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)
-- `tools/validation/experiments/results.md:108`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it.
-- `tools/validation/experiments/results.md:142`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg), as for 2018. Hunter Cut has only 32 days in the window and Volanti 65; the others have 82–84.
+- `tools/validation/experiments/results.md:110`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it.
+- `tools/validation/experiments/results.md:144`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg), as for 2018. Hunter Cut has only 32 days in the window and Volanti 65; the others have 82–84.
 
 ## hause2024
 
@@ -722,7 +722,7 @@ Used in:
 - `regions/sf-bay-delta/experiments.toml:67`: 121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2
 - `regions/sf-bay-delta/experiments.toml:277`: 121.5981 W; edi.1177.9 StationMetadata, ref:nelson2026cemp), which DSM2
 - `tools/validation/experiments/prepare_edi.py:18`: edi.1177.9 (ref:nelson2026cemp, CC BY 4.0): 15-minute specific conductance
-- `tools/validation/experiments/results.md:60`: Salinity comes from DWR's continuous stations, edi.2385.1 (ref:frantzich2026ncro), and from the CEMP stations at Franks Tract and Threemile Slough, edi.1177.9 (ref:nelson2026cemp).
+- `tools/validation/experiments/results.md:61`: Salinity comes from DWR's continuous stations, edi.2385.1 (ref:frantzich2026ncro), and from the CEMP stations at Franks Tract and Threemile Slough, edi.1177.9 (ref:nelson2026cemp).
 
 ## cpc_enso
 

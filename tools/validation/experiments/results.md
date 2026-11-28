@@ -40,6 +40,7 @@ Net flow, measured against the model as built and as never built:
 |---|---|---|---|
 | Fisherman's Cut | −10.2 | −8.7 (4.5) | +5.8 (17.2) |
 | Old R. at San Joaquin | −16.1 | −65.5 (49.5) | −91.6 (75.6) |
+| Old R. at Quimby Island | −5.3 | −34.6 (29.3) | −36.1 (30.8) |
 | Holland Cut | +4.4 | −17.0 (21.4) | −7.4 (12.1) |
 | Dutch Slough | −2.4 | +0.9 (4.6) | −1.1 (3.8) |
 
@@ -81,6 +82,7 @@ Net flow:
 |---|---|---|---|
 | Fisherman's Cut | −3.4 | −8.3 (5.1) | +5.0 (8.7) |
 | Old R. at San Joaquin | −13.9 | −60.7 (47.0) | −83.6 (69.7) |
+| Old R. at Quimby Island | −15.4 | −31.1 (15.9) | −32.0 (16.7) |
 | Holland Cut | +4.2 | −12.2 (16.4) | −3.7 (8.2) |
 | Dutch Slough | −2.6 | +0.2 (3.8) | −1.7 (3.1) |
 
@@ -165,6 +167,33 @@ False River's flow gauge reads only at the two ends of the window: 14–21 May, 
 - **River and bays.** The model's Sacramento River below Rio Vista reads 430–700 µS/cm salty in both runs. The action's effect there (−270 to −370) is smaller than that misfit, so the no-action run comes out closer only because it is fresher.
 - **Overall.** As built is closer at 7 of 13 stations: all four on Montezuma Slough, Grizzly Bay, Ryer Island and Rio Vista. That is the same count as in 2018.
 
+## The circulation round Franks Tract (28 Nov 2026, #41, #42)
+
+**The flow gauges as a cross-section.** These are the central Delta's flow gauges: Old River at the San Joaquin (OSJ), Old River at Quimby Island (ORQ), Holland Cut, Fisherman's Cut, False River and Dutch Slough.
+- **The data.** ORQ is read from HYDRO's tidefile (channel 119), since DWR's output files name no station there.
+- **The signs.** Each gauge's and channel's sign was checked: both are positive seaward.
+- **Monthly means, 2021, measured / model as built, m³/s:**
+
+| 2021 | OSJ | ORQ | Holland Cut | Fisherman's Cut | False River |
+|---|---|---|---|---|---|
+| April | +31 / −73 | +27 / −24 | +9 / +4 | +11 / +5 | −47 / +56 |
+| May | +32 / −75 | +20 / −28 | +2 / 0 | +14 / +4 | −56 / +50 |
+
+**What it shows.** Whenever the False River gap is open, the model runs the net circulation round Franks Tract the wrong way:
+- **Measured.** About 50 m³/s comes in from the San Joaquin through False River and goes back out north along Old River.
+- **Model.** The water goes south up Old River and out through False River.
+- **Both years.** 2015 shows the same: April–May and October–December, False River −43 to −63 measured against +21 to +58 in the model.
+
+This net flow is driven by the tides, through the tract's openings, with no river or pump behind it: tidal pumping.
+
+**Why the model cannot make it.** DWR's Franks Tract is one fully mixed reservoir, and every one of its seven connections has the same coefficient for flow in as for flow out (`reservoir_std_delta_grid.inp`). With the flood and the ebb passing each opening alike, it has no way to make this circulation.
+
+**What follows from it:**
+- **Old River.** This is the likely cause of Old River's too-southward net flow (#41).
+- **The barrier.** It is the likely cause of the barrier looking too protective at Bethel Island and Holland Cut (#42). In the real Delta False River brings San Joaquin water into the tract, and the barrier stops that; in the model the gap already runs the other way.
+
+**What we do about it.** We set no asymmetry at the tract's openings ourselves. That would be tuning one place until the gauges agree. It stays a recorded misfit, with its cause known, unless a published source for the openings' flood and ebb behaviour turns up. DWR's own historical runs should be checked for the same reversal next.
+
 ## What this says about the model
 
 **What these experiments test:**
@@ -172,7 +201,7 @@ False River's flow gauge reads only at the two ends of the window: 14–21 May, 
 - They do not test the spreading maths written here. Measured dye clouds test that (`tools/validation/rhine_dye`).
 
 **Standing misfits.** Each is now seen in two years, so none is a feature of one year:
-- Old River at the San Joaquin's net flow: −61 to −66 m³/s modelled against −14 to −16 measured, in 2015 and 2021, with or without the barrier (#41).
+- Old River at the San Joaquin's net flow: −61 to −66 m³/s modelled against −14 to −16 measured, in 2015 and 2021, with or without the barrier (#41). Its cause is in the next section.
 - Franks Tract to Bethel Island reading fresh with the barrier in, in 2015 and 2021. The model overstates the barrier's protection by about 200 µS/cm at Bethel Island (#42).
 - The western marsh (Suisun Slough) reading 1.9–2.5 mS/cm fresh with the gates operating, in 2018 and 2023 (#43).
 - The Sacramento River below Rio Vista reading 400–700 µS/cm salty, and Ryer Island about 1 mS/cm fresh, in 2018 and 2023 (#44, #45).
