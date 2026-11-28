@@ -2005,6 +2005,11 @@
    "citation": "OpenStreetMap contributors (2026). OpenStreetMap, through the Overpass API. OpenStreetMap Foundation; Open Database Licence 1.0. https://www.openstreetmap.org/copyright",
    "used": [
     {
+     "file": "docs/coverage/sf-bay-delta.md",
+     "line": 4,
+     "text": "(ref:osm; © OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright)), in the box -122.770, 37.080, -121.014, 38.669 (west, south, east, north)."
+    },
+    {
      "file": "python/fdmr_adapters/osm.py",
      "line": 12,
      "text": "References: ref:osm (references.toml)."

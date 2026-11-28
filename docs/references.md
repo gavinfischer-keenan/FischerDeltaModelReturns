@@ -973,6 +973,7 @@ Checked: Read by the model runner through the Overpass API, 26 Nov 2026
 
 Used in:
 
+- `docs/coverage/sf-bay-delta.md:4`: (ref:osm; © OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright)), in the box -122.770, 37.080, -121.014, 38.669 (west, south, east, north).
 - `python/fdmr_adapters/osm.py:12`: References: ref:osm (references.toml).
 - `python/fdmr_runner/water_audit.py:7`: The map is OpenStreetMap's (ref:osm), through the Overpass API, in the
 - `python/fdmr_runner/water_audit.py:281`: f"(ref:osm; {a['attribution']}), in the box {', '.join(f'{x:.3f}' for x in a['bbox'])} (west, south, east, north).",
