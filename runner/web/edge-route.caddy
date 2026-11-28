@@ -1,0 +1,22 @@
+# Sturgeon's lines in the site's edge proxy (on this project CT 703; the edge
+# is shared with other sites, so only these lines are Sturgeon's). A copy for
+# reference, taken 28 Nov 2026: the edge's own Caddyfile is the one in force,
+# and changing it is done there. 192.168.5.231:8091 is the model runner's
+# Caddy (runner/web/Caddyfile).
+#
+# The viewer picks its region from ?region= (ui/src/ui/App.svelte, which
+# defaults to sf-bay-delta), so each region's path adds it.
+
+    redir /sturgeon/bay-delta /sturgeon/bay-delta/ 308
+    handle_path /sturgeon/bay-delta/* {
+        reverse_proxy 192.168.5.231:8091
+    }
+    redir /sturgeon/rhine-meuse /sturgeon/rhine-meuse/?region=rhine-meuse 308
+    @sturgeon_rm_bare {
+        path /sturgeon/rhine-meuse/
+        not query region=*
+    }
+    redir @sturgeon_rm_bare /sturgeon/rhine-meuse/?region=rhine-meuse 302
+    handle_path /sturgeon/rhine-meuse/* {
+        reverse_proxy 192.168.5.231:8091
+    }
