@@ -22,6 +22,8 @@ jobs:
       - run: python -I tools/references.py --check
       - run: python tools/maths_doc.py --check
       - run: python tools/params_doc.py --check
+      # The runner's shell scripts (ShellCheck comes with the runner image).
+      - run: find runner -name '*.sh' -exec shellcheck -S warning {} +
 
   python:
     name: Python (store, adapters, plug-ins, bindings)
@@ -35,9 +37,13 @@ jobs:
         with:
           python-version: "3.13"
       - uses: dtolnay/rust-toolchain@stable
-      - run: pip install pytest h5py pypdf pyshp scipy ../crates/fdmr-py
+      # The project's own dependencies and test extras (pyproject.toml), so no
+      # test is skipped for a package left out by hand (#87).
+      - run: pip install '.[test]' ../crates/fdmr-py ruff
       - run: python -c "import fdmr_py"
-      - run: python -m pytest -q
+      - run: ruff check --select F,E9 . ../tools
+      # -rs: every skipped test says why, in the log.
+      - run: python -m pytest -q -rs
 
   rust:
     name: Rust (math library, published format)

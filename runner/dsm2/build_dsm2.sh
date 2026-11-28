@@ -39,7 +39,9 @@ oneapi() {
   # installing MKL also installs an older compiler runtime and moves "latest" to it.
   # The vars.sh scripts trip over `set -u`, so relax it while sourcing.
   set +u
+  # shellcheck source=/dev/null  # Intel's own environment script, outside the repository
   . "/opt/intel/oneapi/compiler/$INTEL_COMPILER_VERSION/env/vars.sh" >/dev/null
+  # shellcheck source=/dev/null  # Intel's own environment script, outside the repository
   . "/opt/intel/oneapi/mkl/$INTEL_MKL_VERSION/env/vars.sh" >/dev/null
   set -u
   export CC=icx CXX=icpx FC=ifx F77=ifx
