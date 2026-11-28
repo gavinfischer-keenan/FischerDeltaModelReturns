@@ -73,7 +73,10 @@ flowchart TD
 How the model is checked, and how a change to it is made. Every published
 prediction is kept, scored when the measurement arrives, and set against
 persistence (the last reading, held). Nightly, the model is rerun as of five
-days before, with only what was known then. Nothing changes the model by
+days before, with only what was measured before then and the river forecasts
+issued before then (where they were kept; other forecasts are held). One
+honest limit: a measurement revised or filled in later is used as revised,
+because the store keeps only each value's latest version. Nothing changes the model by
 itself: a person reads the scores and logs, and any change is made by hand,
 with its reason, in the code and its history.
 

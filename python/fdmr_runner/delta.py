@@ -15,10 +15,12 @@ Tidal averaging, where an input asks for it, comes after, over the joined series
 in their last state. The run covers `--days` before today's midnight (Pacific
 Standard Time) and `--ahead` after it.
 
-`--as-of` pretends it is an earlier time: nothing measured after it is used,
-and river forecasts are left out (the store keeps only the latest issue, which
-would know the answer). DSM2's forecast is then checked against what the
-stations measured.
+`--as-of` pretends it is an earlier time: nothing measured after it is used
+(though a value measured before it is used as revised since: the store keeps
+the latest version), and a river forecast is the River Forecast Center's
+issue that was in force then, where it was archived, else held: the rivers'
+rule (forecast.cnrfc_forecast, #74). DSM2's forecast is then checked against
+what the stations measured.
 """
 
 from __future__ import annotations
@@ -105,7 +107,8 @@ def day_weights(shape: list[float] | None) -> list[float]:
     return [w / mean for w in shape]
 
 
-def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forecasts: bool) -> tuple[list[float], str]:
+def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forecasts: bool,
+               hindcast: bool = False) -> tuple[list[float], str]:
     """A live input from t0 for n steps: measured up to now, then its forecast or
     held. Returns the series (SI units) and how it was carried on."""
     g = grid(store, f, t0, n, cutoff=now)
@@ -127,10 +130,13 @@ def carried_on(store: Store, f: dict, t0: int, n: int, now: int, use_river_forec
         g, _ = extend(g, tide, i_now, n, BLEND)
         how = f"tide {fc['station']}: {shift * STEP / 60:+.0f} min, x{scale:.3f}, {offset:+.3f} m"
     elif fc and fc["source"] == "cnrfc" and use_river_forecasts:
-        fv = store.values("cnrfc", fc["point"], "discharge", t0, t0 + (n + 1) * STEP)
-        if fv:
-            g, last = extend(g, on_grid([(v.t, v.value) for v in fv], t0, STEP, n), i_now, n, BLEND)
-            how = f"forecast {fc['point']} to {dss.label(t0 + last * STEP)[0] if last else 'now'}"
+        # Live, the latest; a hindcast, the issue in force then if kept: the rivers' rule (#74).
+        from .forecast import cnrfc_forecast
+
+        fcg = cnrfc_forecast(store, fc, t0, STEP, n, now, t0 + n * STEP, hindcast)
+        if fcg is not None:
+            g, last = extend(g, fcg, i_now, n, BLEND)
+            how = f"{'archived ' if hindcast else ''}forecast {fc['point']} to {dss.label(t0 + last * STEP)[0] if last else 'now'}"
     if how == "held" and f.get("hold") == "mean_25h":
         # A tidal signal held at one moment would freeze half a tide: hold its
         # mean over the last 25 hours instead.
@@ -552,7 +558,7 @@ def main(argv: list[str] | None = None) -> int:
         return min(x[0], now) if x else None
 
     for f in cfg["live"]:
-        series, how = carried_on(store, f, t0, n, now, use_river_forecasts=not hindcast)
+        series, how = carried_on(store, f, t0, n, now, use_river_forecasts=True, hindcast=hindcast)
         values = resample([v * TO_DSS[f["units"]] for v in series], dss.interval(f["path"]))
         live.append(study.LiveSeries(f["path"], f["units"], t0, values))
         print(f"{f['path']:44s} {f['source']} {f['site']:9s} {how}")

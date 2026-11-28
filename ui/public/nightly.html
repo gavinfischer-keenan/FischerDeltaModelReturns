@@ -42,7 +42,7 @@ const skillClass = (r) => r.skill_vs_persistence == null ? "" : r.skill_vs_persi
   let h = `<p>Logs: ${idx.logs.map((d) => d === date ? `<b>${d}</b>` : `<a href="?region=${region}&date=${d}">${d}</a>`).join(" · ")}</p>`;
   h += `<h2>${esc(date)}</h2><p>Model version: ${esc(JSON.stringify(log.model_version || {}))}</p>`;
   const hc = log.hindcast;
-  h += hc ? `<p>Hindcast as of <b>${esc(hc.as_of)}</b>: ${esc(hc.reaches.join(", "))}; ${fmt(hc.kept)} predictions kept; forecasts ${esc(hc.forecasts)}; not hindcast: ${esc(hc.not_hindcast.join(", "))}.</p>` : "<p><b>The hindcast failed tonight</b>; see the steps.</p>";
+  h += hc ? `<p>Hindcast as of <b>${esc(hc.as_of)}</b>: ${esc(hc.reaches.join(", "))}; ${fmt(hc.kept)} predictions kept; inputs: ${esc(hc.inputs || hc.forecasts || "")}; not hindcast: ${esc(hc.not_hindcast.join(", "))}.</p>` : "<p><b>The hindcast failed tonight</b>; see the steps.</p>";
   h += table(log.steps.map((s) => ({ step: s.step, ok: s.ok ? "yes" : "NO", seconds: s.seconds, "last lines": (s.tail || []).join(" | ") })), ["step", "ok", "seconds", "last lines"]);
   const s = log.score;
   h += `<h2>Scores: the last ${s.window_days} days (${esc(JSON.stringify(s.cycles_by_kind || {}))} cycles)</h2>`;

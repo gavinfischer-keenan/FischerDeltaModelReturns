@@ -230,16 +230,9 @@ def publish_river(region_dir: Path, region, store: Store, cdir: Path, reach: str
             raise ValueError(f"gauge {g.site} has no discharge in the store")
         measured = regular([(v.t, v.value) for v in vals], t0, STEP, i_now + 1)
         fc = None
-        if g.forecast and g.forecast.get("source") == cnrfc.SOURCE and not hindcast:
-            fv = store.values(cnrfc.SOURCE, g.forecast["point"], "discharge", now - DAY, end + DAY)
-            fc = forecast.on_grid([(v.t, v.value) for v in fv], t0, STEP, n) if fv else None
-        elif g.forecast and g.forecast.get("source") == cnrfc.SOURCE and store.path.name != ":memory:":
-            # A hindcast takes the forecast that was in force at its time, if it was kept.
-            zb = cnrfc.archived_issue(store.path.parent / "cnrfc-issues", g.forecast["group"], now)
-            if zb:
-                issue, got = cnrfc.parse(zb, [g.forecast["point"]])
-                fv = got.get(g.forecast["point"], [])
-                fc = forecast.on_grid([(v.t, v.value) for v in fv], t0, STEP, n) if fv else None
+        if g.forecast and g.forecast.get("source") == cnrfc.SOURCE:
+            # Live, the latest; a hindcast, the issue in force then if kept (forecast.cnrfc_forecast, #74).
+            fc = forecast.cnrfc_forecast(store, g.forecast, t0, STEP, n, now, end, hindcast)
         elif g.forecast and g.forecast.get("source") == "rws" and not hindcast:
             # Rijkswaterstaat's own forecast at the gauge (fdmr_adapters.rws), as fetched.
             fv = store.values("rws", g.site, "discharge_forecast", now - DAY, end + DAY)
@@ -708,7 +701,7 @@ def publish(
     if index.get("handoffs") or any(r.get("time") or r.get("dims", 1) != 1 for r in index["reaches"]):
         index["format_version"] = [1, 1]
     if hindcast:
-        index["hindcast"] = {"as_of": utc(now), "forecasts": "river forecasts: the River Forecast Center issue in force at the time where kept (kept from 26 Nov 2026), otherwise held; release rules and weather forecasts held"}
+        index["hindcast"] = {"as_of": utc(now), "inputs": forecast.HINDCAST_NOTE}
     # What is drawn over the water: X2, the stations' readings (fdmr_runner.overlays).
     try:
         if hindcast:

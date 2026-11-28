@@ -144,3 +144,32 @@ def _bridge(s: Sequence[float | None]) -> list[float]:
         else:
             last = v
     return out  # type: ignore[return-value]
+
+
+# What a hindcast's inputs are, said once (#74), for index.json and the nightly log.
+HINDCAST_NOTE = ("measured inputs as they stand in the store now (a value fetched or revised after the "
+                 "hindcast's time is used as revised: the store keeps the latest version of each); river "
+                 "forecasts the River Forecast Center's issue in force at the time where it was kept (kept "
+                 "from 26 Nov 2026), otherwise held; release rules and weather forecasts held")
+
+
+def cnrfc_forecast(store, fc: dict, t0: int, step: int, n: int, now: int, end: int, hindcast: bool) -> list[float | None] | None:
+    """A River Forecast Center forecast at `fc["point"]` on the grid (t0,
+    step, n), or None: live, the latest fetched; in a hindcast, the issue that
+    was in force at `now`, if it was archived (`fc["group"]`). One rule for
+    the rivers and the Delta (#74)."""
+    from pathlib import Path
+
+    from fdmr_adapters import cnrfc
+
+    if not hindcast:
+        fv = store.values(cnrfc.SOURCE, fc["point"], "discharge", now - 86_400, end + 86_400)
+        return on_grid([(v.t, v.value) for v in fv], t0, step, n) if fv else None
+    if store.path.name == ":memory:" or not fc.get("group"):
+        return None
+    zb = cnrfc.archived_issue(Path(store.path).parent / "cnrfc-issues", fc["group"], now)
+    if not zb:
+        return None
+    _, got = cnrfc.parse(zb, [fc["point"]])
+    fv = got.get(fc["point"], [])
+    return on_grid([(v.t, v.value) for v in fv], t0, step, n) if fv else None

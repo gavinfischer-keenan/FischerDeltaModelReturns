@@ -29,7 +29,7 @@
     },
     {
      "file": "python/fdmr_runner/delta.py",
-     "line": 162,
+     "line": 168,
      "text": "how += f\"; SSC = 10^{r['b']} x turbidity^{r['a']} ({r['area']} relation, Achete et al. 2015, ref:achete2015)\""
     },
     {
@@ -1018,7 +1018,7 @@
     },
     {
      "file": "python/fdmr_runner/delta.py",
-     "line": 359,
+     "line": 365,
      "text": "Godin's filter (ref:godin1972), and the gauge's own tidally filtered flow, each as daily"
     },
     {

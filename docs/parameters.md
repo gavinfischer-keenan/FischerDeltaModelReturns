@@ -318,10 +318,10 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/canals.py:37](../python/fdmr_runner/canals.py#L37) | `SEGMENT_M` | `1000.0` | the longest channel a canal is cut into, so quality can change along it |
 | [python/fdmr_runner/canals.py:38](../python/fdmr_runner/canals.py#L38) | `SNAP_M` | `30.0` | ends of a source's pieces closer than this join |
 | [python/fdmr_runner/canals.py:41](../python/fdmr_runner/canals.py#L41) | `STEP_S` | `3600` | Published steps, s. The pumping behind the flow is measured daily and the water's quality changes over hours, so hourly is ample and keeps the files small. |
-| [python/fdmr_runner/delta.py:43](../python/fdmr_runner/delta.py#L43) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
-| [python/fdmr_runner/delta.py:44](../python/fdmr_runner/delta.py#L44) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/delta.py:47](../python/fdmr_runner/delta.py#L47) | `BLEND` | `96` | forecasts join the measured series over a day |
-| [python/fdmr_runner/delta.py:274](../python/fdmr_runner/delta.py#L274) | `TO_DSS_M3S_CFS` | `0.3048**3` | m3/s per cfs |
+| [python/fdmr_runner/delta.py:45](../python/fdmr_runner/delta.py#L45) | `STEP` | `900` | s: the published time step, 15 minutes (docs/format.md) |
+| [python/fdmr_runner/delta.py:46](../python/fdmr_runner/delta.py#L46) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/delta.py:49](../python/fdmr_runner/delta.py#L49) | `BLEND` | `96` | forecasts join the measured series over a day |
+| [python/fdmr_runner/delta.py:280](../python/fdmr_runner/delta.py#L280) | `TO_DSS_M3S_CFS` | `0.3048**3` | m3/s per cfs |
 | [python/fdmr_runner/experiment.py:56](../python/fdmr_runner/experiment.py#L56) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/experiment.py:57](../python/fdmr_runner/experiment.py#L57) | `STEP` | `900` | s: DWR's station output, 15 minutes |
 | [python/fdmr_runner/experiment.py:58](../python/fdmr_runner/experiment.py#L58) | `MIN_STEPS` | `72` | of 96 a day: 18 hours |
@@ -348,9 +348,9 @@ Every number the model is set with: in each region's settings and among the mode
 | [python/fdmr_runner/levels.py:35](../python/fdmr_runner/levels.py#L35) | `MIN_FRACTION` | `0.6` | of the window's steps with both values |
 | [python/fdmr_runner/lock.py:22](../python/fdmr_runner/lock.py#L22) | `WAIT_S` | `30 * 60` | half an hour: longer than a Delta cycle (about 15 min), shorter than an hour of hourly cycles queueing |
 | [python/fdmr_runner/lock.py:23](../python/fdmr_runner/lock.py#L23) | `POLL_S` | `5.0` |  |
-| [python/fdmr_runner/nightly.py:38](../python/fdmr_runner/nightly.py#L38) | `DAY` | `86_400` | unit: seconds in a day |
-| [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
-| [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `TAIL_LINES` | `60` | each step's last lines of output kept in the log: enough for every check's result (FDMR's choice) |
+| [python/fdmr_runner/nightly.py:39](../python/fdmr_runner/nightly.py#L39) | `DAY` | `86_400` | unit: seconds in a day |
+| [python/fdmr_runner/nightly.py:40](../python/fdmr_runner/nightly.py#L40) | `KEEP_LOGS` | `120` | nightly review logs kept: the last 120 nights |
+| [python/fdmr_runner/nightly.py:41](../python/fdmr_runner/nightly.py#L41) | `TAIL_LINES` | `60` | each step's last lines of output kept in the log: enough for every check's result (FDMR's choice) |
 | [python/fdmr_runner/ocean.py:26](../python/fdmr_runner/ocean.py#L26) | `DAY` | `86_400` | unit: seconds in a day |
 | [python/fdmr_runner/ocean.py:27](../python/fdmr_runner/ocean.py#L27) | `ENSO_THRESHOLD` | `0.5` | degC: CPC's El Nino (+) and La Nina (-) threshold for the Oceanic Nino Index ([cpc_enso](references.md#cpc_enso)) |
 | [python/fdmr_runner/ocean.py:28](../python/fdmr_runner/ocean.py#L28) | `WEEKLY_AGE_DAYS` | `21` | a weekly Nino index older than this is not shown (FDMR's choice: three missed weeks) |
