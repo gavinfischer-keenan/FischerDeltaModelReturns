@@ -40,7 +40,7 @@ Checked: MDPI article page, 28 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:364`: "Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit "
+- `python/fdmr_plugins/registry.py:366`: "Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit "
 
 ## bashevkin2023
 
@@ -88,7 +88,7 @@ Checked: USGS Publications Warehouse record, 28 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:348`: "South Bay slow class 0.014 mm/s in autumn (Brand et al. 2015, ref:brand2015)",
+- `python/fdmr_plugins/registry.py:350`: "South Bay slow class 0.014 mm/s in autumn (Brand et al. 2015, ref:brand2015)",
 
 ## brown1987qual2e
 
@@ -395,7 +395,7 @@ Checked: DOI record read; coefficients read from ACOLITE's defaults, 27 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:369`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `python/fdmr_plugins/registry.py:371`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
 - `tools/validation/satellite_turbidity/README.md:7`: Turbidity from reflectance.** Dogliotti et al. 2015 (ref:dogliotti2015), with the coefficients ACOLITE uses.
 - `tools/validation/satellite_turbidity/hls_check.py:7`: Turbidity, FNU, by Dogliotti et al. (2015, ref:dogliotti2015):
 
@@ -420,7 +420,7 @@ Checked: DataCite record of the DOI; CaltechAUTHORS record, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/lib.rs:19`: lopsided as the shear makes it (Fischer 1966, ref:fischer1966). A release
+- `crates/fdmr-compute/src/river.rs:13`: lopsided as the shear makes it (Fischer 1966, ref:fischer1966). A release
 - `crates/fdmr-math/src/dispersion.rs:6`: ref:fischer1966).
 - `crates/fdmr-math/src/dispersion.rs:29`: (Fischer 1966, ref:fischer1966, eq. 57). Taylor's theory "should be applied
 - `crates/fdmr-math/src/dispersion.rs:49`: ε = 0.23 d u* (Fischer 1966, ref:fischer1966, section II-F, eq. 23).
@@ -439,7 +439,7 @@ Checked: Scilit record of the DOI, 28 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:364`: "Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit "
+- `python/fdmr_plugins/registry.py:366`: "Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit "
 
 ## fischer1979
 
@@ -489,7 +489,7 @@ Checked: Open Library ISBN record and library catalogue records, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/series.rs:69`: A copy with every field tidally filtered (Godin's filter, ref:godin1972), element by
+- `crates/fdmr-compute/src/series.rs:82`: A copy with every field tidally filtered (Godin's filter, ref:godin1972), element by
 - `crates/fdmr-math/src/signal.rs:149`: Godin's three running means, h (Godin 1972, ref:godin1972).
 - `crates/fdmr-math/src/signal.rs:161`: (Godin 1972, ref:godin1972, *The Analysis of Tides*, University of Toronto Press). The
 - `crates/fdmr-py/src/lib.rs:104`: Godin's tidal filter (`fdmr_math::signal::godin`, ref:godin1972): the subtidal
@@ -582,7 +582,7 @@ Checked: eScholarship and ScienceBase records, 28 Nov 2026 (USGS lists the autho
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:353`: "flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)",
+- `python/fdmr_plugins/registry.py:355`: "flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)",
 
 ## karney2011
 
@@ -657,7 +657,7 @@ Checked: USGS Publications Warehouse record, 28 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:353`: "flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)",
+- `python/fdmr_plugins/registry.py:355`: "flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)",
 
 ## lehman2005
 
@@ -701,7 +701,7 @@ Checked: The abstract as published by Copernicus, 28 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:347`: "Delta microflocs average 1.63 mm/s (Manning and Schoellhamer, 2015 conference abstract, preliminary, ref:manning2015egu); "
+- `python/fdmr_plugins/registry.py:349`: "Delta microflocs average 1.63 mm/s (Manning and Schoellhamer, 2015 conference abstract, preliminary, ref:manning2015egu); "
 
 ## mathers2025
 
@@ -711,7 +711,7 @@ Checked: Springer record of the DOI, 28 Nov 2026; the candidate's October figure
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:361`: "October (Mathers et al. 2025, ref:mathers2025)",
+- `python/fdmr_plugins/registry.py:363`: "October (Mathers et al. 2025, ref:mathers2025)",
 
 ## mcconnell2023
 
@@ -842,7 +842,7 @@ Checked: Both DOI records read, 27 Nov 2026
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:369`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
+- `python/fdmr_plugins/registry.py:371`: "HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity "
 - `tools/validation/satellite_turbidity/README.md:6`: Satellite.** NASA's HLS v2.0 surface reflectance (ref:hls2), Landsat 8/9 and Sentinel-2 at 30 m: every pass from 1 July to 27 November 2026 with at most 40% cloud over the Delta's two tiles (T10SFH, T
 - `tools/validation/satellite_turbidity/hls_check.py:5`: (HLSL30 from Landsat 8/9, HLSS30 from Sentinel-2; 30 m; ref:hls2), red (B04)
 
@@ -1092,7 +1092,7 @@ Checked: Crossref record of the DOI; the paper read (Table 3, sections 2.1 and 5
 
 Used in:
 
-- `python/fdmr_plugins/registry.py:357`: "critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)",
+- `python/fdmr_plugins/registry.py:359`: "critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)",
 - `regions/sf-bay-delta/dsm2.toml:704`: (ref:schoellhamer2017, Table 3: 0.14 Pa at Franks Tract, 15 cores; 0.11 Pa
 
 ## schureman1958
@@ -1341,7 +1341,7 @@ Checked: Scan read from TU Delft's repository: pages 207-220 and 224-225, 27 Nov
 
 Used in:
 
-- `crates/fdmr-compute/src/lib.rs:27`: behind the water β (van Mazijk 1996, ref:vanmazijk1996).
+- `crates/fdmr-compute/src/river.rs:21`: behind the water β (van Mazijk 1996, ref:vanmazijk1996).
 - `crates/fdmr-math/src/dispersion.rs:73`: ref:vanmazijk1996, section 4.4). The rate sets only the cloud's shape (how
 - `crates/fdmr-math/src/parcel.rs:80`: delayed by β (van Mazijk 1996, ref:vanmazijk1996, section 4.4). One uniform
 - `python/fdmr_plugins/registry.py:97`: "van Mazijk 1996, section 4.4, Figs 4.4.10-4.4.15, p. 217 (ref:vanmazijk1996); the exchange rate "

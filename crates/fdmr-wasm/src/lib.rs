@@ -8,7 +8,7 @@
 use fdmr_compute::mesh::{MeshRelease, MeshTopology, MeshTracer};
 use fdmr_compute::network::{NetRelease, NetworkTracer, Place, Topology};
 use fdmr_compute::region::{Entry, Region as RegionCore, RiverEnd, Shared};
-use fdmr_compute::{Engine as Core, Release};
+use fdmr_compute::{Release, RiverTracer as Core};
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;

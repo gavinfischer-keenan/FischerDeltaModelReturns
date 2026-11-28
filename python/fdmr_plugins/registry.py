@@ -82,7 +82,7 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                              "far from a release it spreads at Fischer's K, near it as lopsided as the shear makes it",
                              "Fischer 1966, Longitudinal Dispersion in Laboratory and Natural Streams, sections II-F and III-F, eqs. 23, "
                              "40 and 57 (ref:fischer1966); Taylor's integral for the profile (FDMR, crates/fdmr-math dispersion.rs)",
-                             "crates/fdmr-math dispersion.rs shear_profile_c, crates/fdmr-compute lib.rs, fdmr_plugins.river_routing.fields lateral_field"),
+                             "crates/fdmr-math dispersion.rs shear_profile_c, crates/fdmr-compute river.rs, crates/fdmr-math parcel.rs, fdmr_plugins.river_routing.fields lateral_field"),
                        Maths("fischer-longitudinal",
                              "Longitudinal dispersion coefficient from width, depth, velocity and shear velocity; "
                              "each element also publishes how far below a release it holds (fickian_m: six Lagrangian "
@@ -96,7 +96,7 @@ REGISTER: dict[str, dict[str, list[Maths]]] = {
                                     "exchange is switched off below a velocity head of 0.01 m, fully on above 0.02 m. Does nothing elsewhere",
                                     "van Mazijk 1996, section 4.4, Figs 4.4.10-4.4.15, p. 217 (ref:vanmazijk1996); the exchange rate "
                                     "1e-5/s empirical, FDMR (fitted on one measured cloud, judged on another branch's: tools/validation/rhine_dye)",
-                                    "fdmr_plugins.river_routing.storage, fdmr_runner.publish storage_field, crates/fdmr-compute lib.rs")],
+                                    "fdmr_plugins.river_routing.storage, fdmr_runner.publish storage_field, crates/fdmr-compute river.rs, crates/fdmr-math parcel.rs")],
         "release": [Maths("held-or-rule",
                           "A dam's release ahead: the River Forecast Center's forecast where given; else following its release forecast "
                           "upstream; else the flood-control rule (storage against the Corps' top of conservation); else held",
@@ -262,7 +262,8 @@ CHECKS: dict[str, tuple[str, ...]] = {
     ),
     "cross-channel-shear": (
         "crates/fdmr-math/src/dispersion.rs::the_shear_profile_gives_fischers_k_by_taylors_integral",
-        "crates/fdmr-compute/src/lib.rs::shear_and_lateral_mixing_spread_a_release_at_taylors_k",
+        "crates/fdmr-compute/src/river.rs::shear_and_lateral_mixing_spread_a_release_at_taylors_k",
+        "crates/fdmr-math/src/parcel.rs::shear_and_lateral_mixing_spread_at_taylors_k",
     ),
     "fischer-longitudinal": (
         "crates/fdmr-math/src/dispersion.rs::fischer_k_textbook",
@@ -271,7 +272,8 @@ CHECKS: dict[str, tuple[str, ...]] = {
         "crates/fdmr-math/src/parcel.rs::moment_method_recovers_k_from_parcels",
     ),
     "groyne-field-storage": (
-        "crates/fdmr-compute/src/lib.rs::dead_zone_storage_delays_a_cloud_by_beta",
+        "crates/fdmr-compute/src/river.rs::dead_zone_storage_delays_a_cloud_by_beta",
+        "crates/fdmr-math/src/parcel.rs::dead_zone_storage_delays_a_cloud_by_beta",
         "python/tests/test_storage.py::test_the_switch_follows_the_velocity_head",
         "python/tests/test_storage.py::test_every_branchs_tables_are_sourced_and_sane",
         "check: every measured lag of the Rhine branches, 1986-1991 (tools/validation/rhine_dye/lag_rule.py)",
@@ -321,7 +323,7 @@ CHECKS: dict[str, tuple[str, ...]] = {
         "crates/fdmr-compute/src/mesh/mod.rs::spreading_matches_diffusion_and_stays_even_over_a_sloping_bed",
         "crates/fdmr-compute/src/mesh/mod.rs::mass_is_conserved_under_spreading",
         "crates/fdmr-compute/src/mesh/mod.rs::an_even_start_stays_even_where_the_diffusivity_varies",
-        "crates/fdmr-compute/src/lib.rs::mass_balances_with_decay_and_outflow",
+        "crates/fdmr-compute/src/river.rs::mass_balances_with_decay_and_outflow",
     ),
     "pss-78": ("crates/fdmr-math/src/salinity.rs::delta_waters_read_sensibly",),
     "first-order": (

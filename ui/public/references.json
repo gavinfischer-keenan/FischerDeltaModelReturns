@@ -81,7 +81,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 364,
+     "line": 366,
      "text": "\"Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit \""
     }
    ]
@@ -166,7 +166,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 348,
+     "line": 350,
      "text": "\"South Bay slow class 0.014 mm/s in autumn (Brand et al. 2015, ref:brand2015)\","
     }
    ]
@@ -790,7 +790,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 369,
+     "line": 371,
      "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
     },
     {
@@ -841,8 +841,8 @@
    "citation": "Fischer, H. B. (1966). Longitudinal dispersion in laboratory and natural streams. Report No. KH-R-12, W. M. Keck Laboratory of Hydraulics and Water Resources, California Institute of Technology, Pasadena; June 1966. https://doi.org/10.7907/Z9F769HC",
    "used": [
     {
-     "file": "crates/fdmr-compute/src/lib.rs",
-     "line": 19,
+     "file": "crates/fdmr-compute/src/river.rs",
+     "line": 13,
      "text": "lopsided as the shear makes it (Fischer 1966, ref:fischer1966). A release"
     },
     {
@@ -905,7 +905,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 364,
+     "line": 366,
      "text": "\"Fischer 1969 (ref:fischer1969): eps_t/(d u*) = 25 (U/u*)^2 (d/R)^2; Baek and Lee 2023 (ref:baeklee2023) fit \""
     }
    ]
@@ -1011,7 +1011,7 @@
    "used": [
     {
      "file": "crates/fdmr-compute/src/series.rs",
-     "line": 69,
+     "line": 82,
      "text": "A copy with every field tidally filtered (Godin's filter, ref:godin1972), element by"
     },
     {
@@ -1216,7 +1216,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 353,
+     "line": 355,
      "text": "\"flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)\","
     }
    ]
@@ -1372,7 +1372,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 353,
+     "line": 355,
      "text": "\"flooded islands (Lacy et al. 2023, ref:lacy2023; Jones et al. 2008, ref:jones2008franks)\","
     }
    ]
@@ -1455,7 +1455,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 347,
+     "line": 349,
      "text": "\"Delta microflocs average 1.63 mm/s (Manning and Schoellhamer, 2015 conference abstract, preliminary, ref:manning2015egu); \""
     }
    ]
@@ -1473,7 +1473,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 361,
+     "line": 363,
      "text": "\"October (Mathers et al. 2025, ref:mathers2025)\","
     }
    ]
@@ -1754,7 +1754,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 369,
+     "line": 371,
      "text": "\"HLS v2.0 reflectance (ref:hls2) through Dogliotti et al. 2015 (ref:dogliotti2015) against 20 turbidity \""
     },
     {
@@ -2263,7 +2263,7 @@
    "used": [
     {
      "file": "python/fdmr_plugins/registry.py",
-     "line": 357,
+     "line": 359,
      "text": "\"critical stress rising as the bed erodes (Schoellhamer et al. 2017, ref:schoellhamer2017, p. 807)\","
     },
     {
@@ -2743,8 +2743,8 @@
    "citation": "van Mazijk, A. (1996). One-dimensional approach of transport phenomena of dissolved matter in rivers. PhD thesis, Delft University of Technology; Communications on Hydraulic and Geotechnical Engineering 96-3. https://repository.tudelft.nl/record/uuid:789593e2-fd72-4800-9abe-3163d09e2179",
    "used": [
     {
-     "file": "crates/fdmr-compute/src/lib.rs",
-     "line": 27,
+     "file": "crates/fdmr-compute/src/river.rs",
+     "line": 21,
      "text": "behind the water β (van Mazijk 1996, ref:vanmazijk1996)."
     },
     {

@@ -26,16 +26,29 @@ impl Series {
                 "day files disagree about the number of elements".into(),
             ));
         }
+        self.insert(f);
+        Ok(())
+    }
+
+    /// Add a day already read and checked, in time order.
+    pub(crate) fn insert(&mut self, f: FieldFile) {
         self.elements = f.elements as usize;
         let at = self.days.partition_point(|d| d.t0 < f.t0);
         self.days.insert(at, f);
-        Ok(())
+    }
+
+    /// Whether no day is held.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.days.is_empty()
     }
 
     /// The day and step at or before `t`, and how far to the next step (0..1).
     fn locate(&self, t: f64) -> Option<(usize, usize, f64)> {
         #[allow(clippy::cast_precision_loss)]
-        let d = self.days.iter().rposition(|d| d.t0 as f64 <= t)?;
+        let d = self
+            .days
+            .partition_point(|d| d.t0 as f64 <= t)
+            .checked_sub(1)?;
         let day = &self.days[d];
         #[allow(clippy::cast_precision_loss)]
         let pos = (t - day.t0 as f64) / f64::from(day.step_s);
@@ -119,6 +132,16 @@ impl Series {
     /// Whether the days hold a field of this name.
     pub(crate) fn has(&self, name: &str) -> bool {
         self.days.first().is_some_and(|d| d.field(name).is_some())
+    }
+
+    /// One element's value of a field at `t`, as `at` gives it.
+    pub(crate) fn value(&self, t: f64, name: &str, e: usize) -> Option<f64> {
+        let (d, i, f) = self.locate(t)?;
+        let (a, b) = (
+            self.row(d, i, name)?.get(e)?,
+            self.row(d, i + 1, name)?.get(e)?,
+        );
+        Some(f64::from(*a) * (1.0 - f) + f64::from(*b) * f)
     }
 
     /// A field at `t` for every element, linear between steps; `None` before the

@@ -1,7 +1,7 @@
 //! A region's reaches run together, passing parcels and flow particles across
 //! every join, with one mass balance for them all (issue #60).
 //!
-//! A region is river reaches (`Engine`), channel networks (`NetworkTracer`)
+//! A region is river reaches (`RiverTracer`), channel networks (`NetworkTracer`)
 //! and meshes (`MeshTracer`). Each runs on its own; the region steps them
 //! together, `EXCHANGE_S` at a time, and after each step hands on what
 //! crossed a join:
@@ -31,7 +31,7 @@ use std::rc::Rc;
 
 use crate::mesh::{MeshFate, MeshTracer};
 use crate::network::{NetRelease, NetworkTracer, Place, Via};
-use crate::Engine;
+use crate::RiverTracer;
 
 /// A reach the region steps and its maker reads.
 pub type Shared<T> = Rc<RefCell<T>>;
@@ -143,7 +143,7 @@ fn half_life(h: Option<f64>) -> Option<f64> {
 /// The reaches of a region, run together.
 #[derive(Default)]
 pub struct Region {
-    rivers: Vec<(Shared<Engine>, RiverEnd)>,
+    rivers: Vec<(Shared<RiverTracer>, RiverEnd)>,
     networks: Vec<NetworkReach>,
     meshes: Vec<MeshReach>,
     /// Mass passed into another reach, kg: counted there as released, so taken
@@ -160,7 +160,7 @@ impl Region {
 
     /// Add a river reach; returns its index. Add them upstream first: each is
     /// stepped, and hands on what passed its end, in the order added.
-    pub fn add_river(&mut self, e: Shared<Engine>) -> usize {
+    pub fn add_river(&mut self, e: Shared<RiverTracer>) -> usize {
         self.rivers.push((e, RiverEnd::Open));
         self.rivers.len() - 1
     }
@@ -545,11 +545,11 @@ mod tests {
     }
 
     /// A river of five 1 km elements at 1 m/s.
-    fn river() -> Engine {
+    fn river() -> RiverTracer {
         let els: Vec<(f64, f64)> = (0..5)
             .map(|i| (f64::from(i) * 1000.0, f64::from(i + 1) * 1000.0))
             .collect();
-        let mut e = Engine::new(&els, 0.0, 11);
+        let mut e = RiverTracer::new(&els, 0.0, 11);
         let n = 5 * 96;
         e.load_day(&file(
             "river",

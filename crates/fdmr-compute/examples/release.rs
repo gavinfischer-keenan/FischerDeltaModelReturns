@@ -9,7 +9,7 @@
 
 use std::{env, fs};
 
-use fdmr_compute::{Engine, Release};
+use fdmr_compute::{Release, RiverTracer};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -36,7 +36,7 @@ fn main() {
         .map(|e| e.unwrap().path())
         .collect();
     days.sort();
-    let mut engine = Engine::new(&els, 0.0, 1);
+    let mut engine = RiverTracer::new(&els, 0.0, 1);
     for d in &days {
         engine.load_day(&fs::read(d).unwrap()).unwrap();
     }
@@ -47,7 +47,7 @@ fn main() {
         .to_string();
     let t0 = days_since_epoch(&name) * 86_400.0;
     engine = {
-        let mut e = Engine::new(&els, t0, 1);
+        let mut e = RiverTracer::new(&els, t0, 1);
         for d in &days {
             e.load_day(&fs::read(d).unwrap()).unwrap();
         }
