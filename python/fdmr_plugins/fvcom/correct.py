@@ -193,3 +193,101 @@ def match_crossings(coarse, join_edges: list[list[int]], open_edges: list[list[i
 
     return {"data": data, "seg": seg, "active": active, "noaa": noaa, "target": target, "after": after,
             "added_speed": added_speed, "compare": compare}
+
+
+def station_correction(data: dict, have: list, days: list[int], field: str, nodes: list[int], dist: np.ndarray,
+                       sts: list[dict], meas: np.ndarray) -> tuple[dict, dict]:
+    """One field corrected by the stations' measured misfit (moved here from
+    the runner's Bay step, issue #58): each day, at each station, the
+    measured daily mean (`meas` [station, day]) less the model's at the
+    station's node; spread over the mesh along the water (`spread`, `dist`);
+    moved smoothly from day to day, and past the last measured day held at
+    each station's mean misfit over its last three. Stations marked
+    `check_only` steer nothing. Returns the hours and the field's summary:
+    per station the mean misfit before, and the mean miss left when the
+    station itself is left out."""
+    from datetime import datetime, timezone
+
+    DAY = 86_400
+    summary: dict = {}
+    model = np.full(meas.shape, np.nan)
+    for j, d in enumerate(days):
+        sel = [tt for tt in have if d <= tt < d + DAY]
+        if len(sel) >= 18:
+            model[:, j] = np.mean([data[tt][field][nodes] for tt in sel], axis=0)
+    mis = meas - model
+    last = np.array([np.nanmean(r[np.isfinite(r)][-3:]) if np.isfinite(r).any() else np.nan for r in mis])
+    measured_to = max((j for j in range(len(days)) if np.isfinite(mis[:, j]).any()), default=-1)
+    # Stations marked `check_only` (shore and harbour sensors that do not
+    # stand for the open water at their node) steer nothing: the correction
+    # is made from the others, and their miss after it is an independent check.
+    steer = np.array([not st.get("check_only", False) for st in sts], dtype=bool)
+    corr = np.array([spread(dist[steer], (mis[:, j] if j <= measured_to else last)[steer]) for j in range(len(days))])
+    # Day by day, a station's misfit after the correction made without it.
+    loo = {}
+    for i, st in enumerate(sts):
+        others = steer & (np.arange(len(sts)) != i)
+        res = [mis[i, j] - spread(dist[others][:, [nodes[i]]], mis[others, j])[0] for j in range(len(days)) if np.isfinite(mis[i, j])]
+        before = mis[i][np.isfinite(mis[i])]
+        if len(before):
+            loo[st["site"]] = {"name": st["name"], "days": len(before), "misfit": round(float(before.mean()), 2),
+                               "left_out": round(float(np.mean(np.abs(res))), 2), **({"check_only": True} if not steer[i] else {})}
+    centre = np.array(days) + DAY // 2
+    for tt in have:
+        p = np.interp(tt, centre, np.arange(len(days)))
+        j = int(np.floor(p))
+        f = p - j
+        c = corr[j] if f == 0 or j + 1 >= len(days) else corr[j] * (1 - f) + corr[j + 1] * f
+        v = data[tt][field] + c
+        data[tt] = {**data[tt], field: (np.maximum(v, 0.0) if field == "salinity" else v).astype(np.float32)}
+    summary[field] = {"stations": loo, "measured_to": (datetime.fromtimestamp(days[measured_to], timezone.utc).strftime("%Y-%m-%d") if measured_to >= 0 else None)}
+    return data, summary[field]
+
+
+def seam(data: dict, coarse, nodes: list[int], series: dict, seam_m: float) -> dict:
+    """The mesh's water quality made to meet the network's at the join, hour by
+    hour (moved here from the runner's Bay step, issue #58): at each
+    crossing's nearest node (`nodes`) the mesh takes the network's value in
+    that channel (`series`: field -> (times, values[time, crossing])), and the
+    difference fades out along the water over `seam_m` (weight
+    (1 - d/seam_m)^2, the crossings' shares summed and kept to at most 1).
+    Returns, per field, the mean step across each crossing before and after."""
+    w = np.clip(1.0 - water_distances(coarse, nodes) / seam_m, 0.0, 1.0) ** 2  # (crossings, nodes)
+    scale = np.maximum(w.sum(axis=0), 1.0)
+    out = {}
+    for field, (tq, vq) in series.items():
+        have = [tt for tt in sorted(data) if field in data[tt]]
+        if not have:
+            continue
+        before, after = [], []
+        for tt in have:
+            m = data[tt][field].astype(float)
+            net_v = np.array([np.interp(tt, tq, vq[:, k]) for k in range(len(nodes))])
+            step = net_v - m[nodes]
+            ok = np.isfinite(step)
+            before.append(np.where(ok, np.abs(step), np.nan))
+            m = m + (w[ok] * step[ok][:, None]).sum(axis=0) / scale
+            if field == "salinity":
+                m = np.maximum(m, 0.0)
+            data[tt] = {**data[tt], field: m.astype(np.float32)}
+            after.append(np.where(ok, np.abs(net_v - m[nodes]), np.nan))
+        b, a = np.nanmean(before, axis=0), np.nanmean(after, axis=0)
+        out[field] = {"step_before": [None if not np.isfinite(x) else round(float(x), 2) for x in b],
+                      "step_after": [None if not np.isfinite(x) else round(float(x), 2) for x in a]}
+    return out
+
+
+def vector_skill(wr: np.ndarray, wm: np.ndarray) -> dict:
+    """Measured (`wr`) against modelled (`wm`) currents, as complex numbers
+    u + iv: the pairs, both mean speeds, the RMS of the vector difference, and
+    the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to
+    1) and the angle the model's currents turn from the measured, degrees
+    anticlockwise."""
+    rho = np.mean(np.conj(wr) * wm) / np.sqrt(np.mean(np.abs(wr) ** 2) * np.mean(np.abs(wm) ** 2))
+    return {
+        "pairs": len(wr),
+        "radar_mean_speed": round(float(np.mean(np.abs(wr))), 3), "mesh_mean_speed": round(float(np.mean(np.abs(wm))), 3),
+        "rms_difference": round(float(np.sqrt(np.mean(np.abs(wr - wm) ** 2))), 3),
+        "correlation": round(float(np.abs(rho)), 3), "veering_deg": round(float(np.degrees(np.angle(rho))), 1),
+    }
+

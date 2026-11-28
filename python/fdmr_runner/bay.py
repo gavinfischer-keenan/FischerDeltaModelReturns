@@ -464,36 +464,17 @@ def seam_quality(data: dict[int, dict], coarse: mesh.Coarse, delta_dir: Path, jo
     `seam_m` (weight (1 - d/seam_m)^2, the crossings' shares summed and kept
     to at most 1). Returns, per field, the mean step across each crossing
     before and after."""
-    from fdmr_plugins.fvcom.correct import water_distances
+    from fdmr_plugins.fvcom.correct import seam
 
     cr = crossings(join)
     if not cr:
         return {}
     nodes = [int(np.argmin(np.hypot(coarse.x - c["x"], coarse.y - c["y"]))) for c in cr]
-    w = np.clip(1.0 - water_distances(coarse, nodes) / seam_m, 0.0, 1.0) ** 2  # (crossings, nodes)
-    scale = np.maximum(w.sum(axis=0), 1.0)
-    out = {}
-    for field in fields:
-        nq = network_quality(delta_dir, join, field)
-        have = [tt for tt in sorted(data) if field in data[tt]]
-        if nq is None or not have:
-            continue
-        tq, vq = nq
-        before, after = [], []
-        for tt in have:
-            m = data[tt][field].astype(float)
-            net_v = np.array([np.interp(tt, tq, vq[:, k]) for k in range(len(cr))])
-            step = net_v - m[nodes]
-            ok = np.isfinite(step)
-            before.append(np.where(ok, np.abs(step), np.nan))
-            m = m + (w[ok] * step[ok][:, None]).sum(axis=0) / scale
-            if field == "salinity":
-                m = np.maximum(m, 0.0)
-            data[tt] = {**data[tt], field: m.astype(np.float32)}
-            after.append(np.where(ok, np.abs(net_v - m[nodes]), np.nan))
-        b, a = np.nanmean(before, axis=0), np.nanmean(after, axis=0)
-        out[field] = {"step_before": [None if not np.isfinite(x) else round(float(x), 2) for x in b],
-                      "step_after": [None if not np.isfinite(x) else round(float(x), 2) for x in a]}
+    series = {f: nq for f in fields if (nq := network_quality(delta_dir, join, f)) is not None}
+    out = seam(data, coarse, nodes, series, seam_m)
+    for field, r in out.items():
+        b = np.array([np.nan if x is None else x for x in r["step_before"]], dtype=float)
+        a = np.array([np.nan if x is None else x for x in r["step_after"]], dtype=float)
         print(f"{field} seam at the join: mean step across the crossings {np.nanmean(b):.2f} before, {np.nanmean(a):.2f} after "
               f"(largest {np.nanmax(b):.2f} before)", flush=True)
     return out
@@ -546,15 +527,10 @@ def currents_check(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict]
                 used.add(tt)
     if not pairs_r:
         return {"cells": len(node_of), "hours": 0, "note": "no hour in common"}
-    wr, wm = np.array(pairs_r), np.array(pairs_m)
-    rho = np.mean(np.conj(wr) * wm) / np.sqrt(np.mean(np.abs(wr) ** 2) * np.mean(np.abs(wm) ** 2))
-    return {
-        "cells": len(node_of), "hours": len(used), "pairs": len(wr),
-        "radar_mean_speed": round(float(np.mean(np.abs(wr))), 3), "mesh_mean_speed": round(float(np.mean(np.abs(wm))), 3),
-        "rms_difference": round(float(np.sqrt(np.mean(np.abs(wr - wm) ** 2))), 3),
-        "correlation": round(float(np.abs(rho)), 3), "veering_deg": round(float(np.degrees(np.angle(rho))), 1),
-        "source": f"{cc['server']} {cc['dataset']}",
-    }
+    from fdmr_plugins.fvcom.correct import vector_skill
+
+    return {"cells": len(node_of), "hours": len(used), **vector_skill(np.array(pairs_r), np.array(pairs_m)),
+            "source": f"{cc['server']} {cc['dataset']}"}
 
 
 def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict], store_path: str) -> tuple[dict[int, dict], dict]:
@@ -567,7 +543,7 @@ def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict
     mean miss left when the station itself is left out (an honest check: the
     correction there is made from the other stations alone)."""
     import fdmr_py
-    from fdmr_plugins.fvcom.correct import spread, water_distances
+    from fdmr_plugins.fvcom.correct import station_correction, water_distances
     from fdmr_store import Store
 
     q = cfg["quality"]
@@ -592,37 +568,8 @@ def correct_quality(cfg: dict, coarse: mesh.Coarse, hours: dict[int, Path | dict
         # A station reporting salinity itself (psu) gives it directly (`salinity`).
         meas = np.array([station_daily(store, st, st["salinity"], lambda x: x, days) if field == "salinity" and "salinity" in st
                          else station_daily(store, st, st.get(key, []), conv[field], days) for st in sts])
-        model = np.full(meas.shape, np.nan)
-        for j, d in enumerate(days):
-            sel = [tt for tt in have if d <= tt < d + DAY]
-            if len(sel) >= 18:
-                model[:, j] = np.mean([data[tt][field][nodes] for tt in sel], axis=0)
-        mis = meas - model
-        last = np.array([np.nanmean(r[np.isfinite(r)][-3:]) if np.isfinite(r).any() else np.nan for r in mis])
-        measured_to = max((j for j in range(len(days)) if np.isfinite(mis[:, j]).any()), default=-1)
-        # Stations marked `check_only` (shore and harbour sensors that do not
-        # stand for the open water at their node) steer nothing: the correction
-        # is made from the others, and their miss after it is an independent check.
-        steer = np.array([not st.get("check_only", False) for st in sts], dtype=bool)
-        corr = np.array([spread(dist[steer], (mis[:, j] if j <= measured_to else last)[steer]) for j in range(len(days))])
-        # Day by day, a station's misfit after the correction made without it.
-        loo = {}
-        for i, st in enumerate(sts):
-            others = steer & (np.arange(len(sts)) != i)
-            res = [mis[i, j] - spread(dist[others][:, [nodes[i]]], mis[others, j])[0] for j in range(len(days)) if np.isfinite(mis[i, j])]
-            before = mis[i][np.isfinite(mis[i])]
-            if len(before):
-                loo[st["site"]] = {"name": st["name"], "days": len(before), "misfit": round(float(before.mean()), 2),
-                                   "left_out": round(float(np.mean(np.abs(res))), 2), **({"check_only": True} if not steer[i] else {})}
-        centre = np.array(days) + DAY // 2
-        for tt in have:
-            p = np.interp(tt, centre, np.arange(len(days)))
-            j = int(np.floor(p))
-            f = p - j
-            c = corr[j] if f == 0 or j + 1 >= len(days) else corr[j] * (1 - f) + corr[j + 1] * f
-            v = data[tt][field] + c
-            data[tt] = {**data[tt], field: (np.maximum(v, 0.0) if field == "salinity" else v).astype(np.float32)}
-        summary[field] = {"stations": loo, "measured_to": (datetime.fromtimestamp(days[measured_to], timezone.utc).strftime("%Y-%m-%d") if measured_to >= 0 else None)}
+        data, summary[field] = station_correction(data, have, days, field, nodes, dist, sts, meas)
+        loo = summary[field]["stations"]
         print(f"{field} correction: " + "; ".join(f"{s} misfit {v['misfit']:+.2f}, left out {v['left_out']:.2f}" for s, v in loo.items()), flush=True)
     store.close()
     return data, summary

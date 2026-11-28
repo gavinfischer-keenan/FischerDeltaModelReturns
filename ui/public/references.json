@@ -1149,8 +1149,13 @@
    "citation": "Kundu, P. K. (1976). Ekman veering observed near the ocean bottom. Journal of Physical Oceanography 6(2), 238-242. https://doi.org/10.1175/1520-0485(1976)006<0238:EVONTO>2.0.CO;2",
    "used": [
     {
+     "file": "python/fdmr_plugins/fvcom/correct.py",
+     "line": 283,
+     "text": "the complex correlation (Kundu 1976, ref:kundu1976): its magnitude (0 to"
+    },
+    {
      "file": "python/fdmr_runner/bay.py",
-     "line": 509,
+     "line": 490,
      "text": "correlation (Kundu 1976, ref:kundu1976: its magnitude, 0 to 1, and the angle the mesh's"
     }
    ]
