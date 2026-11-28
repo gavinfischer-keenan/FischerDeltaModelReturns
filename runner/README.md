@@ -56,8 +56,10 @@ page is the order to do it in. Commands run as the `fdmr` user unless marked
 
 ## Every update
 
-`sh ~/fdmr/runner/update.sh` after the code changes (`git pull` in `~/fdmr`).
-It rebuilds the Python binding, then the engine's WebAssembly, the viewer, and
+Change the code only between cycles, holding the cycle lock, so a running
+cycle never imports a mix of old and new: `flock /srv/fdmr-data/.cycle.lock
+git pull` in `~/fdmr`. Then `sh ~/fdmr/runner/update.sh`, which takes the same
+lock to replace the Python binding. It rebuilds the Python binding, then the engine's WebAssembly, the viewer, and
 puts the viewer live (`runner/web/deploy_app.sh`). The cycles pick up the new
 Python code on their next run. After a change to the schedule or the web
 server, run their install script again as root.

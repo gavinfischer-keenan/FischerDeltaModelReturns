@@ -5,11 +5,15 @@
 # anything is put live.
 set -eu
 ROOT=${FDMR_ROOT:-$HOME/fdmr}
+DATA=${FDMR_DATA:-/srv/fdmr-data}
 PY=${FDMR_PYTHON:-$HOME/venv/bin/python}
 # shellcheck source=/dev/null
 . "$HOME/.cargo/env"
 cd "$ROOT"
-"$PY" -m pip install -q ./crates/fdmr-py
+# The binding is replaced only between cycles: a cycle that had the old one
+# loaded and then imported more of the engine would mix the two (as code
+# copied in mid-cycle did on 28 Nov 2026). The same lock as cycle.sh's.
+flock -w 3000 "$DATA/.cycle.lock" "$PY" -m pip install -q ./crates/fdmr-py
 wasm-pack build crates/fdmr-wasm --target web --release --out-dir ../../ui/src/compute/pkg
 cd ui
 npm ci --silent
