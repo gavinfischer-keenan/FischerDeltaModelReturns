@@ -953,12 +953,12 @@
     },
     {
      "file": "tools/validation/experiments/results.md",
-     "line": 106,
+     "line": 108,
      "text": "Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it."
     },
     {
      "file": "tools/validation/experiments/results.md",
-     "line": 140,
+     "line": 142,
      "text": "Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg), as for 2018. Hunter Cut has only 32 days in the window and Volanti 65; the others have 82–84."
     }
    ]

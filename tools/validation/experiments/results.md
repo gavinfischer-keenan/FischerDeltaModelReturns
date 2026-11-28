@@ -2,7 +2,7 @@
 
 Part of the model's validation and calibration (issue #33). Each experiment runs DWR's historical inputs twice: once as it was, and once with the intervention taken away. The intervention is taken away by changing gate settings in the run's own copy of DWR's gate file; nothing else changes. Both runs are scored against measured daily means while the intervention was in place.
 
-- **What runs:** DSM2 v8.5.1 (HYDRO, QUAL) on DWR's input set 2026-04-16. The as-built runs have code fingerprint `682f3c4c660d`; the corrected "without" runs `55acbf9295ca`. The two differ only in how a gate override is written (the correction below), not in any maths. The 2015 barrier and 2023 gate runs have `cc3bb5e8aee1`, which adds only timing of each run's phases.
+- **What runs:** DSM2 v8.5.1 (HYDRO, QUAL) on DWR's input set 2026-04-16. The as-built runs have code fingerprint `682f3c4c660d`; the corrected "without" runs `55acbf9295ca`. The two differ only in how a gate override is written (the correction below), not in any maths. The 2015 barrier and 2023 gate runs have `cc3bb5e8aee1`, which adds only timing of each run's phases. Both barrier experiments were run again on 28 Nov (2021 `b61961a26ca3`, 2015 `4eeb19e0e546`) when Franks Tract's station came to be compared with the tract's own water (below); nothing else in them changed.
 - **Where the numbers are:** `experiments.html`, served from `data/sf-bay-delta/experiments/`, lists every run with when it ran and its fingerprints.
 - **Units:** salinity as EC in µS/cm; net flow tidally filtered, in m³/s.
 - **Columns:** "Diff." is model less measured; "abs." is the mean absolute difference of daily means. The **effect** is the run without the intervention less the run as it was, as on the page: how much saltier (+) the water would have been without it.
@@ -25,7 +25,7 @@ Part of the model's validation and calibration (issue #33). Each experiment runs
 |---|---|---|---|---|---|---|
 | Bethel Island (BET) | 864 | 708 (−156, 163) | 1,195 (+331, 412) | +487 | +287 | 61 / 347 |
 | Old R. at Bacon Island (BAC) | 613 | 580 (−34, 60) | 1,049 (+436, 439) | +452 | +72 | 106 / 167 |
-| Franks Tract (FRK) | 738 | 533 (−205, 205) | 1,000 (+262, 333) | +445 | | |
+| Franks Tract (FRK) | 738 | 615 (−123, 137) | 1,193 (+455, 500) | +549 | | |
 | Holland Cut (HOL) | 679 | 568 (−111, 115) | 1,047 (+368, 389) | +473 | | |
 | Fisherman's Cut (FCT) | 928 | 867 (−61, 154) | 1,403 (+475, 520) | +489 | | |
 | False River (FAL) | 1,137 | 1,245 (+108, 276) | 1,634 (+496, 555) | +389 | | |
@@ -49,7 +49,7 @@ False River's flow gauge has only four days in the window, all before the closur
 - **Which run is closer.** The barrier as built is closer to the measurements in 12 of 15 station series: 9 of 10 for salinity, 3 of 5 for flow.
 - **Direction and size.** The model gets the barrier's effect right in direction and of the right size at the central Delta stations: a fall of 390–490 µS/cm at Bethel Island, Franks Tract, Holland Cut, Fisherman's Cut and False River.
 - **Larger than SCHISM's.** At Bethel Island our effect is +487 against SCHISM's +287. At Bacon Island it is +452 against +72.
-- **Too fresh with the barrier.** Our as-built run reads 110–205 µS/cm below measured at Bethel Island, Franks Tract and Holland Cut. SCHISM with the barrier is within 61 at Bethel Island. So the model likely overstates the protection the barrier gave, by up to about 200 µS/cm there.
+- **Too fresh with the barrier.** Our as-built run reads 110–156 µS/cm below measured at Bethel Island, Franks Tract and Holland Cut. SCHISM with the barrier is within 61 at Bethel Island. So the model likely overstates the protection the barrier gave, by up to about 200 µS/cm there.
 - **Old River at the San Joaquin.** The model carries too much water up Old River, −66 against −16 measured, as built and as never built alike: a standing misfit in the channel network, not of the barrier.
 
 ## West False River emergency drought barrier, 2015
@@ -67,7 +67,7 @@ False River's flow gauge has only four days in the window, all before the closur
 |---|---|---|---|---|
 | Bethel Island (BET) | 992 | 711 (−281, 281) | 1,189 (+197, 262) | +478 |
 | Old R. at Bacon Island (BAC) | 747 | 573 (−175, 175) | 1,019 (+272, 297) | +455 |
-| Franks Tract (FRK) | 861 | 500 (−361, 361) | 1,002 (+141, 204) | +452 |
+| Franks Tract (FRK) | 861 | 578 (−282, 282) | 1,182 (+322, 341) | +541 |
 | Holland Cut (HOL) | 804 | 563 (−241, 241) | 1,034 (+230, 270) | +474 |
 | Fisherman's Cut (FCT) | 992 | 809 (−183, 189) | 1,305 (+313, 314) | +496 |
 | False River (FAL) | 1,331 | 1,244 (−87, 199) | 1,612 (+281, 398) | +368 |
@@ -87,14 +87,16 @@ Net flow:
 False River's flow gauge reads only at the two ends of the window: 14–21 May, as the barrier went in, and 11–31 October. Those days read −23 to −175 m³/s in October, which neither run reproduces (as built +32 on average). As in 2021, that row is not scored.
 
 **Reading:**
-- **Which run is closer.** As built is closer in only 6 of 13 scored series: 4 of 9 for salinity, 2 of 4 for flow. That is fewer than in 2021, and for a reason the next point gives.
+- **Which run is closer.** As built is closer in 7 of 13 scored series: 5 of 9 for salinity, 2 of 4 for flow. That is fewer than in 2021, and for a reason the next point gives.
 - **Effect.** The model's effect is almost the same as in 2021: a fall of 450–500 µS/cm at Bethel Island, Bacon Island, Franks Tract, Holland Cut and Fisherman's Cut.
-- **Too fresh with the barrier, again and more so.** The as-built run reads 175–361 µS/cm below measured at those stations, against 110–205 in 2021.
+- **Too fresh with the barrier, again and more so.** The as-built run reads 175–282 µS/cm below measured at those stations, against 110–156 in 2021.
   - At Bethel Island, January to April 2015 (no barrier) the model is 20–140 µS/cm fresh. From June to October (barrier in) it is 210–445 fresh. In November and December (barrier out) it is 100–170 fresh.
-  - So most of the shortfall, about 200 µS/cm at Bethel Island, comes with the barrier. The never-built run, saltier than measured by 140–200, is the closer of the two at Bethel Island and Franks Tract.
+  - So most of the shortfall, about 200 µS/cm at Bethel Island, comes with the barrier. The never-built run, saltier than measured by about 200, is the closer of the two at Bethel Island.
   - In 2021 SCHISM's effect at Bethel Island was 287 against our 487. Both years say the same: the model overstates the barrier's protection, by about 200 µS/cm at Bethel Island.
 - **Old River at the San Joaquin.** Too much water goes up Old River again, −61 against −14 measured: the same standing misfit as in 2021.
 - **Blind Point.** In the model the lower San Joaquin at Blind Point is about 240 µS/cm saltier with the barrier than without. That is too small to judge against the station's day-to-day misfit (abs. about 400).
+
+**Franks Tract, corrected 28 Nov 2026 (#42).** The measured Franks Tract station (CEMP's FRK) stands in the tract's open water, mid-tract (38.0464 N, 121.5981 W). It was first compared with DWR's own FRK output, which is channel 121: Old River along the tract's east edge, 1.5 km away. DSM2 models the tract itself as the reservoir `franks_tract`, so the station is now compared with the reservoir's water. The as-built shortfall there fell from 205 to 123 µS/cm in 2021 and from 361 to 282 in 2015. So a fifth to two fifths of that station's misfit (22% in 2015, 40% in 2021) was where it was compared, not the model. Bethel Island and Holland Cut are channel stations and are unchanged: the model still reads fresh there with the barrier in.
 
 ## Suisun Marsh Salinity Control Gates, summer 2018
 

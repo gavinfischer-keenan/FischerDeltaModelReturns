@@ -460,8 +460,8 @@ Checked: The package's EML read; tables read from the zip as downloaded, 27 Nov 
 Used in:
 
 - `tools/validation/experiments/prepare_edi.py:21`: suisun-gates-2018 and suisun-gates-2023: edi.876.9 (ref:hartman2026smscg, CC BY 4.0)
-- `tools/validation/experiments/results.md:106`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it.
-- `tools/validation/experiments/results.md:140`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg), as for 2018. Hunter Cut has only 32 days in the window and Volanti 65; the others have 82–84.
+- `tools/validation/experiments/results.md:108`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg). No other model's runs are published with it.
+- `tools/validation/experiments/results.md:142`: Data.** Measured salinity comes from edi.876.9 (ref:hartman2026smscg), as for 2018. Hunter Cut has only 32 days in the window and Volanti 65; the others have 82–84.
 
 ## hause2024
 
