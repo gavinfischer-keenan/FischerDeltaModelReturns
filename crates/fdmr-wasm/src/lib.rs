@@ -362,6 +362,33 @@ impl NetworkEngine {
         self.core.borrow_mut().set_pool_areas(areas);
     }
 
+    /// Pool `q`'s mapped water as points (flat lon, lat pairs) and the
+    /// horizontal mixing its particles drift at, m²/s: they wander over it,
+    /// for drawing.
+    pub fn set_pool_water(&mut self, q: u32, lonlat: &[f64], mixing: f64) {
+        let pts: Vec<(f64, f64)> = lonlat
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|p| (p[0], p[1]))
+            .collect();
+        self.core
+            .borrow_mut()
+            .set_pool_water(q as usize, &pts, mixing);
+    }
+
+    /// Each flow particle's place on its pool's water, flat (lon, lat), `NaN`
+    /// for one not in a pool with mapped water.
+    #[must_use]
+    pub fn particle_pool_positions(&self) -> Vec<f64> {
+        self.core
+            .borrow()
+            .particle_pool_positions()
+            .into_iter()
+            .flat_map(|(a, b)| [a, b])
+            .collect()
+    }
+
     /// Where another reach takes over part way along channels: for each cut,
     /// its channel, its place along it (0 to 1 from the upstream end) and
     /// whether the other reach's part is downstream (1) or upstream (0).

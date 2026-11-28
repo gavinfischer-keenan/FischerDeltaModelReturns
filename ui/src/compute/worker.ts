@@ -68,7 +68,7 @@ interface LineGeometry {
 interface NetworkGeometry {
   elements: { id: number; up: number; down: number; end_m: number; width_m?: number }[];
   nodes: { id: number; kind?: string }[];
-  pools?: { id: string; area_m2?: number }[];
+  pools?: { id: string; area_m2?: number; points?: [number, number][] }[];
   exports?: { name: string; node?: number; pool?: string }[];
   links?: { pool: string; node: number }[];
 }
@@ -205,6 +205,8 @@ interface Net {
   widths: Float64Array | null;
   /** Each pool's water surface, m² (flooded islands, forebays): flow particles live there too. */
   poolAreas: Float64Array;
+  /** Each pool's mapped water as flat (lon, lat) points, if published: its particles drift over it. */
+  poolWater: (Float64Array | null)[];
   /** How many flow particles it carries. */
   count: number;
   /** Canals: what reaches it is pumped out of another network. */
@@ -401,6 +403,7 @@ async function loadNetwork(cycle: string, id: string, netDays: string[]): Promis
     outlets: [],
     widths: g.elements.every((e) => e.width_m !== undefined) ? Float64Array.from(g.elements.map((e) => e.width_m!)) : null,
     poolAreas: Float64Array.from((g.pools ?? []).map((p) => p.area_m2 ?? 0)),
+    poolWater: (g.pools ?? []).map((p) => (p.points?.length ? Float64Array.from(p.points.flat()) : null)),
   });
   if (QUALITY_LAYERS.has(layer)) await loadQuality();
   // Play the river's (and any other reach's) handoffs into it from the start.
@@ -526,6 +529,11 @@ function build(t: number): void {
     }
     ne.set_outlets(Uint32Array.from(at));
     if (netFlow) ne.set_net_flow(true);
+    // A pool's particles drift over its mapped water at the horizontal mixing
+    // the Bay's mesh uses (its currents are not known: drawing only).
+    net.poolWater.forEach((w, q) => {
+      if (w) ne.set_pool_water(q, w, MESH_DIFFUSIVITY);
+    });
     net.count = NETWORK_PARTICLES;
     if (net.widths) {
       // The engine gets the channels' true widths (settling divides by the
@@ -757,6 +765,7 @@ function frame(seq?: number): void {
         velocity: e.velocities(),
         particleElement: e.particle_element(),
         particleFraction: e.particle_fraction(),
+        particlePool: e.particle_pool_positions(),
         parcelElement: e.parcel_element(),
         parcelFraction: e.parcel_fraction(),
         parcelConcentration: e.parcel_concentration(),
@@ -822,7 +831,7 @@ function frame(seq?: number): void {
     transfer.push(l.particleX.buffer, l.particleLateral.buffer, l.particleSpeed.buffer, l.parcelX.buffer, l.parcelConcentration.buffer);
   }
   for (const n of networks) {
-    transfer.push(n.velocity.buffer, n.particleElement.buffer, n.particleFraction.buffer, n.parcelElement.buffer, n.parcelFraction.buffer, n.parcelConcentration.buffer);
+    transfer.push(n.velocity.buffer, n.particleElement.buffer, n.particleFraction.buffer, n.particlePool.buffer, n.parcelElement.buffer, n.parcelFraction.buffer, n.parcelConcentration.buffer);
   }
   for (const m of meshFrames) {
     transfer.push(m.particleTriangle.buffer, m.particleWeights.buffer, m.particleSpeed.buffer, m.parcelTriangle.buffer, m.parcelWeights.buffer, m.parcelConcentration.buffer);

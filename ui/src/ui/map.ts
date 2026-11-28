@@ -216,7 +216,13 @@ export function drawFrame(
       pts.push({
         type: "Feature",
         properties: { s: Math.abs(nf.velocity[e] ?? 0), col: netCol(i) },
-        geometry: { type: "Point", coordinates: net.place(e, nf.particleFraction[i], lateral, net.halfWidth(e), i) },
+        geometry: {
+          type: "Point",
+          // In a pool, where the engine has it drifting on the pool's water.
+          coordinates: Number.isFinite(nf.particlePool[2 * i])
+            ? [nf.particlePool[2 * i], nf.particlePool[2 * i + 1]]
+            : net.place(e, nf.particleFraction[i], lateral, net.halfWidth(e), i),
+        },
       });
     }
   }

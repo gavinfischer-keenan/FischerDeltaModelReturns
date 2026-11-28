@@ -281,7 +281,7 @@ Checked: Open Library ISBN records of both printings, 26 Nov 2026
 
 Used in:
 
-- `crates/fdmr-compute/src/network.rs:636`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
+- `crates/fdmr-compute/src/network.rs:715`: (Chapra 1997, ref:chapra1997); that share's parcels settle and are
 - `python/fdmr_plugins/registry.py:73`: "Chapra 1997, Surface Water-Quality Modeling, Lecture 30 (ref:chapra1997); cloud term as QUAL2K (ref:chapra2008qual2k); "
 - `python/fdmr_plugins/registry.py:123`: "Linear equilibrium partitioning as in Chapra 1997 (ref:chapra1997); settling and scour from the sediment run "
 - `python/fdmr_plugins/river_routing/heat.py:5`: (1997, ref:chapra1997, Surface Water-Quality Modeling, Lecture 30, "Heat budgets"):

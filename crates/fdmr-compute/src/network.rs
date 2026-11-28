@@ -17,6 +17,8 @@
 //! the network always shows its water moving.
 
 use fdmr_format::FormatError;
+use std::collections::HashMap;
+
 use fdmr_math::{decay, parcel, rng::Rng};
 
 use crate::{series::Series, MAX_DT};
@@ -203,6 +205,14 @@ pub struct NetworkTracer {
     /// Each pool's water surface, m², if given (`set_pool_areas`): where flow
     /// particles start evenly over the water's surface, pools get their share.
     pool_area: Vec<f64>,
+    /// Each pool's mapped water, where given (`set_pool_water`): what a pool
+    /// particle drifts over, for drawing.
+    pool_water: Vec<Option<PoolWater>>,
+    /// Where each flow particle in a pool is on its water: (pool, x, y in the
+    /// pool's own metres), or None.
+    pool_at: Vec<Option<(usize, f64, f64)>>,
+    /// The pool drift's own random numbers, so it never changes a parcel's path.
+    pool_rng: Rng,
     /// Per junction then pool, the outlet its exports go through to another
     /// reach, if any (`set_outlets`).
     outlet: Vec<Option<usize>>,
@@ -258,6 +268,9 @@ impl NetworkTracer {
             widths: Vec::new(),
             min_seed_width: 0.0,
             pool_area: Vec::new(),
+            pool_water: Vec::new(),
+            pool_at: Vec::new(),
+            pool_rng: Rng::new(seed ^ 0x9E37_79B9_7F4A_7C15),
             outlet: Vec::new(),
             handed: Vec::new(),
             settling: None,
@@ -298,6 +311,70 @@ impl NetworkTracer {
     /// a flooded island or a forebay shows its water like a channel does.
     pub fn set_pool_areas(&mut self, areas: &[f64]) {
         self.pool_area = areas.iter().map(|a| a.max(0.0)).collect();
+    }
+
+    /// Pool `q`'s mapped water as points (lon, lat) spread evenly over it, and
+    /// the horizontal mixing, m²/s, its particles drift at. A pool is well
+    /// mixed and its currents are not known (DSM2 holds a level and a volume),
+    /// so a particle in it wanders, never onto land: for drawing only, and the
+    /// speed it is shown with stays unknown.
+    pub fn set_pool_water(&mut self, q: usize, lonlat: &[(f64, f64)], mixing: f64) {
+        if self.pool_water.len() <= q {
+            self.pool_water.resize_with(q + 1, || None);
+        }
+        self.pool_water[q] = PoolWater::new(lonlat, mixing);
+    }
+
+    /// Each flow particle's place on its pool's water, (lon, lat), or `NaN`s
+    /// for one not in a pool with mapped water.
+    #[must_use]
+    pub fn particle_pool_positions(&self) -> Vec<(f64, f64)> {
+        (0..self.particles.len())
+            .map(
+                |i| match (self.particles[i], self.pool_at.get(i).copied().flatten()) {
+                    (Place::Pool(q), Some((p, x, y))) if p == q => self.pool_water[q]
+                        .as_ref()
+                        .map_or((f64::NAN, f64::NAN), |w| w.lonlat(x, y)),
+                    _ => (f64::NAN, f64::NAN),
+                },
+            )
+            .collect()
+    }
+
+    /// Move each pool particle over its pool's water by `dt` s; a particle new
+    /// to a pool starts anywhere on it.
+    fn drift_in_pools(&mut self, dt: f64) {
+        self.pool_at.resize(self.particles.len(), None);
+        for i in 0..self.particles.len() {
+            let Place::Pool(q) = self.particles[i] else {
+                self.pool_at[i] = None;
+                continue;
+            };
+            let Some(w) = self.pool_water.get(q).and_then(Option::as_ref) else {
+                self.pool_at[i] = None;
+                continue;
+            };
+            self.pool_at[i] = Some(match self.pool_at[i] {
+                Some((p, x, y)) if p == q => {
+                    let s = (2.0 * w.mixing * dt).sqrt();
+                    let (nx, ny) = (
+                        x + s * self.pool_rng.normal(),
+                        y + s * self.pool_rng.normal(),
+                    );
+                    if w.on_water(nx, ny) {
+                        (q, nx, ny)
+                    } else {
+                        (q, x, y)
+                    }
+                }
+                _ => {
+                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                    let k = ((self.pool_rng.uniform() * w.pts.len() as f64) as usize)
+                        .min(w.pts.len() - 1);
+                    (q, w.pts[k].0, w.pts[k].1)
+                }
+            });
+        }
     }
 
     /// Exports that carry on into another reach (the export canals): each a
@@ -566,7 +643,9 @@ impl NetworkTracer {
                 let v = if e < n {
                     per_channel.as_ref().and_then(|v| v.get(e))
                 } else {
-                    per_node.as_ref().and_then(|v| v.get(self.topo.nodes + e - n))
+                    per_node
+                        .as_ref()
+                        .and_then(|v| v.get(self.topo.nodes + e - n))
                 };
                 v.map_or(f32::NAN, |&x| {
                     #[allow(clippy::cast_possible_truncation)]
@@ -1089,6 +1168,7 @@ impl NetworkTracer {
                 self.particles[i] = p;
             }
         }
+        self.drift_in_pools(dt);
     }
 
     /// A place anywhere in the network's own water, evenly over its surface
@@ -1172,6 +1252,8 @@ impl NetworkTracer {
             .map(|l| l * self.rng.uniform())
             .collect::<Vec<_>>();
         self.handed_particles.clear();
+        self.pool_at.clear();
+        self.drift_in_pools(0.0);
     }
 
     /// Flow particles: channel index and position along it (0 at its upstream junction, 1 downstream).
@@ -1272,6 +1354,97 @@ fn pick<T: Copy>(u: f64, ways: &[(T, f64)]) -> Option<T> {
         r -= w;
     }
     ways.last().map(|w| w.0)
+}
+
+/// A pool's mapped water, in its own flat metres about its first point.
+struct PoolWater {
+    lon0: f64,
+    lat0: f64,
+    /// Metres per degree of longitude and of latitude there.
+    kx: f64,
+    ky: f64,
+    pts: Vec<(f64, f64)>,
+    /// Points by grid cell, `cell` m square, to find those near a place.
+    grid: HashMap<(i64, i64), Vec<usize>>,
+    cell: f64,
+    /// A place is on the water within this of one of the points, m.
+    reach: f64,
+    mixing: f64,
+}
+
+impl PoolWater {
+    /// Metres per degree of latitude (mean Earth radius 6371 km).
+    const M_PER_DEG: f64 = 111_195.0;
+
+    fn new(lonlat: &[(f64, f64)], mixing: f64) -> Option<Self> {
+        let &(lon0, lat0) = lonlat.first()?;
+        let ky = Self::M_PER_DEG;
+        let kx = ky * lat0.to_radians().cos();
+        let pts: Vec<(f64, f64)> = lonlat
+            .iter()
+            .map(|&(lon, lat)| ((lon - lon0) * kx, (lat - lat0) * ky))
+            .collect();
+        // The points' spacing: the mean distance to the nearest other point,
+        // over up to 200 of them.
+        let step = (pts.len() / 200).max(1);
+        let near: Vec<f64> = pts
+            .iter()
+            .step_by(step)
+            .map(|&(x, y)| {
+                pts.iter()
+                    .filter(|&&(a, b)| (a, b) != (x, y))
+                    .map(|&(a, b)| (a - x).hypot(b - y))
+                    .fold(f64::INFINITY, f64::min)
+            })
+            .filter(|d| d.is_finite())
+            .collect();
+        #[allow(clippy::cast_precision_loss)]
+        let spacing = if near.is_empty() {
+            50.0
+        } else {
+            near.iter().sum::<f64>() / near.len() as f64
+        };
+        let cell = spacing.max(1.0) * 1.5;
+        let mut grid: HashMap<(i64, i64), Vec<usize>> = HashMap::new();
+        for (i, &(x, y)) in pts.iter().enumerate() {
+            #[allow(clippy::cast_possible_truncation)]
+            grid.entry(((x / cell).floor() as i64, (y / cell).floor() as i64))
+                .or_default()
+                .push(i);
+        }
+        Some(Self {
+            lon0,
+            lat0,
+            kx,
+            ky,
+            pts,
+            grid,
+            cell,
+            reach: cell,
+            mixing: mixing.max(0.0),
+        })
+    }
+
+    /// Whether (x, y) is on the water: within `reach` of one of its points.
+    fn on_water(&self, x: f64, y: f64) -> bool {
+        #[allow(clippy::cast_possible_truncation)]
+        let (cx, cy) = (
+            (x / self.cell).floor() as i64,
+            (y / self.cell).floor() as i64,
+        );
+        (cx - 1..=cx + 1).any(|i| {
+            (cy - 1..=cy + 1).any(|j| {
+                self.grid.get(&(i, j)).is_some_and(|v| {
+                    v.iter()
+                        .any(|&k| (self.pts[k].0 - x).hypot(self.pts[k].1 - y) <= self.reach)
+                })
+            })
+        })
+    }
+
+    fn lonlat(&self, x: f64, y: f64) -> (f64, f64) {
+        (self.lon0 + x / self.kx, self.lat0 + y / self.ky)
+    }
 }
 
 #[cfg(test)]
@@ -1823,7 +1996,13 @@ mod tests {
             0.0,
         );
         t.load_channels(&channels(400, &[0.0])).unwrap();
-        let rep = |v: Vec<f32>| v.iter().copied().cycle().take(v.len() * 400).collect::<Vec<_>>();
+        let rep = |v: Vec<f32>| {
+            v.iter()
+                .copied()
+                .cycle()
+                .take(v.len() * 400)
+                .collect::<Vec<_>>()
+        };
         t.load_nodes(&file(
             0,
             400,
@@ -1836,7 +2015,8 @@ mod tests {
             ],
         ))
         .unwrap();
-        t.load_links(&file(0, 400, 1, vec![("flow", rep(vec![link_flow]))])).unwrap();
+        t.load_links(&file(0, 400, 1, vec![("flow", rep(vec![link_flow]))]))
+            .unwrap();
         t.set_widths(&[100.0]);
         t.set_pool_areas(&[area]);
         t
@@ -1857,9 +2037,60 @@ mod tests {
         assert!(el2.iter().filter(|&&e| e == 1).count() + 100 >= in_pool);
         // The pool's EC from the junction-and-pool file; none for a field only channels have.
         let ec = t.particle_values("ec");
-        assert!(el2.iter().zip(&ec).all(|(&e, &v)| (e == 1) == ((v - 750.0).abs() < 1e-3)));
+        assert!(el2
+            .iter()
+            .zip(&ec)
+            .all(|(&e, &v)| (e == 1) == ((v - 750.0).abs() < 1e-3)));
         let flow = t.particle_values("flow_up");
         assert!(el2.iter().zip(&flow).all(|(&e, v)| e != 1 || v.is_nan()));
+    }
+
+    #[test]
+    fn pool_particles_drift_over_its_water_and_never_onto_land() {
+        // The pool's water: a 1 km square of points 50 m apart, with a 400 m
+        // square of land cut out of its middle.
+        let mut water = Vec::new();
+        for i in 0..20 {
+            for j in 0..20 {
+                if !(6..14).contains(&i) || !(6..14).contains(&j) {
+                    water.push((
+                        f64::from(i) * 50.0 / 111_195.0,
+                        f64::from(j) * 50.0 / 111_195.0,
+                    ));
+                }
+            }
+        }
+        let mut t = with_pool(1.0e6, 0.0);
+        t.set_pool_water(0, &water, 5.0);
+        t.seed_flow_particles(400);
+        let start = t.particle_pool_positions();
+        let (el, _) = t.particles();
+        assert!(el
+            .iter()
+            .zip(&start)
+            .all(|(&e, p)| (e == 1) == p.0.is_finite()));
+        let parcels_before = t.rng.uniform();
+        t.step_to(6.0 * 3600.0);
+        let end = t.particle_pool_positions();
+        let (el, _) = t.particles();
+        let on_land = |(lon, lat): (f64, f64)| {
+            let (x, y) = (lon * 111_195.0, lat * 111_195.0);
+            (330.0..620.0).contains(&x) && (330.0..620.0).contains(&y)
+        };
+        let mut moved = 0;
+        for (i, &e) in el.iter().enumerate() {
+            if e == 1 {
+                assert!(end[i].0.is_finite() && !on_land(end[i]), "{:?}", end[i]);
+                if start[i].0.is_finite() && (end[i].0 - start[i].0).abs() > 1e-6 {
+                    moved += 1;
+                }
+            }
+        }
+        assert!(moved > 100, "{moved}");
+        // The drift draws its own random numbers: the parcels' are untouched.
+        let mut u = with_pool(1.0e6, 0.0);
+        u.seed_flow_particles(400);
+        assert_eq!(u.rng.uniform().to_bits(), parcels_before.to_bits());
     }
 
     #[test]

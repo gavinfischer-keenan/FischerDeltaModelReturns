@@ -59,6 +59,9 @@ export interface NetworkFrame {
   velocity: Float32Array;
   particleElement: Uint32Array;
   particleFraction: Float32Array;
+  /** Each particle's place on its pool's water, flat (lon, lat); NaN where it
+   * is not in a pool with mapped water. A pool's particles drift there. */
+  particlePool: Float64Array;
   parcelElement: Uint32Array;
   parcelFraction: Float32Array;
   /** Concentration where each parcel is, kg/m3. */
